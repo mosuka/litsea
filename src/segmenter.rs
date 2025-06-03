@@ -44,8 +44,8 @@ impl Segmenter {
     /// # Returns
     /// A static string representing the type of the character, such as "M", "H", "I", "K", "A", "N", or "O" (for others).
     pub fn get_type(&self, ch: &str) -> &str {
-        for (regex, label) in &self.patterns {
-            if regex.is_match(ch) {
+        for (pattern, label) in &self.patterns {
+            if pattern.is_match(ch) {
                 return label;
             }
         }
