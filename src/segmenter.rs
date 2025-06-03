@@ -53,7 +53,9 @@ impl Segmenter {
     /// * `ch` - A string slice representing a single character.
     ///
     /// # Returns
-    /// A static string representing the type of the character, such as "M", "H", "I", "K", "A", "N", or "O" (for others).
+    /// A string slice representing the type of the character, such as "N" for number,
+    /// "I" for Hiragana, "K" for Katakana, etc. If the character does not match any pattern,
+    /// it returns "O" for Other.
     pub fn get_type(&self, ch: &str) -> &str {
         for (pattern, label) in &self.patterns {
             if pattern.is_match(ch) {
