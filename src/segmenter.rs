@@ -29,6 +29,7 @@ impl Segmenter {
             (Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap(), "A"),
             (Regex::new(r"[0-9０-９]").unwrap(), "N"),
         ];
+
         Segmenter {
             patterns,
             learner: learner.unwrap_or_else(|| AdaBoost::new(0.01, 100, 1)),
@@ -41,14 +42,14 @@ impl Segmenter {
     /// * `ch` - A string slice representing a single character.
     ///
     /// # Returns
-    /// A static string representing the type of the character, such as "M", "H", "I", "K", "A", "N", or "O" (for others).
-    pub fn get_type(&self, ch: &str) -> &'static str {
-        for (pattern, s_type) in &self.patterns {
-            if pattern.is_match(ch) {
-                return s_type;
+    /// Returns a string slice representing the type of the character.
+    pub fn get_type(&self, ch: &str) -> &str {
+        for (regex, label) in &self.patterns {
+            if regex.is_match(ch) {
+                return label;
             }
         }
-        "O"
+        "O" // Other
     }
 
     /// Adds a sentence to the segmenter with a custom writer function.
@@ -267,5 +268,38 @@ impl Segmenter {
         .iter()
         .cloned()
         .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use super::*;
+
+    #[test]
+    fn test_segmenter() {
+        let model_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("./resources")
+            .join("RWCP.model");
+
+        let mut learner = AdaBoost::new(0.01, 100, 1);
+        learner.load_model(model_file.as_path()).unwrap();
+
+        let mut segmenter = Segmenter::new(Some(learner));
+        let sentence = "これはテストです。";
+        segmenter.add_sentence(sentence);
+        let result = segmenter.parse(sentence);
+        assert!(!result.is_empty());
+        assert_eq!(result.len(), 5); // Adjust based on expected segmentation
+    }
+
+    #[test]
+    fn test_get_type() {
+        let segmenter = Segmenter::new(None);
+        assert_eq!(segmenter.get_type("あ"), "I"); // Hiragana
+        assert_eq!(segmenter.get_type("漢"), "H"); // Kanji
+        assert_eq!(segmenter.get_type("A"), "A"); // Latin
+        assert_eq!(segmenter.get_type("1"), "N"); // Digit
     }
 }
