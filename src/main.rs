@@ -92,7 +92,7 @@ fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
 
     extractor.extract(args.corpus_file.as_path(), args.features_file.as_path())?;
 
-    println!("Feature extraction completed successfully.");
+    eprintln!("Feature extraction completed successfully.");
     Ok(())
 }
 
@@ -129,9 +129,35 @@ fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
         trainer.load_model(model_path.as_path())?;
     }
 
-    trainer.train(running, args.model_file.as_path())?;
+    let metrics = trainer.train(running, args.model_file.as_path())?;
 
-    println!("Training completed successfully.");
+    eprintln!("Result Metrics:");
+    eprintln!(
+        "  Accuracy: {:.2}% ( {} / {} )",
+        metrics.accuracy,
+        metrics.true_positives + metrics.true_negatives,
+        metrics.num_instances
+    );
+    eprintln!(
+        "  Precision: {:.2}% ( {} / {} )",
+        metrics.precision,
+        metrics.true_positives,
+        metrics.true_positives + metrics.false_positives
+    );
+    eprintln!(
+        "  Recall: {:.2}% ( {} / {} )",
+        metrics.recall,
+        metrics.true_positives,
+        metrics.true_positives + metrics.false_negatives
+    );
+    eprintln!(
+        "  Confusion Matrix:\n    True Positives: {}\n    False Positives: {}\n    False Negatives: {}\n    True Negatives: {}",
+        metrics.true_positives,
+        metrics.false_positives,
+        metrics.false_negatives,
+        metrics.true_negatives
+    );
+
     Ok(())
 }
 

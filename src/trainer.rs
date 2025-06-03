@@ -2,7 +2,7 @@ use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
-use crate::adaboost::AdaBoost;
+use crate::adaboost::{AdaBoost, Metrics};
 
 /// Trainer struct for managing the AdaBoost training process.
 /// It initializes the AdaBoost learner with the specified parameters,
@@ -74,13 +74,12 @@ impl Trainer {
         &mut self,
         running: Arc<AtomicBool>,
         model_path: &Path,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<Metrics, Box<dyn std::error::Error>> {
         self.learner.train(running.clone());
 
         // Save the trained model to the specified file
         self.learner.save_model(model_path)?;
-        self.learner.show_result();
 
-        Ok(())
+        Ok(self.learner.get_metrics())
     }
 }
