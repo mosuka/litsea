@@ -78,16 +78,10 @@ impl AdaBoost {
             }
             self.num_instances += 1;
             if self.num_instances % 1000 == 0 {
-                eprint!(
-                    "\rfinding instances...: {} instances found",
-                    self.num_instances
-                );
+                eprint!("\rfinding instances...: {} instances found", self.num_instances);
             }
         }
-        eprintln!(
-            "\rfinding instances...: {} instances found",
-            self.num_instances
-        );
+        eprintln!("\rfinding instances...: {} instances found", self.num_instances);
         map.insert("".to_string(), 0.0);
 
         self.features = map.keys().cloned().collect();
@@ -133,8 +127,7 @@ impl AdaBoost {
 
             let end = self.instances_buf.len();
             self.instances.push((start, end));
-            self.instance_weights
-                .push((-2.0 * label as f64 * score).exp());
+            self.instance_weights.push((-2.0 * label as f64 * score).exp());
 
             if self.instance_weights.len() % 1000 == 0 {
                 eprint!(
@@ -192,11 +185,7 @@ impl AdaBoost {
                 }
             }
 
-            eprint!(
-                "\rIteration {} - margin: {}",
-                t,
-                (0.5 - best_error_rate).abs()
-            );
+            eprint!("\rIteration {} - margin: {}", t, (0.5 - best_error_rate).abs());
             if (0.5 - best_error_rate).abs() < self.threshold {
                 break;
             }
@@ -212,11 +201,7 @@ impl AdaBoost {
                 let label = self.labels[i];
                 let (start, end) = self.instances[i];
                 let hs = &self.instances_buf[start..end];
-                let prediction = if hs.binary_search(&h_best).is_ok() {
-                    1
-                } else {
-                    -1
-                };
+                let prediction = if hs.binary_search(&h_best).is_ok() { 1 } else { -1 };
                 if label * prediction < 0 {
                     self.instance_weights[i] *= alpha_exp;
                 } else {
@@ -335,18 +320,10 @@ impl AdaBoost {
         let recall = pp as f64 / (pp + np).max(1) as f64 * 100.0;
 
         eprintln!("Result:");
-        eprintln!(
-            "Accuracy: {:.2}% ({} / {})",
-            acc,
-            pp + nn,
-            self.num_instances
-        );
+        eprintln!("Accuracy: {:.2}% ({} / {})", acc, pp + nn, self.num_instances);
         eprintln!("Precision: {:.2}% ({} / {})", prec, pp, pp + pn);
         eprintln!("Recall: {:.2}% ({} / {})", recall, pp, pp + np);
-        eprintln!(
-            "Confusion Matrix: TP: {}, FP: {}, FN: {}, TN: {}",
-            pp, pn, np, nn
-        );
+        eprintln!("Confusion Matrix: TP: {}, FP: {}, FN: {}, TN: {}", pp, pn, np, nn);
     }
 
     /// Adds a new instance to the model.
