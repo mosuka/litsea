@@ -84,3 +84,41 @@ impl Extractor {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use std::fs::File;
+    use std::io::{Read, Write};
+
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_extract() -> Result<(), Box<dyn std::error::Error>> {
+        // Create a temporary file to simulate the corpus input
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "これ は テスト です 。")?;
+        writeln!(corpus_file, "別 の 文 も あり ます 。")?;
+        corpus_file.as_file().sync_all()?;
+
+        // Create a temporary file for the features output
+        let features_file = NamedTempFile::new()?;
+
+        // Create an instance of Extractor and extract features
+        let mut extractor = Extractor::new();
+        extractor.extract(corpus_file.path(), features_file.path())?;
+
+        // Read the output from the features file
+        let mut output = String::new();
+        File::open(features_file.path())?.read_to_string(&mut output)?;
+
+        // Check if the output is not empty
+        assert!(!output.is_empty(), "Extracted features should not be empty");
+
+        // Check if the output contains tab-separated values
+        assert!(output.contains("\t"), "Output should contain tab-separated values");
+
+        Ok(())
+    }
+}
