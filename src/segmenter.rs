@@ -304,6 +304,11 @@ mod tests {
         let result = segmenter.parse(sentence);
         assert!(!result.is_empty());
         assert_eq!(result.len(), 5); // Adjust based on expected segmentation
+        assert_eq!(result[0], "これ");
+        assert_eq!(result[1], "は");
+        assert_eq!(result[2], "テスト");
+        assert_eq!(result[3], "です");
+        assert_eq!(result[4], "。");
     }
 
     #[test]
