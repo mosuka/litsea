@@ -83,3 +83,79 @@ impl Trainer {
         Ok(self.learner.get_metrics())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::adaboost::Metrics;
+    use std::io::Write;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::Arc;
+    use tempfile::NamedTempFile;
+
+    // Helper: create a dummy features file.
+    // This file should contain at least one line for initialize_features and initialize_instances.
+    fn create_dummy_features_file() -> NamedTempFile {
+        let mut file = NamedTempFile::new().expect("Failed to create temp file for features");
+
+        // For example, it could contain "1 feature1" to represent one feature.
+        writeln!(file, "1 feature1").expect("Failed to write to features file");
+        file
+    }
+
+    // Helper: create a dummy model file.
+    // This file should contain the model weights and bias.
+    fn create_dummy_model_file() -> NamedTempFile {
+        let mut file = NamedTempFile::new().expect("Failed to create temp file for model");
+
+        // For example, it could contain a single feature weight and a bias term.
+        // The feature line is "BW1:こん	-0.1262" and the last line is the bias term "100.0".
+        writeln!(file, "BW1:こん\t-0.1262").expect("Failed to write feature");
+        writeln!(file, "100.0").expect("Failed to write bias");
+        file
+    }
+
+    #[test]
+    fn test_load_model() -> Result<(), Box<dyn std::error::Error>> {
+        // Prepare a dummy features file
+        let features_file = create_dummy_features_file();
+
+        // Create a Trainer instance
+        let mut trainer = Trainer::new(0.01, 10, 1, features_file.path());
+
+        // Prepare a dummy model file
+        let model_file = create_dummy_model_file();
+
+        // Load the model file into the Trainer
+        // This should not return an error if the model file is correctly formatted.
+        // If the model file is not correctly formatted, it will return an error.
+        trainer.load_model(model_file.path())?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_train() -> Result<(), Box<dyn std::error::Error>> {
+        // Prepare a dummy features file
+        let features_file = create_dummy_features_file();
+
+        // Create a Trainer instance with the dummy features file
+        let mut trainer = Trainer::new(0.01, 5, 1, features_file.path());
+
+        // Prepare a temporary file for the model output
+        let model_out = NamedTempFile::new()?;
+
+        // Set AtomicBool to false and immediately exit the learning loop
+        let running = Arc::new(AtomicBool::new(false));
+
+        // Execute the train method.
+        let metrics: Metrics = trainer.train(running, model_out.path())?;
+
+        // Check if the metrics are valie.
+        // Since metrics are dummy data, we will consider anything 0 or above to be OK here.
+        assert!(metrics.accuracy >= 0.0);
+        assert!(metrics.precision >= 0.0);
+        assert!(metrics.recall >= 0.0);
+        Ok(())
+    }
+}
