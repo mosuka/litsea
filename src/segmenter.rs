@@ -291,6 +291,37 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_add_sentence_with_writer() {
+        let mut segmenter = Segmenter::new(None);
+        let sentence = "テスト です";
+        let mut collected = Vec::new();
+
+        segmenter.add_sentence_with_writer(sentence, |attrs, label| {
+            collected.push((attrs, label));
+        });
+
+        // There should be as many instances as there are characters (excluding padding)
+        assert!(!collected.is_empty());
+
+        // Check that labels are either 1 or -1
+        for (_, label) in &collected {
+            assert!(*label == 1 || *label == -1);
+        }
+
+        // Check that attributes contain expected keys
+        let (attrs, _) = &collected[0];
+        assert!(attrs.iter().any(|a| a.starts_with("UW")));
+        assert!(attrs.iter().any(|a| a.starts_with("UC")));
+    }
+
+    #[test]
+    fn test_add_sentence_empty() {
+        let mut segmenter = Segmenter::new(None);
+        segmenter.add_sentence("");
+        // Should not panic or add anything
+    }
+
+    #[test]
     fn test_segmenter() {
         let sentence = "これはテストです。";
 
@@ -314,6 +345,13 @@ mod tests {
     }
 
     #[test]
+    fn test_segment_empty_sentence() {
+        let segmenter = Segmenter::new(None);
+        let result = segmenter.segment("");
+        assert!(result.is_empty());
+    }
+
+    #[test]
     fn test_get_type() {
         let segmenter = Segmenter::new(None);
 
@@ -321,5 +359,38 @@ mod tests {
         assert_eq!(segmenter.get_type("漢"), "H"); // Kanji
         assert_eq!(segmenter.get_type("A"), "A"); // Latin
         assert_eq!(segmenter.get_type("1"), "N"); // Digit
+        assert_eq!(segmenter.get_type("@"), "O"); // Not matching any pattern
+    }
+
+    #[test]
+    fn test_get_attributes_content() {
+        let segmenter = Segmenter::new(None);
+
+        let tags = vec!["U".to_string(); 7];
+
+        let chars = vec![
+            "B3".to_string(), // index 0
+            "B2".to_string(), // index 1
+            "B1".to_string(), // index 2
+            "あ".to_string(), // index 3
+            "い".to_string(), // index 4
+            "う".to_string(), // index 5
+            "E1".to_string(), // index 6
+        ];
+
+        let types = vec![
+            "O".to_string(), // index 0
+            "O".to_string(), // index 1
+            "O".to_string(), // index 2
+            "O".to_string(), // index 3
+            "I".to_string(), // index 4
+            "I".to_string(), // index 5
+            "O".to_string(), // index 6
+        ];
+
+        let attrs = segmenter.get_attributes(4, &tags, &chars, &types);
+        assert!(attrs.contains("UW4:い"));
+        assert!(attrs.contains("UC4:I"));
+        assert!(attrs.contains("UP3:U"));
     }
 }
