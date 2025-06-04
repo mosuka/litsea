@@ -160,14 +160,14 @@ impl Segmenter {
         }
     }
 
-    /// Parses a sentence and segments it into words.
+    /// Segments a sentence and segments it into words.
     ///
     /// # Arguments
     /// * `sentence` - A string slice representing the sentence to be parsed.
     ///
     /// # Returns
     /// A vector of strings, where each string is a segmented word from the sentence.
-    pub fn parse(&self, sentence: &str) -> Vec<String> {
+    pub fn segment(&self, sentence: &str) -> Vec<String> {
         if sentence.is_empty() {
             return Vec::new();
         }
@@ -301,7 +301,7 @@ mod tests {
         let mut segmenter = Segmenter::new(Some(learner));
         let sentence = "これはテストです。";
         segmenter.add_sentence(sentence);
-        let result = segmenter.parse(sentence);
+        let result = segmenter.segment(sentence);
         assert!(!result.is_empty());
         assert_eq!(result.len(), 5); // Adjust based on expected segmentation
         assert_eq!(result[0], "これ");

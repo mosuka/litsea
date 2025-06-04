@@ -186,7 +186,7 @@ fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
         if line.is_empty() {
             continue;
         }
-        let tokens = segmenter.parse(line);
+        let tokens = segmenter.segment(line);
         writeln!(writer, "{}", tokens.join(" "))?;
     }
 
