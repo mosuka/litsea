@@ -19,11 +19,7 @@ impl Segmenter {
     /// A new Segmenter instance with the specified or default AdaBoost learner.
     ///
     /// # Note
-    /// The patterns are predefined to match various character types, including numbers, Japanese scripts,
-    /// Korean Hangul, Thai script, Kanji, and Latin characters. Each pattern is associated with a label
-    /// that indicates the type of character it matches, such as "N" for numbers, "I" for Hiragana, "K" for Katakana,
-    /// "G" for Hangul, "T" for Thai, "H" for Kanji, "Z" for CJK Unified Ideographs, "E" for Extended Latin,
-    /// and "A" for ASCII/Full-width Latin characters.
+    /// This method initializes the segmenter with predefined patterns for character classification.
     ///
     /// # Example
     /// ```
@@ -34,26 +30,18 @@ impl Segmenter {
     /// This will create a new Segmenter instance with a default AdaBoost learner.
     pub fn new(learner: Option<AdaBoost>) -> Self {
         let patterns = vec![
-            // Numbers
-            (Regex::new(r"[0-9０-９]").unwrap(), "N"),
             // Japanese Kanji numbers
             (Regex::new(r"[一二三四五六七八九十百千万億兆]").unwrap(), "M"),
+            // Kanji (Japanese)
+            (Regex::new(r"[一-龠々〆ヵヶ]").unwrap(), "H"),
             // Hiragana (Japanese)
             (Regex::new(r"[ぁ-ん]").unwrap(), "I"),
             // Katakana (Japanese)
             (Regex::new(r"[ァ-ヴーｱ-ﾝﾞﾟ]").unwrap(), "K"),
-            // Hangul (Korean)
-            (Regex::new(r"[가-힣]").unwrap(), "G"),
-            // Thai script
-            (Regex::new(r"[ก-๛]").unwrap(), "T"),
-            // Kanji (Japanese)
-            (Regex::new(r"[一-龠々〆ヵヶ]").unwrap(), "H"),
-            // Kanji (CJK Unified Ideographs)
-            (Regex::new(r"[㐀-䶵一-鿿]").unwrap(), "Z"),
-            // Extended Latin (Vietnamese, etc.)
-            (Regex::new(r"[À-ÿĀ-ſƀ-ƿǍ-ɏ]").unwrap(), "E"),
             // ASCII + Full-width Latin
             (Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap(), "A"),
+            // Numbers
+            (Regex::new(r"[0-9０-９]").unwrap(), "N"),
         ];
 
         Segmenter {
@@ -68,9 +56,14 @@ impl Segmenter {
     /// * `ch` - A string slice representing a single character.
     ///
     /// # Returns
-    /// A string slice representing the type of the character, such as "N" for numbers, "I" for Hiragana,
-    /// "K" for Katakana, "G" for Hangul, "T" for Thai, "H" for Kanji, "Z" for CJK Unified Ideographs,
-    /// "E" for Extended Latin, and "A" for ASCII/Full-width Latin characters.
+    /// A string slice representing the type of the character:
+    /// - "M" for Kanji numbers
+    /// - "H" for Kanji
+    /// - "I" for Hiragana
+    /// - "K" for Katakana
+    /// - "A" for Latin characters (ASCII and Full-width)
+    /// - "N" for digits (0-9 and Full-width digits)
+    /// - "O" for Other characters (not matching any pattern)
     ///
     /// # Note
     /// If the character does not match any of the predefined patterns, it returns "O" for Other.
