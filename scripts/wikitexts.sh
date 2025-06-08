@@ -236,11 +236,18 @@ shuf -n ${title_count} ${tmpfile} | while read -r title; do
     readarray -t sentences < <(echo "${longest_line}" | sed -E 's/([!?\！？。]+)/\1\n/g')
 
     for sentence in "${sentences[@]}"; do
-        # 文章が空だったら無視
+        ## Replace consecutive spaces with a single space
+        line=$(echo "$line" | tr -s ' ')
+
+        # Trim sentence
+        sentence=$(echo "${sentence}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+        # If the sentence is empty, ignore it.
         if [[ -z "${sentence}" ]]; then
             continue
         fi
 
+        # Append the sentence to the texts file
         echo "${sentence}" >> "${texts_file}"
     done
 done
