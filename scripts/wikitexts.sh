@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Default value (uses the value defined in the environment variables, if defined)
-lang="${WIKI_LANG:-ja}"
 timestamp="${WIKI_TIMESTAMP:-20250601}"
 title_count="${WIKI_TITLE_COUNT:-1000}"
 texts_file="${WIKI_TEXTS_FILE:-texts.txt}"
@@ -30,16 +29,15 @@ while getopts "hl:t:c:o:" opt; do
 done
 shift $((OPTIND - 1))
 
-echo "Using language: ${lang}"
 echo "Timestamp: ${timestamp}"
 echo "Title count: ${title_count}"
 echo "Texts file: ${texts_file}"
 
 
-file_name="${lang}wiki-${timestamp}-pages-articles-multistream-index.txt"
+file_name="jawiki-${timestamp}-pages-articles-multistream-index.txt"
 download_dir=/tmp
 download_file="${file_name}.bz2"
-download_url="https://dumps.wikimedia.org/${lang}wiki/${timestamp}/${download_file}"
+download_url="https://dumps.wikimedia.org/jawiki/${timestamp}/${download_file}"
 
 ###############################################################################
 # spinner definition
@@ -211,10 +209,10 @@ shuf -n ${title_count} ${tmpfile} | while read -r title; do
     # echo "Processing title: ${title} (encoded: ${encoded_title})"
 
     # Generate Wikipedia URL
-    url="https://${lang}.wikipedia.org/wiki/${encoded_title}"
+    url="https://ja.wikipedia.org/wiki/${encoded_title}"
 
     # Generate Wikipedia API URL
-    url="https://${lang}.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&explaintext=1&redirects=1&titles=${encoded_title}"
+    url="https://ja.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&explaintext=1&redirects=1&titles=${encoded_title}"
 
     # Retrieve data from API and extract text
     text=$(curl -s "${url}" | jq -r '.query.pages[] | .extract')
