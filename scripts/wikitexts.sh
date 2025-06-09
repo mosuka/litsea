@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Default value (uses the value defined in the environment variables, if defined)
-timestamp="${WIKI_TIMESTAMP:-20250601}"
+timestamp="${WIKI_TIMESTAMP:-latest}"
 title_count="${WIKI_TITLE_COUNT:-1000}"
-texts_file="${WIKI_TEXTS_FILE:-texts.txt}"
+texts_file="${WIKI_TEXTS_FILE:-wiki_texts.txt}"
 
 ###############################################################################
 # usage function
@@ -13,14 +13,13 @@ texts_file="${WIKI_TEXTS_FILE:-texts.txt}"
 # It prints the usage information and exits the script with a status code of 1.
 ###############################################################################
 usage() {
-    echo "Usage: $0 [-h] [-l language] [-t timestamp] [-c title_count] [-o texts_file]"
+    echo "Usage: $0 [-h] [-t timestamp] [-c title_count] [-o texts_file]"
     exit 1
 }
 
 while getopts "hl:t:c:o:" opt; do
     case "$opt" in
         h) usage ;;
-        l) lang="$OPTARG" ;;
         t) timestamp="$OPTARG" ;;
         c) title_count="$OPTARG" ;;
         o) texts_file="$OPTARG" ;;
@@ -244,6 +243,11 @@ shuf -n ${title_count} ${tmpfile} | while read -r title; do
 
         # If the sentence is empty, ignore it.
         if [[ -z "${sentence}" ]]; then
+            continue
+        fi
+
+        # 英数記号のみの行を除外
+        if [[ "${sentence}" =~ ^[a-zA-Z0-9[:space:]\p{P}\p{S}]+$ ]]; then
             continue
         fi
 

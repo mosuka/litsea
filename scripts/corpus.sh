@@ -95,6 +95,9 @@ while IFS= read -r sentence; do
         -t 'japanese_compound_word:{"kind":"unidic","tags":["名詞,数詞"],"new_tag":"複合語"}' \
         -t 'japanese_compound_word:{"kind":"unidic","tags":["記号,文字"],"new_tag":"複合語"}')
 
+    ## Replace consecutive spaces with a single space
+    words=$(echo "$words" | tr -s ' ')
+
     # Append the segmented words to the corpus file
     echo "$words" >> "$corpus_file"
 done < "$texts_file"
