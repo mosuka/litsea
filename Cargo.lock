@@ -228,13 +228,20 @@ checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
 name = "litsea"
 version = "0.2.0"
 dependencies = [
- "clap",
- "ctrlc",
  "rayon",
  "regex",
  "serde",
  "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "litsea-cli"
+version = "0.2.0"
+dependencies = [
+ "clap",
+ "ctrlc",
+ "litsea",
 ]
 
 [[package]]

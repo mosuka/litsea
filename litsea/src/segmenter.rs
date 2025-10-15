@@ -235,7 +235,7 @@ impl Segmenter {
     /// use litsea::adaboost::AdaBoost;
     ///
     /// let model_file =
-    ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("./resources").join("RWCP.model");
+    ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources").join("RWCP.model");
     /// let mut learner = AdaBoost::new(0.01, 100, 1);
     /// learner.load_model(model_file.as_path()).unwrap();
     ///
@@ -420,8 +420,9 @@ mod tests {
     fn test_segment() {
         let sentence = "これはテストです。";
 
-        let model_file =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("./resources").join("RWCP.model");
+        let model_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../resources")
+            .join("RWCP.model");
         let mut learner = AdaBoost::new(0.01, 100, 1);
         learner.load_model(model_file.as_path()).unwrap();
 
