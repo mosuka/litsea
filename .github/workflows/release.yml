@@ -95,7 +95,6 @@ jobs:
             archive: .zip
             extension: .exe
         toolchain: [stable]
-        feature: [default]
     runs-on: ${{ matrix.platform.runner }}
     steps:
       - name: Run checkout
@@ -130,26 +129,26 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Compile
-        run: cargo build --release --features="${{ matrix.feature }}" --target=${{ matrix.platform.target }} --target-dir=target/${{ matrix.feature }}
+        run: cargo build --release --target=${{ matrix.platform.target }}
 
       - name: Create artifact for Linux
         if: matrix.platform.runner == 'ubuntu-latest'
-        run: zip --junk-paths litsea-${{ matrix.feature }}-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.feature }}/${{ matrix.platform.target }}/release/litsea${{ matrix.platform.extension }}
+        run: zip --junk-paths litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
 
       - name: Create artifact for Windows
         if: matrix.platform.runner == 'windows-latest'
-        run: powershell Compress-Archive -DestinationPath litsea-${{ matrix.feature }}-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} -Path target/${{ matrix.feature }}/${{ matrix.platform.target }}/release/litsea${{ matrix.platform.extension }}
+        run: powershell Compress-Archive -DestinationPath litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} -Path target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
 
       - name: Create artifact for OSX
         if: matrix.platform.runner == 'macos-latest'
-        run: zip --junk-paths litsea-${{ matrix.feature }}-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.feature }}/${{ matrix.platform.target }}/release/litsea${{ matrix.platform.extension }}
+        run: zip --junk-paths litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
 
       - name: Upload artifact
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: litsea-${{ matrix.feature }}-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }}
+          files: litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }}
           name: Release ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           draft: false
