@@ -4,7 +4,7 @@ members = ["litsea", "litsea-cli"]
 
 [workspace.package]
 version = "0.2.0"
-edition = "2021"
+edition = "2024"
 description = "Litsea is an extreamely compact word segmentation and model training tool implemented in Rust."
 documentation = "https://docs.rs/litsea"
 homepage = "https://github.com/mosuka/litsea"
@@ -13,3 +13,14 @@ readme = "README.md"
 keywords = ["word", "segmentation", "training", "model"]
 categories = ["text-processing"]
 license = "MIT"
+
+[workspace.dependencies]
+clap = { version = "4.5.49", features = ["derive"] }
+ctrlc = "3.5.0"
+rayon = "1.11.0"
+regex = "1.12.2"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+tempfile = "3.23.0"
+
+litsea = { version = "0.2.0", path = "./litsea" }

@@ -1,17 +1,17 @@
 [package]
 name = "litsea-cli"
-version.workspace = true
-edition.workspace = true
-description.workspace = true
-documentation.workspace = true
-homepage.workspace = true
-repository.workspace = true
-readme.workspace = true
-keywords.workspace = true
-categories.workspace = true
-license.workspace = true
+version = "0.2.0"
+edition = "2024"
+description = "Command line interface for Litsea."
+documentation = "https://docs.rs/litsea-cli"
+homepage = "https://github.com/mosuka/litsea/litsea-cli"
+repository = "https://github.com/mosuka/litsea"
+readme = "README.md"
+keywords = ["word", "segmentation", "training", "model"]
+categories = ["text-processing"]
+license = "MIT"
 
 [dependencies]
-clap = { version = "4.5.39", features = ["derive"] }
-ctrlc = "3.4.7"
-litsea = { version = "0.2.0", path = "../litsea" }
+clap.workspace = true
+ctrlc.workspace = true
+litsea.workspace = true
