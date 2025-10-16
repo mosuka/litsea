@@ -418,7 +418,7 @@ impl AdaBoost {
     /// # Returns: A result indicating success or failure.
     ///
     /// # Errors: Returns an error if the content cannot be parsed.
-    fn parse_model_content<R: BufRead>(&mut self, reader: R) -> std::io::Result<()> {
+    pub fn parse_model_content<R: BufRead>(&mut self, reader: R) -> std::io::Result<()> {
         let mut m: HashMap<String, f64> = HashMap::new();
         let mut bias = 0.0;
 
