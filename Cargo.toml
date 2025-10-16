@@ -3,7 +3,7 @@ resolver = "3"
 members = ["litsea", "litsea-cli"]
 
 [workspace.package]
-version = "0.3.1"
+version = "0.3.2"
 edition = "2024"
 description = "Litsea is an extreamely compact word segmentation and model training tool implemented in Rust."
 documentation = "https://docs.rs/litsea"
@@ -28,4 +28,4 @@ tempfile = "3.23.0"
 tokio = { version = "1.48.0", features = ["rt-multi-thread", "macros"] }
 tokio-test = "0.4.4"
 
-litsea = { version = "0.3.1", path = "./litsea" }
+litsea = { version = "0.3.2", path = "./litsea" }
