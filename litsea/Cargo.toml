@@ -12,10 +12,15 @@ categories.workspace = true
 license.workspace = true
 
 [dependencies]
-rayon.workspace = true
 regex.workspace = true
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
-[dev-dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rayon.workspace = true
+tokio.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tempfile.workspace = true
+tokio-test.workspace = true

@@ -234,14 +234,16 @@ impl Segmenter {
     /// use litsea::segmenter::Segmenter;
     /// use litsea::adaboost::AdaBoost;
     ///
+    /// # tokio_test::block_on(async {
     /// let model_file =
     ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources").join("RWCP.model");
     /// let mut learner = AdaBoost::new(0.01, 100, 1);
-    /// learner.load_model(model_file.as_path()).unwrap();
+    /// learner.load_model(model_file.to_str().unwrap()).await.unwrap();
     ///
     /// let segmenter = Segmenter::new(Some(learner));
     /// let result = segmenter.segment("これはテストです。");
     /// assert_eq!(result, vec!["これ", "は", "テスト", "です", "。"]);
+    /// # });
     /// ```
     /// This will segment the sentence into words and return them as a vector of strings.
     pub fn segment(&self, sentence: &str) -> Vec<String> {
@@ -416,15 +418,15 @@ mod tests {
         // Should not panic or add anything, just a smoke test
     }
 
-    #[test]
-    fn test_segment() {
+    #[tokio::test]
+    async fn test_segment() {
         let sentence = "これはテストです。";
 
         let model_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../resources")
             .join("RWCP.model");
         let mut learner = AdaBoost::new(0.01, 100, 1);
-        learner.load_model(model_file.as_path()).unwrap();
+        learner.load_model(model_file.to_str().unwrap()).await.unwrap();
 
         let segmenter = Segmenter::new(Some(learner));
 

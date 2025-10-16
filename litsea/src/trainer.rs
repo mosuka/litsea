@@ -54,9 +54,9 @@ impl Trainer {
     ///
     /// # Errors
     /// Returns an error if the model cannot be loaded.
-    pub fn load_model(&mut self, model_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn load_model(&mut self, model_uri: &str) -> Result<(), Box<dyn std::error::Error>> {
         // Load the model from the specified file
-        Ok(self.learner.load_model(model_path)?)
+        Ok(self.learner.load_model(model_uri).await?)
     }
 
     /// Train the AdaBoost model.
@@ -118,8 +118,8 @@ mod tests {
         file
     }
 
-    #[test]
-    fn test_load_model() -> Result<(), Box<dyn std::error::Error>> {
+    #[tokio::test]
+    async fn test_load_model() -> Result<(), Box<dyn std::error::Error>> {
         // Prepare a dummy features file
         let features_file = create_dummy_features_file();
 
@@ -132,7 +132,7 @@ mod tests {
         // Load the model file into the Trainer
         // This should not return an error if the model file is correctly formatted.
         // If the model file is not correctly formatted, it will return an error.
-        trainer.load_model(model_file.path())?;
+        trainer.load_model(model_file.path().to_str().unwrap()).await?;
 
         Ok(())
     }
