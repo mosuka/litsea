@@ -333,9 +333,7 @@ impl AdaBoost {
             match scheme {
                 ModelScheme::Http | ModelScheme::Https => {
                     self.load_model_from_url(uri).await.map_err(|e| {
-                        std::io::Error::other(
-                            format!("Failed to load model from URL: {}", e),
-                        )
+                        std::io::Error::other(format!("Failed to load model from URL: {}", e))
                     })
                 }
                 ModelScheme::File => {
@@ -384,32 +382,28 @@ impl AdaBoost {
         let client = Client::builder()
             .user_agent(format!("Litsea/{}", env!("CARGO_PKG_VERSION")))
             .build()
-            .map_err(|e| {
-                std::io::Error::other(
-                    format!("Failed to create HTTP client: {}", e),
-                )
-            })?;
+            .map_err(|e| std::io::Error::other(format!("Failed to create HTTP client: {}", e)))?;
 
         // Send GET request to the URL
-        let resp = client.get(url).send().await.map_err(|e| {
-            std::io::Error::other(
-                format!("Failed to download model: {}", e),
-            )
-        })?;
+        let resp = client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| std::io::Error::other(format!("Failed to download model: {}", e)))?;
 
         // Check if the response status is successful
         if !resp.status().is_success() {
-            return Err(std::io::Error::other(
-                format!("Failed to download model: HTTP {}", resp.status()),
-            ));
+            return Err(std::io::Error::other(format!(
+                "Failed to download model: HTTP {}",
+                resp.status()
+            )));
         }
 
         // Read the response body
-        let content = resp.bytes().await.map_err(|e| {
-            std::io::Error::other(
-                format!("Failed to read model content: {}", e),
-            )
-        })?;
+        let content = resp
+            .bytes()
+            .await
+            .map_err(|e| std::io::Error::other(format!("Failed to read model content: {}", e)))?;
 
         let reader = BufReader::new(content.as_ref());
         self.parse_model_content(reader)
