@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     steps:
       - name: Run checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@v1
@@ -47,7 +47,7 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     steps:
       - name: Run checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@v1
@@ -58,6 +58,23 @@ jobs:
 
       - name: Run test
         run: cargo test --target "${{ matrix.platform.target }}" --all-features
+
+  create-release:
+    name: Create Release
+    needs: [test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          make_latest: true
 
   release:
     name: Build
@@ -82,7 +99,7 @@ jobs:
     runs-on: ${{ matrix.platform.runner }}
     steps:
       - name: Run checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Cache ~/.cargo/registry
         uses: actions/cache@v4
@@ -164,7 +181,26 @@ jobs:
           LITSEA_VERSION=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea") | .version')
           LITSEA_VERSIONS=$(curl -s -XGET https://crates.io/api/v1/crates/litsea | jq -r 'select(.versions != null) | .versions[].num')
           if echo ${LITSEA_VERSIONS} | grep ${LITSEA_VERSION} >/dev/null; then
-            echo "litsea ${LITSEA_VERSION} has already been published"
+            echo "litsea ${LITSEA_VERSION} has already published"
           else
-            cargo publish --token ${{ secrets.CRATES_TOKEN }}
+            pushd litsea
+            cargo publish
+            popd
           fi
+          sleep 20
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
+
+      - name: Publish litsea-cli
+        run: |
+          LITSEA_CLI_VERSION=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea-cli") | .version')
+          LITSEA_CLI_VERSIONS=$(curl -s -XGET https://crates.io/api/v1/crates/litsea-cli | jq -r 'select(.versions != null) | .versions[].num')
+          if echo ${LITSEA_CLI_VERSIONS} | grep ${LITSEA_CLI_VERSION} >/dev/null; then
+            echo "litsea-cli ${LITSEA_CLI_VERSION} has already published"
+          else
+            pushd litsea-cli
+            cargo publish
+            popd
+          fi
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
