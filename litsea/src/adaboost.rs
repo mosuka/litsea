@@ -108,7 +108,7 @@ impl AdaBoost {
             }
 
             self.num_instances += 1;
-            if self.num_instances % 1000 == 0 {
+            if self.num_instances.is_multiple_of(1000) {
                 eprint!("\rfinding instances...: {} instances found", self.num_instances);
             }
         }
@@ -167,7 +167,7 @@ impl AdaBoost {
             let end = self.instances_buf.len();
             self.instances.push((start, end));
             self.instance_weights.push((-2.0 * label as f64 * score).exp());
-            if self.instance_weights.len() % 1000 == 0 {
+            if self.instance_weights.len().is_multiple_of(1000) {
                 eprint!(
                     "\rloading instances...: {}/{} instances loaded",
                     self.instance_weights.len(),

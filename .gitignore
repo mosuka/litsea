@@ -19,3 +19,6 @@ target/
 # Added by cargo
 
 /target
+
+.serena
+.mcp.json
