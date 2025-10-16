@@ -1,15 +1,15 @@
 [package]
 name = "litsea"
-version = "0.2.0"
-edition = "2024"
-description = "Litsea is an extreamely compact word segmentation and model training tool implemented in Rust."
-documentation = "https://docs.rs/litsea"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+documentation.workspace = true
 homepage = "https://github.com/mosuka/litsea/litsea"
-repository = "https://github.com/mosuka/litsea"
-readme = "README.md"
-keywords = ["word", "segmentation", "training", "model"]
-categories = ["text-processing"]
-license = "MIT"
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
 
 [dependencies]
 rayon.workspace = true
