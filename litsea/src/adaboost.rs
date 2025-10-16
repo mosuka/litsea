@@ -2,8 +2,13 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+
+use reqwest::Client;
+
+use crate::util::ModelScheme;
 
 type Label = i8;
 
@@ -302,6 +307,158 @@ impl AdaBoost {
         Ok(())
     }
 
+    /// Loads a model from a URI.
+    /// The URI can be a file path or a URL (http, https or file).
+    /// The model should contain lines with a feature and its weight,
+    /// with the last line containing the bias term.
+    ///
+    /// # Arguments
+    /// * `uri`: The URI of the file containing the model.
+    ///
+    /// # Returns: A result indicating success or failure.
+    ///
+    /// # Errors: Returns an error if the URI is invalid or the file cannot be read.
+    pub async fn load_model(&mut self, uri: &str) -> std::io::Result<()> {
+        if uri.contains("://") {
+            let parts: Vec<&str> = uri.splitn(2, "://").collect();
+            if parts.len() != 2 {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Invalid URI: {}", uri),
+                ));
+            }
+            let scheme = ModelScheme::from_str(parts[0]).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, e.to_string())
+            })?;
+            match scheme {
+                ModelScheme::Http | ModelScheme::Https => {
+                    self.load_model_from_url(uri).await.map_err(|e| {
+                        std::io::Error::other(format!("Failed to load model from URL: {}", e))
+                    })
+                }
+                ModelScheme::File => {
+                    #[cfg(target_arch = "wasm32")]
+                    {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::Unsupported,
+                            "file:// scheme is not supported in WASM environment. Use http:// or https:// URLs.",
+                        ));
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    {
+                        let path = Path::new(parts[1]);
+                        self.load_model_from_file(path)
+                    }
+                }
+            }
+        } else {
+            #[cfg(target_arch = "wasm32")]
+            {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Unsupported,
+                    "Local file paths are not supported in WASM environment. Use http:// or https:// URLs.",
+                ));
+            }
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let path = Path::new(uri);
+                self.load_model_from_file(path)
+            }
+        }
+    }
+
+    /// Loads a model from a URL.
+    /// The URL should point to a file containing lines with a feature and its weight,
+    /// with the last line containing the bias term.
+    ///
+    /// # Arguments
+    /// * `url`: The URL of the file containing the model.
+    ///
+    /// # Returns: A result indicating success or failure.
+    ///
+    /// # Errors: Returns an error if the URL cannot be accessed or the file cannot be read.
+    async fn load_model_from_url(&mut self, url: &str) -> std::io::Result<()> {
+        // Create HTTP client with a custom user agent
+        let client = Client::builder()
+            .user_agent(format!("Litsea/{}", env!("CARGO_PKG_VERSION")))
+            .build()
+            .map_err(|e| std::io::Error::other(format!("Failed to create HTTP client: {}", e)))?;
+
+        // Send GET request to the URL
+        let resp = client
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| std::io::Error::other(format!("Failed to download model: {}", e)))?;
+
+        // Check if the response status is successful
+        if !resp.status().is_success() {
+            return Err(std::io::Error::other(format!(
+                "Failed to download model: HTTP {}",
+                resp.status()
+            )));
+        }
+
+        // Read the response body
+        let content = resp
+            .bytes()
+            .await
+            .map_err(|e| std::io::Error::other(format!("Failed to read model content: {}", e)))?;
+
+        let reader = BufReader::new(content.as_ref());
+        self.parse_model_content(reader)
+    }
+
+    /// Parses model content from a buffered reader.
+    /// This is a helper method used by both `load_model_from_file` and `load_model_from_url`.
+    ///
+    /// # Arguments
+    /// * `reader`: A buffered reader containing the model data.
+    ///
+    /// # Returns: A result indicating success or failure.
+    ///
+    /// # Errors: Returns an error if the content cannot be parsed.
+    fn parse_model_content<R: BufRead>(&mut self, reader: R) -> std::io::Result<()> {
+        let mut m: HashMap<String, f64> = HashMap::new();
+        let mut bias = 0.0;
+
+        for (line_num, line) in reader.lines().enumerate() {
+            let line = line?;
+            let mut parts = line.split_whitespace();
+
+            let h = parts.next().ok_or_else(|| {
+                std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("Empty line at line {}", line_num + 1),
+                )
+            })?;
+
+            if let Some(v) = parts.next() {
+                let value: f64 = v.parse().map_err(|e| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Invalid value at line {}: {}", line_num + 1, e),
+                    )
+                })?;
+                m.insert(h.to_string(), value);
+                bias += value;
+            } else {
+                let b: f64 = h.parse().map_err(|e| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Invalid bias at line {}: {}", line_num + 1, e),
+                    )
+                })?;
+                m.insert("".to_string(), -b * 2.0 - bias);
+            }
+        }
+
+        let sorted: BTreeMap<_, _> = m.into_iter().collect();
+        self.features = sorted.keys().cloned().collect();
+        self.model = sorted.values().cloned().collect();
+        Ok(())
+    }
+
     /// Loads a model from a file.
     /// The file should contain lines with a feature and its weight,
     /// with the last line containing the bias term.
@@ -311,31 +468,20 @@ impl AdaBoost {
     ///
     /// # Returns: A result indicating success or failure.
     ///
-    /// # Errors: Returns an error if the file cannot be opened or read.
-    pub fn load_model(&mut self, filename: &Path) -> std::io::Result<()> {
+    /// # Errors: Returns an error if the file cannot be read.
+    #[cfg(not(target_arch = "wasm32"))]
+    fn load_model_from_file(&mut self, filename: &Path) -> std::io::Result<()> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
-        let mut m: HashMap<String, f64> = HashMap::new();
-        let mut bias = 0.0;
+        self.parse_model_content(reader)
+    }
 
-        for line in reader.lines() {
-            let line = line?;
-            let mut parts = line.split_whitespace();
-            let h = parts.next().unwrap();
-            if let Some(v) = parts.next() {
-                let value: f64 = v.parse().unwrap();
-                m.insert(h.to_string(), value);
-                bias += value;
-            } else {
-                let b: f64 = h.parse().unwrap();
-                m.insert("".to_string(), -b * 2.0 - bias);
-            }
-        }
-
-        let sorted: BTreeMap<_, _> = m.into_iter().collect();
-        self.features = sorted.keys().cloned().collect();
-        self.model = sorted.values().cloned().collect();
-        Ok(())
+    #[cfg(target_arch = "wasm32")]
+    fn load_model_from_file(&mut self, _filename: &Path) -> std::io::Result<()> {
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Unsupported,
+            "File system access is not supported in WASM environment",
+        ))
     }
 
     /// Adds a new instance to the model.
@@ -526,8 +672,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_save_and_load_model() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_save_and_load_model() -> std::io::Result<()> {
         // Prepare a dummy learner.
         let mut learner = AdaBoost::new(0.01, 10, 1);
 
@@ -541,7 +687,7 @@ mod tests {
 
         // Load the model with a new learner.
         let mut learner2 = AdaBoost::new(0.01, 10, 1);
-        learner2.load_model(temp_model.path())?;
+        learner2.load_model(temp_model.path().to_str().unwrap()).await?;
 
         // Check that the number of features and models match.
         assert_eq!(learner2.features.len(), learner.features.len());

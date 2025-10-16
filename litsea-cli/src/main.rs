@@ -41,7 +41,7 @@ struct TrainArgs {
     num_threads: usize,
 
     #[arg(short = 'm', long)]
-    load_model_file: Option<PathBuf>,
+    load_model_uri: Option<String>,
 
     features_file: PathBuf,
     model_file: PathBuf,
@@ -54,7 +54,7 @@ struct TrainArgs {
     version = get_version(),
 )]
 struct SegmentArgs {
-    model_file: PathBuf,
+    model_uri: String,
 }
 
 /// Subcommands for lietsea CLI.
@@ -105,7 +105,7 @@ fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
 ///
 /// # Returns
 /// Returns a Result indicating success or failure.
-fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
+async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
 
@@ -125,8 +125,8 @@ fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
         args.features_file.as_path(),
     );
 
-    if let Some(model_path) = &args.load_model_file {
-        trainer.load_model(model_path.as_path())?;
+    if let Some(model_uri) = &args.load_model_uri {
+        trainer.load_model(model_uri).await?;
     }
 
     let metrics = trainer.train(running, args.model_file.as_path())?;
@@ -171,9 +171,9 @@ fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
 ///
 /// # Returns
 /// Returns a Result indicating success or failure.
-fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
+async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     let mut leaner = AdaBoost::new(0.01, 100, 1);
-    leaner.load_model(args.model_file.as_path())?;
+    leaner.load_model(args.model_uri.as_str()).await?;
 
     let segmenter = Segmenter::new(Some(leaner));
     let stdin = io::stdin();
@@ -193,18 +193,19 @@ fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run() -> Result<(), Box<dyn std::error::Error>> {
+async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = CommandArgs::parse();
 
     match args.command {
         Commands::Extract(args) => extract(args),
-        Commands::Train(args) => train(args),
-        Commands::Segment(args) => segment(args),
+        Commands::Train(args) => train(args).await,
+        Commands::Segment(args) => segment(args).await,
     }
 }
 
-fn main() {
-    if let Err(e) = run() {
+#[tokio::main]
+async fn main() {
+    if let Err(e) = run().await {
         eprintln!("Error: {}", e);
         std::process::exit(1);
     }
