@@ -19,7 +19,7 @@ clap = { version = "4.5.49", features = ["derive"] }
 ctrlc = "3.5.0"
 rayon = "1.11.0"
 regex = "1.12.2"
-reqwest = { version = "0.12.24", features = [
+reqwest = { version = "0.12.26", features = [
     "rustls-tls",
 ], default-features = false } # use rustls-tls instead of native-tls which avoids the need to link openssl
 serde = { version = "1.0.228", features = ["derive"] }
