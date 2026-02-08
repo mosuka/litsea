@@ -1,5 +1,6 @@
 #!/bin/bash
 
+lang="${WIKI_LANG:-ja}"
 texts_file="${WIKI_TEXTS_FILE:-texts.txt}"
 corpus_file="${WIKI_CORPUS_FILE:-corpus.txt}"
 
@@ -11,13 +12,17 @@ corpus_file="${WIKI_CORPUS_FILE:-corpus.txt}"
 # It prints the usage information and exits the script with a status code of 1.
 ###############################################################################
 usage() {
-    echo "Usage: $0 [-h] [-t texts_file] [-c corpus_file]"
+    echo "Usage: $0 [-h] [-l lang] [-t texts_file] [-c corpus_file]"
+    echo "  -l lang         Language code: ja, ko, zh (default: ja)"
+    echo "  -t texts_file   Input texts file (default: texts.txt)"
+    echo "  -c corpus_file  Output corpus file (default: corpus.txt)"
     exit 1
 }
 
-while getopts "ht:c:" opt; do
+while getopts "hl:t:c:" opt; do
     case "$opt" in
         h) usage ;;
+        l) lang="$OPTARG" ;;
         t) texts_file="$OPTARG" ;;
         c) corpus_file="$OPTARG" ;;
         *) usage ;;
@@ -25,6 +30,33 @@ while getopts "ht:c:" opt; do
 done
 shift $((OPTIND - 1))
 
+###############################################################################
+# Set language-specific lindera options
+###############################################################################
+case "$lang" in
+    ja)
+        lindera_dict="embedded://unidic"
+        lindera_filters=( \
+            --token-filter 'japanese_compound_word:{"kind":"unidic","tags":["名詞,数詞"],"new_tag":"複合語"}' \
+            --token-filter 'japanese_compound_word:{"kind":"unidic","tags":["記号,文字"],"new_tag":"複合語"}' \
+        )
+        ;;
+    ko)
+        lindera_dict="embedded://ko-dic"
+        lindera_filters=()
+        ;;
+    zh)
+        lindera_dict="embedded://cc-cedict"
+        lindera_filters=()
+        ;;
+    *)
+        echo "Error: Unsupported language '${lang}'. Supported: ja, ko, zh"
+        exit 1
+        ;;
+esac
+
+echo "Language: ${lang}"
+echo "Lindera dict: ${lindera_dict}"
 echo "Texts file: ${texts_file}"
 echo "Corpus file: ${corpus_file}"
 
@@ -45,13 +77,13 @@ cleanup() {
     if [[ -n "$spinner_pid" ]]; then
         kill "$spinner_pid" 2>/dev/null
     fi
-    exit 1
 }
 
 ###############################################################################
 # Call cleanup when SIGINT, SIGTERM, or EXIT is received.
 ###############################################################################
-trap cleanup INT TERM EXIT
+trap cleanup EXIT
+trap 'exit 1' INT TERM
 
 
 ###############################################################################
@@ -76,31 +108,15 @@ spinner_loop() {
 spinner_loop "Creating ${corpus_file}" &
 spinner_pid=$!
 
-# Read one line at a time
-while IFS= read -r sentence; do
-    ## Replace consecutive spaces with a single space
-    sentence=$(echo "$sentence" | tr -s ' ')
-
-    # Remove leading and trailing whitespace
-    sentence=$(echo "${sentence}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-
-    # Skip empty lines
-    if [[ -z "$sentence" ]]; then
-        continue
-    fi
-
-    # Segment the sentence into words using Lindera
-    words=$(echo "$sentence" | lindera tokenize -k unidic \
-        -o wakati \
-        -t 'japanese_compound_word:{"kind":"unidic","tags":["名詞,数詞"],"new_tag":"複合語"}' \
-        -t 'japanese_compound_word:{"kind":"unidic","tags":["記号,文字"],"new_tag":"複合語"}')
-
-    ## Replace consecutive spaces with a single space
-    words=$(echo "$words" | tr -s ' ')
-
-    # Append the segmented words to the corpus file
-    echo "$words" >> "$corpus_file"
-done < "$texts_file"
+# Pre-process the texts file (normalize spaces, remove empty lines),
+# then tokenize all lines at once with Lindera, and normalize the output.
+sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$texts_file" | \
+    tr -s ' ' | \
+    sed '/^$/d' | \
+    lindera tokenize --dict "${lindera_dict}" \
+        --output wakati \
+        "${lindera_filters[@]}" | \
+    tr -s ' ' > "$corpus_file"
 
 # Stop the spinner after the loop is complete.
 kill "${spinner_pid}" 2>/dev/null

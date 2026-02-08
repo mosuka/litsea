@@ -1,89 +1,61 @@
-use crate::adaboost::AdaBoost;
-use regex::Regex;
 use std::collections::HashSet;
+
+use crate::adaboost::AdaBoost;
+use crate::language::{CharTypePatterns, Language};
 
 /// Segmenter struct for text segmentation using AdaBoost
 /// It uses predefined patterns to classify characters and segment sentences into words.
 pub struct Segmenter {
-    patterns: Vec<(Regex, &'static str)>,
+    pub language: Language,
+    char_types: CharTypePatterns,
     pub learner: AdaBoost,
 }
 
 impl Segmenter {
-    /// creates a new instance of [`Segmenter`].
+    /// Creates a new instance of [`Segmenter`].
     ///
     /// # Arguments
+    /// * `language` - The language to use for character type classification.
     /// * `learner` - An optional AdaBoost instance. If None, a default AdaBoost instance is created.
     ///
     /// # Returns
-    /// A new Segmenter instance with the specified or default AdaBoost learner.
-    ///
-    /// # Note
-    /// This method initializes the segmenter with predefined patterns for character classification.
+    /// A new Segmenter instance with the specified language and AdaBoost learner.
     ///
     /// # Example
     /// ```
+    /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let segmenter = Segmenter::new(None);
+    /// let segmenter = Segmenter::new(Language::Japanese, None);
     /// ```
-    /// This will create a new Segmenter instance with a default AdaBoost learner.
-    pub fn new(learner: Option<AdaBoost>) -> Self {
-        let patterns = vec![
-            // Japanese Kanji numbers
-            (Regex::new(r"[一二三四五六七八九十百千万億兆]").unwrap(), "M"),
-            // Kanji (Japanese)
-            (Regex::new(r"[一-龠々〆ヵヶ]").unwrap(), "H"),
-            // Hiragana (Japanese)
-            (Regex::new(r"[ぁ-ん]").unwrap(), "I"),
-            // Katakana (Japanese)
-            (Regex::new(r"[ァ-ヴーｱ-ﾝﾞﾟ]").unwrap(), "K"),
-            // ASCII + Full-width Latin
-            (Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap(), "A"),
-            // Numbers
-            (Regex::new(r"[0-9０-９]").unwrap(), "N"),
-        ];
-
+    pub fn new(language: Language, learner: Option<AdaBoost>) -> Self {
         Segmenter {
-            patterns,
+            char_types: language.char_type_patterns(),
+            language,
             learner: learner.unwrap_or_else(|| AdaBoost::new(0.01, 100, 1)),
         }
     }
 
-    /// Gets the type of a character based on predefined patterns.
+    /// Gets the type of a character based on language-specific patterns.
     ///
     /// # Arguments
     /// * `ch` - A string slice representing a single character.
     ///
     /// # Returns
-    /// A string slice representing the type of the character:
-    /// - "M" for Kanji numbers
-    /// - "H" for Kanji
-    /// - "I" for Hiragana
-    /// - "K" for Katakana
-    /// - "A" for Latin characters (ASCII and Full-width)
-    /// - "N" for digits (0-9 and Full-width digits)
-    /// - "O" for Other characters (not matching any pattern)
-    ///
-    /// # Note
-    /// If the character does not match any of the predefined patterns, it returns "O" for Other.
+    /// A string slice representing the type code of the character.
+    /// The type codes are language-specific. Returns "O" (Other) if no pattern matches.
     ///
     /// # Example
     /// ```
+    /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let segmenter = Segmenter::new(None);
+    /// let segmenter = Segmenter::new(Language::Japanese, None);
     /// let char_type = segmenter.get_type("あ");
     /// assert_eq!(char_type, "I"); // Hiragana
     /// ```
-    /// This will return "I" for Hiragana characters.
     pub fn get_type(&self, ch: &str) -> &str {
-        for (pattern, label) in &self.patterns {
-            if pattern.is_match(ch) {
-                return label;
-            }
-        }
-        "O" // Other
+        self.char_types.get_type(ch)
     }
 
     /// Adds a corpus to the segmenter with a custom writer function.
@@ -97,9 +69,10 @@ impl Segmenter {
     ///
     /// # Example
     /// ```
+    /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let mut segmenter = Segmenter::new(None);
+    /// let mut segmenter = Segmenter::new(Language::Japanese, None);
     /// segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
     ///    println!("Attributes: {:?}, Label: {}", attrs, label);
     /// });
@@ -165,9 +138,10 @@ impl Segmenter {
     ///
     /// # Example
     /// ```
+    /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let mut segmenter = Segmenter::new(None);
+    /// let mut segmenter = Segmenter::new(Language::Japanese, None);
     /// segmenter.add_corpus("テスト です");
     /// ```
     /// This will process the corpus and add instances to the segmenter.
@@ -231,8 +205,9 @@ impl Segmenter {
     /// ```
     /// use std::path::PathBuf;
     ///
-    /// use litsea::segmenter::Segmenter;
     /// use litsea::adaboost::AdaBoost;
+    /// use litsea::language::Language;
+    /// use litsea::segmenter::Segmenter;
     ///
     /// # tokio_test::block_on(async {
     /// let model_file =
@@ -240,7 +215,7 @@ impl Segmenter {
     /// let mut learner = AdaBoost::new(0.01, 100, 1);
     /// learner.load_model(model_file.to_str().unwrap()).await.unwrap();
     ///
-    /// let segmenter = Segmenter::new(Some(learner));
+    /// let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     /// let result = segmenter.segment("これはテストです。");
     /// assert_eq!(result, vec!["これ", "は", "テスト", "です", "。"]);
     /// # });
@@ -376,8 +351,8 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn test_get_type() {
-        let segmenter = Segmenter::new(None);
+    fn test_get_type_japanese() {
+        let segmenter = Segmenter::new(Language::Japanese, None);
 
         assert_eq!(segmenter.get_type("あ"), "I"); // Hiragana
         assert_eq!(segmenter.get_type("漢"), "H"); // Kanji
@@ -387,8 +362,32 @@ mod tests {
     }
 
     #[test]
+    fn test_get_type_chinese() {
+        let segmenter = Segmenter::new(Language::Chinese, None);
+
+        assert_eq!(segmenter.get_type("中"), "C"); // CJK Unified
+        assert_eq!(segmenter.get_type("国"), "C"); // CJK Unified
+        assert_eq!(segmenter.get_type("。"), "P"); // Punctuation
+        assert_eq!(segmenter.get_type("A"), "A"); // Latin
+        assert_eq!(segmenter.get_type("5"), "N"); // Digit
+        assert_eq!(segmenter.get_type("@"), "O"); // Other
+    }
+
+    #[test]
+    fn test_get_type_korean() {
+        let segmenter = Segmenter::new(Language::Korean, None);
+
+        assert_eq!(segmenter.get_type("한"), "S"); // Hangul Syllable
+        assert_eq!(segmenter.get_type("ㄱ"), "G"); // Compatibility Jamo
+        assert_eq!(segmenter.get_type("漢"), "H"); // Hanja
+        assert_eq!(segmenter.get_type("A"), "A"); // Latin
+        assert_eq!(segmenter.get_type("5"), "N"); // Digit
+        assert_eq!(segmenter.get_type("@"), "O"); // Other
+    }
+
+    #[test]
     fn test_add_corpus_with_writer() {
-        let mut segmenter = Segmenter::new(None);
+        let mut segmenter = Segmenter::new(Language::Japanese, None);
         let sentence = "テスト です";
         let mut collected = Vec::new();
 
@@ -412,7 +411,7 @@ mod tests {
 
     #[test]
     fn test_add_corpus() {
-        let mut segmenter = Segmenter::new(None);
+        let mut segmenter = Segmenter::new(Language::Japanese, None);
         let sentence = "テスト です";
         segmenter.add_corpus(sentence);
         // Should not panic or add anything, just a smoke test
@@ -428,7 +427,7 @@ mod tests {
         let mut learner = AdaBoost::new(0.01, 100, 1);
         learner.load_model(model_file.to_str().unwrap()).await.unwrap();
 
-        let segmenter = Segmenter::new(Some(learner));
+        let segmenter = Segmenter::new(Language::Japanese, Some(learner));
 
         let result = segmenter.segment(sentence);
 
@@ -443,21 +442,21 @@ mod tests {
 
     #[test]
     fn test_add_sentence_empty() {
-        let mut segmenter = Segmenter::new(None);
+        let mut segmenter = Segmenter::new(Language::Japanese, None);
         segmenter.add_corpus("");
         // Should not panic or add anything
     }
 
     #[test]
     fn test_segment_empty_sentence() {
-        let segmenter = Segmenter::new(None);
+        let segmenter = Segmenter::new(Language::Japanese, None);
         let result = segmenter.segment("");
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_get_attributes() {
-        let segmenter = Segmenter::new(None);
+        let segmenter = Segmenter::new(Language::Japanese, None);
 
         let tags = vec!["U".to_string(); 7];
 
