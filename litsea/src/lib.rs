@@ -1,5 +1,6 @@
 pub mod adaboost;
 pub mod extractor;
+pub mod language;
 pub mod segmenter;
 pub mod trainer;
 pub mod util;

@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # Default value (uses the value defined in the environment variables, if defined)
+lang="${WIKI_LANG:-ja}"
 timestamp="${WIKI_TIMESTAMP:-latest}"
 title_count="${WIKI_TITLE_COUNT:-1000}"
 texts_file="${WIKI_TEXTS_FILE:-wiki_texts.txt}"
+litsea_cli="${LITSEA_CLI:-cargo run --bin litsea --}"
 
 ###############################################################################
 # usage function
@@ -13,13 +15,18 @@ texts_file="${WIKI_TEXTS_FILE:-wiki_texts.txt}"
 # It prints the usage information and exits the script with a status code of 1.
 ###############################################################################
 usage() {
-    echo "Usage: $0 [-h] [-t timestamp] [-c title_count] [-o texts_file]"
+    echo "Usage: $0 [-h] [-l lang] [-t timestamp] [-c title_count] [-o texts_file]"
+    echo "  -l lang         Language code: ja, ko, zh (default: ja)"
+    echo "  -t timestamp    Wikipedia dump timestamp (default: latest)"
+    echo "  -c title_count  Number of titles to fetch (default: 1000)"
+    echo "  -o texts_file   Output texts file (default: wiki_texts.txt)"
     exit 1
 }
 
 while getopts "hl:t:c:o:" opt; do
     case "$opt" in
         h) usage ;;
+        l) lang="$OPTARG" ;;
         t) timestamp="$OPTARG" ;;
         c) title_count="$OPTARG" ;;
         o) texts_file="$OPTARG" ;;
@@ -28,15 +35,38 @@ while getopts "hl:t:c:o:" opt; do
 done
 shift $((OPTIND - 1))
 
+###############################################################################
+# Set language-specific variables
+###############################################################################
+case "$lang" in
+    ja)
+        wiki_prefix="jawiki"
+        wiki_domain="ja.wikipedia.org"
+        ;;
+    ko)
+        wiki_prefix="kowiki"
+        wiki_domain="ko.wikipedia.org"
+        ;;
+    zh)
+        wiki_prefix="zhwiki"
+        wiki_domain="zh.wikipedia.org"
+        ;;
+    *)
+        echo "Error: Unsupported language '${lang}'. Supported: ja, ko, zh"
+        exit 1
+        ;;
+esac
+
+echo "Language: ${lang}"
 echo "Timestamp: ${timestamp}"
 echo "Title count: ${title_count}"
 echo "Texts file: ${texts_file}"
 
 
-file_name="jawiki-${timestamp}-pages-articles-multistream-index.txt"
+file_name="${wiki_prefix}-${timestamp}-pages-articles-multistream-index.txt"
 download_dir=/tmp
 download_file="${file_name}.bz2"
-download_url="https://dumps.wikimedia.org/jawiki/${timestamp}/${download_file}"
+download_url="https://dumps.wikimedia.org/${wiki_prefix}/${timestamp}/${download_file}"
 
 ###############################################################################
 # spinner definition
@@ -56,14 +86,14 @@ cleanup() {
     if [[ -n "$spinner_pid" ]]; then
         kill "$spinner_pid" 2>/dev/null
     fi
-    exit 1
 }
 
 
 ###############################################################################
 # Call cleanup when SIGINT, SIGTERM, or EXIT is received.
 ###############################################################################
-trap cleanup INT TERM EXIT
+trap cleanup EXIT
+trap 'exit 1' INT TERM
 
 
 ###############################################################################
@@ -89,7 +119,7 @@ spinner_loop "Downloading ${download_url}" &
 spinner_pid=$!
 
 # Start curl in the background and obtain the process ID.
-curl -s -o "${download_dir}/${download_file}" "${download_url}" 
+curl -s -o "${download_dir}/${download_file}" "${download_url}"
 
 # Stop the spinner after the download is complete.
 kill "${spinner_pid}" 2>/dev/null
@@ -161,25 +191,27 @@ while IFS= read -r line; do
         continue
     fi
 
-    # Ignore titles containing "一覧"
-    if [[ "${title}" == *"一覧"* ]]; then
-        continue
-    fi
-
-    # Ignore titles containing "曖昧さ回避"
-    if [[ "${title}" == *"曖昧さ回避"* ]]; then
-        continue
-    fi
-
-    # Ignore titles containing "削除依頼"
-    if [[ "${title}" == *"削除依頼"* ]]; then
-        continue
-    fi
-
-    # Ignore titles containing "削除記録"
-    if [[ "${title}" == *"削除記録"* ]]; then
-        continue
-    fi
+    # Language-specific title filters
+    case "$lang" in
+        ja)
+            # Ignore Japanese list/disambiguation/deletion pages
+            if [[ "${title}" == *"一覧"* ]]; then continue; fi
+            if [[ "${title}" == *"曖昧さ回避"* ]]; then continue; fi
+            if [[ "${title}" == *"削除依頼"* ]]; then continue; fi
+            if [[ "${title}" == *"削除記録"* ]]; then continue; fi
+            ;;
+        ko)
+            # Ignore Korean list/disambiguation pages
+            if [[ "${title}" == *"목록"* ]]; then continue; fi
+            if [[ "${title}" == *"동음이의"* ]]; then continue; fi
+            ;;
+        zh)
+            # Ignore Chinese list/disambiguation pages
+            if [[ "${title}" == *"列表"* ]]; then continue; fi
+            if [[ "${title}" == *"消歧义"* ]]; then continue; fi
+            if [[ "${title}" == *"消歧義"* ]]; then continue; fi
+            ;;
+    esac
 
     # Write title to file one line at a time
     echo "${title}" >> ${tmpfile}
@@ -205,38 +237,43 @@ shuf -n ${title_count} ${tmpfile} | while read -r title; do
 
     # URL encode title
     encoded_title=$(echo -n "${title}" | jq -sRr @uri)
-    # echo "Processing title: ${title} (encoded: ${encoded_title})"
-
-    # Generate Wikipedia URL
-    url="https://ja.wikipedia.org/wiki/${encoded_title}"
 
     # Generate Wikipedia API URL
-    url="https://ja.wikipedia.org/w/api.php?action=query&prop=extracts&format=json&explaintext=1&redirects=1&titles=${encoded_title}"
+    url="https://${wiki_domain}/w/api.php?action=query&prop=extracts&format=json&explaintext=1&redirects=1&titles=${encoded_title}"
 
     # Retrieve data from API and extract text
-    text=$(curl -s "${url}" | jq -r '.query.pages[] | .extract')
-    # echo "Extracted text: ${text}"
+    response=$(curl -s --retry 2 --retry-delay 1 "${url}")
+
+    # Validate JSON response before parsing
+    if ! echo "${response}" | jq empty 2>/dev/null; then
+        sleep 1
+        continue
+    fi
+
+    text=$(echo "${response}" | jq -r '.query.pages[] | .extract')
 
     # If the text is empty, ignore it.
     if [[ -z "${text}" ]]; then
         continue
     fi
 
-    # If the text is “null,” ignore it.
+    # If the text is "null," ignore it.
     if [[ "${text}" == "null" ]]; then
         continue
     fi
 
+    # Rate limit: small delay between API requests
+    sleep 0.5
+
     # Extract the longest line
     longest_line=$(echo "${text}" | awk 'length > max_length { max_length = length; longest = $0 } END { print longest }')
-    # echo "Longest line: ${longest_line}"
 
-    # Split text into sentences
-    readarray -t sentences < <(echo "${longest_line}" | sed -E 's/([!?\！？。]+)/\1\n/g')
+    # Split text into sentences using ICU4X SentenceSegmenter (Unicode UAX #29)
+    readarray -t sentences < <(echo "${longest_line}" | ${litsea_cli} split-sentences)
 
     for sentence in "${sentences[@]}"; do
         ## Replace consecutive spaces with a single space
-        line=$(echo "$line" | tr -s ' ')
+        sentence=$(echo "$sentence" | tr -s ' ')
 
         # Trim sentence
         sentence=$(echo "${sentence}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
@@ -246,7 +283,7 @@ shuf -n ${title_count} ${tmpfile} | while read -r title; do
             continue
         fi
 
-        # 英数記号のみの行を除外
+        # Skip ASCII-only lines
         if [[ "${sentence}" =~ ^[a-zA-Z0-9[:space:]\p{P}\p{S}]+$ ]]; then
             continue
         fi

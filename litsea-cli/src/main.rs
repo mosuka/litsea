@@ -9,6 +9,7 @@ use clap::{Args, Parser, Subcommand};
 use litsea::adaboost::AdaBoost;
 use litsea::extractor::Extractor;
 use litsea::get_version;
+use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 use litsea::trainer::Trainer;
 
@@ -20,6 +21,9 @@ use litsea::trainer::Trainer;
     version = get_version(),
 )]
 struct ExtractArgs {
+    #[arg(short, long, default_value = "japanese")]
+    language: String,
+
     corpus_file: PathBuf,
     features_file: PathBuf,
 }
@@ -54,8 +58,20 @@ struct TrainArgs {
     version = get_version(),
 )]
 struct SegmentArgs {
+    #[arg(short, long, default_value = "japanese")]
+    language: String,
+
     model_uri: String,
 }
+
+/// Arguments for the split-sentences command.
+#[derive(Debug, Args)]
+#[clap(
+    author,
+    about = "Split text into sentences using Unicode UAX #29 rules",
+    version = get_version(),
+)]
+struct SplitSentencesArgs {}
 
 /// Subcommands for lietsea CLI.
 #[derive(Debug, Subcommand)]
@@ -63,6 +79,7 @@ enum Commands {
     Extract(ExtractArgs),
     Train(TrainArgs),
     Segment(SegmentArgs),
+    SplitSentences(SplitSentencesArgs),
 }
 
 /// Arguments for the litsea command.
@@ -88,7 +105,9 @@ struct CommandArgs {
 /// # Returns
 /// Returns a Result indicating success or failure.
 fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
-    let mut extractor = Extractor::new();
+    let language: Language =
+        args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
+    let mut extractor = Extractor::new(language);
 
     extractor.extract(args.corpus_file.as_path(), args.features_file.as_path())?;
 
@@ -172,10 +191,12 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
 /// # Returns
 /// Returns a Result indicating success or failure.
 async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
+    let language: Language =
+        args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
     let mut leaner = AdaBoost::new(0.01, 100, 1);
     leaner.load_model(args.model_uri.as_str()).await?;
 
-    let segmenter = Segmenter::new(Some(leaner));
+    let segmenter = Segmenter::new(language, Some(leaner));
     let stdin = io::stdin();
     let stdout = io::stdout();
     let mut writer = io::BufWriter::new(stdout.lock());
@@ -193,6 +214,43 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Split text into sentences using ICU4X SentenceSegmenter (Unicode UAX #29).
+/// This function reads text from standard input (one paragraph per line),
+/// splits each line into sentences, and writes one sentence per line to standard output.
+///
+/// # Arguments
+/// * `_args` - The arguments for the split-sentences command [`SplitSentencesArgs`].
+///
+/// # Returns
+/// Returns a Result indicating success or failure.
+fn split_sentences(_args: SplitSentencesArgs) -> Result<(), Box<dyn Error>> {
+    use icu_segmenter::options::SentenceBreakInvariantOptions;
+    use icu_segmenter::SentenceSegmenter;
+
+    let segmenter = SentenceSegmenter::new(SentenceBreakInvariantOptions::default());
+    let stdin = io::stdin();
+    let stdout = io::stdout();
+    let mut writer = io::BufWriter::new(stdout.lock());
+
+    for line in stdin.lock().lines() {
+        let line = line?;
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        let breakpoints: Vec<usize> = segmenter.segment_str(line).collect();
+        for window in breakpoints.windows(2) {
+            let sentence = line[window[0]..window[1]].trim();
+            if !sentence.is_empty() {
+                writeln!(writer, "{}", sentence)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = CommandArgs::parse();
 
@@ -200,6 +258,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Extract(args) => extract(args),
         Commands::Train(args) => train(args).await,
         Commands::Segment(args) => segment(args).await,
+        Commands::SplitSentences(args) => split_sentences(args),
     }
 }
 

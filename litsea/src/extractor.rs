@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
+use crate::language::Language;
 use crate::segmenter::Segmenter;
 
 /// Extractor struct for processing text data and extracting features.
@@ -14,23 +15,26 @@ pub struct Extractor {
 }
 
 impl Default for Extractor {
-    /// Creates a new instance of [`Extractor`] with default settings.
+    /// Creates a new instance of [`Extractor`] with default settings (Japanese).
     ///
     /// # Returns
     /// Returns a new instance of `Extractor`.
     fn default() -> Self {
-        Self::new()
+        Self::new(Language::default())
     }
 }
 
 impl Extractor {
     /// Creates a new instance of [`Extractor`].
     ///
+    /// # Arguments
+    /// * `language` - The language to use for character type classification.
+    ///
     /// # Returns
-    /// Returns a new instance of `Extractor` with a new `Segmenter`.
-    pub fn new() -> Self {
+    /// Returns a new instance of `Extractor` with a new `Segmenter` for the specified language.
+    pub fn new(language: Language) -> Self {
         Extractor {
-            segmenter: Segmenter::new(None),
+            segmenter: Segmenter::new(language, None),
         }
     }
 
@@ -106,7 +110,7 @@ mod tests {
         let features_file = NamedTempFile::new()?;
 
         // Create an instance of Extractor and extract features
-        let mut extractor = Extractor::new();
+        let mut extractor = Extractor::default();
         extractor.extract(corpus_file.path(), features_file.path())?;
 
         // Read the output from the features file
