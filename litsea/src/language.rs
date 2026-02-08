@@ -167,10 +167,7 @@ fn korean_patterns() -> CharTypePatterns {
         (Regex::new(r"[\u{4E00}-\u{9FFF}]").unwrap(), "H"),
         // Korean punctuation: CJK Symbols and Punctuation + full-width punctuation
         (
-            Regex::new(
-                r"[\u{3000}-\u{303F}\u{FF01}-\u{FF0F}\u{FF1A}-\u{FF20}]",
-            )
-            .unwrap(),
+            Regex::new(r"[\u{3000}-\u{303F}\u{FF01}-\u{FF0F}\u{FF1A}-\u{FF20}]").unwrap(),
             "P",
         ),
         // ASCII + Full-width Latin

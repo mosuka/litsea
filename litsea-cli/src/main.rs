@@ -105,10 +105,8 @@ struct CommandArgs {
 /// # Returns
 /// Returns a Result indicating success or failure.
 fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
-    let language: Language = args
-        .language
-        .parse()
-        .map_err(|e: String| Box::<dyn Error>::from(e))?;
+    let language: Language =
+        args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
     let mut extractor = Extractor::new(language);
 
     extractor.extract(args.corpus_file.as_path(), args.features_file.as_path())?;
@@ -193,10 +191,8 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
 /// # Returns
 /// Returns a Result indicating success or failure.
 async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
-    let language: Language = args
-        .language
-        .parse()
-        .map_err(|e: String| Box::<dyn Error>::from(e))?;
+    let language: Language =
+        args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
     let mut leaner = AdaBoost::new(0.01, 100, 1);
     leaner.load_model(args.model_uri.as_str()).await?;
 
@@ -228,8 +224,8 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
 /// # Returns
 /// Returns a Result indicating success or failure.
 fn split_sentences(_args: SplitSentencesArgs) -> Result<(), Box<dyn Error>> {
-    use icu_segmenter::SentenceSegmenter;
     use icu_segmenter::options::SentenceBreakInvariantOptions;
+    use icu_segmenter::SentenceSegmenter;
 
     let segmenter = SentenceSegmenter::new(SentenceBreakInvariantOptions::default());
     let stdin = io::stdin();
