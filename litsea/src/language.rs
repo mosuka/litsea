@@ -212,10 +212,7 @@ fn korean_patterns() -> CharTypePatterns {
         // High-frequency particles/endings (조사/어미)
         // These characters are overwhelmingly used as grammatical particles:
         // 은/는 (topic), 을/를 (object), 의 (possessive), 에 (locative)
-        (
-            CharMatcher::Regex(Regex::new(r"[은는을를의에]").unwrap()),
-            "E",
-        ),
+        (CharMatcher::Regex(Regex::new(r"[은는을를의에]").unwrap()), "E"),
         // Hangul Syllable without 받침 (final consonant)
         // (codepoint - 0xAC00) % 28 == 0
         (
