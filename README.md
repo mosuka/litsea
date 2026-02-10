@@ -81,16 +81,16 @@ The output from the `train` command is similar to:
 ```text
 finding instances...: 599198 instances found
 loading instances...: 599198/599198 instances loaded
-Iteration 999 - margin: 0.008396476777928374
+Iteration 999 - margin: 0.008476823878127981
 Result Metrics:
-  Accuracy: 94.13% ( 564022 / 599198 )
-  Precision: 95.56% ( 330385 / 345731 )
-  Recall: 94.34% ( 330385 / 350215 )
+  Accuracy: 94.15% ( 564133 / 599198 )
+  Precision: 95.57% ( 330454 / 345758 )
+  Recall: 94.36% ( 330454 / 350215 )
   Confusion Matrix:
-    True Positives: 330385
-    False Positives: 15346
-    False Negatives: 19830
-    True Negatives: 233637
+    True Positives: 330454
+    False Positives: 15304
+    False Negatives: 19761
+    True Negatives: 233679
 ```
 
 ## How to segment sentences into words
@@ -117,13 +117,13 @@ echo "中文分词测试。" | ./target/release/litsea segment -l chinese ./reso
 ## Pre-trained models
 
 - **japanese.model**
-  Trained on Japanese Wikipedia corpus using Lindera (UniDic) tokenization. Accuracy: 94.13%.
+  Trained on Japanese Wikipedia corpus using Lindera (UniDic) tokenization. Accuracy: 94.15%.
 
 - **korean.model**
   Trained on Korean Wikipedia corpus using Lindera (ko-dic) tokenization. Accuracy: 85.08%.
 
 - **chinese.model**
-  Trained on Chinese Wikipedia corpus using Lindera (CC-CEDICT) tokenization. Accuracy: 80.57%.
+  Trained on Chinese Wikipedia corpus using Lindera (CC-CEDICT) tokenization. Accuracy: 80.72%.
 
 - **JEITA_Genpaku_ChaSen_IPAdic.model**
   This model is trained using the morphologically analyzed corpus published by the Japan Electronics and Information Technology Industries Association (JEITA). It employs data from Project Sugita Genpaku analyzed with ChaSen+IPAdic.

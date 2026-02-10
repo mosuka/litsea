@@ -294,7 +294,7 @@ impl Segmenter {
         let p2 = &tags[i - 2];
         let p3 = &tags[i - 1];
 
-        [
+        let mut attrs: HashSet<String> = [
             format!("UP1:{}", p1),
             format!("UP2:{}", p2),
             format!("UP3:{}", p3),
@@ -336,7 +336,21 @@ impl Segmenter {
         ]
         .iter()
         .cloned()
-        .collect()
+        .collect();
+
+        // Language-specific features: char + char-type mixed features for Japanese and Chinese.
+        // Korean is excluded because its uniform character types (SN/SF only) make these features noise.
+        match self.language {
+            Language::Japanese | Language::Chinese => {
+                attrs.insert(format!("WC1:{}{}", w3, c4));
+                attrs.insert(format!("WC2:{}{}", c3, w4));
+                attrs.insert(format!("WC3:{}{}", w3, c3));
+                attrs.insert(format!("WC4:{}{}", w4, c4));
+            }
+            _ => {}
+        }
+
+        attrs
     }
 }
 
@@ -484,5 +498,46 @@ mod tests {
         assert!(attrs.contains("UW4:い"));
         assert!(attrs.contains("UC4:I"));
         assert!(attrs.contains("UP3:U"));
+        // Language-specific WC features (Japanese includes them)
+        assert!(attrs.contains("WC1:あI")); // w3 + c4
+        assert!(attrs.contains("WC2:Oい")); // c3 + w4
+        assert!(attrs.contains("WC3:あO")); // w3 + c3
+        assert!(attrs.contains("WC4:いI")); // w4 + c4
+        assert_eq!(attrs.len(), 42); // 38 base + 4 WC
+    }
+
+    #[test]
+    fn test_get_attributes_korean() {
+        let segmenter = Segmenter::new(Language::Korean, None);
+
+        let tags = vec!["U".to_string(); 7];
+
+        let chars = vec![
+            "B3".to_string(), // index 0
+            "B2".to_string(), // index 1
+            "B1".to_string(), // index 2
+            "한".to_string(), // index 3
+            "국".to_string(), // index 4
+            "어".to_string(), // index 5
+            "E1".to_string(), // index 6
+        ];
+
+        let types = vec![
+            "O".to_string(),  // index 0
+            "O".to_string(),  // index 1
+            "O".to_string(),  // index 2
+            "SF".to_string(), // index 3
+            "SF".to_string(), // index 4
+            "SN".to_string(), // index 5
+            "O".to_string(),  // index 6
+        ];
+
+        let attrs = segmenter.get_attributes(4, &tags, &chars, &types);
+        assert!(attrs.contains("UW4:국"));
+        assert!(attrs.contains("UC4:SF"));
+        // Korean does NOT include WC features
+        assert!(!attrs.contains("WC1:한SF"));
+        assert!(!attrs.contains("WC2:SF국"));
+        assert_eq!(attrs.len(), 38); // 38 base only
     }
 }
