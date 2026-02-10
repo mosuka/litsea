@@ -58,10 +58,10 @@ Prepare a corpus with words separated by spaces in advance.
 
     ```
 
-Extract the information and features from the corpus:
+Extract the information and features from the corpus. Use the `-l` flag to specify the language (`japanese`, `korean`, or `chinese`):
 
 ```sh
-./target/release/litsea extract ./resources/corpus.txt ./resources/features.txt
+./target/release/litsea extract -l japanese ./corpus.txt ./features.txt
 ```
 
 The output from the `extract` command is similar to:
@@ -70,35 +70,35 @@ The output from the `extract` command is similar to:
 Feature extraction completed successfully.
 ```
 
-Train the features output by the above command using AdaBoost. Training stops if the new weak classifier’s accuracy falls below 0.001 or after 10,000 iterations.
+Train the features output by the above command using AdaBoost. Use `-t` to set the weak classifier accuracy threshold and `-i` to set the maximum number of iterations:
 
 ```sh
-./target/release/litsea train -t 0.001 -i 10000 ./resources/features.txt ./resources/model
+./target/release/litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
 ```
 
 The output from the `train` command is similar to:
 
 ```text
-finding instances...: 61 instances found
-loading instances...: 61/61 instances loaded
-Iteration 9999 - margin: 0.16068839956263622
+finding instances...: 599198 instances found
+loading instances...: 599198/599198 instances loaded
+Iteration 999 - margin: 0.005765994648498989
 Result Metrics:
-  Accuracy: 100.00% ( 61 / 61 )
-  Precision: 100.00% ( 24 / 24 )
-  Recall: 100.00% ( 24 / 24 )
+  Accuracy: 94.10% ( 563824 / 599198 )
+  Precision: 95.44% ( 330556 / 346271 )
+  Recall: 94.38% ( 330556 / 350215 )
   Confusion Matrix:
-    True Positives: 24
-    False Positives: 0
-    False Negatives: 0
-    True Negatives: 37
+    True Positives: 330556
+    False Positives: 15715
+    False Negatives: 19659
+    True Negatives: 233268
 ```
 
 ## How to segment sentences into words
 
-Use the trained model to segment sentences:
+Use the trained model to segment sentences. Specify the language with `-l` and the model file:
 
 ```sh
-echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment ./resources/model
+echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment -l japanese ./resources/japanese.model
 ```
 
 The output will look like:
@@ -107,12 +107,28 @@ The output will look like:
 Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
+For Korean and Chinese:
+
+```sh
+echo "한국어 단어 분할 테스트입니다." | ./target/release/litsea segment -l korean ./resources/korean.model
+echo "中文分词测试。" | ./target/release/litsea segment -l chinese ./resources/chinese.model
+```
+
 ## Pre-trained models
 
-- **JEITA_Genpaku_ChaSen_IPAdic.model**  
-  This model is trained using the morphologically analyzed corpus published by the Japan Electronics and Information Technology Industries Association (JEITA). It employs data from [Project Sugita Genpaku] analyzed with ChaSen+IPAdic.
+- **japanese.model**
+  Trained on Japanese Wikipedia corpus using Lindera (UniDic) tokenization. Accuracy: 94.10%.
 
-- **RWCP.model**  
+- **korean.model**
+  Trained on Korean Wikipedia corpus using Lindera (ko-dic) tokenization. Accuracy: 84.40%.
+
+- **chinese.model**
+  Trained on Chinese Wikipedia corpus using Lindera (CC-CEDICT) tokenization. Accuracy: 80.58%.
+
+- **JEITA_Genpaku_ChaSen_IPAdic.model**
+  This model is trained using the morphologically analyzed corpus published by the Japan Electronics and Information Technology Industries Association (JEITA). It employs data from Project Sugita Genpaku analyzed with ChaSen+IPAdic.
+
+- **RWCP.model**
   Extracted from the original [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/), this model contains only the segmentation component.
 
 ## How to retrain existing models
@@ -120,7 +136,7 @@ Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 �
 You can further improve performance by resuming training from an existing model with new corpora:
 
 ```sh
-./target/release/litsea train -t 0.001 -i 10000 -m ./resources/model ./resources/new_features.txt ./resources/new_model
+./target/release/litsea train -t 0.005 -i 1000 -m ./resources/japanese.model ./new_features.txt ./resources/japanese.model
 ```
 
 ## License

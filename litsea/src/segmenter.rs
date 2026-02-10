@@ -356,6 +356,7 @@ mod tests {
 
         assert_eq!(segmenter.get_type("あ"), "I"); // Hiragana
         assert_eq!(segmenter.get_type("漢"), "H"); // Kanji
+        assert_eq!(segmenter.get_type("。"), "P"); // Punctuation
         assert_eq!(segmenter.get_type("A"), "A"); // Latin
         assert_eq!(segmenter.get_type("1"), "N"); // Digit
         assert_eq!(segmenter.get_type("@"), "O"); // Not matching any pattern
@@ -365,6 +366,7 @@ mod tests {
     fn test_get_type_chinese() {
         let segmenter = Segmenter::new(Language::Chinese, None);
 
+        assert_eq!(segmenter.get_type("的"), "F"); // Function word
         assert_eq!(segmenter.get_type("中"), "C"); // CJK Unified
         assert_eq!(segmenter.get_type("国"), "C"); // CJK Unified
         assert_eq!(segmenter.get_type("。"), "P"); // Punctuation
@@ -377,7 +379,9 @@ mod tests {
     fn test_get_type_korean() {
         let segmenter = Segmenter::new(Language::Korean, None);
 
-        assert_eq!(segmenter.get_type("한"), "S"); // Hangul Syllable
+        assert_eq!(segmenter.get_type("는"), "E"); // Particle (topic marker)
+        assert_eq!(segmenter.get_type("가"), "SN"); // Hangul Syllable without 받침
+        assert_eq!(segmenter.get_type("한"), "SF"); // Hangul Syllable with 받침
         assert_eq!(segmenter.get_type("ㄱ"), "G"); // Compatibility Jamo
         assert_eq!(segmenter.get_type("漢"), "H"); // Hanja
         assert_eq!(segmenter.get_type("A"), "A"); // Latin
