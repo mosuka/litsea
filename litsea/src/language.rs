@@ -57,15 +57,43 @@ impl Language {
     }
 }
 
+/// A character matcher that can be either a regex or a custom closure.
+enum CharMatcher {
+    /// Pattern-based matching using a compiled regex.
+    Regex(Regex),
+    /// Custom matching logic using a closure.
+    Closure(Box<dyn Fn(&str) -> bool + Send + Sync>),
+}
+
+impl CharMatcher {
+    /// Returns true if the given character matches this matcher.
+    fn is_match(&self, ch: &str) -> bool {
+        match self {
+            CharMatcher::Regex(re) => re.is_match(ch),
+            CharMatcher::Closure(f) => f(ch),
+        }
+    }
+}
+
 /// Character type classification patterns for a specific language.
-/// Each pattern maps a regex to a type code string.
+/// Each pattern maps a matcher to a type code string.
 pub struct CharTypePatterns {
-    patterns: Vec<(Regex, &'static str)>,
+    patterns: Vec<(CharMatcher, &'static str)>,
 }
 
 impl CharTypePatterns {
-    /// Creates a new instance of [`CharTypePatterns`].
+    /// Creates a new instance of [`CharTypePatterns`] from regex patterns.
     pub fn new(patterns: Vec<(Regex, &'static str)>) -> Self {
+        CharTypePatterns {
+            patterns: patterns
+                .into_iter()
+                .map(|(re, label)| (CharMatcher::Regex(re), label))
+                .collect(),
+        }
+    }
+
+    /// Creates a new instance of [`CharTypePatterns`] from heterogeneous matchers.
+    fn from_matchers(patterns: Vec<(CharMatcher, &'static str)>) -> Self {
         CharTypePatterns { patterns }
     }
 
@@ -78,8 +106,8 @@ impl CharTypePatterns {
     /// A string slice representing the type code of the character.
     /// Returns "O" (Other) if the character does not match any pattern.
     pub fn get_type(&self, ch: &str) -> &str {
-        for (pattern, label) in &self.patterns {
-            if pattern.is_match(ch) {
+        for (matcher, label) in &self.patterns {
+            if matcher.is_match(ch) {
                 return label;
             }
         }
@@ -94,6 +122,7 @@ impl CharTypePatterns {
 /// - "H": Kanji (CJK ideographs)
 /// - "I": Hiragana
 /// - "K": Katakana
+/// - "P": Punctuation (CJK symbols and full-width punctuation)
 /// - "A": ASCII and full-width Latin characters
 /// - "N": Digits (ASCII and full-width)
 /// - "O": Other (fallback)
@@ -103,6 +132,14 @@ fn japanese_patterns() -> CharTypePatterns {
         (Regex::new(r"[一-龠々〆ヵヶ]").unwrap(), "H"),
         (Regex::new(r"[ぁ-ん]").unwrap(), "I"),
         (Regex::new(r"[ァ-ヴーｱ-ﾝﾞﾟ]").unwrap(), "K"),
+        // CJK Symbols and Punctuation + full-width punctuation
+        (
+            Regex::new(
+                r"[\u{3000}-\u{303F}\u{FF01}-\u{FF0F}\u{FF1A}-\u{FF20}\u{FF3B}-\u{FF40}\u{FF5B}-\u{FF65}]",
+            )
+            .unwrap(),
+            "P",
+        ),
         (Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap(), "A"),
         (Regex::new(r"[0-9０-９]").unwrap(), "N"),
     ])
@@ -111,6 +148,7 @@ fn japanese_patterns() -> CharTypePatterns {
 /// Creates character type patterns for Chinese.
 ///
 /// Type codes:
+/// - "F": High-frequency function words (虚词: 的了在是和不也 etc.)
 /// - "C": CJK Unified Ideographs (U+4E00..U+9FFF)
 /// - "X": CJK Extension A (U+3400..U+4DBF)
 /// - "R": CJK Radicals and Kangxi Radicals (U+2E80..U+2FDF)
@@ -120,34 +158,48 @@ fn japanese_patterns() -> CharTypePatterns {
 /// - "N": Digits (ASCII and full-width)
 /// - "O": Other (fallback)
 fn chinese_patterns() -> CharTypePatterns {
-    CharTypePatterns::new(vec![
-        // CJK Unified Ideographs
-        (Regex::new(r"[\u{4E00}-\u{9FFF}]").unwrap(), "C"),
+    CharTypePatterns::from_matchers(vec![
+        // High-frequency function words (虚词)
+        // Includes structural particles, aspect/modal particles, conjunctions,
+        // prepositions, and common grammatical verbs/adverbs
+        (
+            CharMatcher::Regex(
+                Regex::new(r"[的地得了着过吗呢吧啊嘛和与或但而且及在从到把被对向给是有不也都就要会能可]")
+                    .unwrap(),
+            ),
+            "F",
+        ),
+        // CJK Unified Ideographs (remaining)
+        (CharMatcher::Regex(Regex::new(r"[\u{4E00}-\u{9FFF}]").unwrap()), "C"),
         // CJK Extension A
-        (Regex::new(r"[\u{3400}-\u{4DBF}]").unwrap(), "X"),
+        (CharMatcher::Regex(Regex::new(r"[\u{3400}-\u{4DBF}]").unwrap()), "X"),
         // CJK Radicals Supplement + Kangxi Radicals
-        (Regex::new(r"[\u{2E80}-\u{2FDF}]").unwrap(), "R"),
+        (CharMatcher::Regex(Regex::new(r"[\u{2E80}-\u{2FDF}]").unwrap()), "R"),
         // Chinese punctuation: CJK Symbols and Punctuation + full-width punctuation
         (
-            Regex::new(
-                r"[\u{3000}-\u{303F}\u{FF01}-\u{FF0F}\u{FF1A}-\u{FF20}\u{FF3B}-\u{FF40}\u{FF5B}-\u{FF65}]",
-            )
-            .unwrap(),
+            CharMatcher::Regex(
+                Regex::new(
+                    r"[\u{3000}-\u{303F}\u{FF01}-\u{FF0F}\u{FF1A}-\u{FF20}\u{FF3B}-\u{FF40}\u{FF5B}-\u{FF65}]",
+                )
+                .unwrap(),
+            ),
             "P",
         ),
         // Bopomofo + Bopomofo Extended
-        (Regex::new(r"[\u{3100}-\u{312F}\u{31A0}-\u{31BF}]").unwrap(), "B"),
+        (CharMatcher::Regex(Regex::new(r"[\u{3100}-\u{312F}\u{31A0}-\u{31BF}]").unwrap()), "B"),
         // ASCII + Full-width Latin
-        (Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap(), "A"),
+        (CharMatcher::Regex(Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()), "A"),
         // Numbers
-        (Regex::new(r"[0-9０-９]").unwrap(), "N"),
+        (CharMatcher::Regex(Regex::new(r"[0-9０-９]").unwrap()), "N"),
     ])
 }
 
 /// Creates character type patterns for Korean.
 ///
 /// Type codes:
-/// - "S": Hangul Syllables (U+AC00..U+D7AF)
+/// - "E": High-frequency particles/endings (조사/어미: 은는을를의에)
+/// - "SN": Hangul Syllable without 받침 (e.g., 가, 나, 하)
+/// - "SF": Hangul Syllable with 받침 (e.g., 한, 글, 각)
 /// - "J": Hangul Jamo (U+1100..U+11FF)
 /// - "G": Hangul Compatibility Jamo (U+3130..U+318F)
 /// - "H": Hanja / CJK Ideographs (U+4E00..U+9FFF)
@@ -156,24 +208,57 @@ fn chinese_patterns() -> CharTypePatterns {
 /// - "N": Digits (ASCII and full-width)
 /// - "O": Other (fallback)
 fn korean_patterns() -> CharTypePatterns {
-    CharTypePatterns::new(vec![
-        // Hangul Syllables
-        (Regex::new(r"[\u{AC00}-\u{D7AF}]").unwrap(), "S"),
+    CharTypePatterns::from_matchers(vec![
+        // High-frequency particles/endings (조사/어미)
+        // These characters are overwhelmingly used as grammatical particles:
+        // 은/는 (topic), 을/를 (object), 의 (possessive), 에 (locative)
+        (
+            CharMatcher::Regex(Regex::new(r"[은는을를의에]").unwrap()),
+            "E",
+        ),
+        // Hangul Syllable without 받침 (final consonant)
+        // (codepoint - 0xAC00) % 28 == 0
+        (
+            CharMatcher::Closure(Box::new(|ch: &str| {
+                if let Some(cp) = ch.chars().next() {
+                    let code = cp as u32;
+                    code >= 0xAC00 && code <= 0xD7AF && (code - 0xAC00) % 28 == 0
+                } else {
+                    false
+                }
+            })),
+            "SN",
+        ),
+        // Hangul Syllable with 받침 (final consonant)
+        // (codepoint - 0xAC00) % 28 != 0
+        (
+            CharMatcher::Closure(Box::new(|ch: &str| {
+                if let Some(cp) = ch.chars().next() {
+                    let code = cp as u32;
+                    code >= 0xAC00 && code <= 0xD7AF && (code - 0xAC00) % 28 != 0
+                } else {
+                    false
+                }
+            })),
+            "SF",
+        ),
         // Hangul Jamo
-        (Regex::new(r"[\u{1100}-\u{11FF}]").unwrap(), "J"),
+        (CharMatcher::Regex(Regex::new(r"[\u{1100}-\u{11FF}]").unwrap()), "J"),
         // Hangul Compatibility Jamo
-        (Regex::new(r"[\u{3130}-\u{318F}]").unwrap(), "G"),
+        (CharMatcher::Regex(Regex::new(r"[\u{3130}-\u{318F}]").unwrap()), "G"),
         // Hanja (CJK Unified Ideographs)
-        (Regex::new(r"[\u{4E00}-\u{9FFF}]").unwrap(), "H"),
+        (CharMatcher::Regex(Regex::new(r"[\u{4E00}-\u{9FFF}]").unwrap()), "H"),
         // Korean punctuation: CJK Symbols and Punctuation + full-width punctuation
         (
-            Regex::new(r"[\u{3000}-\u{303F}\u{FF01}-\u{FF0F}\u{FF1A}-\u{FF20}]").unwrap(),
+            CharMatcher::Regex(
+                Regex::new(r"[\u{3000}-\u{303F}\u{FF01}-\u{FF0F}\u{FF1A}-\u{FF20}]").unwrap(),
+            ),
             "P",
         ),
         // ASCII + Full-width Latin
-        (Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap(), "A"),
+        (CharMatcher::Regex(Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()), "A"),
         // Numbers
-        (Regex::new(r"[0-9０-９]").unwrap(), "N"),
+        (CharMatcher::Regex(Regex::new(r"[0-9０-９]").unwrap()), "N"),
     ])
 }
 
@@ -219,6 +304,9 @@ mod tests {
         assert_eq!(p.get_type("漢"), "H"); // Kanji
         assert_eq!(p.get_type("あ"), "I"); // Hiragana
         assert_eq!(p.get_type("ア"), "K"); // Katakana
+        assert_eq!(p.get_type("。"), "P"); // CJK punctuation
+        assert_eq!(p.get_type("、"), "P"); // CJK punctuation
+        assert_eq!(p.get_type("「"), "P"); // CJK punctuation
         assert_eq!(p.get_type("A"), "A"); // ASCII
         assert_eq!(p.get_type("ａ"), "A"); // Full-width Latin
         assert_eq!(p.get_type("5"), "N"); // Digit
@@ -231,7 +319,11 @@ mod tests {
     #[test]
     fn test_chinese_patterns() {
         let p = Language::Chinese.char_type_patterns();
-        assert_eq!(p.get_type("中"), "C"); // CJK Unified
+        assert_eq!(p.get_type("的"), "F"); // Function word (structural particle)
+        assert_eq!(p.get_type("了"), "F"); // Function word (aspect particle)
+        assert_eq!(p.get_type("在"), "F"); // Function word (preposition)
+        assert_eq!(p.get_type("是"), "F"); // Function word (verb)
+        assert_eq!(p.get_type("中"), "C"); // CJK Unified (not a function word)
         assert_eq!(p.get_type("国"), "C"); // CJK Unified
         assert_eq!(p.get_type("人"), "C"); // CJK Unified
         assert_eq!(p.get_type("。"), "P"); // Chinese punctuation (U+3002)
@@ -246,8 +338,18 @@ mod tests {
     #[test]
     fn test_korean_patterns() {
         let p = Language::Korean.char_type_patterns();
-        assert_eq!(p.get_type("한"), "S"); // Hangul Syllable
-        assert_eq!(p.get_type("글"), "S"); // Hangul Syllable
+        assert_eq!(p.get_type("는"), "E"); // Particle (topic marker)
+        assert_eq!(p.get_type("은"), "E"); // Particle (topic marker)
+        assert_eq!(p.get_type("을"), "E"); // Particle (object marker)
+        assert_eq!(p.get_type("를"), "E"); // Particle (object marker)
+        assert_eq!(p.get_type("의"), "E"); // Particle (possessive)
+        assert_eq!(p.get_type("에"), "E"); // Particle (locative)
+        assert_eq!(p.get_type("가"), "SN"); // Hangul Syllable without 받침
+        assert_eq!(p.get_type("나"), "SN"); // Hangul Syllable without 받침
+        assert_eq!(p.get_type("하"), "SN"); // Hangul Syllable without 받침
+        assert_eq!(p.get_type("한"), "SF"); // Hangul Syllable with 받침
+        assert_eq!(p.get_type("글"), "SF"); // Hangul Syllable with 받침
+        assert_eq!(p.get_type("각"), "SF"); // Hangul Syllable with 받침
         assert_eq!(p.get_type("ㄱ"), "G"); // Compatibility Jamo
         assert_eq!(p.get_type("ㅏ"), "G"); // Compatibility Jamo (vowel)
         assert_eq!(p.get_type("漢"), "H"); // Hanja
