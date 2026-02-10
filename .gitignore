@@ -22,3 +22,4 @@ target/
 
 .serena
 .mcp.json
+.tmp
