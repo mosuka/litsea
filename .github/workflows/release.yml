@@ -174,11 +174,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }}
-          name: Release ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-          generate_release_notes: true
 
   publish-crates:
     name: Publish crate
