@@ -2,11 +2,8 @@ name: Regression
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-  pull_request:
-    types: [opened, synchronize]
+  schedule:
+    - cron: 0 0 * * SUN
 
 jobs:
   format:
