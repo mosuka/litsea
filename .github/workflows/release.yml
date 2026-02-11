@@ -39,10 +39,17 @@ jobs:
         platform:
           - runner: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
           - runner: macos-latest
             target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
+          - runner: windows-latest
+            target: aarch64-pc-windows-msvc
+            skip_test_run: true
         toolchain: [stable]
     runs-on: ${{ matrix.platform.runner }}
     steps:
@@ -57,7 +64,13 @@ jobs:
           components: rustfmt, clippy
 
       - name: Run test
-        run: cargo test --target "${{ matrix.platform.target }}" --all-features
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform.skip_test_run }}" == "true" ]; then
+            cargo check --target "${{ matrix.platform.target }}" --all-features
+          else
+            cargo test --target "${{ matrix.platform.target }}" --all-features
+          fi
 
   create-release:
     name: Create Release
@@ -78,7 +91,7 @@ jobs:
 
   release:
     name: Build
-    needs: [test]
+    needs: [test, create-release]
     strategy:
       matrix:
         platform:
@@ -86,12 +99,24 @@ jobs:
             target: x86_64-unknown-linux-gnu
             archive: .zip
             extension: ""
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            archive: .zip
+            extension: ""
           - runner: macos-latest
             target: aarch64-apple-darwin
             archive: .zip
             extension: ""
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            archive: .zip
+            extension: ""
           - runner: windows-latest
             target: x86_64-pc-windows-msvc
+            archive: .zip
+            extension: .exe
+          - runner: windows-latest
+            target: aarch64-pc-windows-msvc
             archive: .zip
             extension: .exe
         toolchain: [stable]
@@ -132,15 +157,15 @@ jobs:
         run: cargo build --release --target=${{ matrix.platform.target }}
 
       - name: Create artifact for Linux
-        if: matrix.platform.runner == 'ubuntu-latest'
+        if: runner.os == 'Linux'
         run: zip --junk-paths litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
 
       - name: Create artifact for Windows
-        if: matrix.platform.runner == 'windows-latest'
+        if: runner.os == 'Windows'
         run: powershell Compress-Archive -DestinationPath litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} -Path target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
 
       - name: Create artifact for OSX
-        if: matrix.platform.runner == 'macos-latest'
+        if: runner.os == 'macOS'
         run: zip --junk-paths litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
 
       - name: Upload artifact
