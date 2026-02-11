@@ -4,20 +4,15 @@ use std::str::FromStr;
 use regex::Regex;
 
 /// Supported languages for word segmentation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Language {
     /// Japanese (日本語)
+    #[default]
     Japanese,
     /// Chinese (中文) - covers both Simplified and Traditional
     Chinese,
     /// Korean (한국어)
     Korean,
-}
-
-impl Default for Language {
-    fn default() -> Self {
-        Language::Japanese
-    }
 }
 
 impl fmt::Display for Language {
@@ -219,7 +214,7 @@ fn korean_patterns() -> CharTypePatterns {
             CharMatcher::Closure(Box::new(|ch: &str| {
                 if let Some(cp) = ch.chars().next() {
                     let code = cp as u32;
-                    code >= 0xAC00 && code <= 0xD7AF && (code - 0xAC00) % 28 == 0
+                    (0xAC00..=0xD7AF).contains(&code) && (code - 0xAC00).is_multiple_of(28)
                 } else {
                     false
                 }
@@ -232,7 +227,7 @@ fn korean_patterns() -> CharTypePatterns {
             CharMatcher::Closure(Box::new(|ch: &str| {
                 if let Some(cp) = ch.chars().next() {
                     let code = cp as u32;
-                    code >= 0xAC00 && code <= 0xD7AF && (code - 0xAC00) % 28 != 0
+                    (0xAC00..=0xD7AF).contains(&code) && !(code - 0xAC00).is_multiple_of(28)
                 } else {
                     false
                 }
