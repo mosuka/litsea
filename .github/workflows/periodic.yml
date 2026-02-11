@@ -1,4 +1,4 @@
-name: Regression
+name: Periodic
 
 on:
   workflow_dispatch:
