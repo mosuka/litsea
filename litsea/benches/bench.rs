@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use std::hint::black_box;
 
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 
 use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
@@ -12,12 +12,10 @@ use litsea::segmenter::Segmenter;
 /// Load a model file from the resources directory.
 fn load_model(model_name: &str) -> AdaBoost {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../resources")
-        .join(model_name);
+    let model_path =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources").join(model_name);
     let mut learner = AdaBoost::new(0.01, 100, 1);
-    rt.block_on(learner.load_model(model_path.to_str().unwrap()))
-        .unwrap();
+    rt.block_on(learner.load_model(model_path.to_str().unwrap())).unwrap();
     learner
 }
 
@@ -37,11 +35,7 @@ fn bench_segment_japanese_long(c: &mut Criterion) {
         .join("bocchan.txt");
     let text = fs::read_to_string(&text_path)
         .unwrap_or_else(|e| panic!("Failed to read {}: {}", text_path.display(), e));
-    let lines: Vec<&str> = text
-        .lines()
-        .map(|l| l.trim())
-        .filter(|l| !l.is_empty())
-        .collect();
+    let lines: Vec<&str> = text.lines().map(|l| l.trim()).filter(|l| !l.is_empty()).collect();
     c.bench_function("segment_japanese_long", |b| {
         b.iter(|| {
             for line in &lines {
@@ -96,8 +90,7 @@ fn bench_predict(c: &mut Criterion) {
     // Build a realistic attribute set from the segment pipeline.
     let sentence = "テスト";
     let mut tags = vec!["U".to_string(); 4];
-    let mut chars =
-        vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
+    let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
     let mut types = vec!["O".to_string(); 3];
     for ch in sentence.chars() {
         let s = ch.to_string();
@@ -109,8 +102,7 @@ fn bench_predict(c: &mut Criterion) {
     tags.extend(vec!["O".to_string(); chars.len() - 4]);
 
     // Use index 4 to get a valid attribute set.
-    let attrs =
-        build_attributes(4, &tags, &chars, &types, &segmenter);
+    let attrs = build_attributes(4, &tags, &chars, &types, &segmenter);
 
     c.bench_function("predict", |b| {
         b.iter(|| segmenter.learner.predict(black_box(attrs.clone())));
