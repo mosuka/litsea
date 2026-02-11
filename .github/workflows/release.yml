@@ -158,15 +158,15 @@ jobs:
 
       - name: Create artifact for Linux
         if: runner.os == 'Linux'
-        run: zip --junk-paths litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
+        run: zip --junk-paths litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.platform.target }}/release/litsea${{ matrix.platform.extension }}
 
       - name: Create artifact for Windows
         if: runner.os == 'Windows'
-        run: powershell Compress-Archive -DestinationPath litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} -Path target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
+        run: powershell Compress-Archive -DestinationPath litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} -Path target/${{ matrix.platform.target }}/release/litsea${{ matrix.platform.extension }}
 
       - name: Create artifact for OSX
         if: runner.os == 'macOS'
-        run: zip --junk-paths litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.platform.target }}/release/litsea-cli${{ matrix.platform.extension }}
+        run: zip --junk-paths litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }} target/${{ matrix.platform.target }}/release/litsea${{ matrix.platform.extension }}
 
       - name: Upload artifact
         uses: softprops/action-gh-release@v2
