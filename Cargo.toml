@@ -15,7 +15,7 @@ categories = ["text-processing"]
 license = "MIT"
 
 [workspace.dependencies]
-clap = { version = "4.5.57", features = ["derive"] }
+clap = { version = "4.5.58", features = ["derive"] }
 ctrlc = "3.5.1"
 icu_segmenter = "2.1.2"
 rayon = "1.11.0"
