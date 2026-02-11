@@ -26,6 +26,9 @@ test: ## Test the project
 build: ## Build the project
 	cargo build --release
 
+bench: ## Benchmark the project
+	cargo bench --bench bench
+
 tag: ## Make a new tag for the current version
 	git tag v$(LITSEA_VERSION)
 	git push origin v$(LITSEA_VERSION)
