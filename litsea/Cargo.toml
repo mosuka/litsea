@@ -21,6 +21,13 @@ serde_json.workspace = true
 rayon.workspace = true
 tokio.workspace = true
 
+[dev-dependencies]
+criterion.workspace = true
+
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tempfile.workspace = true
 tokio-test.workspace = true
+
+[[bench]]
+name = "bench"
+harness = false
