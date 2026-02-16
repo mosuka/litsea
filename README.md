@@ -79,9 +79,6 @@ Train the features output by the above command using AdaBoost. Use `-t` to set t
 The output from the `train` command is similar to:
 
 ```text
-finding instances...: 599198 instances found
-loading instances...: 599198/599198 instances loaded
-Iteration 999 - margin: 0.008476823878127981
 Result Metrics:
   Accuracy: 94.15% ( 564133 / 599198 )
   Precision: 95.57% ( 330454 / 345758 )
@@ -112,6 +109,21 @@ For Korean and Chinese:
 ```sh
 echo "한국어 단어 분할 테스트입니다." | ./target/release/litsea segment -l korean ./resources/korean.model
 echo "中文分词测试。" | ./target/release/litsea segment -l chinese ./resources/chinese.model
+```
+
+## How to split text into sentences
+
+Use the `split-sentences` subcommand to split text into sentences using Unicode UAX #29 rules. Each input line is treated as a paragraph and split into individual sentences:
+
+```sh
+echo "これはテストです。次の文です。" | ./target/release/litsea split-sentences
+```
+
+The output will look like:
+
+```text
+これはテストです。
+次の文です。
 ```
 
 ## Pre-trained models

@@ -3,8 +3,8 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::str::FromStr;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use reqwest::Client;
 
@@ -13,6 +13,7 @@ use crate::util::ModelScheme;
 type Label = i8;
 
 /// Structure to hold evaluation metrics.
+#[derive(Debug, Clone)]
 pub struct Metrics {
     /// Accuracy in percentage (%)
     pub accuracy: f64,
@@ -40,10 +41,10 @@ pub struct Metrics {
 pub struct AdaBoost {
     pub threshold: f64,
     pub num_iterations: usize,
-    pub num_threads: usize,
     instance_weights: Vec<f64>,
     model: Vec<f64>,
     features: Vec<String>,
+    feature_index: HashMap<String, usize>,
     labels: Vec<Label>,
     instances_buf: Vec<usize>,
     instances: Vec<(usize, usize)>, // (start, end) index in instances_buf
@@ -52,23 +53,22 @@ pub struct AdaBoost {
 
 impl AdaBoost {
     /// Creates a new instance of [`AdaBoost`].
-    /// This method initializes the AdaBoost parameters such as threshold,
-    /// number of iterations, and number of threads.
+    /// This method initializes the AdaBoost parameters such as threshold
+    /// and number of iterations.
     ///
     /// # Arguments
     /// * `threshold`: The threshold for stopping the training.
     /// * `num_iterations`: The maximum number of iterations for training.
-    /// * `num_threads`: The number of threads to use for training (not used in this implementation).
     ///
     /// # Returns: A new instance of [`AdaBoost`].
-    pub fn new(threshold: f64, num_iterations: usize, num_threads: usize) -> Self {
+    pub fn new(threshold: f64, num_iterations: usize) -> Self {
         AdaBoost {
             threshold,
             num_iterations,
-            num_threads,
             instance_weights: vec![],
             model: vec![],
             features: vec![],
+            feature_index: HashMap::new(),
             labels: vec![],
             instances_buf: vec![],
             instances: vec![],
@@ -105,7 +105,10 @@ impl AdaBoost {
         for line in reader.lines() {
             let line = line?;
             let mut parts = line.split_whitespace();
-            let _label = parts.next();
+            // Skip empty lines (no label token).
+            let Some(_label) = parts.next() else {
+                continue;
+            };
 
             for h in parts {
                 map.entry(h.to_string()).or_insert(0.0);
@@ -113,17 +116,23 @@ impl AdaBoost {
             }
 
             self.num_instances += 1;
-            if self.num_instances.is_multiple_of(1000) {
-                eprint!("\rfinding instances...: {} instances found", self.num_instances);
-            }
         }
 
-        eprintln!("\rfinding instances...: {} instances found", self.num_instances);
-
+        // The bias term (empty string key) is always present.
         map.insert("".to_string(), 0.0);
+
+        // A map with only the bias term means no actual features were extracted.
+        if map.len() == 1 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "No features found in the training data (only bias term present)",
+            ));
+        }
 
         self.features = map.keys().cloned().collect();
         self.model = map.values().cloned().collect();
+        self.feature_index =
+            self.features.iter().enumerate().map(|(i, f)| (f.clone(), i)).collect();
 
         self.instance_weights.reserve(self.num_instances);
         self.labels.reserve(self.num_instances);
@@ -136,6 +145,9 @@ impl AdaBoost {
     /// Initializes the instances from a file.
     /// The file should contain lines with a label followed by space-separated features.
     ///
+    /// Must be called after [`initialize_features`](Self::initialize_features) on the same file,
+    /// because it depends on the feature index built by that method.
+    ///
     /// # Arguments
     /// * `filename`: The path to the file containing the instances.
     ///
@@ -147,7 +159,6 @@ impl AdaBoost {
     /// and initializes the instances with their corresponding weights.
     /// It calculates the score for each instance based on the features and updates the model accordingly.
     /// The instance weights are initialized based on the label and score.
-    /// It also prints the progress of loading instances to the standard error output.
     pub fn initialize_instances(&mut self, filename: &Path) -> std::io::Result<()> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
@@ -156,36 +167,39 @@ impl AdaBoost {
         for line in reader.lines() {
             let line = line?;
             let mut parts = line.split_whitespace();
-            let label: Label = parts.next().unwrap().parse().unwrap();
+            let label: Label = parts
+                .next()
+                .ok_or_else(|| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        "Missing label in instance line",
+                    )
+                })?
+                .parse()
+                .map_err(|e| {
+                    std::io::Error::new(
+                        std::io::ErrorKind::InvalidData,
+                        format!("Invalid label: {}", e),
+                    )
+                })?;
             self.labels.push(label);
 
             let start = self.instances_buf.len();
             let mut score = bias;
 
             for h in parts {
-                if let Ok(pos) = self.features.binary_search(&h.to_string()) {
+                if let Some(&pos) = self.feature_index.get(h) {
                     self.instances_buf.push(pos);
                     score += self.model[pos];
                 }
             }
 
             let end = self.instances_buf.len();
+            // Sort feature indices so that binary_search in train() works correctly.
+            self.instances_buf[start..end].sort_unstable();
             self.instances.push((start, end));
             self.instance_weights.push((-2.0 * label as f64 * score).exp());
-            if self.instance_weights.len().is_multiple_of(1000) {
-                eprint!(
-                    "\rloading instances...: {}/{} instances loaded",
-                    self.instance_weights.len(),
-                    self.num_instances
-                );
-            }
         }
-
-        eprintln!(
-            "\rloading instances...: {}/{} instances loaded",
-            self.instance_weights.len(),
-            self.num_instances
-        );
 
         Ok(())
     }
@@ -211,7 +225,7 @@ impl AdaBoost {
     pub fn train(&mut self, running: Arc<AtomicBool>) {
         let num_features = self.features.len();
 
-        for t in 0..self.num_iterations {
+        for _t in 0..self.num_iterations {
             if !running.load(Ordering::SeqCst) {
                 break;
             }
@@ -235,10 +249,16 @@ impl AdaBoost {
                 }
             }
 
-            // Find the best hypothesis
+            // Find the best hypothesis.
+            // Initialize h_best to 0 (the bias bucket, i.e., the empty-string feature "").
+            // The initial best_error_rate corresponds to a hypothetical weak learner that
+            // predicts all instances as negative (label = -1), whose error rate equals the
+            // fraction of positive instances.  Any real feature (index >= 1) must beat this
+            // baseline to be selected.  If none does, h_best stays 0 and the bias bucket
+            // is updated, which is equivalent to adding a constant "all-negative" weak learner.
             let mut h_best = 0;
             let mut best_error_rate = positive_weight_sum / instance_weight_sum;
-            for (h, _) in errors.iter().enumerate().take(num_features).skip(1) {
+            for (h, _) in errors.iter().enumerate().skip(1) {
                 let mut e = errors[h] + positive_weight_sum;
                 e /= instance_weight_sum;
                 if (0.5 - e).abs() > (0.5 - best_error_rate).abs() {
@@ -247,7 +267,6 @@ impl AdaBoost {
                 }
             }
 
-            eprint!("\rIteration {} - margin: {}", t, (0.5 - best_error_rate).abs());
             if (0.5 - best_error_rate).abs() < self.threshold {
                 break;
             }
@@ -271,13 +290,14 @@ impl AdaBoost {
                 }
             }
 
-            // Normalize instance weights
+            // Normalize instance weights (guard against zero sum to prevent NaN).
             let sum_w: f64 = self.instance_weights.iter().sum();
-            for d in &mut self.instance_weights {
-                *d /= sum_w;
+            if sum_w > 0.0 {
+                for d in &mut self.instance_weights {
+                    *d /= sum_w;
+                }
             }
         }
-        eprintln!();
     }
 
     /// Saves the trained model to a file.
@@ -295,6 +315,12 @@ impl AdaBoost {
     /// where each line contains a feature and its corresponding weight.
     /// The last line contains the bias term, which is calculated as the negative sum of the model weights divided by 2.
     pub fn save_model(&self, filename: &Path) -> std::io::Result<()> {
+        if self.model.is_empty() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                "Cannot save an empty model",
+            ));
+        }
         let mut file = File::create(filename)?;
         let mut bias = -self.model[0];
         for (h, &w) in self.features.iter().zip(self.model.iter()).skip(1) {
@@ -418,7 +444,7 @@ impl AdaBoost {
     /// # Returns: A result indicating success or failure.
     ///
     /// # Errors: Returns an error if the content cannot be parsed.
-    pub fn parse_model_content<R: BufRead>(&mut self, reader: R) -> std::io::Result<()> {
+    pub(crate) fn parse_model_content<R: BufRead>(&mut self, reader: R) -> std::io::Result<()> {
         let mut m: HashMap<String, f64> = HashMap::new();
         let mut bias = 0.0;
 
@@ -456,6 +482,8 @@ impl AdaBoost {
         let sorted: BTreeMap<_, _> = m.into_iter().collect();
         self.features = sorted.keys().cloned().collect();
         self.model = sorted.values().cloned().collect();
+        self.feature_index =
+            self.features.iter().enumerate().map(|(i, f)| (f.clone(), i)).collect();
         Ok(())
     }
 
@@ -492,19 +520,22 @@ impl AdaBoost {
     /// * `label`: The label of the instance, represented as an `i8`.
     pub fn add_instance(&mut self, attributes: HashSet<String>, label: i8) {
         let start = self.instances_buf.len();
-        let mut attrs: Vec<String> = attributes.into_iter().collect();
-        attrs.sort();
+        let attrs: Vec<String> = attributes.into_iter().collect();
         for attr in attrs.iter() {
-            let feature_index = if let Some(pos) = self.features.iter().position(|f| f == attr) {
+            let idx = if let Some(&pos) = self.feature_index.get(attr) {
                 pos
             } else {
+                let pos = self.features.len();
                 self.features.push(attr.clone());
                 self.model.push(0.0);
-                self.features.len() - 1
+                self.feature_index.insert(attr.clone(), pos);
+                pos
             };
-            self.instances_buf.push(feature_index);
+            self.instances_buf.push(idx);
         }
         let end = self.instances_buf.len();
+        // Sort feature indices numerically so that binary_search in train() works correctly.
+        self.instances_buf[start..end].sort_unstable();
         self.instances.push((start, end));
         self.labels.push(label);
         self.instance_weights.push(1.0);
@@ -517,29 +548,28 @@ impl AdaBoost {
     /// * `attributes`: A `HashSet<String>` containing the attributes to predict.
     ///
     /// # Returns: The predicted label as an `i8`, where 1 indicates a positive prediction and -1 indicates a negative prediction.
+    #[must_use]
     pub fn predict(&self, attributes: HashSet<String>) -> i8 {
-        let mut score = 0.0;
-        for attr in attributes {
-            if let Some(idx) = self.features.iter().position(|f| f == &attr) {
+        let mut score = self.get_bias();
+        for attr in &attributes {
+            if let Some(&idx) = self.feature_index.get(attr) {
                 score += self.model[idx];
             }
         }
-        if score >= 0.0 {
-            1
-        } else {
-            -1
-        }
+        if score >= 0.0 { 1 } else { -1 }
     }
 
     /// Gets the bias term of the model.
     /// The bias is calculated as the negative sum of the model weights divided by 2.
     ///
-    /// # Returns:The bias term as a `f64`.
+    /// # Returns: The bias term as a `f64`.
+    #[must_use]
     pub fn get_bias(&self) -> f64 {
         -self.model.iter().sum::<f64>() / 2.0
     }
 
     /// Calculates and returns the performance metrics of the model on the training data.
+    #[must_use]
     pub fn get_metrics(&self) -> Metrics {
         let bias = self.get_bias();
         let mut true_positives = 0; // true positives
@@ -567,7 +597,8 @@ impl AdaBoost {
             }
         }
 
-        let accuracy = (true_positives + true_negatives) as f64 / self.num_instances as f64 * 100.0;
+        let accuracy =
+            (true_positives + true_negatives) as f64 / self.num_instances.max(1) as f64 * 100.0;
         let precision =
             true_positives as f64 / (true_positives + false_positives).max(1) as f64 * 100.0;
         let recall =
@@ -592,8 +623,8 @@ mod tests {
 
     use std::collections::HashSet;
     use std::io::Write;
-    use std::sync::atomic::AtomicBool;
     use std::sync::Arc;
+    use std::sync::atomic::AtomicBool;
 
     use tempfile::NamedTempFile;
 
@@ -605,7 +636,7 @@ mod tests {
         writeln!(features_file, "0 feat3")?;
         features_file.as_file().sync_all()?;
 
-        let mut learner = AdaBoost::new(0.01, 10, 1);
+        let mut learner = AdaBoost::new(0.01, 10);
         learner.initialize_features(features_file.path())?;
 
         // Features is an ordered set that should contain ""(empty string), "feat1", "feat2", "feat3"
@@ -623,7 +654,7 @@ mod tests {
         writeln!(features_file, "1 feat1 feat2")?;
         features_file.as_file().sync_all()?;
 
-        let mut learner = AdaBoost::new(0.01, 10, 1);
+        let mut learner = AdaBoost::new(0.01, 10);
         learner.initialize_features(features_file.path())?;
 
         // Create a dummy instance file
@@ -644,13 +675,13 @@ mod tests {
     }
 
     #[test]
-    fn test_train() -> std::io::Result<()> {
+    fn test_train_immediate_stop() -> std::io::Result<()> {
         // Initialize features using a features file.
         let mut features_file = NamedTempFile::new()?;
         writeln!(features_file, "1 feat1 feat2")?;
         features_file.as_file().sync_all()?;
 
-        let mut learner = AdaBoost::new(0.01, 3, 1);
+        let mut learner = AdaBoost::new(0.01, 3);
         learner.initialize_features(features_file.path())?;
 
         // Create a dummy instance file with one instance.
@@ -669,13 +700,20 @@ mod tests {
         // weight_sum should be normalized to 1.0.
         assert!((weight_sum - 1.0).abs() < 1e-6);
 
+        // Model weights should remain at their initial state (all zeros) since
+        // training was immediately stopped before any iteration could execute.
+        assert!(
+            learner.model.iter().all(|w| *w == 0.0),
+            "Model weights should be all zeros after immediate stop"
+        );
+
         Ok(())
     }
 
     #[tokio::test]
     async fn test_save_and_load_model() -> std::io::Result<()> {
         // Prepare a dummy learner.
-        let mut learner = AdaBoost::new(0.01, 10, 1);
+        let mut learner = AdaBoost::new(0.01, 10);
 
         // Set the features and weights in advance.
         learner.features = vec!["feat1".to_string(), "feat2".to_string()];
@@ -686,7 +724,7 @@ mod tests {
         learner.save_model(temp_model.path())?;
 
         // Load the model with a new learner.
-        let mut learner2 = AdaBoost::new(0.01, 10, 1);
+        let mut learner2 = AdaBoost::new(0.01, 10);
         learner2.load_model(temp_model.path().to_str().unwrap()).await?;
 
         // Check that the number of features and models match.
@@ -698,7 +736,7 @@ mod tests {
 
     #[test]
     fn test_add_instance_and_predict() {
-        let mut learner = AdaBoost::new(0.01, 10, 1);
+        let mut learner = AdaBoost::new(0.01, 10);
 
         // Here, features and model are empty in the initial state. They are newly registered by add_instance.
         let mut attrs = HashSet::new();
@@ -712,7 +750,7 @@ mod tests {
 
     #[test]
     fn test_get_bias() {
-        let mut learner = AdaBoost::new(0.01, 10, 1);
+        let mut learner = AdaBoost::new(0.01, 10);
 
         // Set model weights as an example.
         learner.model = vec![0.2, 0.3, -0.1];
@@ -723,13 +761,15 @@ mod tests {
 
     #[test]
     fn test_get_metrics() {
-        let mut learner = AdaBoost::new(0.01, 10, 1);
+        let mut learner = AdaBoost::new(0.01, 10);
 
         // Set features and model for prediction
         learner.features = vec!["A".to_string(), "B".to_string()];
         learner.model = vec![0.5, -1.0];
+        learner.feature_index =
+            learner.features.iter().enumerate().map(|(i, f)| (f.clone(), i)).collect();
 
-        // Instance 1: Attribute “A” → score = 0.25 + 0.5 = 0.75 (positive example)
+        // Instance 1: Attribute "A" → score = 0.25 + 0.5 = 0.75 (positive example)
         let mut attrs1 = HashSet::new();
         attrs1.insert("A".to_string());
         learner.add_instance(attrs1, 1);
@@ -748,5 +788,87 @@ mod tests {
 
         // Since this is a simple case, the accuracy is 100%.
         assert!((metrics.accuracy - 100.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_get_metrics_zero_instances() {
+        // An empty AdaBoost with no instances should return zeroed metrics
+        // without division-by-zero panics.
+        let learner = AdaBoost::new(0.01, 10);
+        let metrics = learner.get_metrics();
+        assert_eq!(metrics.num_instances, 0);
+        assert_eq!(metrics.true_positives, 0);
+        assert_eq!(metrics.false_positives, 0);
+        assert_eq!(metrics.false_negatives, 0);
+        assert_eq!(metrics.true_negatives, 0);
+        // .max(1) guard ensures 0/1 = 0.0, not NaN.
+        assert!((metrics.accuracy - 0.0).abs() < f64::EPSILON);
+        assert!((metrics.precision - 0.0).abs() < f64::EPSILON);
+        assert!((metrics.recall - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_get_metrics_all_positive() {
+        // All-positive instances: precision=100%, recall=100%, no false negatives.
+        // Verifies the .max(1) guard handles zero denominators correctly.
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.features = vec!["".to_string(), "A".to_string()];
+        learner.feature_index.insert("".to_string(), 0);
+        learner.feature_index.insert("A".to_string(), 1);
+        // model: weight for "" (bias bucket) = 0, weight for "A" = 1.0
+        // bias = -(0.0 + 1.0) / 2.0 = -0.5
+        // score for instance with "A": -0.5 + 1.0 = 0.5 >= 0 → positive prediction
+        learner.model = vec![0.0, 1.0];
+
+        let mut attrs = HashSet::new();
+        attrs.insert("A".to_string());
+        learner.add_instance(attrs.clone(), 1);
+        learner.add_instance(attrs, 1);
+
+        let metrics = learner.get_metrics();
+        assert_eq!(metrics.num_instances, 2);
+        assert_eq!(metrics.true_positives, 2);
+        assert_eq!(metrics.false_positives, 0);
+        assert_eq!(metrics.false_negatives, 0);
+        assert_eq!(metrics.true_negatives, 0);
+        assert!((metrics.accuracy - 100.0).abs() < f64::EPSILON);
+        assert!((metrics.precision - 100.0).abs() < f64::EPSILON);
+        assert!((metrics.recall - 100.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_parse_model_content_empty_input() {
+        let mut learner = AdaBoost::new(0.01, 10);
+        // Empty input should succeed with no features.
+        let result = learner.parse_model_content(std::io::BufReader::new("".as_bytes()));
+        assert!(result.is_ok());
+        assert!(learner.features.is_empty());
+    }
+
+    #[test]
+    fn test_parse_model_content_invalid_bias() {
+        let mut learner = AdaBoost::new(0.01, 10);
+        // A single non-numeric token (no tab separator) should fail as an invalid bias.
+        let result =
+            learner.parse_model_content(std::io::BufReader::new("not_a_number".as_bytes()));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_model_content_invalid_weight() {
+        let mut learner = AdaBoost::new(0.01, 10);
+        // A feature line with a non-numeric weight should fail.
+        let result =
+            learner.parse_model_content(std::io::BufReader::new("feat1\tnot_a_number".as_bytes()));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_save_model_empty() {
+        let learner = AdaBoost::new(0.01, 10);
+        let temp = NamedTempFile::new().unwrap();
+        let result = learner.save_model(temp.path());
+        assert!(result.is_err());
+        assert_eq!(result.unwrap_err().kind(), std::io::ErrorKind::InvalidData);
     }
 }

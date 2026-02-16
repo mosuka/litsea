@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Default value (uses the value defined in the environment variables, if defined)
 lang="${WIKI_LANG:-ja}"
@@ -86,6 +87,9 @@ cleanup() {
     if [[ -n "$spinner_pid" ]]; then
         kill "$spinner_pid" 2>/dev/null
     fi
+    if [[ -n "${tmpfile:-}" && -f "$tmpfile" ]]; then
+        rm -f "$tmpfile"
+    fi
 }
 
 
@@ -149,7 +153,7 @@ echo "Decompressing ${download_dir}/${download_file} completed."
 spinner_loop "Extracting titles from ${download_dir}/${file_name}" &
 spinner_pid=$!
 
-tmpfile=$(mktemp /tmp/${file_name}.XXXXXX)
+tmpfile=$(mktemp "/tmp/${file_name}.XXXXXX")
 
 # Read one line at a time
 while IFS= read -r line; do
@@ -214,8 +218,8 @@ while IFS= read -r line; do
     esac
 
     # Write title to file one line at a time
-    echo "${title}" >> ${tmpfile}
-done < <(grep -Ev ':[^:]*[a-zA-Z][^:]*:' ${download_dir}/${file_name})
+    echo "${title}" >> "${tmpfile}"
+done < <(grep -Ev ':[^:]*[a-zA-Z][^:]*:' "${download_dir}/${file_name}")
 
 # Stop the spinner after the loop is complete.
 kill "${spinner_pid}" 2>/dev/null
@@ -229,7 +233,7 @@ echo "Extracting titles from ${download_dir}/${file_name} completed."
 spinner_loop "Creating ${texts_file}" &
 spinner_pid=$!
 
-shuf -n ${title_count} ${tmpfile} | while read -r title; do
+shuf -n "${title_count}" "${tmpfile}" | while read -r title; do
     # If the title is blank, ignore it.
     if [[ -z "${title}" ]]; then
         continue
@@ -284,7 +288,7 @@ shuf -n ${title_count} ${tmpfile} | while read -r title; do
         fi
 
         # Skip ASCII-only lines
-        if [[ "${sentence}" =~ ^[a-zA-Z0-9[:space:]\p{P}\p{S}]+$ ]]; then
+        if [[ "${sentence}" =~ ^[a-zA-Z0-9[:space:][:punct:]]+$ ]]; then
             continue
         fi
 

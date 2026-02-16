@@ -2,11 +2,12 @@
 name = "litsea"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 description.workspace = true
 documentation.workspace = true
-homepage = "https://github.com/mosuka/litsea/litsea"
+homepage.workspace = true
 repository.workspace = true
-readme = "README.md"
+readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 license.workspace = true
@@ -14,18 +15,13 @@ license.workspace = true
 [dependencies]
 regex.workspace = true
 reqwest.workspace = true
-serde.workspace = true
-serde_json.workspace = true
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-rayon.workspace = true
-tokio.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
 tempfile.workspace = true
+tokio.workspace = true
 tokio-test.workspace = true
 
 [[bench]]

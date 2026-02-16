@@ -5,26 +5,24 @@ members = ["litsea", "litsea-cli"]
 [workspace.package]
 version = "0.4.0"
 edition = "2024"
-description = "Litsea is an extreamely compact word segmentation and model training tool implemented in Rust."
+rust-version = "1.87"
+description = "Litsea is an extremely compact word segmentation and model training tool implemented in Rust."
 documentation = "https://docs.rs/litsea"
 homepage = "https://github.com/mosuka/litsea"
 repository = "https://github.com/mosuka/litsea"
 readme = "README.md"
-keywords = ["word", "segmentation", "training", "model"]
+keywords = ["word", "segmentation", "training", "model", "nlp"]
 categories = ["text-processing"]
 license = "MIT"
 
 [workspace.dependencies]
-clap = { version = "4.5.57", features = ["derive"] }
-ctrlc = "3.5.1"
+clap = { version = "4.5.58", features = ["derive"] }
+ctrlc = "3.5.2"
 icu_segmenter = "2.1.2"
-rayon = "1.11.0"
 regex = "1.12.3"
 reqwest = { version = "0.13.2", features = [
     "rustls",
-], default-features = false } # use rustls-tls instead of native-tls which avoids the need to link openssl
-serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+], default-features = false } # use rustls instead of native-tls to avoid linking openssl; disables http2, charset, and system-proxy
 tempfile = "3.25.0"
 tokio = { version = "1.49.0", features = ["rt-multi-thread", "macros"] }
 tokio-test = "0.4.5"
