@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 lang="${WIKI_LANG:-ja}"
 texts_file="${WIKI_TEXTS_FILE:-texts.txt}"

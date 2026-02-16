@@ -2,11 +2,12 @@
 name = "litsea-cli"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 description.workspace = true
-documentation = "https://docs.rs/litsea-cli"
-homepage = "https://github.com/mosuka/litsea/litsea-cli"
+documentation = "https://docs.rs/litsea"
+homepage.workspace = true
 repository.workspace = true
-readme = "README.md"
+readme.workspace = true
 keywords.workspace = true
 categories.workspace = true
 license.workspace = true

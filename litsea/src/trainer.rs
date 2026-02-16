@@ -1,6 +1,6 @@
 use std::path::Path;
-use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
 
 use crate::adaboost::{AdaBoost, Metrics};
 
@@ -18,7 +18,6 @@ impl Trainer {
     /// # Arguments
     /// * `threshold` - The threshold for the AdaBoost algorithm.
     /// * `num_iterations` - The number of iterations for the training.
-    /// * `num_threads` - The number of threads to use for training.
     /// * `features_path` - The path to the features file.
     ///
     /// # Returns
@@ -29,40 +28,34 @@ impl Trainer {
     pub fn new(
         threshold: f64,
         num_iterations: usize,
-        num_threads: usize,
         features_path: &Path,
-    ) -> Self {
-        let mut learner = AdaBoost::new(threshold, num_iterations, num_threads);
+    ) -> std::io::Result<Self> {
+        let mut learner = AdaBoost::new(threshold, num_iterations);
 
-        learner
-            .initialize_features(features_path)
-            .expect("Failed to initialize features");
-        learner
-            .initialize_instances(features_path)
-            .expect("Failed to initialize instances");
+        learner.initialize_features(features_path)?;
+        learner.initialize_instances(features_path)?;
 
-        Trainer { learner }
+        Ok(Trainer { learner })
     }
 
-    /// Load Model from a file
+    /// Load Model from a URI.
     ///
     /// # Arguments
-    /// * `model_path` - The path to the model file to load.    
+    /// * `model_uri` - The URI of the model to load (file path or http/https URL).
     ///
     /// # Returns
     /// Returns a Result indicating success or failure.
     ///
     /// # Errors
     /// Returns an error if the model cannot be loaded.
-    pub async fn load_model(&mut self, model_uri: &str) -> Result<(), Box<dyn std::error::Error>> {
-        // Load the model from the specified file
-        Ok(self.learner.load_model(model_uri).await?)
+    pub async fn load_model(&mut self, model_uri: &str) -> std::io::Result<()> {
+        self.learner.load_model(model_uri).await
     }
 
     /// Train the AdaBoost model.
     ///
     /// # Arguments
-    /// * `running` - An Arc<AtomicBool> to control the running state of the training process.
+    /// * `running` - An `Arc<AtomicBool>` to control the running state of the training process.
     /// * `model_path` - The path to save the trained model.
     ///
     /// # Returns
@@ -75,7 +68,7 @@ impl Trainer {
         running: Arc<AtomicBool>,
         model_path: &Path,
     ) -> Result<Metrics, Box<dyn std::error::Error>> {
-        self.learner.train(running.clone());
+        self.learner.train(running);
 
         // Save the trained model to the specified file
         self.learner.save_model(model_path)?;
@@ -89,8 +82,8 @@ mod tests {
     use super::*;
 
     use std::io::Write;
-    use std::sync::atomic::AtomicBool;
     use std::sync::Arc;
+    use std::sync::atomic::AtomicBool;
 
     use tempfile::NamedTempFile;
 
@@ -124,7 +117,7 @@ mod tests {
         let features_file = create_dummy_features_file();
 
         // Create a Trainer instance
-        let mut trainer = Trainer::new(0.01, 10, 1, features_file.path());
+        let mut trainer = Trainer::new(0.01, 10, features_file.path())?;
 
         // Prepare a dummy model file
         let model_file = create_dummy_model_file();
@@ -138,12 +131,23 @@ mod tests {
     }
 
     #[test]
-    fn test_train() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_new_empty_features_file() {
+        // A features file with no actual features (only labels) should return an error
+        // because initialize_features() requires at least one feature beyond the bias term.
+        let mut file = NamedTempFile::new().expect("Failed to create temp file");
+        // Write a line with only a label and no feature names.
+        writeln!(file, "1").expect("Failed to write");
+        let result = Trainer::new(0.01, 10, file.path());
+        assert!(result.is_err(), "Trainer::new() should fail with an empty feature set");
+    }
+
+    #[test]
+    fn test_train_immediate_stop() -> Result<(), Box<dyn std::error::Error>> {
         // Prepare a dummy features file
         let features_file = create_dummy_features_file();
 
         // Create a Trainer instance with the dummy features file
-        let mut trainer = Trainer::new(0.01, 5, 1, features_file.path());
+        let mut trainer = Trainer::new(0.01, 5, features_file.path())?;
 
         // Prepare a temporary file for the model output
         let model_out = NamedTempFile::new()?;
@@ -154,7 +158,7 @@ mod tests {
         // Execute the train method.
         let metrics: Metrics = trainer.train(running, model_out.path())?;
 
-        // Check if the metrics are valie.
+        // Check if the metrics are valid.
         // Since metrics are dummy data, we will consider anything 0 or above to be OK here.
         assert!(metrics.accuracy >= 0.0);
         assert!(metrics.precision >= 0.0);

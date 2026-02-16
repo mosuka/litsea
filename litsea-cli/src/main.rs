@@ -1,24 +1,24 @@
 use std::error::Error;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::{Args, Parser, Subcommand};
 
 use litsea::adaboost::AdaBoost;
 use litsea::extractor::Extractor;
-use litsea::get_version;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 use litsea::trainer::Trainer;
+use litsea::version;
 
 /// Arguments for the extract command.
 #[derive(Debug, Args)]
-#[clap(
+#[command(
     author,
     about = "Extract features from a corpus",
-    version = get_version(),
+    version = version(),
 )]
 struct ExtractArgs {
     #[arg(short, long, default_value = "japanese")]
@@ -30,9 +30,9 @@ struct ExtractArgs {
 
 /// Arguments for the train command.
 #[derive(Debug, Args)]
-#[clap(author,
+#[command(author,
     about = "Train a segmenter",
-    version = get_version(),
+    version = version(),
 )]
 struct TrainArgs {
     #[arg(short, long, default_value = "0.01")]
@@ -40,9 +40,6 @@ struct TrainArgs {
 
     #[arg(short = 'i', long, default_value = "100")]
     num_iterations: usize,
-
-    #[arg(short = 'n', long, default_value = "1")]
-    num_threads: usize,
 
     #[arg(short = 'm', long)]
     load_model_uri: Option<String>,
@@ -53,9 +50,9 @@ struct TrainArgs {
 
 /// Arguments for the segment command.
 #[derive(Debug, Args)]
-#[clap(author,
+#[command(author,
     about = "Segment a sentence",
-    version = get_version(),
+    version = version(),
 )]
 struct SegmentArgs {
     #[arg(short, long, default_value = "japanese")]
@@ -66,14 +63,14 @@ struct SegmentArgs {
 
 /// Arguments for the split-sentences command.
 #[derive(Debug, Args)]
-#[clap(
+#[command(
     author,
     about = "Split text into sentences using Unicode UAX #29 rules",
-    version = get_version(),
+    version = version(),
 )]
 struct SplitSentencesArgs {}
 
-/// Subcommands for lietsea CLI.
+/// Subcommands for litsea CLI.
 #[derive(Debug, Subcommand)]
 enum Commands {
     Extract(ExtractArgs),
@@ -84,14 +81,14 @@ enum Commands {
 
 /// Arguments for the litsea command.
 #[derive(Debug, Parser)]
-#[clap(
+#[command(
     name = "litsea",
     author,
     about = "A morphological analysis command line interface",
-    version = get_version(),
+    version = version(),
 )]
 struct CommandArgs {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     command: Commands,
 }
 
@@ -134,15 +131,10 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
         } else {
             std::process::exit(0);
         }
-    })
-    .expect("Error setting Ctrl-C handler");
+    })?;
 
-    let mut trainer = Trainer::new(
-        args.threshold,
-        args.num_iterations,
-        args.num_threads,
-        args.features_file.as_path(),
-    );
+    let mut trainer =
+        Trainer::new(args.threshold, args.num_iterations, args.features_file.as_path())?;
 
     if let Some(model_uri) = &args.load_model_uri {
         trainer.load_model(model_uri).await?;
@@ -193,10 +185,11 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
 async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     let language: Language =
         args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
-    let mut leaner = AdaBoost::new(0.01, 100, 1);
-    leaner.load_model(args.model_uri.as_str()).await?;
+    // AdaBoost parameters are not used for prediction; only the loaded model weights matter.
+    let mut learner = AdaBoost::new(0.01, 100);
+    learner.load_model(args.model_uri.as_str()).await?;
 
-    let segmenter = Segmenter::new(language, Some(leaner));
+    let segmenter = Segmenter::new(language, Some(learner));
     let stdin = io::stdin();
     let stdout = io::stdout();
     let mut writer = io::BufWriter::new(stdout.lock());
@@ -224,8 +217,8 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
 /// # Returns
 /// Returns a Result indicating success or failure.
 fn split_sentences(_args: SplitSentencesArgs) -> Result<(), Box<dyn Error>> {
-    use icu_segmenter::options::SentenceBreakInvariantOptions;
     use icu_segmenter::SentenceSegmenter;
+    use icu_segmenter::options::SentenceBreakInvariantOptions;
 
     let segmenter = SentenceSegmenter::new(SentenceBreakInvariantOptions::default());
     let stdin = io::stdin();
@@ -239,7 +232,11 @@ fn split_sentences(_args: SplitSentencesArgs) -> Result<(), Box<dyn Error>> {
             continue;
         }
 
-        let breakpoints: Vec<usize> = segmenter.segment_str(line).collect();
+        let mut breakpoints: Vec<usize> = segmenter.segment_str(line).collect();
+        // Ensure the first breakpoint is 0 so no leading text is lost.
+        if breakpoints.first() != Some(&0) {
+            breakpoints.insert(0, 0);
+        }
         for window in breakpoints.windows(2) {
             let sentence = line[window[0]..window[1]].trim();
             if !sentence.is_empty() {

@@ -30,6 +30,9 @@ jobs:
       - name: Run format
         run: cargo fmt --all -- --check
 
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
   test:
     name: Test
     needs: [format]
@@ -61,6 +64,15 @@ jobs:
           toolchain: ${{ matrix.toolchain }}
           target: ${{ matrix.platform.target }}
           components: rustfmt, clippy
+
+      - name: Cache Cargo
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run test
         shell: bash

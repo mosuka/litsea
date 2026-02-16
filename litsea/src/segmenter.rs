@@ -32,7 +32,7 @@ impl Segmenter {
         Segmenter {
             char_types: language.char_type_patterns(),
             language,
-            learner: learner.unwrap_or_else(|| AdaBoost::new(0.01, 100, 1)),
+            learner: learner.unwrap_or_else(|| AdaBoost::new(0.01, 100)),
         }
     }
 
@@ -54,8 +54,55 @@ impl Segmenter {
     /// let char_type = segmenter.get_type("あ");
     /// assert_eq!(char_type, "I"); // Hiragana
     /// ```
+    #[must_use]
     pub fn get_type(&self, ch: &str) -> &str {
         self.char_types.get_type(ch)
+    }
+
+    /// Processes a corpus string by building tags, characters, and types arrays,
+    /// then calls the callback for each character position with its attributes and label.
+    fn process_corpus<F>(&self, corpus: &str, mut callback: F)
+    where
+        F: FnMut(HashSet<String>, i8),
+    {
+        if corpus.is_empty() {
+            return;
+        }
+        // Padding for lookback: tags[i-3], tags[i-2], tags[i-1] are referenced by
+        // get_attributes(). The first real character's tag is pushed inside the word loop.
+        let mut tags = vec!["U".to_string(); 3];
+        let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
+        let mut types = vec!["O".to_string(); 3];
+
+        for word in corpus.split(' ') {
+            if word.is_empty() {
+                continue;
+            }
+            tags.push("B".to_string());
+            for _ in 1..word.chars().count() {
+                tags.push("O".to_string());
+            }
+            for ch in word.chars() {
+                let s = ch.to_string();
+                types.push(self.get_type(&s).to_string());
+                chars.push(s);
+            }
+        }
+        if tags.len() < 4 {
+            return;
+        }
+        // Override the first real character's tag to "U" (Unknown) instead of "B",
+        // because there is no preceding word boundary decision to reference at position 0.
+        tags[3] = "U".to_string();
+
+        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
+        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
+
+        for i in 4..(chars.len() - 3) {
+            let label = if tags[i] == "B" { 1 } else { -1 };
+            let attrs = self.get_attributes(i, &tags, &chars, &types);
+            callback(attrs, label);
+        }
     }
 
     /// Adds a corpus to the segmenter with a custom writer function.
@@ -72,56 +119,18 @@ impl Segmenter {
     /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let mut segmenter = Segmenter::new(Language::Japanese, None);
+    /// let segmenter = Segmenter::new(Language::Japanese, None);
     /// segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
     ///    println!("Attributes: {:?}, Label: {}", attrs, label);
     /// });
     /// ```
     ///
     /// This will process the corpus and call the writer function for each word, passing the attributes and label.
-    ///
-    /// # Returns
-    /// Returns nothing.
-    ///
-    /// This method is useful for training the segmenter with a corpus of sentences, allowing it to learn how to segment text into words.
-    pub fn add_corpus_with_writer<F>(&mut self, corpus: &str, mut writer: F)
+    pub fn add_corpus_with_writer<F>(&self, corpus: &str, writer: F)
     where
         F: FnMut(HashSet<String>, i8),
     {
-        if corpus.is_empty() {
-            return;
-        }
-        let mut tags = vec!["U".to_string(); 3];
-        let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
-        let mut types = vec!["O".to_string(); 3];
-
-        for word in corpus.split(' ') {
-            if word.is_empty() {
-                continue;
-            }
-            tags.push("B".to_string());
-            for _ in 1..word.chars().count() {
-                tags.push("O".to_string());
-            }
-            for ch in word.chars() {
-                let s = ch.to_string();
-                chars.push(s.clone());
-                types.push(self.get_type(&s).to_string());
-            }
-        }
-        if tags.len() < 4 {
-            return;
-        }
-        tags[3] = "U".to_string();
-
-        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
-        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
-
-        for i in 4..(chars.len() - 3) {
-            let label = if tags[i] == "B" { 1 } else { -1 };
-            let attrs = self.get_attributes(i, &tags, &chars, &types);
-            writer(attrs, label);
-        }
+        self.process_corpus(corpus, writer);
     }
 
     /// Adds a corpus to the segmenter.
@@ -131,10 +140,6 @@ impl Segmenter {
     ///
     /// This method processes the corpus, extracts features, and adds instances to the AdaBoost learner.
     /// If the corpus is empty, it does nothing.
-    /// # Note
-    /// The method constructs attributes based on the characters and their types, and uses the AdaBoost learner to add instances.
-    /// If the corpus is too short or does not contain enough characters, it will not add any instances.
-    /// The attributes are constructed based on the surrounding characters and their types, allowing for rich feature extraction.
     ///
     /// # Example
     /// ```
@@ -145,50 +150,17 @@ impl Segmenter {
     /// segmenter.add_corpus("テスト です");
     /// ```
     /// This will process the corpus and add instances to the segmenter.
-    ///
-    /// # Returns
-    /// Returns nothing.
-    ///
-    /// This method is useful for training the segmenter with a corpus of sentences, allowing it to learn how to segment text into words.
     pub fn add_corpus(&mut self, corpus: &str) {
-        if corpus.is_empty() {
-            return;
-        }
-        let mut tags = vec!["U".to_string(); 3];
-        let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
-        let mut types = vec!["O".to_string(); 3];
-
-        for word in corpus.split(' ') {
-            if word.is_empty() {
-                continue;
-            }
-            tags.push("B".to_string());
-            for _ in 1..word.chars().count() {
-                tags.push("O".to_string());
-            }
-            for ch in word.chars() {
-                let s = ch.to_string();
-                chars.push(s.clone());
-                types.push(self.get_type(&s).to_string());
-            }
-        }
-        if tags.len() < 4 {
-            return;
-        }
-        tags[3] = "U".to_string();
-
-        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
-        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
-
-        for i in 4..(chars.len() - 3) {
-            let label = if tags[i] == "B" { 1 } else { -1 };
-            let attrs = self.get_attributes(i, &tags, &chars, &types);
-            // Call the learner for each instance; doing so individually avoids borrowing conflicts.
+        let mut instances = Vec::new();
+        self.process_corpus(corpus, |attrs, label| {
+            instances.push((attrs, label));
+        });
+        for (attrs, label) in instances {
             self.learner.add_instance(attrs, label);
         }
     }
 
-    /// Segments a sentence and segments it into words.
+    /// Segments a sentence into words.
     ///
     /// # Arguments
     /// * `sentence` - A string slice representing the sentence to be parsed.
@@ -212,7 +184,7 @@ impl Segmenter {
     /// # tokio_test::block_on(async {
     /// let model_file =
     ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources").join("RWCP.model");
-    /// let mut learner = AdaBoost::new(0.01, 100, 1);
+    /// let mut learner = AdaBoost::new(0.01, 100);
     /// learner.load_model(model_file.to_str().unwrap()).await.unwrap();
     ///
     /// let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -221,19 +193,22 @@ impl Segmenter {
     /// # });
     /// ```
     /// This will segment the sentence into words and return them as a vector of strings.
+    #[must_use]
     pub fn segment(&self, sentence: &str) -> Vec<String> {
         if sentence.is_empty() {
             return Vec::new();
         }
         let learner = &self.learner;
+        // Padding for lookback: tags[0..3] are fixed "U" (Unknown) for get_attributes(),
+        // and tags[3] is also "U" since there is no boundary decision before the first character.
         let mut tags = vec!["U".to_string(); 4];
         let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
         let mut types = vec!["O".to_string(); 3];
 
         for ch in sentence.chars() {
             let s = ch.to_string();
-            chars.push(s.clone());
             types.push(self.get_type(&s).to_string());
+            chars.push(s);
         }
         chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
         types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
@@ -243,8 +218,7 @@ impl Segmenter {
         for i in 4..(chars.len() - 3) {
             let label = learner.predict(self.get_attributes(i, &tags, &chars, &types));
             if label >= 0 {
-                result.push(word.clone());
-                word.clear();
+                result.push(std::mem::take(&mut word));
                 tags.push("B".to_string());
             } else {
                 tags.push("O".to_string());
@@ -266,12 +240,15 @@ impl Segmenter {
     /// # Returns
     /// A HashSet of strings representing the attributes for the specified index.
     ///
+    /// # Panics
+    /// Panics if `i` is less than 3 or if `i + 2` exceeds the length of `chars` or `types`.
+    /// Callers must ensure that `i` is within the valid range `[3, chars.len() - 3)`.
+    ///
     /// # Note
     /// The attributes are constructed based on the surrounding characters and their types, allowing for rich feature extraction.
     /// This method is used internally by the segmenter to create features for each character in the sentence.
-    ///
-    /// This will return a set of attributes for the character at index 4, which is "い" in this case.
-    fn get_attributes(
+    #[must_use]
+    pub fn get_attributes(
         &self,
         i: usize,
         tags: &[String],
@@ -334,8 +311,7 @@ impl Segmenter {
             format!("TQ3:{}{}{}{}", p3, c1, c2, c3),
             format!("TQ4:{}{}{}{}", p3, c2, c3, c4),
         ]
-        .iter()
-        .cloned()
+        .into_iter()
         .collect();
 
         // Language-specific features: char + char-type mixed features for Japanese and Chinese.
@@ -401,7 +377,7 @@ mod tests {
 
     #[test]
     fn test_add_corpus_with_writer() {
-        let mut segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese, None);
         let sentence = "テスト です";
         let mut collected = Vec::new();
 
@@ -409,13 +385,15 @@ mod tests {
             collected.push((attrs, label));
         });
 
-        // There should be as many instances as there are characters (excluding padding)
-        assert!(!collected.is_empty());
+        // "テスト です" has 5 characters; the callback loop runs for indices 4..8
+        // (skipping the first character at index 3), producing 4 instances.
+        assert_eq!(collected.len(), 4);
 
-        // Check that labels are either 1 or -1
-        for (_, label) in &collected {
-            assert!(*label == 1 || *label == -1);
-        }
+        // Exactly one word boundary (at "で", start of second word "です")
+        let positive_count = collected.iter().filter(|(_, label)| *label == 1).count();
+        let negative_count = collected.iter().filter(|(_, label)| *label == -1).count();
+        assert_eq!(positive_count, 1);
+        assert_eq!(negative_count, 3);
 
         // Check that attributes contain expected keys
         let (attrs, _) = &collected[0];
@@ -438,7 +416,7 @@ mod tests {
         let model_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../resources")
             .join("RWCP.model");
-        let mut learner = AdaBoost::new(0.01, 100, 1);
+        let mut learner = AdaBoost::new(0.01, 100);
         learner.load_model(model_file.to_str().unwrap()).await.unwrap();
 
         let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -446,7 +424,9 @@ mod tests {
         let result = segmenter.segment(sentence);
 
         assert!(!result.is_empty());
-        assert_eq!(result.len(), 5); // Adjust based on expected segmentation
+        // "これはテストです。" segments into: "これ", "は", "テスト", "です", "。"
+        // The RWCP model predicts word boundaries after these positions.
+        assert_eq!(result.len(), 5);
         assert_eq!(result[0], "これ");
         assert_eq!(result[1], "は");
         assert_eq!(result[2], "テスト");
@@ -503,7 +483,46 @@ mod tests {
         assert!(attrs.contains("WC2:Oい")); // c3 + w4
         assert!(attrs.contains("WC3:あO")); // w3 + c3
         assert!(attrs.contains("WC4:いI")); // w4 + c4
-        assert_eq!(attrs.len(), 42); // 38 base + 4 WC
+        // 38 base features (UW/BW/TW/UC/BC/TC/UP/BP/TP) + 4 WC features (Japanese-specific)
+        assert_eq!(attrs.len(), 42);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_attributes_panics_index_too_low() {
+        let segmenter = Segmenter::new(Language::Japanese, None);
+        let tags = vec!["U".to_string(); 7];
+        let chars = vec![
+            "B3".to_string(),
+            "B2".to_string(),
+            "B1".to_string(),
+            "あ".to_string(),
+            "い".to_string(),
+            "う".to_string(),
+            "E1".to_string(),
+        ];
+        let types = vec!["O".to_string(); 7];
+        // i=2 is out of valid range [3, chars.len()-3); should panic on chars[i-3]
+        let _ = segmenter.get_attributes(2, &tags, &chars, &types);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_attributes_panics_index_too_high() {
+        let segmenter = Segmenter::new(Language::Japanese, None);
+        let tags = vec!["U".to_string(); 7];
+        let chars = vec![
+            "B3".to_string(),
+            "B2".to_string(),
+            "B1".to_string(),
+            "あ".to_string(),
+            "い".to_string(),
+            "う".to_string(),
+            "E1".to_string(),
+        ];
+        let types = vec!["O".to_string(); 7];
+        // i=5 means i+2=7 which exceeds chars.len()=7; should panic on chars[i+2]
+        let _ = segmenter.get_attributes(5, &tags, &chars, &types);
     }
 
     #[test]
@@ -538,6 +557,7 @@ mod tests {
         // Korean does NOT include WC features
         assert!(!attrs.contains("WC1:한SF"));
         assert!(!attrs.contains("WC2:SF국"));
-        assert_eq!(attrs.len(), 38); // 38 base only
+        // 38 base features only (Korean does not include WC word-character features)
+        assert_eq!(attrs.len(), 38);
     }
 }

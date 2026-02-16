@@ -31,6 +31,9 @@ jobs:
       - name: Run format
         run: cargo fmt --all -- --check
 
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
   test:
     name: Test
     needs: [format]
@@ -63,6 +66,15 @@ jobs:
           target: ${{ matrix.platform.target }}
           components: rustfmt, clippy
 
+      - name: Cache Cargo
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-${{ matrix.platform.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Run test
         shell: bash
         run: |
@@ -75,6 +87,7 @@ jobs:
   create-release:
     name: Create Release
     needs: [test]
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - name: Create GitHub Release
@@ -92,6 +105,7 @@ jobs:
   release:
     name: Build
     needs: [test, create-release]
+    if: startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
         platform:
@@ -129,19 +143,19 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.platform.target }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache ~/.cargo/git
         uses: actions/cache@v5
         with:
           path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.platform.target }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Cache target
         uses: actions/cache@v5
         with:
           path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.platform.target }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@v1
@@ -179,6 +193,7 @@ jobs:
   publish-crates:
     name: Publish crate
     needs: [release]
+    if: startsWith(github.ref, 'refs/tags/v')
     strategy:
       matrix:
         platform:
@@ -199,9 +214,9 @@ jobs:
       - name: Publish litsea
         run: |
           LITSEA_VERSION=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea") | .version')
-          LITSEA_VERSIONS=$(curl -s -XGET https://crates.io/api/v1/crates/litsea | jq -r 'select(.versions != null) | .versions[].num')
-          if echo ${LITSEA_VERSIONS} | grep ${LITSEA_VERSION} >/dev/null; then
-            echo "litsea ${LITSEA_VERSION} has already published"
+          LITSEA_VERSIONS=$(curl -s -XGET https://crates.io/api/v1/crates/litsea | jq -r 'select(.versions != null) | .versions[].num' 2>/dev/null)
+          if echo "${LITSEA_VERSIONS}" | tr ' ' '\n' | grep -qFx "${LITSEA_VERSION}"; then
+            echo "litsea ${LITSEA_VERSION} has already been published"
           else
             pushd litsea
             cargo publish
@@ -214,9 +229,9 @@ jobs:
       - name: Publish litsea-cli
         run: |
           LITSEA_CLI_VERSION=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea-cli") | .version')
-          LITSEA_CLI_VERSIONS=$(curl -s -XGET https://crates.io/api/v1/crates/litsea-cli | jq -r 'select(.versions != null) | .versions[].num')
-          if echo ${LITSEA_CLI_VERSIONS} | grep ${LITSEA_CLI_VERSION} >/dev/null; then
-            echo "litsea-cli ${LITSEA_CLI_VERSION} has already published"
+          LITSEA_CLI_VERSIONS=$(curl -s -XGET https://crates.io/api/v1/crates/litsea-cli | jq -r 'select(.versions != null) | .versions[].num' 2>/dev/null)
+          if echo "${LITSEA_CLI_VERSIONS}" | tr ' ' '\n' | grep -qFx "${LITSEA_CLI_VERSION}"; then
+            echo "litsea-cli ${LITSEA_CLI_VERSION} has already been published"
           else
             pushd litsea-cli
             cargo publish

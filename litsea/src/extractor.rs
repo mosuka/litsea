@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fs::File;
@@ -51,8 +52,8 @@ impl Extractor {
         corpus_path: &Path,
         features_path: &Path,
     ) -> Result<(), Box<dyn Error>> {
-        // Read sentences from stdin
-        // Each line is treated as a separate sentence
+        // Read sentences from the corpus file.
+        // Each line is treated as a separate sentence.
         let corpus_file = File::open(corpus_path)?;
         let corpus = io::BufReader::new(corpus_file);
 
@@ -60,29 +61,38 @@ impl Extractor {
         let features_file = File::create(features_path)?;
         let mut features = io::BufWriter::new(features_file);
 
-        // learner function to write features
-        // This function will be called for each word in the input sentences
-        // It takes a set of attributes and a label, and writes them to stdout
+        // Capture write errors from the closure via RefCell
+        let write_error: RefCell<Option<io::Error>> = RefCell::new(None);
+
+        // Learner function to write features
+        // It takes a set of attributes and a label, and writes them to the output file
         let mut learner = |attributes: HashSet<String>, label: i8| {
+            if write_error.borrow().is_some() {
+                return;
+            }
             let mut attrs: Vec<String> = attributes.into_iter().collect();
             attrs.sort();
             let mut line = vec![label.to_string()];
             line.extend(attrs);
-            writeln!(features, "{}", line.join("\t")).expect("Failed to write features");
+            if let Err(e) = writeln!(features, "{}", line.join("\t")) {
+                *write_error.borrow_mut() = Some(e);
+            }
         };
 
         for line in corpus.lines() {
-            match line {
-                Ok(line) => {
-                    let line = line.trim();
-                    if !line.is_empty() {
-                        self.segmenter.add_corpus_with_writer(line, &mut learner);
-                    }
-                }
-                Err(err) => {
-                    eprintln!("Error reading input: {}", err);
-                }
+            let line = line?;
+            let line = line.trim();
+            if !line.is_empty() {
+                self.segmenter.add_corpus_with_writer(line, &mut learner);
             }
+            // Stop processing further lines if a write error occurred.
+            if write_error.borrow().is_some() {
+                break;
+            }
+        }
+
+        if let Some(e) = write_error.into_inner() {
+            return Err(Box::new(e));
         }
 
         Ok(())
@@ -120,8 +130,19 @@ mod tests {
         // Check if the output is not empty
         assert!(!output.is_empty(), "Extracted features should not be empty");
 
-        // Check if the output contains tab-separated values
-        assert!(output.contains("\t"), "Output should contain tab-separated values");
+        // Validate the output format line by line
+        for line in output.lines() {
+            let fields: Vec<&str> = line.split('\t').collect();
+            // Each line must have at least a label and one feature
+            assert!(fields.len() >= 2, "Line should have label + features: {line}");
+            // First field is the label: must be "1" (boundary) or "-1" (non-boundary)
+            let label = fields[0];
+            assert!(label == "1" || label == "-1", "Label should be 1 or -1, got: {label}");
+            // Remaining fields are feature names (non-empty strings)
+            for feat in &fields[1..] {
+                assert!(!feat.is_empty(), "Feature name should not be empty");
+            }
+        }
 
         Ok(())
     }
