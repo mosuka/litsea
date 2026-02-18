@@ -1,7 +1,6 @@
 [book]
 authors = ["Minoru Osuka"]
 language = "ja"
-multilingual = false
 src = "src"
 title = "Litsea ドキュメント"
 description = "Litsea - Rust製コンパクト単語分割ライブラリのドキュメント"
