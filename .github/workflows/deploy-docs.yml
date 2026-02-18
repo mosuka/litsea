@@ -1,0 +1,61 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: "latest"
+
+      - name: Build Book (English)
+        run: mdbook build docs
+
+      - name: Build Book (Japanese)
+        run: mdbook build docs/ja
+
+      - name: Prepare deployment directory
+        run: |
+          mkdir -p target/docs-site
+          cp -r target/docs/en target/docs-site/en
+          cp -r target/docs/ja target/docs-site/ja
+          cat > target/docs-site/index.html << 'HEREDOC'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Litsea Documentation</title>
+            <meta http-equiv="refresh" content="0; url=en/">
+            <style>
+              body { font-family: sans-serif; text-align: center; padding: 2rem; }
+              a { margin: 0 1rem; }
+            </style>
+          </head>
+          <body>
+            <h1>Litsea Documentation</h1>
+            <p>
+              <a href="en/">English</a> |
+              <a href="ja/">日本語</a>
+            </p>
+          </body>
+          </html>
+          HEREDOC
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./target/docs-site

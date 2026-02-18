@@ -1,0 +1,25 @@
+[book]
+authors = ["Minoru Osuka"]
+language = "ja"
+multilingual = false
+src = "src"
+title = "Litsea ドキュメント"
+description = "Litsea - Rust製コンパクト単語分割ライブラリのドキュメント"
+
+[build]
+build-dir = "../../target/docs/ja"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/mosuka/litsea"
+edit-url-template = "https://github.com/mosuka/litsea/edit/main/docs/ja/{path}"
+no-section-label = false
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+
+[output.html.fold]
+enable = true
+level = 1
+
+[output.html.search]
+enable = true
