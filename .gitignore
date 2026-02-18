@@ -20,6 +20,7 @@ target/
 
 /target
 
+.claude
 .serena
 .mcp.json
 .tmp
