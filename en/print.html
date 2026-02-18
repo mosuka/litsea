@@ -1,0 +1,2562 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Litsea Documentation</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Documentation for Litsea - a compact word segmentation library in Rust">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-1d16b926.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-2e92acbd.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Litsea Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/mosuka/litsea" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
+<p><strong>Litsea</strong> is an extremely compact word segmentation library implemented in Rust, inspired by <a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> and <a href="https://github.com/shogo82148/TinySegmenterMaker">TinySegmenterMaker</a>.</p>
+<p>Unlike traditional morphological analyzers such as <a href="https://taku910.github.io/mecab/">MeCab</a> and <a href="https://github.com/lindera/lindera">Lindera</a>, Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the <strong>AdaBoost binary classification</strong> algorithm.</p>
+<h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
+<ul>
+<li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
+<li><strong>Compact pre-trained models</strong> – model files are only a few kilobytes in size</li>
+<li><strong>No dictionary dependency</strong> – segmentation is driven entirely by a statistical model</li>
+<li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), and Korean</li>
+<li><strong>Model training capabilities</strong> – train custom models using AdaBoost with your own corpora</li>
+<li><strong>Remote model loading</strong> – load models from HTTP/HTTPS URLs or local files</li>
+<li><strong>Simple and extensible API</strong> – easy to integrate into Rust projects as a library</li>
+</ul>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
+<p>Litsea treats word segmentation as a <strong>binary classification problem</strong>: for each character position in a sentence, the model predicts whether it is a <strong>word boundary</strong> (+1) or <strong>not a boundary</strong> (-1). The classifier uses character n-gram features and character type information specific to each language.</p>
+<pre><code class="language-text">Input:  "LitseaはRust製です"
+         ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
+         O O O O B O B O B   ← boundary predictions
+Output: ["Litsea", "は", "Rust製", "です"]
+</code></pre>
+<h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
+<p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>
+<h2 id="current-version"><a class="header" href="#current-version">Current Version</a></h2>
+<p>Litsea v0.4.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
+<h2 id="links"><a class="header" href="#links">Links</a></h2>
+<ul>
+<li><a href="https://github.com/mosuka/litsea">GitHub Repository</a></li>
+<li><a href="https://crates.io/crates/litsea">crates.io</a></li>
+<li><a href="https://docs.rs/litsea">API Documentation (docs.rs)</a></li>
+<li><a href="../ja">Japanese Documentation (日本語)</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
+<h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
+<ul>
+<li><strong>Rust 1.87 or later</strong> (stable channel) from <a href="https://www.rust-lang.org/">rust-lang.org</a></li>
+<li><strong>Cargo</strong> (Rust’s package manager, included with Rust)</li>
+</ul>
+<h2 id="installing-the-cli-tool"><a class="header" href="#installing-the-cli-tool">Installing the CLI Tool</a></h2>
+<h3 id="from-cratesio"><a class="header" href="#from-cratesio">From crates.io</a></h3>
+<pre><code class="language-sh">cargo install litsea-cli
+</code></pre>
+<h3 id="from-source"><a class="header" href="#from-source">From Source</a></h3>
+<pre><code class="language-sh">git clone https://github.com/mosuka/litsea.git
+cd litsea
+cargo build --release
+</code></pre>
+<p>The binary will be available at <code>./target/release/litsea</code>.</p>
+<p>Verify the installation:</p>
+<pre><code class="language-sh">./target/release/litsea --help
+</code></pre>
+<h2 id="using-as-a-library"><a class="header" href="#using-as-a-library">Using as a Library</a></h2>
+<p>Add Litsea to your project’s <code>Cargo.toml</code>:</p>
+<pre><code class="language-toml">[dependencies]
+litsea = "0.4.0"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+</code></pre>
+<blockquote>
+<p><strong>Note:</strong> <code>tokio</code> is required because model loading (<code>load_model</code>) is an async operation that supports HTTP/HTTPS URLs.</p>
+</blockquote>
+<h2 id="supported-platforms"><a class="header" href="#supported-platforms">Supported Platforms</a></h2>
+<p>Litsea is tested on the following platforms:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>OS</th><th>Architecture</th></tr>
+</thead>
+<tbody>
+<tr><td>Linux</td><td>x86_64, aarch64</td></tr>
+<tr><td>macOS</td><td>x86_64 (Intel), aarch64 (Apple Silicon)</td></tr>
+<tr><td>Windows</td><td>x86_64, aarch64</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
+<h2 id="cli-quick-start"><a class="header" href="#cli-quick-start">CLI Quick Start</a></h2>
+<h3 id="segmenting-text"><a class="header" href="#segmenting-text">Segmenting Text</a></h3>
+<p>Litsea ships with pre-trained models in the <code>resources/</code> directory. Pipe text into the <code>segment</code> command:</p>
+<p><strong>Japanese:</strong></p>
+<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
+  | litsea segment -l japanese ./resources/japanese.model
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<p><strong>Chinese:</strong></p>
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+</code></pre>
+<p><strong>Korean:</strong></p>
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
+</code></pre>
+<h3 id="splitting-sentences"><a class="header" href="#splitting-sentences">Splitting Sentences</a></h3>
+<p>Split text into sentences using Unicode UAX #29 rules:</p>
+<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">これはテストです。
+次の文です。
+</code></pre>
+<h2 id="library-quick-start"><a class="header" href="#library-quick-start">Library Quick Start</a></h2>
+<p>Here is a minimal Rust program that loads a model and segments text:</p>
+<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load the pre-trained model
+    let mut learner = AdaBoost::new(0.01, 100);
+    learner.load_model("./resources/japanese.model").await?;
+
+    // Create a segmenter
+    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+
+    // Segment text
+    let tokens = segmenter.segment("これはテストです。");
+    println!("{}", tokens.join(" "));
+    // Output: これ は テスト です 。
+
+    Ok(())
+}</code></pre>
+<h2 id="whats-next"><a class="header" href="#whats-next">What’s Next</a></h2>
+<ul>
+<li><a href="#cli-reference-overview">CLI Reference</a> – learn all CLI commands and options</li>
+<li><a href="#preparing-a-corpus">Training Guide</a> – train your own models</li>
+<li><a href="#architecture-overview">Architecture</a> – understand how Litsea works internally</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
+<p>Litsea is designed as a compact, dictionary-free word segmentation system. It treats word segmentation as a <strong>binary classification problem</strong> and uses <strong>AdaBoost</strong> to learn word boundary patterns from character-level features.</p>
+<h2 id="high-level-data-flow"><a class="header" href="#high-level-data-flow">High-Level Data Flow</a></h2>
+<p>Litsea has two main workflows: <strong>training</strong> and <strong>segmentation</strong>.</p>
+<h3 id="training-pipeline"><a class="header" href="#training-pipeline">Training Pipeline</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["Corpus (text)"] --&gt; B["Extractor"]
+    B --&gt; C["Features File (.txt)"]
+    C --&gt; D["Trainer (AdaBoost)"]
+    D --&gt; E["Model File (.model)"]
+</code></pre>
+<ol>
+<li><strong>Corpus preparation</strong> – Prepare text with words separated by spaces</li>
+<li><strong>Feature extraction</strong> – The <code>Extractor</code> reads the corpus, classifies characters by type, and outputs labeled feature vectors</li>
+<li><strong>Model training</strong> – The <code>Trainer</code> feeds features into AdaBoost, which iteratively selects the most informative features and produces a compact model</li>
+</ol>
+<h3 id="segmentation-pipeline"><a class="header" href="#segmentation-pipeline">Segmentation Pipeline</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    F["Raw text"] --&gt; G["Segmenter (AdaBoost)"]
+    H["Model file"] --&gt; G
+    G --&gt; I["Segmented words"]
+</code></pre>
+<ol>
+<li><strong>Model loading</strong> – Load a pre-trained model (from file or URL)</li>
+<li><strong>Character classification</strong> – For each character in the input, determine its type code based on language-specific patterns</li>
+<li><strong>Feature extraction</strong> – Build a feature set for each character position using a sliding window</li>
+<li><strong>Prediction</strong> – AdaBoost predicts whether each position is a word boundary</li>
+</ol>
+<h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
+<ul>
+<li><strong>No dictionary dependency</strong> – Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns</li>
+<li><strong>Compact models</strong> – Model files are typically 1-22 KB, containing only the feature weights that matter</li>
+<li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
+<li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="workspace-structure"><a class="header" href="#workspace-structure">Workspace Structure</a></h1>
+<p>Litsea is organized as a <strong>Cargo workspace</strong> with two crates and supporting directories.</p>
+<h2 id="directory-layout"><a class="header" href="#directory-layout">Directory Layout</a></h2>
+<pre><code class="language-text">litsea/
+├── Cargo.toml              # Workspace manifest
+├── Cargo.lock              # Dependency lock file
+├── Makefile                # Build convenience targets
+├── rustfmt.toml            # Rust formatting configuration
+├── LICENSE                 # MIT
+├── README.md               # Project overview
+├── litsea/                 # Core library crate
+│   ├── Cargo.toml
+│   ├── src/
+│   │   ├── lib.rs          # Module declarations and version
+│   │   ├── adaboost.rs     # AdaBoost algorithm
+│   │   ├── segmenter.rs    # Word segmentation
+│   │   ├── extractor.rs    # Feature extraction from corpus
+│   │   ├── trainer.rs      # Training orchestration
+│   │   ├── language.rs     # Language definitions and char patterns
+│   │   └── util.rs         # URI scheme utilities
+│   └── benches/
+│       └── bench.rs        # Criterion benchmarks
+├── litsea-cli/             # CLI binary crate
+│   ├── Cargo.toml
+│   └── src/
+│       └── main.rs         # CLI entry point
+├── resources/              # Pre-trained models and sample data
+│   ├── japanese.model
+│   ├── chinese.model
+│   ├── korean.model
+│   ├── RWCP.model
+│   ├── JEITA_Genpaku_ChaSen_IPAdic.model
+│   └── bocchan.txt         # Sample corpus
+├── scripts/                # Corpus preparation utilities
+│   ├── wikitexts.sh        # Download Wikipedia texts
+│   └── corpus.sh           # Create training corpus with Lindera
+├── docs/                   # mdbook documentation (this book)
+└── .github/
+    └── workflows/          # CI/CD pipelines
+        ├── regression.yml  # Test on push/PR
+        ├── release.yml     # Release builds and publishing
+        └── periodic.yml    # Weekly stability tests
+</code></pre>
+<h2 id="crate-details"><a class="header" href="#crate-details">Crate Details</a></h2>
+<h3 id="litsea-core-library"><a class="header" href="#litsea-core-library"><code>litsea</code> (Core Library)</a></h3>
+<p>The core library provides all segmentation, training, and model I/O functionality.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>regex</code></td><td>1.12</td><td>Character type pattern matching</td></tr>
+<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls)</td></tr>
+<tr><td><code>tokio</code></td><td>1.49</td><td>Async runtime for remote model loading</td></tr>
+<tr><td><code>criterion</code></td><td>0.8</td><td>Benchmarking (dev dependency)</td></tr>
+<tr><td><code>tempfile</code></td><td>3.25</td><td>Temporary files for tests (dev dependency)</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="litsea-cli-cli-binary"><a class="header" href="#litsea-cli-cli-binary"><code>litsea-cli</code> (CLI Binary)</a></h3>
+<p>The CLI provides a command-line interface to Litsea’s functionality.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>clap</code></td><td>4.5</td><td>Command-line argument parsing</td></tr>
+<tr><td><code>ctrlc</code></td><td>3.5</td><td>Graceful Ctrl+C handling during training</td></tr>
+<tr><td><code>icu_segmenter</code></td><td>2.1</td><td>Unicode UAX #29 sentence segmentation</td></tr>
+<tr><td><code>tokio</code></td><td>1.49</td><td>Async runtime</td></tr>
+<tr><td><code>litsea</code></td><td>0.4</td><td>Core library (workspace member)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="workspace-configuration"><a class="header" href="#workspace-configuration">Workspace Configuration</a></h2>
+<p>The workspace uses Cargo resolver version 3 (Rust Edition 2024):</p>
+<pre><code class="language-toml">[workspace]
+resolver = "3"
+members = ["litsea", "litsea-cli"]
+
+[workspace.package]
+version = "0.4.0"
+edition = "2024"
+rust-version = "1.87"
+</code></pre>
+<p>Shared dependencies are defined at the workspace level in <code>[workspace.dependencies]</code> and referenced by each crate with <code>{ workspace = true }</code>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="module-design"><a class="header" href="#module-design">Module Design</a></h1>
+<p>The <code>litsea</code> library crate is organized into six modules, each with a clear responsibility.</p>
+<h2 id="module-dependency-graph"><a class="header" href="#module-dependency-graph">Module Dependency Graph</a></h2>
+<pre><code class="language-mermaid">graph TD
+    language["language.rs&lt;br/&gt;Character type patterns"]
+    segmenter["segmenter.rs&lt;br/&gt;Word segmentation"]
+    adaboost["adaboost.rs&lt;br/&gt;Core ML algorithm"]
+    extractor["extractor.rs&lt;br/&gt;Feature extraction"]
+    trainer["trainer.rs&lt;br/&gt;Training orchestration"]
+    util["util.rs&lt;br/&gt;URI scheme parsing"]
+
+    language --&gt; segmenter
+    segmenter --&gt; adaboost
+    segmenter --&gt; extractor
+    adaboost --&gt; trainer
+    adaboost --&gt; util
+</code></pre>
+<h2 id="module-details"><a class="header" href="#module-details">Module Details</a></h2>
+<h3 id="languagers--language-definitions"><a class="header" href="#languagers--language-definitions"><code>language.rs</code> – Language Definitions</a></h3>
+<p>Defines the <code>Language</code> enum and character type classification system.</p>
+<ul>
+<li><strong><code>Language</code></strong> – Enum with variants <code>Japanese</code>, <code>Chinese</code>, <code>Korean</code>
+<ul>
+<li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>)</li>
+<li>Implements <code>Display</code> (outputs lowercase name)</li>
+<li>Factory method <code>char_type_patterns()</code> returns language-specific patterns</li>
+</ul>
+</li>
+<li><strong><code>CharTypePatterns</code></strong> – Maps characters to type codes (e.g., <code>"I"</code> for Hiragana, <code>"K"</code> for Katakana)</li>
+<li><strong><code>CharMatcher</code></strong> – Internal enum supporting both regex-based and closure-based character matching</li>
+</ul>
+<h3 id="segmenterrs--word-segmentation"><a class="header" href="#segmenterrs--word-segmentation"><code>segmenter.rs</code> – Word Segmentation</a></h3>
+<p>The main user-facing module for text segmentation.</p>
+<ul>
+<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, <code>CharTypePatterns</code>, and <code>AdaBoost</code> instance
+<ul>
+<li><code>new(language, learner)</code> – Create a segmenter with an optional pre-trained model</li>
+<li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
+<li><code>get_type(ch)</code> – Classify a single character into its type code</li>
+<li><code>get_attributes(i, tags, chars, types)</code> – Extract feature set for a character position</li>
+<li><code>add_corpus(corpus)</code> – Add training data from a space-separated corpus</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> – Process corpus with a custom callback</li>
+</ul>
+</li>
+</ul>
+<h3 id="adaboostrs--adaboost-algorithm"><a class="header" href="#adaboostrs--adaboost-algorithm"><code>adaboost.rs</code> – AdaBoost Algorithm</a></h3>
+<p>The core machine learning engine for binary classification.</p>
+<ul>
+<li><strong><code>AdaBoost</code></strong> – The binary classifier
+<ul>
+<li><code>new(threshold, num_iterations)</code> – Create with training parameters</li>
+<li><code>initialize_features(path)</code> – Load feature names from a training file</li>
+<li><code>initialize_instances(path)</code> – Load labeled instances from a training file</li>
+<li><code>train(running)</code> – Run the AdaBoost training loop</li>
+<li><code>predict(attributes)</code> – Predict boundary (+1) or non-boundary (-1)</li>
+<li><code>load_model(uri)</code> – Load model weights from file or URL (async)</li>
+<li><code>save_model(path)</code> – Save model weights to a file</li>
+<li><code>get_metrics()</code> – Calculate accuracy, precision, and recall</li>
+<li><code>get_bias()</code> – Get the model’s bias term</li>
+</ul>
+</li>
+<li><strong><code>Metrics</code></strong> – Evaluation metrics (accuracy, precision, recall, confusion matrix)</li>
+</ul>
+<h3 id="extractorrs--feature-extraction"><a class="header" href="#extractorrs--feature-extraction"><code>extractor.rs</code> – Feature Extraction</a></h3>
+<p>Extracts features from a corpus for model training.</p>
+<ul>
+<li><strong><code>Extractor</code></strong> – Wraps a <code>Segmenter</code> to process corpus files
+<ul>
+<li><code>new(language)</code> – Create an extractor for a specific language</li>
+<li><code>extract(corpus_path, features_path)</code> – Read corpus, write feature file</li>
+</ul>
+</li>
+</ul>
+<h3 id="trainerrs--training-orchestration"><a class="header" href="#trainerrs--training-orchestration"><code>trainer.rs</code> – Training Orchestration</a></h3>
+<p>High-level training workflow that ties everything together.</p>
+<ul>
+<li><strong><code>Trainer</code></strong> – Orchestrates the full training pipeline
+<ul>
+<li><code>new(threshold, num_iterations, features_path)</code> – Initialize from a features file</li>
+<li><code>load_model(uri)</code> – Optionally load an existing model for retraining (async)</li>
+<li><code>train(running, model_path)</code> – Train and save the model, returns <code>Metrics</code></li>
+</ul>
+</li>
+</ul>
+<h3 id="utilrs--utilities"><a class="header" href="#utilrs--utilities"><code>util.rs</code> – Utilities</a></h3>
+<p>URI scheme parsing for model loading.</p>
+<ul>
+<li><strong><code>ModelScheme</code></strong> – Enum with variants <code>Http</code>, <code>Https</code>, <code>File</code>
+<ul>
+<li>Used to determine how to load a model based on its URI prefix</li>
+</ul>
+</li>
+</ul>
+<h2 id="public-exports"><a class="header" href="#public-exports">Public Exports</a></h2>
+<p>The library’s <code>lib.rs</code> re-exports all modules and provides:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub mod adaboost;
+pub mod extractor;
+pub mod language;
+pub mod segmenter;
+pub mod trainer;
+pub mod util;
+
+pub const VERSION: &amp;str = env!("CARGO_PKG_VERSION");
+pub fn version() -&gt; &amp;'static str { VERSION }
+<span class="boring">}</span></code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="adaboost-binary-classification"><a class="header" href="#adaboost-binary-classification">AdaBoost Binary Classification</a></h1>
+<p>Litsea uses the <strong>AdaBoost</strong> (Adaptive Boosting) algorithm for binary classification to determine word boundaries. This chapter explains the algorithm as implemented in Litsea.</p>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>AdaBoost combines many <strong>weak learners</strong> (simple classifiers) into a strong ensemble classifier. In Litsea:</p>
+<ul>
+<li><strong>Positive label (+1)</strong> = word boundary</li>
+<li><strong>Negative label (-1)</strong> = non-boundary (continuation of the current word)</li>
+<li><strong>Weak learners</strong> = individual features (each feature is a binary “stump” – present or absent)</li>
+</ul>
+<h2 id="training-algorithm"><a class="header" href="#training-algorithm">Training Algorithm</a></h2>
+<p>The training loop in <code>AdaBoost::train()</code> works as follows:</p>
+<h3 id="initialization"><a class="header" href="#initialization">Initialization</a></h3>
+<ol>
+<li>Load features and instances from the training file</li>
+<li>Initialize instance weights uniformly (later adjusted based on initial score)</li>
+<li>All model weights start at zero</li>
+</ol>
+<h3 id="iterative-boosting"><a class="header" href="#iterative-boosting">Iterative Boosting</a></h3>
+<p>For each iteration <em>t</em> (up to <code>num_iterations</code>):</p>
+<p><strong>Step 1: Calculate weighted errors</strong></p>
+<p>For each feature <em>h</em>, compute its weighted error over all instances:</p>
+<pre><code class="language-text">error[h] -= D[i] * y[i]   (for each instance i that has feature h)
+</code></pre>
+<p>where <em>D[i]</em> is the instance weight and <em>y[i]</em> is the true label.</p>
+<p><strong>Step 2: Select the best weak learner</strong></p>
+<p>Find the feature with the lowest weighted error rate:</p>
+<pre><code class="language-text">error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
+h_best = argmax_h |0.5 - error_rate(h)|
+</code></pre>
+<p>The baseline competitor is the “all-negative” classifier (always predicts -1), whose error rate equals the fraction of positive instances. Any real feature must beat this baseline.</p>
+<p><strong>Step 3: Check convergence</strong></p>
+<p>If <code>|0.5 - best_error_rate| &lt; threshold</code>, stop early – no feature can significantly improve the model.</p>
+<p><strong>Step 4: Compute the weak learner weight</strong></p>
+<pre><code class="language-text">alpha = 0.5 * ln((1 - error_rate) / error_rate)
+model[h_best] += alpha
+</code></pre>
+<p>A lower error rate produces a higher alpha, giving more influence to better features.</p>
+<p><strong>Step 5: Update instance weights</strong></p>
+<pre><code class="language-text">For each instance i:
+    prediction = +1 if h_best in features(i), else -1
+
+    if y[i] * prediction &lt; 0:  (misclassified)
+        D[i] *= exp(alpha)     (increase weight)
+    else:                       (correctly classified)
+        D[i] /= exp(alpha)     (decrease weight)
+
+Normalize: D[i] /= sum(D)
+</code></pre>
+<p>This ensures subsequent iterations focus on the instances that are still difficult to classify.</p>
+<h2 id="prediction"><a class="header" href="#prediction">Prediction</a></h2>
+<p>Given an input set of features (attributes), the prediction is:</p>
+<pre><code class="language-text">score = bias + sum(model[feature] for each feature in attributes)
+prediction = +1 if score &gt;= 0, else -1
+</code></pre>
+<h3 id="bias-term"><a class="header" href="#bias-term">Bias Term</a></h3>
+<p>The bias is computed as:</p>
+<pre><code class="language-text">bias = -sum(all model weights) / 2.0
+</code></pre>
+<p>This centers the decision boundary. The empty-string feature (<code>""</code>) serves as the bias bucket during training.</p>
+<h2 id="model-file-format"><a class="header" href="#model-file-format">Model File Format</a></h2>
+<p>The trained model is saved as a simple text file:</p>
+<pre><code class="language-text">feature1\tweight1
+feature2\tweight2
+...
+bias_value
+</code></pre>
+<ul>
+<li>Each line contains a feature name and its weight (tab-separated)</li>
+<li>Zero-weight features are omitted</li>
+<li>The last line contains the bias term (a single number)</li>
+</ul>
+<p>See <a href="#model-file-format-1">Model File Format</a> for details.</p>
+<h2 id="hyperparameters"><a class="header" href="#hyperparameters">Hyperparameters</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>0.01</td><td>Early stopping threshold. Lower values allow more iterations, potentially improving accuracy</td></tr>
+<tr><td><code>num_iterations</code></td><td>100</td><td>Maximum number of boosting rounds. Higher values may improve accuracy at the cost of training time and model size</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="feature-extraction"><a class="header" href="#feature-extraction">Feature Extraction</a></h1>
+<p>Litsea uses character n-gram features to capture the local context around each potential word boundary. This chapter catalogs all feature types.</p>
+<h2 id="feature-categories"><a class="header" href="#feature-categories">Feature Categories</a></h2>
+<p>For each character position <em>i</em> in the input, the segmenter extracts features from a sliding window of characters, their type codes, and previous boundary decisions.</p>
+<h3 id="base-features-38-features"><a class="header" href="#base-features-38-features">Base Features (38 features)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Category</th><th>IDs</th><th>Description</th><th>Window</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>UW</strong> (Unary Word)</td><td>UW1–UW6</td><td>Individual characters at positions i-3 to i+2</td><td>6</td></tr>
+<tr><td><strong>BW</strong> (Bigram Word)</td><td>BW1–BW3</td><td>Adjacent character pairs</td><td>3</td></tr>
+<tr><td><strong>UC</strong> (Unary Char-type)</td><td>UC1–UC6</td><td>Character type codes at positions i-3 to i+2</td><td>6</td></tr>
+<tr><td><strong>BC</strong> (Bigram Char-type)</td><td>BC1–BC3</td><td>Adjacent type code pairs</td><td>3</td></tr>
+<tr><td><strong>TC</strong> (Trigram Char-type)</td><td>TC1–TC4</td><td>Type code triples</td><td>4</td></tr>
+<tr><td><strong>UP</strong> (Unary Previous-tag)</td><td>UP1–UP3</td><td>Previous 3 boundary decisions</td><td>3</td></tr>
+<tr><td><strong>BP</strong> (Bigram Previous-tag)</td><td>BP1–BP2</td><td>Boundary decision pairs</td><td>2</td></tr>
+<tr><td><strong>UQ</strong> (Unary tag+type)</td><td>UQ1–UQ3</td><td>Combined boundary decision + type code</td><td>3</td></tr>
+<tr><td><strong>BQ</strong> (Bigram tag+type)</td><td>BQ1–BQ4</td><td>Combined decision + type code bigrams</td><td>4</td></tr>
+<tr><td><strong>TQ</strong> (Trigram tag+type)</td><td>TQ1–TQ4</td><td>Combined decision + type code trigrams</td><td>4</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="language-specific-features-4-features-japanese-and-chinese-only"><a class="header" href="#language-specific-features-4-features-japanese-and-chinese-only">Language-Specific Features (4 features, Japanese and Chinese only)</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Category</th><th>IDs</th><th>Description</th><th>Count</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>WC</strong> (Word+Char-type)</td><td>WC1–WC4</td><td>Character + type code mixed features</td><td>4</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><code>WC1</code>: character at i-1 + type code at i</li>
+<li><code>WC2</code>: type code at i-1 + character at i</li>
+<li><code>WC3</code>: character at i-1 + type code at i-1</li>
+<li><code>WC4</code>: character at i + type code at i</li>
+</ul>
+<blockquote>
+<p><strong>Why no WC for Korean?</strong> Korean Hangul syllables are classified into only two types (SN and SF), so WC features would add noise rather than useful signal.</p>
+</blockquote>
+<h3 id="total-feature-count"><a class="header" href="#total-feature-count">Total Feature Count</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Base</th><th>WC</th><th>Total</th></tr>
+</thead>
+<tbody>
+<tr><td>Japanese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
+<tr><td>Chinese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
+<tr><td>Korean</td><td>38</td><td>0</td><td><strong>38</strong></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="feature-format"><a class="header" href="#feature-format">Feature Format</a></h2>
+<p>Each feature is represented as a string in the format <code>PREFIX:VALUE</code>:</p>
+<pre><code class="language-text">UW4:は        ← The character at position i is "は"
+UC4:I         ← The type code at position i is "I" (Hiragana)
+BW2:はテ      ← The bigram at position i-1..i is "はテ"
+BC2:IK        ← The type bigram is Hiragana + Katakana
+UP3:B         ← The previous boundary decision was "B" (boundary)
+WC1:はK       ← Character "は" combined with type "K"
+</code></pre>
+<h2 id="sliding-window-layout"><a class="header" href="#sliding-window-layout">Sliding Window Layout</a></h2>
+<p>The segmenter pads the input with sentinel characters:</p>
+<pre><code class="language-text">Index:   0    1    2    3    4    5    ...  n+2  n+3  n+4  n+5
+Chars:   B3   B2   B1   c1   c2   c3  ...  cn   E1   E2   E3
+Types:   O    O    O    t1   t2   t3  ...  tn   O    O    O
+Tags:    U    U    U    U    ?    ?   ...  ?
+</code></pre>
+<ul>
+<li><strong>B3, B2, B1</strong> – Begin sentinels (padding)</li>
+<li><strong>E1, E2, E3</strong> – End sentinels (padding)</li>
+<li><strong>O</strong> – “Other” type for padding positions</li>
+<li><strong>U</strong> – “Unknown” tag for initial positions</li>
+<li><strong>B</strong> – “Boundary” tag (word start)</li>
+<li><strong>O</strong> – “Other” tag (continuation)</li>
+</ul>
+<p>Features are extracted for positions 4 through len-3, where the full window of i-3 to i+2 is available.</p>
+<h2 id="training-data-format"><a class="header" href="#training-data-format">Training Data Format</a></h2>
+<p>The <code>extract</code> command writes features to a file in this format:</p>
+<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
+-1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+</code></pre>
+<p>Each line contains:</p>
+<ol>
+<li>A label (<code>1</code> for boundary, <code>-1</code> for non-boundary)</li>
+<li>Tab-separated feature strings</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="character-type-classification"><a class="header" href="#character-type-classification">Character Type Classification</a></h1>
+<p>Each language in Litsea defines a set of <strong>character type patterns</strong> that classify individual characters into linguistically meaningful categories. These type codes are used as features for the AdaBoost classifier.</p>
+<h2 id="how-it-works-1"><a class="header" href="#how-it-works-1">How It Works</a></h2>
+<p>The <code>CharTypePatterns</code> struct holds an ordered list of <code>(CharMatcher, type_code)</code> pairs. For each character, the <strong>first matching pattern</strong> determines the type code. If no pattern matches, the character is classified as <code>"O"</code> (Other).</p>
+<p><code>CharMatcher</code> supports two matching strategies:</p>
+<ul>
+<li><strong>Regex</strong> – Compiled regex patterns for Unicode range matching</li>
+<li><strong>Closure</strong> – Custom functions for complex logic (e.g., Korean Hangul syllable structure)</li>
+</ul>
+<h2 id="japanese-character-types"><a class="header" href="#japanese-character-types">Japanese Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern / Range</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>M</strong></td><td>Kanji Numbers</td><td><code>[一二三四五六七八九十百千万億兆]</code></td><td>一, 千, 億</td></tr>
+<tr><td><strong>H</strong></td><td>Kanji / CJK Ideographs</td><td><code>[一-龠々〆ヵヶ]</code></td><td>漢, 字, 学</td></tr>
+<tr><td><strong>I</strong></td><td>Hiragana</td><td><code>[ぁ-ん]</code></td><td>あ, い, う</td></tr>
+<tr><td><strong>K</strong></td><td>Katakana</td><td><code>[ァ-ヴーｱ-ﾝﾞﾟ]</code></td><td>ア, カ, ー</td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>CJK Symbols (U+3000-303F), Full-width (U+FF01-FF65)</td><td>。, 、, 「</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/Latin</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z, Ｂ</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>@, #</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>Note:</strong> “M” (Kanji numbers) is checked before “H” (general Kanji), so characters like 一 and 百 are classified as numbers rather than generic ideographs.</p>
+</blockquote>
+<h2 id="chinese-character-types"><a class="header" href="#chinese-character-types">Chinese Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern / Range</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>F</strong></td><td>Function Words</td><td>High-frequency grammatical words</td><td>的, 了, 在, 是</td></tr>
+<tr><td><strong>C</strong></td><td>CJK Unified</td><td>U+4E00–U+9FFF</td><td>中, 国, 人</td></tr>
+<tr><td><strong>X</strong></td><td>CJK Extension A</td><td>U+3400–U+4DBF</td><td>Rare characters</td></tr>
+<tr><td><strong>R</strong></td><td>CJK Radicals</td><td>U+2E80–U+2FDF</td><td>Kangxi radicals</td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>CJK Symbols + Full-width</td><td>。, ，, 《</td></tr>
+<tr><td><strong>B</strong></td><td>Bopomofo</td><td>U+3100–U+312F, U+31A0–U+31BF</td><td>Zhuyin symbols</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/Latin</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>@, #</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Chinese function words</strong> include:</p>
+<ul>
+<li>Structural particles: 的, 地, 得</li>
+<li>Aspect/modal particles: 了, 着, 过, 吗, 呢, 吧, 啊, 嘛</li>
+<li>Conjunctions: 和, 与, 或, 但, 而, 且, 及</li>
+<li>Prepositions: 在, 从, 到, 把, 被, 对, 向, 给</li>
+<li>Common grammatical verbs/adverbs: 是, 有, 不, 也, 都, 就, 要, 会, 能, 可</li>
+</ul>
+<h2 id="korean-character-types"><a class="header" href="#korean-character-types">Korean Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern / Range</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>E</strong></td><td>Particles/Endings</td><td>High-frequency grammatical particles</td><td>은, 는, 을, 를, 의, 에</td></tr>
+<tr><td><strong>SN</strong></td><td>Hangul (no batchim)</td><td>Hangul Syllable without final consonant</td><td>가, 나, 하</td></tr>
+<tr><td><strong>SF</strong></td><td>Hangul (with batchim)</td><td>Hangul Syllable with final consonant</td><td>한, 글, 각</td></tr>
+<tr><td><strong>J</strong></td><td>Hangul Jamo</td><td>U+1100–U+11FF</td><td>Individual consonants/vowels</td></tr>
+<tr><td><strong>G</strong></td><td>Compatibility Jamo</td><td>U+3130–U+318F</td><td>ㄱ, ㅏ, ㅎ</td></tr>
+<tr><td><strong>H</strong></td><td>Hanja</td><td>U+4E00–U+9FFF</td><td>CJK Ideographs</td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>CJK Symbols + Full-width</td><td>。, ，</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/Latin</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>@, #</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="korean-hangul-syllable-detection"><a class="header" href="#korean-hangul-syllable-detection">Korean Hangul Syllable Detection</a></h3>
+<p>Korean uses <strong>closure-based matching</strong> for SN and SF types. This leverages Unicode’s systematic Hangul encoding:</p>
+<ul>
+<li>Hangul Syllables occupy U+AC00–U+D7AF</li>
+<li>Each syllable is encoded as: <code>(initial * 21 + medial) * 28 + final + 0xAC00</code></li>
+<li>If <code>(codepoint - 0xAC00) % 28 == 0</code>, the syllable has <strong>no final consonant</strong> (SN)</li>
+<li>Otherwise, it <strong>has a final consonant</strong> (SF, “받침”)</li>
+</ul>
+<p>This distinction is important because the presence of a final consonant (받침) affects Korean word boundary patterns and particle attachment.</p>
+<h2 id="cross-language-comparison"><a class="header" href="#cross-language-comparison">Cross-Language Comparison</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+</thead>
+<tbody>
+<tr><td>Total types</td><td>8</td><td>9</td><td>10</td></tr>
+<tr><td>Unique types</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
+<tr><td>Shared types</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O (H shared with JP)</td></tr>
+<tr><td>Matching method</td><td>Regex only</td><td>Regex only</td><td>Regex + Closure</td></tr>
+<tr><td>WC features used</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="prediction-pipeline"><a class="header" href="#prediction-pipeline">Prediction Pipeline</a></h1>
+<p>This chapter provides a step-by-step walkthrough of how <code>Segmenter::segment()</code> processes input text.</p>
+<h2 id="example-segmenting-これはテストです"><a class="header" href="#example-segmenting-これはテストです">Example: Segmenting “これはテストです。”</a></h2>
+<h3 id="step-1-initialize-arrays-with-padding"><a class="header" href="#step-1-initialize-arrays-with-padding">Step 1: Initialize Arrays with Padding</a></h3>
+<pre><code class="language-text">chars: ["B3", "B2", "B1"]
+types: ["O",  "O",  "O" ]
+tags:  ["U",  "U",  "U", "U"]
+</code></pre>
+<p>The tags array gets one extra “U” because <code>tags[3]</code> represents the first real character’s tag (set to “Unknown” since there is no prior boundary decision).</p>
+<h3 id="step-2-scan-input-characters"><a class="header" href="#step-2-scan-input-characters">Step 2: Scan Input Characters</a></h3>
+<p>For each character in the input, determine its type using language-specific patterns and append to the arrays:</p>
+<pre><code class="language-text">chars: ["B3","B2","B1", "こ","れ","は","テ","ス","ト","で","す","。"]
+types: ["O", "O", "O",  "I", "I", "I", "K", "K", "K", "I", "I", "P"]
+</code></pre>
+<h3 id="step-3-append-end-sentinels"><a class="header" href="#step-3-append-end-sentinels">Step 3: Append End Sentinels</a></h3>
+<pre><code class="language-text">chars: [..., "。", "E1", "E2", "E3"]
+types: [..., "P",  "O",  "O",  "O" ]
+</code></pre>
+<h3 id="step-4-iterate-and-predict"><a class="header" href="#step-4-iterate-and-predict">Step 4: Iterate and Predict</a></h3>
+<p>For each position <code>i</code> from 4 to <code>len(chars) - 3</code>:</p>
+<pre><code class="language-text">i=4 (れ): Extract features → predict → label=-1 (O) → word="これ"
+i=5 (は): Extract features → predict → label=+1 (B) → push "これ", word="は"
+i=6 (テ): Extract features → predict → label=+1 (B) → push "は", word="テ"
+i=7 (ス): Extract features → predict → label=-1 (O) → word="テス"
+i=8 (ト): Extract features → predict → label=-1 (O) → word="テスト"
+i=9 (で): Extract features → predict → label=+1 (B) → push "テスト", word="で"
+i=10(す): Extract features → predict → label=-1 (O) → word="です"
+i=11(。): Extract features → predict → label=+1 (B) → push "です", word="。"
+</code></pre>
+<h3 id="step-5-push-final-word"><a class="header" href="#step-5-push-final-word">Step 5: Push Final Word</a></h3>
+<p>Push the remaining word “。” to the result.</p>
+<h3 id="result"><a class="header" href="#result">Result</a></h3>
+<pre><code class="language-text">["これ", "は", "テスト", "です", "。"]
+</code></pre>
+<h2 id="how-prediction-works-at-each-position"><a class="header" href="#how-prediction-works-at-each-position">How Prediction Works at Each Position</a></h2>
+<p>At each position <em>i</em>, the segmenter:</p>
+<ol>
+<li><strong>Extracts features</strong> – Calls <code>get_attributes(i, tags, chars, types)</code> to build a <code>HashSet&lt;String&gt;</code> of 38–42 features</li>
+<li><strong>Computes score</strong> – The AdaBoost learner sums the model weights for all matching features plus the bias:
+<pre><code class="language-text">score = bias + sum(model[feature] for feature in attributes)
+</code></pre>
+</li>
+<li><strong>Makes decision</strong> – If <code>score &gt;= 0</code>, the character starts a new word (boundary); otherwise, it continues the current word</li>
+<li><strong>Updates tags</strong> – Pushes “B” or “O” to the tags array, which affects feature extraction for subsequent positions</li>
+</ol>
+<h2 id="training-vs-prediction"><a class="header" href="#training-vs-prediction">Training vs. Prediction</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Aspect</th><th>Training (<code>process_corpus</code>)</th><th>Prediction (<code>segment</code>)</th></tr>
+</thead>
+<tbody>
+<tr><td>Tags source</td><td>Pre-computed from the annotated corpus</td><td>Dynamically generated by the model</td></tr>
+<tr><td>First tag</td><td>“U” (overrides “B” at position 3)</td><td>“U” (no prior decision)</td></tr>
+<tr><td>Labels</td><td>Known from corpus (+1 or -1)</td><td>Predicted by AdaBoost</td></tr>
+<tr><td>Features</td><td>Written to file via callback</td><td>Passed directly to <code>predict()</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>During training, tags are derived from the ground-truth corpus segmentation, so the model learns from correct boundary decisions. During prediction, tags are generated on-the-fly, meaning each decision depends on all previous predictions – this is a <strong>left-to-right greedy</strong> approach.</p>
+<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
+<p>The segmentation algorithm is <strong>linear</strong> in the length of the input:</p>
+<ul>
+<li>Each character position is visited once: O(n)</li>
+<li>Feature extraction at each position: O(1) (fixed number of features)</li>
+<li>Prediction at each position: O(f) where f is the number of active features (~38-42)</li>
+<li>Total: O(n * f) which is effectively O(n)</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="language-support-overview"><a class="header" href="#language-support-overview">Language Support Overview</a></h1>
+<p>Litsea supports word segmentation for three languages through a unified framework based on the <code>Language</code> enum.</p>
+<h2 id="supported-languages"><a class="header" href="#supported-languages">Supported Languages</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Count</th><th>Pre-trained Model Accuracy</th></tr>
+</thead>
+<tbody>
+<tr><td>Japanese</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>94.15%</td></tr>
+<tr><td>Chinese</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>80.72%</td></tr>
+<tr><td>Korean</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>85.08%</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="the-language-enum"><a class="header" href="#the-language-enum">The Language Enum</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Language {
+    #[default]
+    Japanese,
+    Chinese,
+    Korean,
+}
+<span class="boring">}</span></code></pre>
+<ul>
+<li><strong>Default</strong> is <code>Japanese</code></li>
+<li>Implements <code>FromStr</code> – parses from full name or ISO 639-1 code (case-insensitive)</li>
+<li>Implements <code>Display</code> – outputs the lowercase full name</li>
+</ul>
+<h3 id="parsing-examples"><a class="header" href="#parsing-examples">Parsing Examples</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::Language;
+
+let ja: Language = "japanese".parse().unwrap();
+let zh: Language = "zh".parse().unwrap();
+let ko: Language = "Korean".parse().unwrap();   // case-insensitive
+let err = "french".parse::&lt;Language&gt;();          // Err(...)
+<span class="boring">}</span></code></pre>
+<h2 id="how-languages-differ"><a class="header" href="#how-languages-differ">How Languages Differ</a></h2>
+<p>Each language defines its own <strong>character type patterns</strong> that classify characters into type codes. These type codes are used as features for the AdaBoost classifier.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Aspect</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+</thead>
+<tbody>
+<tr><td>Character types</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
+<tr><td>WC features</td><td>Yes (4 extra)</td><td>Yes (4 extra)</td><td>No</td></tr>
+<tr><td>Total features</td><td>42</td><td>42</td><td>38</td></tr>
+<tr><td>Matching method</td><td>Regex only</td><td>Regex only</td><td>Regex + Closure</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="why-korean-has-fewer-features"><a class="header" href="#why-korean-has-fewer-features">Why Korean Has Fewer Features</a></h3>
+<p>Korean Hangul syllables are classified into only two types: <strong>SN</strong> (without 받침/final consonant) and <strong>SF</strong> (with 받침). This binary distinction means WC features (word + character-type combinations) would produce redundant information with little discriminative power. Excluding them reduces noise and keeps the model compact.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="japanese"><a class="header" href="#japanese">Japanese</a></h1>
+<p>Japanese is the default language in Litsea.</p>
+<h2 id="character-types"><a class="header" href="#character-types">Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>M</strong></td><td>Kanji Numbers</td><td><code>[一二三四五六七八九十百千万億兆]</code></td><td>一, 三, 千, 億</td></tr>
+<tr><td><strong>H</strong></td><td>Kanji / CJK</td><td><code>[一-龠々〆ヵヶ]</code></td><td>漢, 字, 学, 々</td></tr>
+<tr><td><strong>I</strong></td><td>Hiragana</td><td><code>[ぁ-ん]</code></td><td>あ, い, う, を</td></tr>
+<tr><td><strong>K</strong></td><td>Katakana</td><td><code>[ァ-ヴーｱ-ﾝﾞﾟ]</code></td><td>ア, カ, ー, ﾊ</td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>CJK Symbols + Full-width</td><td>。, 、, 「, 」</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/Latin</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z, Ｂ</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, 5, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>@, #, $</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="pattern-priority"><a class="header" href="#pattern-priority">Pattern Priority</a></h3>
+<p>Patterns are evaluated in order. Notably:</p>
+<ul>
+<li><strong>M before H</strong>: Characters like 一 and 百 are classified as “Kanji Numbers” (M), not generic “Kanji” (H)</li>
+<li>This distinction helps the model learn number-specific boundary patterns</li>
+</ul>
+<h2 id="pre-trained-models"><a class="header" href="#pre-trained-models">Pre-trained Models</a></h2>
+<h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
+<ul>
+<li><strong>Training corpus</strong>: Japanese Wikipedia articles</li>
+<li><strong>Tokenizer</strong>: Lindera with UniDic dictionary</li>
+<li><strong>Accuracy</strong>: 94.15%</li>
+<li><strong>Precision</strong>: 95.57%</li>
+<li><strong>Recall</strong>: 94.36%</li>
+</ul>
+<h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
+<ul>
+<li><strong>Source</strong>: Extracted from the original TinySegmenter</li>
+<li><strong>License</strong>: BSD 3-Clause (Taku Kudo)</li>
+<li><strong>Size</strong>: ~22 KB</li>
+</ul>
+<h3 id="jeita_genpaku_chasen_ipadicmodel"><a class="header" href="#jeita_genpaku_chasen_ipadicmodel">JEITA_Genpaku_ChaSen_IPAdic.model</a></h3>
+<ul>
+<li><strong>Training corpus</strong>: JEITA Project Sugita Genpaku corpus</li>
+<li><strong>Tokenizer</strong>: ChaSen with IPAdic dictionary</li>
+<li><strong>Size</strong>: ~17 KB</li>
+</ul>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
+  | litsea segment -l japanese ./resources/japanese.model
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="chinese"><a class="header" href="#chinese">Chinese</a></h1>
+<p>Litsea supports Chinese word segmentation covering both Simplified and Traditional Chinese.</p>
+<h2 id="character-types-1"><a class="header" href="#character-types-1">Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>F</strong></td><td>Function Words</td><td>High-frequency grammatical words</td><td>的, 了, 在, 是, 和</td></tr>
+<tr><td><strong>C</strong></td><td>CJK Unified</td><td>U+4E00–U+9FFF</td><td>中, 国, 人</td></tr>
+<tr><td><strong>X</strong></td><td>CJK Extension A</td><td>U+3400–U+4DBF</td><td>Rare characters</td></tr>
+<tr><td><strong>R</strong></td><td>CJK Radicals</td><td>U+2E80–U+2FDF</td><td>Kangxi radicals</td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>CJK Symbols + Full-width</td><td>。, ，, 《, 》</td></tr>
+<tr><td><strong>B</strong></td><td>Bopomofo</td><td>U+3100–U+312F, U+31A0–U+31BF</td><td>Zhuyin symbols</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/Latin</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, 5, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>@, #, $</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chinese-function-words-虚词"><a class="header" href="#chinese-function-words-虚词">Chinese Function Words (虚词)</a></h3>
+<p>The “F” type captures high-frequency grammatical words that are critical for segmentation:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Category</th><th>Characters</th></tr>
+</thead>
+<tbody>
+<tr><td>Structural particles</td><td>的, 地, 得</td></tr>
+<tr><td>Aspect/modal particles</td><td>了, 着, 过, 吗, 呢, 吧, 啊, 嘛</td></tr>
+<tr><td>Conjunctions</td><td>和, 与, 或, 但, 而, 且, 及</td></tr>
+<tr><td>Prepositions</td><td>在, 从, 到, 把, 被, 对, 向, 给</td></tr>
+<tr><td>Grammatical verbs/adverbs</td><td>是, 有, 不, 也, 都, 就, 要, 会, 能, 可</td></tr>
+</tbody>
+</table>
+</div>
+<p>These characters appear overwhelmingly in grammatical roles and signal word boundaries differently from content words.</p>
+<h2 id="pre-trained-model"><a class="header" href="#pre-trained-model">Pre-trained Model</a></h2>
+<h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
+<ul>
+<li><strong>Training corpus</strong>: Chinese Wikipedia articles</li>
+<li><strong>Tokenizer</strong>: Lindera with CC-CEDICT dictionary</li>
+<li><strong>Accuracy</strong>: 80.72%</li>
+</ul>
+<h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="korean"><a class="header" href="#korean">Korean</a></h1>
+<p>Litsea supports Korean word segmentation with specialized Hangul character type detection.</p>
+<h2 id="character-types-2"><a class="header" href="#character-types-2">Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>E</strong></td><td>Particles/Endings</td><td><code>[은는을를의에]</code></td><td>은, 는, 을, 를, 의, 에</td></tr>
+<tr><td><strong>SN</strong></td><td>Hangul (no 받침)</td><td>Codepoint arithmetic</td><td>가, 나, 하, 모</td></tr>
+<tr><td><strong>SF</strong></td><td>Hangul (with 받침)</td><td>Codepoint arithmetic</td><td>한, 글, 각, 붙</td></tr>
+<tr><td><strong>J</strong></td><td>Hangul Jamo</td><td>U+1100–U+11FF</td><td>Individual consonants/vowels</td></tr>
+<tr><td><strong>G</strong></td><td>Compatibility Jamo</td><td>U+3130–U+318F</td><td>ㄱ, ㅏ, ㅎ</td></tr>
+<tr><td><strong>H</strong></td><td>Hanja</td><td>U+4E00–U+9FFF</td><td>CJK Ideographs</td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>CJK Symbols + Full-width</td><td>。, ，</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/Latin</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, 5, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>@, #, $</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="korean-particles-조사"><a class="header" href="#korean-particles-조사">Korean Particles (조사)</a></h3>
+<p>The “E” type captures six high-frequency grammatical particles:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Character</th><th>Role</th><th>Name</th></tr>
+</thead>
+<tbody>
+<tr><td>은/는</td><td>Topic marker</td><td>주격 조사</td></tr>
+<tr><td>을/를</td><td>Object marker</td><td>목적격 조사</td></tr>
+<tr><td>의</td><td>Possessive</td><td>관형격 조사</td></tr>
+<tr><td>에</td><td>Locative</td><td>부사격 조사</td></tr>
+</tbody>
+</table>
+</div>
+<p>These particles frequently appear at word boundaries and are given a distinct type code to improve segmentation accuracy.</p>
+<h3 id="hangul-syllable-structure-받침-detection"><a class="header" href="#hangul-syllable-structure-받침-detection">Hangul Syllable Structure (받침 Detection)</a></h3>
+<p>Korean uses <strong>closure-based matching</strong> instead of regex for SN and SF types. This exploits the systematic Unicode Hangul encoding:</p>
+<ul>
+<li>Hangul Syllables: U+AC00–U+D7AF (11,172 syllables)</li>
+<li>Each syllable = <code>(initial * 21 + medial) * 28 + final + 0xAC00</code></li>
+<li><strong>SN</strong> (no 받침): <code>(codepoint - 0xAC00) % 28 == 0</code></li>
+<li><strong>SF</strong> (with 받침): <code>(codepoint - 0xAC00) % 28 != 0</code></li>
+</ul>
+<p>The 받침 (final consonant) distinction is linguistically significant because it affects how particles attach to words and where boundaries occur.</p>
+<h3 id="no-wc-features"><a class="header" href="#no-wc-features">No WC Features</a></h3>
+<p>Korean does <strong>not</strong> use WC (word + character-type) features. Since most Hangul syllables fall into only two types (SN and SF), WC features would produce low-entropy, noisy combinations that hurt model accuracy.</p>
+<h2 id="pre-trained-model-1"><a class="header" href="#pre-trained-model-1">Pre-trained Model</a></h2>
+<h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
+<ul>
+<li><strong>Training corpus</strong>: Korean Wikipedia articles</li>
+<li><strong>Tokenizer</strong>: Lindera with ko-dic dictionary</li>
+<li><strong>Accuracy</strong>: 85.08%</li>
+</ul>
+<h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="adding-a-new-language"><a class="header" href="#adding-a-new-language">Adding a New Language</a></h1>
+<p>Litsea’s multilingual framework is designed to be easily extensible. This guide explains how to add support for a new language.</p>
+<h2 id="steps-overview"><a class="header" href="#steps-overview">Steps Overview</a></h2>
+<ol>
+<li>Add a variant to the <code>Language</code> enum</li>
+<li>Implement <code>Display</code> and <code>FromStr</code> match arms</li>
+<li>Create a character type pattern function</li>
+<li>Register the pattern function</li>
+<li>Decide on WC feature inclusion</li>
+<li>Prepare a training corpus and train a model</li>
+<li>Add tests</li>
+</ol>
+<h2 id="step-1-add-a-variant-to-language"><a class="header" href="#step-1-add-a-variant-to-language">Step 1: Add a Variant to <code>Language</code></a></h2>
+<p>In <code>litsea/src/language.rs</code>, add a new variant to the <code>Language</code> enum:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum Language {
+    #[default]
+    Japanese,
+    Chinese,
+    Korean,
+    Thai,       // ← new language
+}
+<span class="boring">}</span></code></pre>
+<h2 id="step-2-implement-display-and-fromstr"><a class="header" href="#step-2-implement-display-and-fromstr">Step 2: Implement Display and FromStr</a></h2>
+<p>Add match arms for the new language:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// In Display impl
+Language::Thai =&gt; write!(f, "thai"),
+
+// In FromStr impl
+"thai" | "th" =&gt; Ok(Language::Thai),
+<span class="boring">}</span></code></pre>
+<h2 id="step-3-create-character-type-patterns"><a class="header" href="#step-3-create-character-type-patterns">Step 3: Create Character Type Patterns</a></h2>
+<p>Define a function that returns <code>CharTypePatterns</code> for the new language:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn thai_patterns() -&gt; CharTypePatterns {
+    CharTypePatterns::from_matchers(vec![
+        // Thai characters (U+0E01-U+0E3A)
+        (CharMatcher::Regex(
+            Regex::new(r"[\u{0E01}-\u{0E3A}]").unwrap()
+        ), "T"),
+        // Thai vowels (U+0E40-U+0E4E)
+        (CharMatcher::Regex(
+            Regex::new(r"[\u{0E40}-\u{0E4E}]").unwrap()
+        ), "V"),
+        // Thai digits (U+0E50-U+0E59)
+        (CharMatcher::Regex(
+            Regex::new(r"[\u{0E50}-\u{0E59}]").unwrap()
+        ), "N"),
+        // ASCII + Full-width Latin
+        (CharMatcher::Regex(
+            Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()
+        ), "A"),
+        // Digits
+        (CharMatcher::Regex(
+            Regex::new(r"[0-9０-９]").unwrap()
+        ), "N"),
+    ])
+}
+<span class="boring">}</span></code></pre>
+<h3 id="design-tips-for-character-types"><a class="header" href="#design-tips-for-character-types">Design Tips for Character Types</a></h3>
+<ul>
+<li><strong>Identify linguistically distinct categories</strong> that correlate with word boundary patterns</li>
+<li><strong>Order matters</strong> – first match wins, so put more specific patterns before general ones</li>
+<li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
+<li><strong>Use closures</strong> for complex logic that cannot be expressed as a single regex</li>
+</ul>
+<h2 id="step-4-register-the-pattern-function"><a class="header" href="#step-4-register-the-pattern-function">Step 4: Register the Pattern Function</a></h2>
+<p>Add a match arm in <code>Language::char_type_patterns()</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns {
+    match self {
+        Language::Japanese =&gt; japanese_patterns(),
+        Language::Chinese =&gt; chinese_patterns(),
+        Language::Korean =&gt; korean_patterns(),
+        Language::Thai =&gt; thai_patterns(),    // ← new
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="step-5-decide-on-wc-feature-inclusion"><a class="header" href="#step-5-decide-on-wc-feature-inclusion">Step 5: Decide on WC Feature Inclusion</a></h2>
+<p>In <code>segmenter.rs</code>, <code>get_attributes()</code> has a <code>match</code> on the language to decide whether to include WC features:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match self.language {
+    Language::Japanese | Language::Chinese =&gt; {
+        // Include WC features
+        attrs.insert(format!("WC1:{}{}", w3, c4));
+        attrs.insert(format!("WC2:{}{}", c3, w4));
+        attrs.insert(format!("WC3:{}{}", w3, c3));
+        attrs.insert(format!("WC4:{}{}", w4, c4));
+    }
+    _ =&gt; {}
+}
+<span class="boring">}</span></code></pre>
+<p>If your language’s character types have enough variety to make WC features informative, add it to the match arm. If your type system is low-entropy (like Korean’s SN/SF), it is better to exclude WC features.</p>
+<h2 id="step-6-prepare-corpus-and-train-a-model"><a class="header" href="#step-6-prepare-corpus-and-train-a-model">Step 6: Prepare Corpus and Train a Model</a></h2>
+<ol>
+<li>
+<p><strong>Prepare a corpus</strong> with words separated by spaces:</p>
+<pre><code class="language-text">word1 word2 word3 word4
+</code></pre>
+</li>
+<li>
+<p><strong>Extract features</strong>:</p>
+<pre><code class="language-sh">litsea extract -l thai ./corpus.txt ./features.txt
+</code></pre>
+</li>
+<li>
+<p><strong>Train a model</strong>:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/thai.model
+</code></pre>
+</li>
+</ol>
+<h2 id="step-7-add-tests"><a class="header" href="#step-7-add-tests">Step 7: Add Tests</a></h2>
+<p>Add tests in both <code>language.rs</code> and <code>segmenter.rs</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// In language.rs tests
+#[test]
+fn test_thai_patterns() {
+    let p = Language::Thai.char_type_patterns();
+    assert_eq!(p.get_type("ก"), "T");   // Thai consonant
+    assert_eq!(p.get_type("A"), "A");   // ASCII
+    assert_eq!(p.get_type("@"), "O");   // Other
+}
+
+// In segmenter.rs tests
+#[test]
+fn test_get_type_thai() {
+    let segmenter = Segmenter::new(Language::Thai, None);
+    assert_eq!(segmenter.get_type("ก"), "T");
+}
+<span class="boring">}</span></code></pre>
+<p>Run all tests to verify:</p>
+<pre><code class="language-sh">cargo test --workspace
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="cli-reference-overview"><a class="header" href="#cli-reference-overview">CLI Reference Overview</a></h1>
+<p>The <code>litsea</code> CLI provides commands for word segmentation, model training, and text processing.</p>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<pre><code class="language-sh">litsea &lt;COMMAND&gt; [OPTIONS] [ARGS]
+</code></pre>
+<h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#extract"><code>extract</code></a></td><td>Extract features from a corpus for training</td></tr>
+<tr><td><a href="#train"><code>train</code></a></td><td>Train a word segmentation model</td></tr>
+<tr><td><a href="#segment"><code>segment</code></a></td><td>Segment text into words using a trained model</td></tr>
+<tr><td><a href="#split-sentences"><code>split-sentences</code></a></td><td>Split text into sentences using Unicode UAX #29</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="global-options"><a class="header" href="#global-options">Global Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-h</code>, <code>--help</code></td><td>Show help information</td></tr>
+<tr><td><code>-V</code>, <code>--version</code></td><td>Show version number</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="typical-workflow"><a class="header" href="#typical-workflow">Typical Workflow</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
+    B --&gt; C["3. litsea train"]
+    C --&gt; D["4. litsea segment"]
+</code></pre>
+<ol>
+<li>Prepare a corpus with words separated by spaces</li>
+<li>Extract features: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
+<li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
+<li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extract"><a class="header" href="#extract">extract</a></h1>
+<p>Extract features from a corpus file for model training.</p>
+<h2 id="usage-1"><a class="header" href="#usage-1">Usage</a></h2>
+<pre><code class="language-sh">litsea extract [OPTIONS] &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
+</code></pre>
+<h2 id="arguments"><a class="header" href="#arguments">Arguments</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CORPUS_FILE</code></td><td>Path to the input corpus file (words separated by spaces, one sentence per line)</td></tr>
+<tr><td><code>FEATURES_FILE</code></td><td>Path to the output features file</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options"><a class="header" href="#options">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="corpus-format"><a class="header" href="#corpus-format">Corpus Format</a></h2>
+<p>The input corpus must have words separated by spaces, one sentence per line:</p>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
+<p>The features file contains one line per character position:</p>
+<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
+-1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+</code></pre>
+<ul>
+<li><code>1</code> = word boundary</li>
+<li><code>-1</code> = non-boundary</li>
+<li>Features are tab-separated</li>
+</ul>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<pre><code class="language-sh"># Japanese
+litsea extract -l japanese ./corpus.txt ./features.txt
+
+# Chinese
+litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
+
+# Korean
+litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+</code></pre>
+<p>Output to stderr on success:</p>
+<pre><code class="language-text">Feature extraction completed successfully.
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="train"><a class="header" href="#train">train</a></h1>
+<p>Train a word segmentation model using AdaBoost.</p>
+<h2 id="usage-2"><a class="header" href="#usage-2">Usage</a></h2>
+<pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h2 id="arguments-1"><a class="header" href="#arguments-1">Arguments</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FEATURES_FILE</code></td><td>Path to the input features file (output from <code>extract</code>)</td></tr>
+<tr><td><code>MODEL_FILE</code></td><td>Path to the output model file</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options-1"><a class="header" href="#options-1">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>Weak classifier accuracy threshold for early stopping. Lower values allow more iterations</td></tr>
+<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
+<tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="output"><a class="header" href="#output">Output</a></h2>
+<p>Training metrics are printed to stderr:</p>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 94.15% ( 564133 / 599198 )
+  Precision: 95.57% ( 330454 / 345758 )
+  Recall: 94.36% ( 330454 / 350215 )
+  Confusion Matrix:
+    True Positives: 330454
+    False Positives: 15304
+    False Negatives: 19761
+    True Negatives: 233679
+</code></pre>
+<h2 id="ctrlc-handling"><a class="header" href="#ctrlc-handling">Ctrl+C Handling</a></h2>
+<p>Training supports graceful interruption:</p>
+<ul>
+<li><strong>First Ctrl+C</strong>: Stops training and saves the model at its current state</li>
+<li><strong>Second Ctrl+C</strong>: Exits immediately without saving</li>
+</ul>
+<p>This allows you to stop long-running training sessions without losing progress.</p>
+<h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
+<p>Basic training:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+</code></pre>
+<p>Training with higher precision (lower threshold, more iterations):</p>
+<pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
+</code></pre>
+<p>Retraining from an existing model:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
+    ./new_features.txt ./resources/japanese_v2.model
+</code></pre>
+<h2 id="hyperparameter-tuning"><a class="header" href="#hyperparameter-tuning">Hyperparameter Tuning</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Effect of Decreasing</th><th>Effect of Increasing</th></tr>
+</thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>More iterations, potentially higher accuracy, longer training time</td><td>Fewer iterations, faster training, may underfit</td></tr>
+<tr><td><code>num_iterations</code></td><td>Fewer boosting rounds, smaller model, may underfit</td><td>More rounds, larger model, potentially higher accuracy</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="segment"><a class="header" href="#segment">segment</a></h1>
+<p>Segment text into words using a trained model.</p>
+<h2 id="usage-3"><a class="header" href="#usage-3">Usage</a></h2>
+<pre><code class="language-sh">echo "text" | litsea segment [OPTIONS] &lt;MODEL_URI&gt;
+</code></pre>
+<h2 id="arguments-2"><a class="header" href="#arguments-2">Arguments</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>MODEL_URI</code></td><td>Path or URL to the trained model file. Supports: local file paths, <code>file://</code>, <code>http://</code>, <code>https://</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options-2"><a class="header" href="#options-2">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="input--output"><a class="header" href="#input--output">Input / Output</a></h2>
+<ul>
+<li><strong>Input</strong>: Reads from stdin, one sentence per line. Empty lines are skipped.</li>
+<li><strong>Output</strong>: Writes to stdout, space-separated tokens, one line per input line.</li>
+</ul>
+<h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
+<p><strong>Japanese:</strong></p>
+<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
+  | litsea segment -l japanese ./resources/japanese.model
+</code></pre>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+</code></pre>
+<p><strong>Chinese:</strong></p>
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+</code></pre>
+<p><strong>Korean:</strong></p>
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
+  | litsea segment -l korean ./resources/korean.model
+</code></pre>
+<p><strong>Processing a file:</strong></p>
+<pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./resources/japanese.model &gt; output.txt
+</code></pre>
+<p><strong>Loading a model from a URL:</strong></p>
+<pre><code class="language-sh">echo "テスト文です。" \
+  | litsea segment -l japanese https://example.com/models/japanese.model
+</code></pre>
+<h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
+<ul>
+<li>The <code>--language</code> flag must match the language the model was trained for</li>
+<li>Model loading is asynchronous and supports HTTP/HTTPS with TLS (rustls)</li>
+<li>The model URI is not restricted to file paths – any valid URL is accepted</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="split-sentences"><a class="header" href="#split-sentences">split-sentences</a></h1>
+<p>Split text into sentences using Unicode UAX #29 rules.</p>
+<h2 id="usage-4"><a class="header" href="#usage-4">Usage</a></h2>
+<pre><code class="language-sh">echo "text" | litsea split-sentences
+</code></pre>
+<h2 id="arguments-3"><a class="header" href="#arguments-3">Arguments</a></h2>
+<p>None.</p>
+<h2 id="options-3"><a class="header" href="#options-3">Options</a></h2>
+<p>None (besides <code>--help</code> and <code>--version</code>).</p>
+<h2 id="input--output-1"><a class="header" href="#input--output-1">Input / Output</a></h2>
+<ul>
+<li><strong>Input</strong>: Reads from stdin, one paragraph per line. Empty lines are skipped.</li>
+<li><strong>Output</strong>: Writes to stdout, one sentence per line.</li>
+</ul>
+<h2 id="how-it-works-2"><a class="header" href="#how-it-works-2">How It Works</a></h2>
+<p>This command uses ICU4X’s <code>SentenceSegmenter</code> which implements the Unicode Standard Annex #29 (UAX #29) sentence break rules. It is <strong>language-independent</strong> – no <code>--language</code> flag is needed.</p>
+<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
+<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">これはテストです。
+次の文です。
+</code></pre>
+<p>Multi-line input:</p>
+<pre><code class="language-sh">echo -e "First sentence. Second sentence.\nThird sentence! Fourth." \
+  | litsea split-sentences
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">First sentence.
+Second sentence.
+Third sentence!
+Fourth.
+</code></pre>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<ul>
+<li>Pre-processing text before word segmentation (one sentence per line)</li>
+<li>Splitting large documents into individual sentences for analysis</li>
+<li>Preparing training corpora from raw text</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="library-api-overview"><a class="header" href="#library-api-overview">Library API Overview</a></h1>
+<p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
+<h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
+<pre><code class="language-toml">[dependencies]
+litsea = "0.4.0"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+</code></pre>
+<h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
+<pre><code class="language-mermaid">graph LR
+    A["litsea::segmenter"] --- B["Segmenter"]
+    C["litsea::adaboost"] --- D["AdaBoost, Metrics"]
+    E["litsea::language"] --- F["Language, CharTypePatterns"]
+    G["litsea::extractor"] --- H["Extractor"]
+    I["litsea::trainer"] --- J["Trainer"]
+    K["litsea::util"] --- L["ModelScheme"]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Module</th><th>Primary Types</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>Word segmentation</td></tr>
+<tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code>, <code>Metrics</code></td><td>Binary classification, model I/O</td></tr>
+<tr><td><code>litsea::language</code></td><td><code>Language</code>, <code>CharTypePatterns</code></td><td>Language definitions, character classification</td></tr>
+<tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>Feature extraction from corpus</td></tr>
+<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code></td><td>Training orchestration</td></tr>
+<tr><td><code>litsea::util</code></td><td><code>ModelScheme</code></td><td>URI scheme parsing</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
+<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut learner = AdaBoost::new(0.01, 100);
+    learner.load_model("./resources/japanese.model").await?;
+
+    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let tokens = segmenter.segment("これはテストです。");
+
+    assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
+    Ok(())
+}</code></pre>
+<h2 id="api-documentation"><a class="header" href="#api-documentation">API Documentation</a></h2>
+<p>Full API documentation is available on <a href="https://docs.rs/litsea">docs.rs/litsea</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="segmenter"><a class="header" href="#segmenter">Segmenter</a></h1>
+<p>The <code>Segmenter</code> struct is the primary interface for word segmentation.</p>
+<h2 id="definition"><a class="header" href="#definition">Definition</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Segmenter {
+    pub language: Language,
+    pub learner: AdaBoost,
+    // internal: char_types: CharTypePatterns
+}
+<span class="boring">}</span></code></pre>
+<h2 id="constructor"><a class="header" href="#constructor">Constructor</a></h2>
+<h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(language: Language, learner: Option&lt;AdaBoost&gt;) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>Creates a new segmenter.</p>
+<ul>
+<li><code>language</code> – The language for character type classification</li>
+<li><code>learner</code> – An optional pre-trained <code>AdaBoost</code> model. If <code>None</code>, a default (untrained) instance is created.</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+// With a pre-trained model
+let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+
+// Without a model (for training or feature extraction)
+let segmenter = Segmenter::new(Language::Japanese, None);
+<span class="boring">}</span></code></pre>
+<h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
+<h3 id="segment-1"><a class="header" href="#segment-1"><code>segment</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn segment(&amp;self, sentence: &amp;str) -&gt; Vec&lt;String&gt;
+<span class="boring">}</span></code></pre>
+<p>Segments a sentence into words. Returns an empty vector for empty input.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let tokens = segmenter.segment("これはテストです。");
+// ["これ", "は", "テスト", "です", "。"]
+<span class="boring">}</span></code></pre>
+<h3 id="get_type"><a class="header" href="#get_type"><code>get_type</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+<span class="boring">}</span></code></pre>
+<p>Classifies a single character into its type code using language-specific patterns.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let segmenter = Segmenter::new(Language::Japanese, None);
+assert_eq!(segmenter.get_type("あ"), "I");  // Hiragana
+assert_eq!(segmenter.get_type("漢"), "H");  // Kanji
+assert_eq!(segmenter.get_type("A"), "A");   // ASCII
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus"><a class="header" href="#add_corpus"><code>add_corpus</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus(&amp;mut self, corpus: &amp;str)
+<span class="boring">}</span></code></pre>
+<p>Processes a space-separated corpus and adds instances to the internal AdaBoost learner.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut segmenter = Segmenter::new(Language::Japanese, None);
+segmenter.add_corpus("テスト です");
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus_with_writer"><a class="header" href="#add_corpus_with_writer"><code>add_corpus_with_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_with_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, i8),
+<span class="boring">}</span></code></pre>
+<p>Processes a corpus and calls the callback for each character position with its feature set and label.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
+    println!("Features: {:?}, Label: {}", attrs, label);
+});
+<span class="boring">}</span></code></pre>
+<h3 id="get_attributes"><a class="header" href="#get_attributes"><code>get_attributes</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_attributes(
+    &amp;self,
+    i: usize,
+    tags: &amp;[String],
+    chars: &amp;[String],
+    types: &amp;[String],
+) -&gt; HashSet&lt;String&gt;
+<span class="boring">}</span></code></pre>
+<p>Extracts the feature set for a specific character position. Returns 38 features (Korean) or 42 features (Japanese/Chinese).</p>
+<blockquote>
+<p>This is primarily used internally by <code>segment()</code> and <code>process_corpus()</code>.</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
+<p>The <code>Extractor</code> struct extracts features from a corpus file for model training.</p>
+<h2 id="definition-1"><a class="header" href="#definition-1">Definition</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Extractor {
+    segmenter: Segmenter,
+}
+<span class="boring">}</span></code></pre>
+<h2 id="constructor-1"><a class="header" href="#constructor-1">Constructor</a></h2>
+<h3 id="extractornew"><a class="header" href="#extractornew"><code>Extractor::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(language: Language) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>Creates a new extractor for the specified language. Internally creates a <code>Segmenter</code> without a pre-trained model.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::extractor::Extractor;
+use litsea::language::Language;
+
+let mut extractor = Extractor::new(Language::Japanese);
+<span class="boring">}</span></code></pre>
+<h2 id="methods-1"><a class="header" href="#methods-1">Methods</a></h2>
+<h3 id="extract-1"><a class="header" href="#extract-1"><code>extract</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract(
+    &amp;mut self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads a corpus file (space-separated words, one sentence per line) and writes the extracted features to the output file.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+extractor.extract(
+    Path::new("./corpus.txt"),
+    Path::new("./features.txt"),
+)?;
+<span class="boring">}</span></code></pre>
+<h3 id="pipeline"><a class="header" href="#pipeline">Pipeline</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["corpus.txt&lt;br/&gt;(space-separated words)"] --&gt; B["Extractor::extract()"]
+    B --&gt; C["features.txt&lt;br/&gt;(label + features per position)"]
+</code></pre>
+<p>The extractor:</p>
+<ol>
+<li>Reads each line from the corpus file</li>
+<li>Calls <code>Segmenter::add_corpus_with_writer()</code> to process each line</li>
+<li>Writes the label and feature set for each character position to the output file</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="trainer"><a class="header" href="#trainer">Trainer</a></h1>
+<p>The <code>Trainer</code> struct orchestrates the full model training pipeline.</p>
+<h2 id="definition-2"><a class="header" href="#definition-2">Definition</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Trainer {
+    learner: AdaBoost,
+}
+<span class="boring">}</span></code></pre>
+<h2 id="constructor-2"><a class="header" href="#constructor-2">Constructor</a></h2>
+<h3 id="trainernew"><a class="header" href="#trainernew"><code>Trainer::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(
+    threshold: f64,
+    num_iterations: usize,
+    features_path: &amp;Path,
+) -&gt; io::Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p>Creates a trainer and initializes it from a features file. This calls <code>AdaBoost::initialize_features()</code> and <code>AdaBoost::initialize_instances()</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+use litsea::trainer::Trainer;
+
+let mut trainer = Trainer::new(
+    0.005,                           // threshold
+    1000,                            // max iterations
+    Path::new("./features.txt"),     // features file
+)?;
+<span class="boring">}</span></code></pre>
+<h2 id="methods-2"><a class="header" href="#methods-2">Methods</a></h2>
+<h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads an existing model for retraining. Supports file paths, <code>file://</code>, <code>http://</code>, and <code>https://</code> URIs.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trainer.load_model("./resources/japanese.model").await?;
+<span class="boring">}</span></code></pre>
+<h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(
+    &amp;mut self,
+    running: Arc&lt;AtomicBool&gt;,
+    model_path: &amp;Path,
+) -&gt; Result&lt;Metrics, Box&lt;dyn std::error::Error&gt;&gt;
+<span class="boring">}</span></code></pre>
+<p>Trains the model and saves it to the specified path. Returns evaluation metrics.</p>
+<p>The <code>running</code> flag enables graceful interruption – set it to <code>false</code> to stop training early.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+let running = Arc::new(AtomicBool::new(true));
+let metrics = trainer.train(running, Path::new("./model.model"))?;
+
+println!("Accuracy: {:.2}%", metrics.accuracy);
+<span class="boring">}</span></code></pre>
+<h2 id="full-training-example"><a class="header" href="#full-training-example">Full Training Example</a></h2>
+<pre class="playground"><code class="language-rust">use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::Trainer;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut trainer = Trainer::new(
+        0.005,
+        1000,
+        Path::new("./features.txt"),
+    )?;
+
+    // Optionally resume from an existing model
+    // trainer.load_model("./resources/japanese.model").await?;
+
+    let running = Arc::new(AtomicBool::new(true));
+    let metrics = trainer.train(running, Path::new("./model.model"))?;
+
+    println!("Accuracy:  {:.2}%", metrics.accuracy);
+    println!("Precision: {:.2}%", metrics.precision);
+    println!("Recall:    {:.2}%", metrics.recall);
+
+    Ok(())
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="adaboost"><a class="header" href="#adaboost">AdaBoost</a></h1>
+<p>The <code>AdaBoost</code> struct implements binary classification for word boundary detection.</p>
+<h2 id="definition-3"><a class="header" href="#definition-3">Definition</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct AdaBoost {
+    pub threshold: f64,
+    pub num_iterations: usize,
+    // internal fields: model weights, features, instances, etc.
+}
+<span class="boring">}</span></code></pre>
+<h2 id="constructor-3"><a class="header" href="#constructor-3">Constructor</a></h2>
+<h3 id="adaboostnew"><a class="header" href="#adaboostnew"><code>AdaBoost::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(threshold: f64, num_iterations: usize) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>Creates a new AdaBoost instance with the specified hyperparameters.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::adaboost::AdaBoost;
+
+let mut learner = AdaBoost::new(0.01, 100);
+<span class="boring">}</span></code></pre>
+<h2 id="model-loading"><a class="header" href="#model-loading">Model Loading</a></h2>
+<h3 id="load_model-1"><a class="header" href="#load_model-1"><code>load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from a URI. Supports:</p>
+<ul>
+<li>Local file path: <code>./resources/japanese.model</code></li>
+<li>File URI: <code>file:///path/to/model</code></li>
+<li>HTTP: <code>http://example.com/model</code></li>
+<li>HTTPS: <code>https://example.com/model</code></li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>learner.load_model("./resources/japanese.model").await?;
+learner.load_model("https://example.com/model").await?;
+<span class="boring">}</span></code></pre>
+<h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Saves model weights to a file. Returns an error if the model is empty.</p>
+<h2 id="training-methods"><a class="header" href="#training-methods">Training Methods</a></h2>
+<h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads a features file and builds the feature index. Must be called before <code>initialize_instances</code>.</p>
+<h3 id="initialize_instances"><a class="header" href="#initialize_instances"><code>initialize_instances</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads the same features file and initializes labeled instances with their weights.</p>
+<h3 id="train-2"><a class="header" href="#train-2"><code>train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(&amp;mut self, running: Arc&lt;AtomicBool&gt;)
+<span class="boring">}</span></code></pre>
+<p>Runs the AdaBoost training loop. Set <code>running</code> to <code>false</code> to stop early.</p>
+<h3 id="add_instance"><a class="header" href="#add_instance"><code>add_instance</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_instance(&amp;mut self, attributes: HashSet&lt;String&gt;, label: i8)
+<span class="boring">}</span></code></pre>
+<p>Adds a single training instance with its feature set and label.</p>
+<h2 id="prediction-1"><a class="header" href="#prediction-1">Prediction</a></h2>
+<h3 id="predict"><a class="header" href="#predict"><code>predict</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn predict(&amp;self, attributes: HashSet&lt;String&gt;) -&gt; i8
+<span class="boring">}</span></code></pre>
+<p>Predicts the label for a given feature set. Returns <code>+1</code> (boundary) or <code>-1</code> (non-boundary).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::HashSet;
+
+let mut attrs = HashSet::new();
+attrs.insert("UW4:は".to_string());
+attrs.insert("UC4:I".to_string());
+// ... more features
+
+let label = learner.predict(attrs);
+// label == 1 (boundary) or -1 (non-boundary)
+<span class="boring">}</span></code></pre>
+<h3 id="get_bias"><a class="header" href="#get_bias"><code>get_bias</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_bias(&amp;self) -&gt; f64
+<span class="boring">}</span></code></pre>
+<p>Returns the bias term: <code>-sum(all model weights) / 2.0</code>.</p>
+<h2 id="evaluation"><a class="header" href="#evaluation">Evaluation</a></h2>
+<h3 id="get_metrics"><a class="header" href="#get_metrics"><code>get_metrics</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_metrics(&amp;self) -&gt; Metrics
+<span class="boring">}</span></code></pre>
+<p>Calculates evaluation metrics on the training data.</p>
+<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Metrics {
+    pub accuracy: f64,          // Accuracy in percentage
+    pub precision: f64,         // Precision in percentage
+    pub recall: f64,            // Recall in percentage
+    pub num_instances: usize,
+    pub true_positives: usize,
+    pub false_positives: usize,
+    pub false_negatives: usize,
+    pub true_negatives: usize,
+}
+<span class="boring">}</span></code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="language"><a class="header" href="#language">Language</a></h1>
+<p>The <code>Language</code> enum and <code>CharTypePatterns</code> struct define language-specific behavior.</p>
+<h2 id="language-enum"><a class="header" href="#language-enum">Language Enum</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Language {
+    #[default]
+    Japanese,
+    Chinese,
+    Korean,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="traits"><a class="header" href="#traits">Traits</a></h3>
+<ul>
+<li><code>Default</code> – Returns <code>Language::Japanese</code></li>
+<li><code>Display</code> – Returns lowercase name (<code>"japanese"</code>, <code>"chinese"</code>, <code>"korean"</code>)</li>
+<li><code>FromStr</code> – Parses from full name or ISO 639-1 code (case-insensitive)</li>
+</ul>
+<h3 id="parsing"><a class="header" href="#parsing">Parsing</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::Language;
+
+// Full names
+let ja: Language = "japanese".parse().unwrap();
+let zh: Language = "chinese".parse().unwrap();
+let ko: Language = "korean".parse().unwrap();
+
+// ISO 639-1 codes
+let ja: Language = "ja".parse().unwrap();
+let zh: Language = "zh".parse().unwrap();
+let ko: Language = "ko".parse().unwrap();
+
+// Case-insensitive
+let ko: Language = "KOREAN".parse().unwrap();
+
+// Invalid
+assert!("french".parse::&lt;Language&gt;().is_err());
+<span class="boring">}</span></code></pre>
+<h3 id="char_type_patterns"><a class="header" href="#char_type_patterns"><code>char_type_patterns</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns
+<span class="boring">}</span></code></pre>
+<p>Creates the character type patterns for this language. Compiles regex patterns on each call – for performance, cache the result (as <code>Segmenter::new</code> does automatically).</p>
+<h2 id="chartypepatterns"><a class="header" href="#chartypepatterns">CharTypePatterns</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct CharTypePatterns {
+    // internal: Vec&lt;(CharMatcher, &amp;'static str)&gt;
+}
+<span class="boring">}</span></code></pre>
+<h3 id="get_type-1"><a class="header" href="#get_type-1"><code>get_type</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+<span class="boring">}</span></code></pre>
+<p>Classifies a character into its type code. Returns <code>"O"</code> (Other) if no pattern matches.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let patterns = Language::Japanese.char_type_patterns();
+assert_eq!(patterns.get_type("あ"), "I");
+assert_eq!(patterns.get_type("漢"), "H");
+assert_eq!(patterns.get_type("@"), "O");
+<span class="boring">}</span></code></pre>
+<h3 id="new"><a class="header" href="#new"><code>new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(patterns: Vec&lt;(Regex, &amp;'static str)&gt;) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>Creates patterns from a list of regex + type code pairs. Patterns are checked in order; first match wins.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="preparing-a-corpus"><a class="header" href="#preparing-a-corpus">Preparing a Corpus</a></h1>
+<p>A good training corpus is essential for model accuracy. This guide explains how to prepare one.</p>
+<h2 id="corpus-format-1"><a class="header" href="#corpus-format-1">Corpus Format</a></h2>
+<p>The corpus must be a plain text file with:</p>
+<ul>
+<li><strong>One sentence per line</strong></li>
+<li><strong>Words separated by spaces</strong></li>
+</ul>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h2 id="automated-corpus-preparation"><a class="header" href="#automated-corpus-preparation">Automated Corpus Preparation</a></h2>
+<p>Litsea includes helper scripts in the <code>scripts/</code> directory for building corpora from Wikipedia.</p>
+<h3 id="step-1-download-wikipedia-texts"><a class="header" href="#step-1-download-wikipedia-texts">Step 1: Download Wikipedia Texts</a></h3>
+<pre><code class="language-sh">bash scripts/wikitexts.sh ja   # Japanese
+bash scripts/wikitexts.sh ko   # Korean
+bash scripts/wikitexts.sh zh   # Chinese
+</code></pre>
+<p>This script:</p>
+<ol>
+<li>Downloads article titles from the Wikipedia API</li>
+<li>Filters by language-specific criteria</li>
+<li>Fetches article text</li>
+<li>Splits into sentences using <code>litsea split-sentences</code></li>
+</ol>
+<h3 id="step-2-tokenize-with-lindera"><a class="header" href="#step-2-tokenize-with-lindera">Step 2: Tokenize with Lindera</a></h3>
+<pre><code class="language-sh">bash scripts/corpus.sh ja ./wikitexts_ja.txt ./corpus_ja.txt
+bash scripts/corpus.sh ko ./wikitexts_ko.txt ./corpus_ko.txt
+bash scripts/corpus.sh zh ./wikitexts_zh.txt ./corpus_zh.txt
+</code></pre>
+<p>This script uses <a href="https://github.com/lindera/lindera">Lindera</a> with language-specific dictionaries:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Dictionary</th><th>Notes</th></tr>
+</thead>
+<tbody>
+<tr><td>Japanese</td><td>UniDic</td><td>With compound word filters</td></tr>
+<tr><td>Korean</td><td>ko-dic</td><td>Korean dictionary</td></tr>
+<tr><td>Chinese</td><td>CC-CEDICT</td><td>Chinese-English dictionary</td></tr>
+</tbody>
+</table>
+</div>
+<p>The output is in <strong>wakati</strong> format (space-separated tokens), ready for feature extraction.</p>
+<h2 id="corpus-quality-tips"><a class="header" href="#corpus-quality-tips">Corpus Quality Tips</a></h2>
+<ul>
+<li><strong>Diversity</strong> – Include text from various domains (news, literature, web, etc.)</li>
+<li><strong>Size</strong> – Larger corpora generally produce better models, but diminishing returns apply</li>
+<li><strong>Consistency</strong> – Ensure consistent tokenization throughout the corpus</li>
+<li><strong>Deduplication</strong> – Remove duplicate sentences to avoid bias</li>
+<li><strong>Cleaning</strong> – Remove HTML tags, special formatting, and non-text content</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extracting-features"><a class="header" href="#extracting-features">Extracting Features</a></h1>
+<p>After preparing a corpus, the next step is to extract features for model training.</p>
+<h2 id="command"><a class="header" href="#command">Command</a></h2>
+<pre><code class="language-sh">litsea extract -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
+</code></pre>
+<h2 id="example-4"><a class="header" href="#example-4">Example</a></h2>
+<pre><code class="language-sh">litsea extract -l japanese ./corpus.txt ./features.txt
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Feature extraction completed successfully.
+</code></pre>
+<h2 id="what-happens-internally"><a class="header" href="#what-happens-internally">What Happens Internally</a></h2>
+<pre><code class="language-mermaid">flowchart TD
+    A["Read corpus line by line"] --&gt; B["Split line into words"]
+    B --&gt; C["Build chars, types, and tags arrays"]
+    C --&gt; D["For each character position"]
+    D --&gt; E["Extract 38-42 features"]
+    E --&gt; F["Write label + features to file"]
+</code></pre>
+<ol>
+<li>The <code>Extractor</code> reads each line from the corpus</li>
+<li>For each sentence, it creates a <code>Segmenter</code> context with character arrays, type arrays, and tag arrays</li>
+<li>For each character position (except the first), it extracts features and writes them with the correct label</li>
+</ol>
+<h2 id="feature-file-format"><a class="header" href="#feature-file-format">Feature File Format</a></h2>
+<p>Each line represents one character position:</p>
+<pre><code class="language-text">1	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:は ...
+-1	UP1:U UP2:U UP3:B BP1:UB BP2:BU UW1:B1 UW2:は UW3:テ ...
+</code></pre>
+<ul>
+<li>First column: label (<code>1</code> = boundary, <code>-1</code> = non-boundary)</li>
+<li>Remaining columns: features (tab-separated)</li>
+</ul>
+<h2 id="file-size-expectations"><a class="header" href="#file-size-expectations">File Size Expectations</a></h2>
+<p>The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings. For a 1 MB corpus, expect a features file of roughly 50-100 MB.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="training-models"><a class="header" href="#training-models">Training Models</a></h1>
+<p>Once features are extracted, train a model using AdaBoost.</p>
+<h2 id="command-1"><a class="header" href="#command-1">Command</a></h2>
+<pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+</code></pre>
+<h2 id="training-process"><a class="header" href="#training-process">Training Process</a></h2>
+<pre><code class="language-mermaid">flowchart TD
+    A["Initialize features&lt;br/&gt;(read feature names)"] --&gt; B["Initialize instances&lt;br/&gt;(read labels + features)"]
+    B --&gt; C["AdaBoost training loop"]
+    C --&gt; D{"Converged or&lt;br/&gt;max iterations?"}
+    D --&gt;|No| C
+    D --&gt;|Yes| E["Save model"]
+    E --&gt; F["Output metrics"]
+</code></pre>
+<ol>
+<li><strong>Initialize features</strong> – Reads the features file to build the feature index</li>
+<li><strong>Initialize instances</strong> – Reads again to load labeled instances and initial weights</li>
+<li><strong>Training loop</strong> – Iteratively selects the best feature, updates model weights, and reweights instances</li>
+<li><strong>Save model</strong> – Writes non-zero feature weights to the model file</li>
+<li><strong>Output metrics</strong> – Prints accuracy, precision, recall, and confusion matrix</li>
+</ol>
+<h2 id="hyperparameters-1"><a class="header" href="#hyperparameters-1">Hyperparameters</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Flag</th><th>Default</th><th>Guidance</th></tr>
+</thead>
+<tbody>
+<tr><td>Threshold</td><td><code>-t</code></td><td>0.01</td><td>Start with 0.005. Lower values allow more iterations but increase training time</td></tr>
+<tr><td>Iterations</td><td><code>-i</code></td><td>100</td><td>Start with 1000. Increase if accuracy is still improving when training stops</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="interpreting-output"><a class="header" href="#interpreting-output">Interpreting Output</a></h2>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 94.15% ( 564133 / 599198 )
+  Precision: 95.57% ( 330454 / 345758 )
+  Recall: 94.36% ( 330454 / 350215 )
+  Confusion Matrix:
+    True Positives: 330454
+    False Positives: 15304
+    False Negatives: 19761
+    True Negatives: 233679
+</code></pre>
+<ul>
+<li><strong>Accuracy</strong> – Percentage of correct predictions (both boundaries and non-boundaries)</li>
+<li><strong>Precision</strong> – Of predicted boundaries, what fraction is correct</li>
+<li><strong>Recall</strong> – Of actual boundaries, what fraction was found</li>
+<li><strong>True Positives</strong> – Correctly predicted boundaries</li>
+<li><strong>False Positives</strong> – Predicted boundary where there is none</li>
+<li><strong>False Negatives</strong> – Missed actual boundaries</li>
+<li><strong>True Negatives</strong> – Correctly predicted non-boundaries</li>
+</ul>
+<h2 id="graceful-interruption"><a class="header" href="#graceful-interruption">Graceful Interruption</a></h2>
+<p>Press <strong>Ctrl+C once</strong> during training to stop and save the model at its current state. Press <strong>Ctrl+C twice</strong> to exit immediately without saving.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="evaluating-models"><a class="header" href="#evaluating-models">Evaluating Models</a></h1>
+<p>Understanding model quality is essential for producing good segmentation results.</p>
+<h2 id="metrics-1"><a class="header" href="#metrics-1">Metrics</a></h2>
+<p>The <code>train</code> command outputs three key metrics after training:</p>
+<h3 id="accuracy"><a class="header" href="#accuracy">Accuracy</a></h3>
+<pre><code class="language-text">Accuracy = (TP + TN) / Total Instances
+</code></pre>
+<p>The percentage of all character positions that were correctly classified (both boundaries and non-boundaries). This is the broadest measure of model quality.</p>
+<h3 id="precision"><a class="header" href="#precision">Precision</a></h3>
+<pre><code class="language-text">Precision = TP / (TP + FP)
+</code></pre>
+<p>Of the boundaries the model <strong>predicted</strong>, what fraction was <strong>correct</strong>. High precision means few false boundaries (over-segmentation).</p>
+<h3 id="recall"><a class="header" href="#recall">Recall</a></h3>
+<pre><code class="language-text">Recall = TP / (TP + FN)
+</code></pre>
+<p>Of the <strong>actual</strong> boundaries, what fraction did the model <strong>find</strong>. High recall means few missed boundaries (under-segmentation).</p>
+<h2 id="confusion-matrix"><a class="header" href="#confusion-matrix">Confusion Matrix</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th>Predicted Boundary (+1)</th><th>Predicted Non-boundary (-1)</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>Actual Boundary</strong></td><td>True Positive (TP)</td><td>False Negative (FN)</td></tr>
+<tr><td><strong>Actual Non-boundary</strong></td><td>False Positive (FP)</td><td>True Negative (TN)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="pre-trained-model-benchmarks"><a class="header" href="#pre-trained-model-benchmarks">Pre-trained Model Benchmarks</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>Training Corpus</th></tr>
+</thead>
+<tbody>
+<tr><td>japanese.model</td><td>94.15%</td><td>95.57%</td><td>94.36%</td><td>Wikipedia (Lindera UniDic)</td></tr>
+<tr><td>korean.model</td><td>85.08%</td><td>–</td><td>–</td><td>Wikipedia (Lindera ko-dic)</td></tr>
+<tr><td>chinese.model</td><td>80.72%</td><td>–</td><td>–</td><td>Wikipedia (Lindera CC-CEDICT)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
+<p>If accuracy is unsatisfactory, consider:</p>
+<ol>
+<li><strong>More training data</strong> – A larger and more diverse corpus</li>
+<li><strong>Lower threshold</strong> – Try <code>-t 0.001</code> to allow more boosting iterations</li>
+<li><strong>More iterations</strong> – Try <code>-i 5000</code> or higher</li>
+<li><strong>Better corpus quality</strong> – Ensure consistent tokenization and clean text</li>
+<li><strong>Retraining</strong> – Start from an existing model and train with additional data (see <a href="#retraining-models">Retraining Models</a>)</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="retraining-models"><a class="header" href="#retraining-models">Retraining Models</a></h1>
+<p>You can improve an existing model by resuming training with new data.</p>
+<h2 id="command-2"><a class="header" href="#command-2">Command</a></h2>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
+</code></pre>
+<h2 id="example-5"><a class="header" href="#example-5">Example</a></h2>
+<pre><code class="language-sh"># Extract features from new corpus
+litsea extract -l japanese ./new_corpus.txt ./new_features.txt
+
+# Retrain from existing model
+litsea train -t 0.005 -i 1000 \
+    -m ./resources/japanese.model \
+    ./new_features.txt \
+    ./resources/japanese_v2.model
+</code></pre>
+<h2 id="how-it-works-3"><a class="header" href="#how-it-works-3">How It Works</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    A["Existing model&lt;br/&gt;(weights)"] --&gt; C["Trainer"]
+    B["New features"] --&gt; C
+    C --&gt; D["Retrained model&lt;br/&gt;(updated weights)"]
+</code></pre>
+<ol>
+<li>The trainer initializes features and instances from the new features file</li>
+<li>It loads the existing model weights via <code>-m</code></li>
+<li>Training continues with the loaded weights as a starting point</li>
+<li>The new model inherits all learned patterns and refines them with new data</li>
+</ol>
+<h2 id="use-cases-1"><a class="header" href="#use-cases-1">Use Cases</a></h2>
+<ul>
+<li><strong>Domain adaptation</strong> – Fine-tune a general model on domain-specific text (e.g., medical, legal)</li>
+<li><strong>Incremental improvement</strong> – Add more training data without retraining from scratch</li>
+<li><strong>Error correction</strong> – Train on examples where the current model makes mistakes</li>
+</ul>
+<h2 id="notes-1"><a class="header" href="#notes-1">Notes</a></h2>
+<ul>
+<li>The output model can be the same path as the input model (overwrites)</li>
+<li>The <code>-m</code> flag accepts file paths, <code>file://</code>, <code>http://</code>, and <code>https://</code> URIs</li>
+<li>Retraining starts from the existing weights, so fewer iterations may be needed</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="model-file-format-1"><a class="header" href="#model-file-format-1">Model File Format</a></h1>
+<p>Litsea models are stored as simple plain-text files.</p>
+<h2 id="format-specification"><a class="header" href="#format-specification">Format Specification</a></h2>
+<pre><code class="language-text">&lt;feature_name&gt;\t&lt;weight&gt;
+&lt;feature_name&gt;\t&lt;weight&gt;
+...
+&lt;bias&gt;
+</code></pre>
+<ul>
+<li>Each line (except the last) contains a <strong>feature name</strong> and its <strong>weight</strong>, separated by a tab character</li>
+<li><strong>Zero-weight features</strong> are omitted to keep the file compact</li>
+<li>The <strong>last line</strong> contains the bias term as a single number</li>
+</ul>
+<h2 id="example-6"><a class="header" href="#example-6">Example</a></h2>
+<pre><code class="language-text">BC1:IK	0.3456
+BC2:KI	-0.1234
+UW4:は	0.5678
+UC4:I	0.2345
+...
+-0.0891
+</code></pre>
+<h2 id="bias-reconstruction"><a class="header" href="#bias-reconstruction">Bias Reconstruction</a></h2>
+<p>When loading a model, the bias is reconstructed using:</p>
+<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(all_feature_weights)
+</code></pre>
+<p>During prediction:</p>
+<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0
+score = bias + sum(model[feature] for feature in input_attributes)
+</code></pre>
+<h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
+<p>Model files are very compact:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Model</th><th>Size</th><th>Features</th></tr>
+</thead>
+<tbody>
+<tr><td>japanese.model</td><td>~2.9 KB</td><td>Wikipedia-trained</td></tr>
+<tr><td>korean.model</td><td>~1.8 KB</td><td>Wikipedia-trained</td></tr>
+<tr><td>chinese.model</td><td>~1.3 KB</td><td>Wikipedia-trained</td></tr>
+<tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
+<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~17 KB</td><td>JEITA corpus</td></tr>
+</tbody>
+</table>
+</div>
+<p>The compact size is a key advantage of Litsea – models can be embedded directly in applications or served over HTTP with minimal overhead.</p>
+<h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
+<ul>
+<li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
+<li>The format is <strong>deterministic</strong> (features are sorted via BTreeMap)</li>
+<li>Models are <strong>forward-compatible</strong> – new features in the input that are not in the model are simply ignored during prediction</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="remote-model-loading"><a class="header" href="#remote-model-loading">Remote Model Loading</a></h1>
+<p>Litsea supports loading models from HTTP/HTTPS URLs in addition to local files.</p>
+<h2 id="supported-uri-schemes"><a class="header" href="#supported-uri-schemes">Supported URI Schemes</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Scheme</th><th>Example</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td>(none)</td><td><code>./model.model</code></td><td>Local file path (default)</td></tr>
+<tr><td><code>file://</code></td><td><code>file:///path/to/model</code></td><td>Explicit file URI</td></tr>
+<tr><td><code>http://</code></td><td><code>http://example.com/model</code></td><td>HTTP URL</td></tr>
+<tr><td><code>https://</code></td><td><code>https://example.com/model</code></td><td>HTTPS URL</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="cli-usage"><a class="header" href="#cli-usage">CLI Usage</a></h2>
+<pre><code class="language-sh">echo "テスト" | litsea segment -l japanese https://example.com/japanese.model
+</code></pre>
+<h2 id="library-usage"><a class="header" href="#library-usage">Library Usage</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut learner = AdaBoost::new(0.01, 100);
+
+// Local file
+learner.load_model("./resources/japanese.model").await?;
+
+// HTTP URL
+learner.load_model("https://example.com/models/japanese.model").await?;
+<span class="boring">}</span></code></pre>
+<h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
+<ul>
+<li>HTTP client: <strong>reqwest</strong> with <strong>rustls</strong> (no OpenSSL dependency)</li>
+<li>Custom User-Agent: <code>Litsea/&lt;version&gt;</code></li>
+<li>The <code>load_model</code> method is <strong>async</strong> because HTTP loading requires an async runtime</li>
+<li>For the CLI, <code>tokio</code> provides the async runtime</li>
+</ul>
+<h2 id="wasm-considerations"><a class="header" href="#wasm-considerations">WASM Considerations</a></h2>
+<p>On <code>wasm32</code> targets:</p>
+<ul>
+<li><strong>Local file paths are not supported</strong> – file system access is unavailable</li>
+<li><strong><code>file://</code> scheme is not supported</strong></li>
+<li><strong>HTTP/HTTPS loading works</strong> via the browser’s fetch API (through reqwest’s WASM support)</li>
+</ul>
+<p>Error messages guide users to use URLs instead of file paths when running in WASM.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="benchmarking"><a class="header" href="#benchmarking">Benchmarking</a></h1>
+<p>Litsea includes a Criterion benchmark suite for measuring performance.</p>
+<h2 id="running-benchmarks"><a class="header" href="#running-benchmarks">Running Benchmarks</a></h2>
+<pre><code class="language-sh">cargo bench --bench bench
+</code></pre>
+<p>Or via the Makefile:</p>
+<pre><code class="language-sh">make bench
+</code></pre>
+<h2 id="benchmark-suite"><a class="header" href="#benchmark-suite">Benchmark Suite</a></h2>
+<p>The benchmarks are defined in <code>litsea/benches/bench.rs</code>:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Benchmark</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>segment_japanese_short</code></td><td>Segment a short Japanese sentence</td></tr>
+<tr><td><code>segment_japanese_long</code></td><td>Segment the full Bocchan novel (~300 KB)</td></tr>
+<tr><td><code>segment_chinese_short</code></td><td>Segment a short Chinese sentence</td></tr>
+<tr><td><code>segment_korean_short</code></td><td>Segment a short Korean sentence</td></tr>
+<tr><td><code>get_type_hiragana</code></td><td>Character type classification</td></tr>
+<tr><td><code>add_corpus</code></td><td>Corpus ingestion for training</td></tr>
+<tr><td><code>char_type_patterns_japanese</code></td><td>Pattern compilation cost</td></tr>
+<tr><td><code>predict</code></td><td>Single AdaBoost prediction</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="html-reports"><a class="header" href="#html-reports">HTML Reports</a></h2>
+<p>Criterion generates detailed HTML reports with statistics and comparison graphs at:</p>
+<pre><code class="language-text">target/criterion/report/index.html
+</code></pre>
+<p>Open this file in a browser after running benchmarks to view:</p>
+<ul>
+<li>Iteration times with confidence intervals</li>
+<li>Throughput measurements</li>
+<li>Comparison with previous runs (automatic regression detection)</li>
+</ul>
+<h2 id="interpreting-results"><a class="header" href="#interpreting-results">Interpreting Results</a></h2>
+<p>Key performance factors:</p>
+<ul>
+<li><strong>Segmentation</strong> is linear in input length (O(n))</li>
+<li><strong>Pattern compilation</strong> (regex) is the most expensive one-time cost – <code>Segmenter::new()</code> caches patterns</li>
+<li><strong>Prediction</strong> at each position depends on the number of features (38-42, constant)</li>
+<li><strong>Model loading</strong> time is proportional to the model file size</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="pre-trained-models-1"><a class="header" href="#pre-trained-models-1">Pre-trained Models</a></h1>
+<p>Litsea ships with several pre-trained models in the <code>resources/</code> directory.</p>
+<h2 id="model-catalog"><a class="header" href="#model-catalog">Model Catalog</a></h2>
+<h3 id="japanesemodel-1"><a class="header" href="#japanesemodel-1">japanese.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>Japanese</td></tr>
+<tr><td>Training Corpus</td><td>Japanese Wikipedia articles</td></tr>
+<tr><td>Tokenizer</td><td>Lindera (UniDic)</td></tr>
+<tr><td>Accuracy</td><td>94.15%</td></tr>
+<tr><td>Precision</td><td>95.57%</td></tr>
+<tr><td>Recall</td><td>94.36%</td></tr>
+<tr><td>File Size</td><td>~2.9 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="koreanmodel-1"><a class="header" href="#koreanmodel-1">korean.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>Korean</td></tr>
+<tr><td>Training Corpus</td><td>Korean Wikipedia articles</td></tr>
+<tr><td>Tokenizer</td><td>Lindera (ko-dic)</td></tr>
+<tr><td>Accuracy</td><td>85.08%</td></tr>
+<tr><td>File Size</td><td>~1.8 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chinesemodel-1"><a class="header" href="#chinesemodel-1">chinese.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>Chinese (Simplified &amp; Traditional)</td></tr>
+<tr><td>Training Corpus</td><td>Chinese Wikipedia articles</td></tr>
+<tr><td>Tokenizer</td><td>Lindera (CC-CEDICT)</td></tr>
+<tr><td>Accuracy</td><td>80.72%</td></tr>
+<tr><td>File Size</td><td>~1.3 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="rwcpmodel-1"><a class="header" href="#rwcpmodel-1">RWCP.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>Japanese</td></tr>
+<tr><td>Source</td><td>Extracted from the original <a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a></td></tr>
+<tr><td>License</td><td>BSD 3-Clause (Taku Kudo)</td></tr>
+<tr><td>File Size</td><td>~22 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="jeita_genpaku_chasen_ipadicmodel-1"><a class="header" href="#jeita_genpaku_chasen_ipadicmodel-1">JEITA_Genpaku_ChaSen_IPAdic.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>Japanese</td></tr>
+<tr><td>Training Corpus</td><td>JEITA Project Sugita Genpaku corpus</td></tr>
+<tr><td>Tokenizer</td><td>ChaSen with IPAdic</td></tr>
+<tr><td>File Size</td><td>~17 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="choosing-a-model"><a class="header" href="#choosing-a-model">Choosing a Model</a></h2>
+<ul>
+<li>For <strong>Japanese</strong>, use <code>japanese.model</code> for the best accuracy, or <code>RWCP.model</code> for compatibility with the original TinySegmenter</li>
+<li>For <strong>Chinese</strong>, use <code>chinese.model</code></li>
+<li>For <strong>Korean</strong>, use <code>korean.model</code></li>
+<li>For <strong>domain-specific</strong> needs, consider <a href="#preparing-a-corpus">training your own model</a> or <a href="#retraining-models">retraining</a> an existing one</li>
+</ul>
+<h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>
+<p>The <code>resources/</code> directory also contains:</p>
+<ul>
+<li><strong>bocchan.txt</strong> – Sample Japanese corpus from the novel “Botchan” by Natsume Soseki (~307 KB). Used for benchmarking.</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="license"><a class="header" href="#license">License</a></h1>
+<p>Litsea is distributed under a dual license.</p>
+<h2 id="mit-license"><a class="header" href="#mit-license">MIT License</a></h2>
+<p>The main Litsea codebase is licensed under the MIT License:</p>
+<pre><code class="language-text">MIT License
+
+Copyright (c) 2025 Minoru OSUKA
+Copyright (c) 2022 ICHINOSE Shogo
+</code></pre>
+<h2 id="bsd-3-clause-license"><a class="header" href="#bsd-3-clause-license">BSD 3-Clause License</a></h2>
+<p>Code originally developed by Taku Kudo (TinySegmenter) is licensed under the BSD 3-Clause License:</p>
+<pre><code class="language-text">Copyright (c) 2008, Taku Kudo
+All rights reserved.
+</code></pre>
+<h2 id="full-license-text"><a class="header" href="#full-license-text">Full License Text</a></h2>
+<p>The complete license text is available in the <a href="https://github.com/mosuka/litsea/blob/main/LICENSE">LICENSE</a> file in the repository.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>

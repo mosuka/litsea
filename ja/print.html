@@ -1,0 +1,2562 @@
+<!DOCTYPE HTML>
+<html lang="ja" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Litsea ドキュメント</title>
+        <meta name="robots" content="noindex">
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="Litsea - Rust製コンパクト単語分割ライブラリのドキュメント">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-df49344a.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-dbe37805.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Litsea ドキュメント</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/mosuka/litsea" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="はじめに"><a class="header" href="#はじめに">はじめに</a></h1>
+<p><strong>Litsea</strong> は、<a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> および <a href="https://github.com/shogo82148/TinySegmenterMaker">TinySegmenterMaker</a> に触発されて開発された、Rust で実装された極めてコンパクトな単語分割ライブラリです。</p>
+<p><a href="https://taku910.github.io/mecab/">MeCab</a> や <a href="https://github.com/lindera/lindera">Lindera</a> などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、<strong>AdaBoost 二値分類</strong>アルゴリズムに基づくコンパクトな学習済みモデルを使用して単語分割を行います。</p>
+<h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
+<ul>
+<li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
+<li><strong>コンパクトな学習済みモデル</strong> – モデルファイルはわずか数キロバイト</li>
+<li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
+<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
+<li><strong>モデル学習機能</strong> – AdaBoost を使用して独自のコーパスからカスタムモデルを学習可能</li>
+<li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL またはローカルファイルからモデルを読み込み</li>
+<li><strong>シンプルで拡張性の高い API</strong> – Rust プロジェクトへのライブラリとしての統合が容易</li>
+</ul>
+<h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
+<p>Litsea は単語分割を<strong>二値分類問題</strong>として扱います。文中の各文字位置について、モデルがその位置が<strong>単語境界</strong>（+1）か<strong>非境界</strong>（-1）かを予測します。分類器は、各言語固有の文字 n-gram 特徴量と文字種情報を使用します。</p>
+<pre><code class="language-text">Input:  "LitseaはRust製です"
+         ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
+         O O O O B O B O B   ← boundary predictions
+Output: ["Litsea", "は", "Rust製", "です"]
+</code></pre>
+<h2 id="名前の由来"><a class="header" href="#名前の由来">名前の由来</a></h2>
+<p>クスノキ科には <em>Lindera</em>（クロモジ）と同じ科に属する <em>Litsea cubeba</em>（アオモジ）という小さな植物があります。これが <strong>Litsea</strong> という名前の由来です。</p>
+<h2 id="現在のバージョン"><a class="header" href="#現在のバージョン">現在のバージョン</a></h2>
+<p>Litsea v0.4.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
+<h2 id="リンク"><a class="header" href="#リンク">リンク</a></h2>
+<ul>
+<li><a href="https://github.com/mosuka/litsea">GitHub リポジトリ</a></li>
+<li><a href="https://crates.io/crates/litsea">crates.io</a></li>
+<li><a href="https://docs.rs/litsea">API ドキュメント (docs.rs)</a></li>
+<li><a href="../..">English Documentation</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="インストール"><a class="header" href="#インストール">インストール</a></h1>
+<h2 id="前提条件"><a class="header" href="#前提条件">前提条件</a></h2>
+<ul>
+<li><strong>Rust 1.87 以降</strong>（stable チャンネル）– <a href="https://www.rust-lang.org/">rust-lang.org</a> から入手</li>
+<li><strong>Cargo</strong>（Rust のパッケージマネージャ、Rust に同梱）</li>
+</ul>
+<h2 id="cli-ツールのインストール"><a class="header" href="#cli-ツールのインストール">CLI ツールのインストール</a></h2>
+<h3 id="cratesio-から"><a class="header" href="#cratesio-から">crates.io から</a></h3>
+<pre><code class="language-sh">cargo install litsea-cli
+</code></pre>
+<h3 id="ソースから"><a class="header" href="#ソースから">ソースから</a></h3>
+<pre><code class="language-sh">git clone https://github.com/mosuka/litsea.git
+cd litsea
+cargo build --release
+</code></pre>
+<p>バイナリは <code>./target/release/litsea</code> に生成されます。</p>
+<p>インストールの確認:</p>
+<pre><code class="language-sh">./target/release/litsea --help
+</code></pre>
+<h2 id="ライブラリとしての利用"><a class="header" href="#ライブラリとしての利用">ライブラリとしての利用</a></h2>
+<p>プロジェクトの <code>Cargo.toml</code> に Litsea を追加します:</p>
+<pre><code class="language-toml">[dependencies]
+litsea = "0.4.0"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+</code></pre>
+<blockquote>
+<p><strong>注意:</strong> モデルの読み込み（<code>load_model</code>）は HTTP/HTTPS URL をサポートする非同期操作のため、<code>tokio</code> が必要です。</p>
+</blockquote>
+<h2 id="サポートプラットフォーム"><a class="header" href="#サポートプラットフォーム">サポートプラットフォーム</a></h2>
+<p>Litsea は以下のプラットフォームでテストされています:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>OS</th><th>Architecture</th></tr>
+</thead>
+<tbody>
+<tr><td>Linux</td><td>x86_64, aarch64</td></tr>
+<tr><td>macOS</td><td>x86_64 (Intel), aarch64 (Apple Silicon)</td></tr>
+<tr><td>Windows</td><td>x86_64, aarch64</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="クイックスタート"><a class="header" href="#クイックスタート">クイックスタート</a></h1>
+<h2 id="cli-クイックスタート"><a class="header" href="#cli-クイックスタート">CLI クイックスタート</a></h2>
+<h3 id="テキストの分割"><a class="header" href="#テキストの分割">テキストの分割</a></h3>
+<p>Litsea には <code>resources/</code> ディレクトリに学習済みモデルが同梱されています。テキストを <code>segment</code> コマンドにパイプで渡します:</p>
+<p><strong>日本語:</strong></p>
+<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
+  | litsea segment -l japanese ./resources/japanese.model
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<p><strong>中国語:</strong></p>
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+</code></pre>
+<p><strong>韓国語:</strong></p>
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
+</code></pre>
+<h3 id="文分割"><a class="header" href="#文分割">文分割</a></h3>
+<p>Unicode UAX #29 規則を使用してテキストを文に分割します:</p>
+<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">これはテストです。
+次の文です。
+</code></pre>
+<h2 id="ライブラリ-クイックスタート"><a class="header" href="#ライブラリ-クイックスタート">ライブラリ クイックスタート</a></h2>
+<p>モデルを読み込みテキストを分割する最小限の Rust プログラムです:</p>
+<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // Load the pre-trained model
+    let mut learner = AdaBoost::new(0.01, 100);
+    learner.load_model("./resources/japanese.model").await?;
+
+    // Create a segmenter
+    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+
+    // Segment text
+    let tokens = segmenter.segment("これはテストです。");
+    println!("{}", tokens.join(" "));
+    // Output: これ は テスト です 。
+
+    Ok(())
+}</code></pre>
+<h2 id="次のステップ"><a class="header" href="#次のステップ">次のステップ</a></h2>
+<ul>
+<li><a href="#cliリファレンス概要">CLI リファレンス</a> – すべての CLI コマンドとオプションの詳細</li>
+<li><a href="#コーパスの準備">学習ガイド</a> – 独自モデルの学習方法</li>
+<li><a href="#アーキテクチャ概要">アーキテクチャ</a> – Litsea の内部動作の理解</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="アーキテクチャ概要"><a class="header" href="#アーキテクチャ概要">アーキテクチャ概要</a></h1>
+<p>Litsea は、コンパクトで辞書不要の単語分割システムとして設計されています。単語分割を<strong>二値分類問題</strong>として扱い、文字レベルの特徴量から単語境界パターンを学習するために <strong>AdaBoost</strong> を使用します。</p>
+<h2 id="高レベルデータフロー"><a class="header" href="#高レベルデータフロー">高レベルデータフロー</a></h2>
+<p>Litsea には<strong>学習</strong>と<strong>分割</strong>の 2 つの主要なワークフローがあります。</p>
+<h3 id="学習パイプライン"><a class="header" href="#学習パイプライン">学習パイプライン</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["Corpus (text)"] --&gt; B["Extractor"]
+    B --&gt; C["Features File (.txt)"]
+    C --&gt; D["Trainer (AdaBoost)"]
+    D --&gt; E["Model File (.model)"]
+</code></pre>
+<ol>
+<li><strong>コーパスの準備</strong> – 単語をスペースで区切ったテキストを準備</li>
+<li><strong>特徴量抽出</strong> – <code>Extractor</code> がコーパスを読み込み、文字を種別に分類し、ラベル付き特徴量ベクトルを出力</li>
+<li><strong>モデル学習</strong> – <code>Trainer</code> が特徴量を AdaBoost に入力し、最も情報量の多い特徴量を反復的に選択してコンパクトなモデルを生成</li>
+</ol>
+<h3 id="分割パイプライン"><a class="header" href="#分割パイプライン">分割パイプライン</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    F["Raw text"] --&gt; G["Segmenter (AdaBoost)"]
+    H["Model file"] --&gt; G
+    G --&gt; I["Segmented words"]
+</code></pre>
+<ol>
+<li><strong>モデル読み込み</strong> – 学習済みモデルを読み込み（ファイルまたは URL から）</li>
+<li><strong>文字分類</strong> – 入力の各文字について、言語固有のパターンに基づいて文字種コードを決定</li>
+<li><strong>特徴量抽出</strong> – スライディングウィンドウを使用して各文字位置の特徴量セットを構築</li>
+<li><strong>予測</strong> – AdaBoost が各位置が単語境界かどうかを予測</li>
+</ol>
+<h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
+<ul>
+<li><strong>辞書不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルのみに依存</li>
+<li><strong>コンパクトなモデル</strong> – モデルファイルは通常 1-22 KB で、重要な特徴量の重みのみを含む</li>
+<li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
+<li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ワークスペース構成"><a class="header" href="#ワークスペース構成">ワークスペース構成</a></h1>
+<p>Litsea は 2 つのクレートとサポートディレクトリで構成される <strong>Cargo ワークスペース</strong>として組織されています。</p>
+<h2 id="ディレクトリ構成"><a class="header" href="#ディレクトリ構成">ディレクトリ構成</a></h2>
+<pre><code class="language-text">litsea/
+├── Cargo.toml              # Workspace manifest
+├── Cargo.lock              # Dependency lock file
+├── Makefile                # Build convenience targets
+├── rustfmt.toml            # Rust formatting configuration
+├── LICENSE                 # MIT
+├── README.md               # Project overview
+├── litsea/                 # Core library crate
+│   ├── Cargo.toml
+│   ├── src/
+│   │   ├── lib.rs          # Module declarations and version
+│   │   ├── adaboost.rs     # AdaBoost algorithm
+│   │   ├── segmenter.rs    # Word segmentation
+│   │   ├── extractor.rs    # Feature extraction from corpus
+│   │   ├── trainer.rs      # Training orchestration
+│   │   ├── language.rs     # Language definitions and char patterns
+│   │   └── util.rs         # URI scheme utilities
+│   └── benches/
+│       └── bench.rs        # Criterion benchmarks
+├── litsea-cli/             # CLI binary crate
+│   ├── Cargo.toml
+│   └── src/
+│       └── main.rs         # CLI entry point
+├── resources/              # Pre-trained models and sample data
+│   ├── japanese.model
+│   ├── chinese.model
+│   ├── korean.model
+│   ├── RWCP.model
+│   ├── JEITA_Genpaku_ChaSen_IPAdic.model
+│   └── bocchan.txt         # Sample corpus
+├── scripts/                # Corpus preparation utilities
+│   ├── wikitexts.sh        # Download Wikipedia texts
+│   └── corpus.sh           # Create training corpus with Lindera
+├── docs/                   # mdbook documentation (this book)
+└── .github/
+    └── workflows/          # CI/CD pipelines
+        ├── regression.yml  # Test on push/PR
+        ├── release.yml     # Release builds and publishing
+        └── periodic.yml    # Weekly stability tests
+</code></pre>
+<h2 id="クレートの詳細"><a class="header" href="#クレートの詳細">クレートの詳細</a></h2>
+<h3 id="litseaコアライブラリ"><a class="header" href="#litseaコアライブラリ"><code>litsea</code>（コアライブラリ）</a></h3>
+<p>コアライブラリは、分割、学習、モデル I/O のすべての機能を提供します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Dependency</th><th>Version</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>regex</code></td><td>1.12</td><td>文字種パターンマッチング</td></tr>
+<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS モデル読み込み（rustls）</td></tr>
+<tr><td><code>tokio</code></td><td>1.49</td><td>リモートモデル読み込み用非同期ランタイム</td></tr>
+<tr><td><code>criterion</code></td><td>0.8</td><td>ベンチマーク（開発依存）</td></tr>
+<tr><td><code>tempfile</code></td><td>3.25</td><td>テスト用一時ファイル（開発依存）</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="litsea-clicli-バイナリ"><a class="header" href="#litsea-clicli-バイナリ"><code>litsea-cli</code>（CLI バイナリ）</a></h3>
+<p>CLI は Litsea の機能へのコマンドラインインターフェースを提供します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Dependency</th><th>Version</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>clap</code></td><td>4.5</td><td>コマンドライン引数の解析</td></tr>
+<tr><td><code>ctrlc</code></td><td>3.5</td><td>学習中の Ctrl+C のグレースフルハンドリング</td></tr>
+<tr><td><code>icu_segmenter</code></td><td>2.1</td><td>Unicode UAX #29 文分割</td></tr>
+<tr><td><code>tokio</code></td><td>1.49</td><td>非同期ランタイム</td></tr>
+<tr><td><code>litsea</code></td><td>0.4</td><td>コアライブラリ（ワークスペースメンバー）</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="ワークスペース設定"><a class="header" href="#ワークスペース設定">ワークスペース設定</a></h2>
+<p>ワークスペースは Cargo resolver バージョン 3（Rust Edition 2024）を使用します:</p>
+<pre><code class="language-toml">[workspace]
+resolver = "3"
+members = ["litsea", "litsea-cli"]
+
+[workspace.package]
+version = "0.4.0"
+edition = "2024"
+rust-version = "1.87"
+</code></pre>
+<p>共有依存関係はワークスペースレベルの <code>[workspace.dependencies]</code> で定義され、各クレートから <code>{ workspace = true }</code> で参照されます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="モジュール設計"><a class="header" href="#モジュール設計">モジュール設計</a></h1>
+<p><code>litsea</code> ライブラリクレートは、それぞれ明確な責務を持つ 6 つのモジュールで構成されています。</p>
+<h2 id="モジュール依存関係グラフ"><a class="header" href="#モジュール依存関係グラフ">モジュール依存関係グラフ</a></h2>
+<pre><code class="language-mermaid">graph TD
+    language["language.rs&lt;br/&gt;Character type patterns"]
+    segmenter["segmenter.rs&lt;br/&gt;Word segmentation"]
+    adaboost["adaboost.rs&lt;br/&gt;Core ML algorithm"]
+    extractor["extractor.rs&lt;br/&gt;Feature extraction"]
+    trainer["trainer.rs&lt;br/&gt;Training orchestration"]
+    util["util.rs&lt;br/&gt;URI scheme parsing"]
+
+    language --&gt; segmenter
+    segmenter --&gt; adaboost
+    segmenter --&gt; extractor
+    adaboost --&gt; trainer
+    adaboost --&gt; util
+</code></pre>
+<h2 id="モジュールの詳細"><a class="header" href="#モジュールの詳細">モジュールの詳細</a></h2>
+<h3 id="languagers--言語定義"><a class="header" href="#languagers--言語定義"><code>language.rs</code> – 言語定義</a></h3>
+<p><code>Language</code> 列挙型と文字種分類システムを定義します。</p>
+<ul>
+<li><strong><code>Language</code></strong> – <code>Japanese</code>、<code>Chinese</code>、<code>Korean</code> のバリアントを持つ列挙型
+<ul>
+<li><code>FromStr</code> を実装（<code>"japanese"</code>、<code>"ja"</code>、<code>"chinese"</code>、<code>"zh"</code>、<code>"korean"</code>、<code>"ko"</code> を解析）</li>
+<li><code>Display</code> を実装（小文字の名前を出力）</li>
+<li>ファクトリメソッド <code>char_type_patterns()</code> が言語固有のパターンを返す</li>
+</ul>
+</li>
+<li><strong><code>CharTypePatterns</code></strong> – 文字を種別コードにマッピング（例: ひらがなは <code>"I"</code>、カタカナは <code>"K"</code>）</li>
+<li><strong><code>CharMatcher</code></strong> – 正規表現ベースとクロージャベースの文字マッチングをサポートする内部列挙型</li>
+</ul>
+<h3 id="segmenterrs--単語分割"><a class="header" href="#segmenterrs--単語分割"><code>segmenter.rs</code> – 単語分割</a></h3>
+<p>テキスト分割のための主要なユーザー向けモジュールです。</p>
+<ul>
+<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>CharTypePatterns</code>、<code>AdaBoost</code> インスタンスを保持
+<ul>
+<li><code>new(language, learner)</code> – オプションの学習済みモデルでセグメンタを作成</li>
+<li><code>segment(sentence)</code> – テキストを単語に分割し、<code>Vec&lt;String&gt;</code> を返す</li>
+<li><code>get_type(ch)</code> – 単一文字をその種別コードに分類</li>
+<li><code>get_attributes(i, tags, chars, types)</code> – 文字位置の特徴量セットを抽出</li>
+<li><code>add_corpus(corpus)</code> – スペース区切りのコーパスから学習データを追加</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
+</ul>
+</li>
+</ul>
+<h3 id="adaboostrs--adaboost-アルゴリズム"><a class="header" href="#adaboostrs--adaboost-アルゴリズム"><code>adaboost.rs</code> – AdaBoost アルゴリズム</a></h3>
+<p>二値分類のためのコア機械学習エンジンです。</p>
+<ul>
+<li><strong><code>AdaBoost</code></strong> – 二値分類器
+<ul>
+<li><code>new(threshold, num_iterations)</code> – 学習パラメータを指定して作成</li>
+<li><code>initialize_features(path)</code> – 学習ファイルから特徴量名を読み込み</li>
+<li><code>initialize_instances(path)</code> – 学習ファイルからラベル付きインスタンスを読み込み</li>
+<li><code>train(running)</code> – AdaBoost の学習ループを実行</li>
+<li><code>predict(attributes)</code> – 境界（+1）または非境界（-1）を予測</li>
+<li><code>load_model(uri)</code> – ファイルまたは URL からモデルの重みを読み込み（非同期）</li>
+<li><code>save_model(path)</code> – モデルの重みをファイルに保存</li>
+<li><code>get_metrics()</code> – 精度、適合率、再現率を算出</li>
+<li><code>get_bias()</code> – モデルのバイアス項を取得</li>
+</ul>
+</li>
+<li><strong><code>Metrics</code></strong> – 評価指標（精度、適合率、再現率、混同行列）</li>
+</ul>
+<h3 id="extractorrs--特徴量抽出"><a class="header" href="#extractorrs--特徴量抽出"><code>extractor.rs</code> – 特徴量抽出</a></h3>
+<p>モデル学習のためにコーパスから特徴量を抽出します。</p>
+<ul>
+<li><strong><code>Extractor</code></strong> – <code>Segmenter</code> をラップしてコーパスファイルを処理
+<ul>
+<li><code>new(language)</code> – 特定の言語用の抽出器を作成</li>
+<li><code>extract(corpus_path, features_path)</code> – コーパスを読み込み、特徴量ファイルを書き出し</li>
+</ul>
+</li>
+</ul>
+<h3 id="trainerrs--学習オーケストレーション"><a class="header" href="#trainerrs--学習オーケストレーション"><code>trainer.rs</code> – 学習オーケストレーション</a></h3>
+<p>すべてを結合する高レベルの学習ワークフローです。</p>
+<ul>
+<li><strong><code>Trainer</code></strong> – 学習パイプライン全体を統括
+<ul>
+<li><code>new(threshold, num_iterations, features_path)</code> – 特徴量ファイルから初期化</li>
+<li><code>load_model(uri)</code> – 再学習のために既存のモデルをオプションで読み込み（非同期）</li>
+<li><code>train(running, model_path)</code> – 学習を実行しモデルを保存、<code>Metrics</code> を返す</li>
+</ul>
+</li>
+</ul>
+<h3 id="utilrs--ユーティリティ"><a class="header" href="#utilrs--ユーティリティ"><code>util.rs</code> – ユーティリティ</a></h3>
+<p>モデル読み込みのための URI スキーム解析です。</p>
+<ul>
+<li><strong><code>ModelScheme</code></strong> – <code>Http</code>、<code>Https</code>、<code>File</code> のバリアントを持つ列挙型
+<ul>
+<li>URI プレフィックスに基づいてモデルの読み込み方法を決定するために使用</li>
+</ul>
+</li>
+</ul>
+<h2 id="パブリックエクスポート"><a class="header" href="#パブリックエクスポート">パブリックエクスポート</a></h2>
+<p>ライブラリの <code>lib.rs</code> はすべてのモジュールを再エクスポートし、以下を提供します:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub mod adaboost;
+pub mod extractor;
+pub mod language;
+pub mod segmenter;
+pub mod trainer;
+pub mod util;
+
+pub const VERSION: &amp;str = env!("CARGO_PKG_VERSION");
+pub fn version() -&gt; &amp;'static str { VERSION }
+<span class="boring">}</span></code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="adaboost-二値分類"><a class="header" href="#adaboost-二値分類">AdaBoost 二値分類</a></h1>
+<p>Litsea は、単語境界を判定するために <strong>AdaBoost</strong>（Adaptive Boosting）アルゴリズムによる二値分類を使用します。本章では、Litsea に実装されているアルゴリズムについて説明します。</p>
+<h2 id="概要"><a class="header" href="#概要">概要</a></h2>
+<p>AdaBoost は、多数の<strong>弱学習器</strong>（単純な分類器）を組み合わせて強力なアンサンブル分類器を構築します。Litsea では:</p>
+<ul>
+<li><strong>正ラベル（+1）</strong> = 単語境界</li>
+<li><strong>負ラベル（-1）</strong> = 非境界（現在の単語の継続）</li>
+<li><strong>弱学習器</strong> = 個々の特徴量（各特徴量は二値の「切り株」– 存在するか否か）</li>
+</ul>
+<h2 id="学習アルゴリズム"><a class="header" href="#学習アルゴリズム">学習アルゴリズム</a></h2>
+<p><code>AdaBoost::train()</code> の学習ループは以下のように動作します:</p>
+<h3 id="初期化"><a class="header" href="#初期化">初期化</a></h3>
+<ol>
+<li>学習ファイルから特徴量とインスタンスを読み込み</li>
+<li>インスタンスの重みを均一に初期化（後に初期スコアに基づいて調整）</li>
+<li>すべてのモデルの重みをゼロで初期化</li>
+</ol>
+<h3 id="反復ブースティング"><a class="header" href="#反復ブースティング">反復ブースティング</a></h3>
+<p>各イテレーション <em>t</em>（最大 <code>num_iterations</code> 回）について:</p>
+<p><strong>ステップ 1: 重み付き誤差の計算</strong></p>
+<p>各特徴量 <em>h</em> について、全インスタンスに対する重み付き誤差を計算します:</p>
+<pre><code class="language-text">error[h] -= D[i] * y[i]   (for each instance i that has feature h)
+</code></pre>
+<p>ここで <em>D[i]</em> はインスタンスの重み、<em>y[i]</em> は真のラベルです。</p>
+<p><strong>ステップ 2: 最良の弱学習器の選択</strong></p>
+<p>重み付き誤差率が最も低い特徴量を選択します:</p>
+<pre><code class="language-text">error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
+h_best = argmax_h |0.5 - error_rate(h)|
+</code></pre>
+<p>基準となる競合対象は「全て負」分類器（常に -1 を予測）であり、その誤差率は正のインスタンスの割合に等しくなります。実際の特徴量はこの基準を上回る必要があります。</p>
+<p><strong>ステップ 3: 収束判定</strong></p>
+<p><code>|0.5 - best_error_rate| &lt; threshold</code> の場合、早期停止します – どの特徴量もモデルを大幅に改善できないためです。</p>
+<p><strong>ステップ 4: 弱学習器の重みの計算</strong></p>
+<pre><code class="language-text">alpha = 0.5 * ln((1 - error_rate) / error_rate)
+model[h_best] += alpha
+</code></pre>
+<p>誤差率が低いほど alpha が高くなり、より良い特徴量により大きな影響力を与えます。</p>
+<p><strong>ステップ 5: インスタンスの重みの更新</strong></p>
+<pre><code class="language-text">For each instance i:
+    prediction = +1 if h_best in features(i), else -1
+
+    if y[i] * prediction &lt; 0:  (misclassified)
+        D[i] *= exp(alpha)     (increase weight)
+    else:                       (correctly classified)
+        D[i] /= exp(alpha)     (decrease weight)
+
+Normalize: D[i] /= sum(D)
+</code></pre>
+<p>これにより、後続のイテレーションは分類が困難なインスタンスに集中するようになります。</p>
+<h2 id="予測"><a class="header" href="#予測">予測</a></h2>
+<p>入力された特徴量（属性）のセットに対して、予測は以下のように行われます:</p>
+<pre><code class="language-text">score = bias + sum(model[feature] for each feature in attributes)
+prediction = +1 if score &gt;= 0, else -1
+</code></pre>
+<h3 id="バイアス項"><a class="header" href="#バイアス項">バイアス項</a></h3>
+<p>バイアスは以下のように計算されます:</p>
+<pre><code class="language-text">bias = -sum(all model weights) / 2.0
+</code></pre>
+<p>これにより決定境界が中心化されます。空文字列特徴量（<code>""</code>）は学習中のバイアスバケットとして機能します。</p>
+<h2 id="モデルファイル形式"><a class="header" href="#モデルファイル形式">モデルファイル形式</a></h2>
+<p>学習されたモデルはシンプルなテキストファイルとして保存されます:</p>
+<pre><code class="language-text">feature1\tweight1
+feature2\tweight2
+...
+bias_value
+</code></pre>
+<ul>
+<li>各行には特徴量名とその重み（タブ区切り）が含まれる</li>
+<li>重みがゼロの特徴量は省略される</li>
+<li>最終行にはバイアス項（単一の数値）が含まれる</li>
+</ul>
+<p>詳細は<a href="#モデルファイル形式-1">モデルファイル形式</a>を参照してください。</p>
+<h2 id="ハイパーパラメータ"><a class="header" href="#ハイパーパラメータ">ハイパーパラメータ</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Default</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>0.01</td><td>早期停止の閾値。低い値はより多くのイテレーションを許可し、精度が向上する可能性がある</td></tr>
+<tr><td><code>num_iterations</code></td><td>100</td><td>ブースティングの最大ラウンド数。高い値は学習時間とモデルサイズを犠牲にして精度を向上させる可能性がある</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="特徴量抽出"><a class="header" href="#特徴量抽出">特徴量抽出</a></h1>
+<p>Litsea は、各単語境界候補の周辺の局所的なコンテキストを捉えるために文字 n-gram 特徴量を使用します。本章ではすべての特徴量タイプをカタログ化します。</p>
+<h2 id="特徴量カテゴリ"><a class="header" href="#特徴量カテゴリ">特徴量カテゴリ</a></h2>
+<p>入力の各文字位置 <em>i</em> について、セグメンタは文字、その種別コード、および前回の境界判定からなるスライディングウィンドウから特徴量を抽出します。</p>
+<h3 id="基本特徴量38-個"><a class="header" href="#基本特徴量38-個">基本特徴量（38 個）</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Category</th><th>IDs</th><th>説明</th><th>Window</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>UW</strong> (Unary Word)</td><td>UW1–UW6</td><td>位置 i-3 から i+2 の個々の文字</td><td>6</td></tr>
+<tr><td><strong>BW</strong> (Bigram Word)</td><td>BW1–BW3</td><td>隣接する文字ペア</td><td>3</td></tr>
+<tr><td><strong>UC</strong> (Unary Char-type)</td><td>UC1–UC6</td><td>位置 i-3 から i+2 の文字種コード</td><td>6</td></tr>
+<tr><td><strong>BC</strong> (Bigram Char-type)</td><td>BC1–BC3</td><td>隣接する種別コードペア</td><td>3</td></tr>
+<tr><td><strong>TC</strong> (Trigram Char-type)</td><td>TC1–TC4</td><td>種別コードのトリプル</td><td>4</td></tr>
+<tr><td><strong>UP</strong> (Unary Previous-tag)</td><td>UP1–UP3</td><td>直前 3 つの境界判定</td><td>3</td></tr>
+<tr><td><strong>BP</strong> (Bigram Previous-tag)</td><td>BP1–BP2</td><td>境界判定のペア</td><td>2</td></tr>
+<tr><td><strong>UQ</strong> (Unary tag+type)</td><td>UQ1–UQ3</td><td>境界判定と種別コードの組み合わせ</td><td>3</td></tr>
+<tr><td><strong>BQ</strong> (Bigram tag+type)</td><td>BQ1–BQ4</td><td>判定と種別コードのバイグラム組み合わせ</td><td>4</td></tr>
+<tr><td><strong>TQ</strong> (Trigram tag+type)</td><td>TQ1–TQ4</td><td>判定と種別コードのトライグラム組み合わせ</td><td>4</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="言語固有の特徴量4-個日本語と中国語のみ"><a class="header" href="#言語固有の特徴量4-個日本語と中国語のみ">言語固有の特徴量（4 個、日本語と中国語のみ）</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Category</th><th>IDs</th><th>説明</th><th>Count</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>WC</strong> (Word+Char-type)</td><td>WC1–WC4</td><td>文字と種別コードの混合特徴量</td><td>4</td></tr>
+</tbody>
+</table>
+</div>
+<ul>
+<li><code>WC1</code>: 位置 i-1 の文字 + 位置 i の種別コード</li>
+<li><code>WC2</code>: 位置 i-1 の種別コード + 位置 i の文字</li>
+<li><code>WC3</code>: 位置 i-1 の文字 + 位置 i-1 の種別コード</li>
+<li><code>WC4</code>: 位置 i の文字 + 位置 i の種別コード</li>
+</ul>
+<blockquote>
+<p><strong>韓国語に WC がない理由:</strong> 韓国語のハングル音節は 2 種類（SN と SF）にのみ分類されるため、WC 特徴量は有用な信号ではなくノイズを追加してしまいます。</p>
+</blockquote>
+<h3 id="特徴量の総数"><a class="header" href="#特徴量の総数">特徴量の総数</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Base</th><th>WC</th><th>Total</th></tr>
+</thead>
+<tbody>
+<tr><td>Japanese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
+<tr><td>Chinese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
+<tr><td>Korean</td><td>38</td><td>0</td><td><strong>38</strong></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="特徴量の形式"><a class="header" href="#特徴量の形式">特徴量の形式</a></h2>
+<p>各特徴量は <code>PREFIX:VALUE</code> の形式の文字列として表現されます:</p>
+<pre><code class="language-text">UW4:は        ← The character at position i is "は"
+UC4:I         ← The type code at position i is "I" (Hiragana)
+BW2:はテ      ← The bigram at position i-1..i is "はテ"
+BC2:IK        ← The type bigram is Hiragana + Katakana
+UP3:B         ← The previous boundary decision was "B" (boundary)
+WC1:はK       ← Character "は" combined with type "K"
+</code></pre>
+<h2 id="スライディングウィンドウの配置"><a class="header" href="#スライディングウィンドウの配置">スライディングウィンドウの配置</a></h2>
+<p>セグメンタは入力をセンチネル文字でパディングします:</p>
+<pre><code class="language-text">Index:   0    1    2    3    4    5    ...  n+2  n+3  n+4  n+5
+Chars:   B3   B2   B1   c1   c2   c3  ...  cn   E1   E2   E3
+Types:   O    O    O    t1   t2   t3  ...  tn   O    O    O
+Tags:    U    U    U    U    ?    ?   ...  ?
+</code></pre>
+<ul>
+<li><strong>B3, B2, B1</strong> – 開始センチネル（パディング）</li>
+<li><strong>E1, E2, E3</strong> – 終了センチネル（パディング）</li>
+<li><strong>O</strong> – パディング位置の「Other」種別</li>
+<li><strong>U</strong> – 初期位置の「Unknown」タグ</li>
+<li><strong>B</strong> – 「Boundary」タグ（単語の開始）</li>
+<li><strong>O</strong> – 「Other」タグ（継続）</li>
+</ul>
+<p>特徴量は位置 4 から len-3 まで抽出され、i-3 から i+2 の完全なウィンドウが利用可能です。</p>
+<h2 id="学習データの形式"><a class="header" href="#学習データの形式">学習データの形式</a></h2>
+<p><code>extract</code> コマンドは以下の形式で特徴量をファイルに書き出します:</p>
+<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
+-1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+</code></pre>
+<p>各行には以下が含まれます:</p>
+<ol>
+<li>ラベル（境界の場合 <code>1</code>、非境界の場合 <code>-1</code>）</li>
+<li>タブ区切りの特徴量文字列</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="文字種分類"><a class="header" href="#文字種分類">文字種分類</a></h1>
+<p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種パターン</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
+<h2 id="仕組み-1"><a class="header" href="#仕組み-1">仕組み</a></h2>
+<p><code>CharTypePatterns</code> 構造体は <code>(CharMatcher, type_code)</code> ペアの順序付きリストを保持します。各文字に対して、<strong>最初にマッチしたパターン</strong>が種別コードを決定します。どのパターンにもマッチしない場合、その文字は <code>"O"</code>（Other）に分類されます。</p>
+<p><code>CharMatcher</code> は 2 つのマッチング戦略をサポートします:</p>
+<ul>
+<li><strong>Regex</strong> – Unicode 範囲マッチングのためのコンパイル済み正規表現パターン</li>
+<li><strong>Closure</strong> – 複雑なロジック（例: 韓国語ハングル音節構造）のためのカスタム関数</li>
+</ul>
+<h2 id="日本語の文字種"><a class="header" href="#日本語の文字種">日本語の文字種</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>名称</th><th>パターン / 範囲</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>M</strong></td><td>漢数字</td><td><code>[一二三四五六七八九十百千万億兆]</code></td><td>一, 千, 億</td></tr>
+<tr><td><strong>H</strong></td><td>漢字 / CJK 統合漢字</td><td><code>[一-龠々〆ヵヶ]</code></td><td>漢, 字, 学</td></tr>
+<tr><td><strong>I</strong></td><td>ひらがな</td><td><code>[ぁ-ん]</code></td><td>あ, い, う</td></tr>
+<tr><td><strong>K</strong></td><td>カタカナ</td><td><code>[ァ-ヴーｱ-ﾝﾞﾟ]</code></td><td>ア, カ, ー</td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>CJK 記号（U+3000-303F）、全角（U+FF01-FF65）</td><td>。, 、, 「</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII / ラテン文字</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z, Ｂ</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>@, #</td></tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>注意:</strong> “M”（漢数字）は “H”（一般漢字）よりも先にチェックされるため、一や百などの文字は一般的な漢字ではなく数字として分類されます。</p>
+</blockquote>
+<h2 id="中国語の文字種"><a class="header" href="#中国語の文字種">中国語の文字種</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>名称</th><th>パターン / 範囲</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>F</strong></td><td>機能語</td><td>高頻度の文法語</td><td>的, 了, 在, 是</td></tr>
+<tr><td><strong>C</strong></td><td>CJK 統合漢字</td><td>U+4E00–U+9FFF</td><td>中, 国, 人</td></tr>
+<tr><td><strong>X</strong></td><td>CJK 拡張 A</td><td>U+3400–U+4DBF</td><td>希少な文字</td></tr>
+<tr><td><strong>R</strong></td><td>CJK 部首</td><td>U+2E80–U+2FDF</td><td>康熙部首</td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>CJK 記号 + 全角</td><td>。, ，, 《</td></tr>
+<tr><td><strong>B</strong></td><td>注音符号</td><td>U+3100–U+312F, U+31A0–U+31BF</td><td>注音記号</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII / ラテン文字</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>@, #</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>中国語の機能語</strong>には以下が含まれます:</p>
+<ul>
+<li>構造助詞: 的, 地, 得</li>
+<li>アスペクト / モーダル助詞: 了, 着, 过, 吗, 呢, 吧, 啊, 嘛</li>
+<li>接続詞: 和, 与, 或, 但, 而, 且, 及</li>
+<li>前置詞: 在, 从, 到, 把, 被, 对, 向, 给</li>
+<li>よく使われる文法動詞 / 副詞: 是, 有, 不, 也, 都, 就, 要, 会, 能, 可</li>
+</ul>
+<h2 id="韓国語の文字種"><a class="header" href="#韓国語の文字種">韓国語の文字種</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>名称</th><th>パターン / 範囲</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>E</strong></td><td>助詞 / 語尾</td><td>高頻度の文法助詞</td><td>은, 는, 을, 를, 의, 에</td></tr>
+<tr><td><strong>SN</strong></td><td>ハングル（パッチムなし）</td><td>終声のないハングル音節</td><td>가, 나, 하</td></tr>
+<tr><td><strong>SF</strong></td><td>ハングル（パッチムあり）</td><td>終声のあるハングル音節</td><td>한, 글, 각</td></tr>
+<tr><td><strong>J</strong></td><td>ハングル字母</td><td>U+1100–U+11FF</td><td>個別の子音 / 母音</td></tr>
+<tr><td><strong>G</strong></td><td>互換字母</td><td>U+3130–U+318F</td><td>ㄱ, ㅏ, ㅎ</td></tr>
+<tr><td><strong>H</strong></td><td>漢字</td><td>U+4E00–U+9FFF</td><td>CJK 統合漢字</td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>CJK 記号 + 全角</td><td>。, ，</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII / ラテン文字</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>@, #</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="韓国語ハングル音節の検出"><a class="header" href="#韓国語ハングル音節の検出">韓国語ハングル音節の検出</a></h3>
+<p>韓国語では SN と SF の種別に<strong>クロージャベースのマッチング</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
+<ul>
+<li>ハングル音節は U+AC00–U+D7AF を占有</li>
+<li>各音節は <code>(初声 * 21 + 中声) * 28 + 終声 + 0xAC00</code> としてエンコード</li>
+<li><code>(codepoint - 0xAC00) % 28 == 0</code> の場合、音節に<strong>終声がない</strong>（SN）</li>
+<li>それ以外の場合、<strong>終声がある</strong>（SF、「받침」）</li>
+</ul>
+<p>この区別は、終声（パッチム/받침）の有無が韓国語の単語境界パターンと助詞の接続に影響するため重要です。</p>
+<h2 id="言語間の比較"><a class="header" href="#言語間の比較">言語間の比較</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+</thead>
+<tbody>
+<tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td></tr>
+<tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
+<tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td></tr>
+<tr><td>マッチング方法</td><td>Regex のみ</td><td>Regex のみ</td><td>Regex + Closure</td></tr>
+<tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="予測パイプライン"><a class="header" href="#予測パイプライン">予測パイプライン</a></h1>
+<p>本章では、<code>Segmenter::segment()</code> が入力テキストを処理する手順をステップごとに解説します。</p>
+<h2 id="例-これはテストです-の分割"><a class="header" href="#例-これはテストです-の分割">例: “これはテストです。” の分割</a></h2>
+<h3 id="ステップ-1-パディングで配列を初期化"><a class="header" href="#ステップ-1-パディングで配列を初期化">ステップ 1: パディングで配列を初期化</a></h3>
+<pre><code class="language-text">chars: ["B3", "B2", "B1"]
+types: ["O",  "O",  "O" ]
+tags:  ["U",  "U",  "U", "U"]
+</code></pre>
+<p>tags 配列には “U” が 1 つ余分に追加されます。これは <code>tags[3]</code> が最初の実際の文字のタグを表し、先行する境界判定がないため “Unknown” に設定されるためです。</p>
+<h3 id="ステップ-2-入力文字のスキャン"><a class="header" href="#ステップ-2-入力文字のスキャン">ステップ 2: 入力文字のスキャン</a></h3>
+<p>入力の各文字について、言語固有のパターンを使用して種別を決定し、配列に追加します:</p>
+<pre><code class="language-text">chars: ["B3","B2","B1", "こ","れ","は","テ","ス","ト","で","す","。"]
+types: ["O", "O", "O",  "I", "I", "I", "K", "K", "K", "I", "I", "P"]
+</code></pre>
+<h3 id="ステップ-3-終了センチネルの追加"><a class="header" href="#ステップ-3-終了センチネルの追加">ステップ 3: 終了センチネルの追加</a></h3>
+<pre><code class="language-text">chars: [..., "。", "E1", "E2", "E3"]
+types: [..., "P",  "O",  "O",  "O" ]
+</code></pre>
+<h3 id="ステップ-4-反復と予測"><a class="header" href="#ステップ-4-反復と予測">ステップ 4: 反復と予測</a></h3>
+<p>位置 <code>i</code> を 4 から <code>len(chars) - 3</code> まで繰り返します:</p>
+<pre><code class="language-text">i=4 (れ): Extract features → predict → label=-1 (O) → word="これ"
+i=5 (は): Extract features → predict → label=+1 (B) → push "これ", word="は"
+i=6 (テ): Extract features → predict → label=+1 (B) → push "は", word="テ"
+i=7 (ス): Extract features → predict → label=-1 (O) → word="テス"
+i=8 (ト): Extract features → predict → label=-1 (O) → word="テスト"
+i=9 (で): Extract features → predict → label=+1 (B) → push "テスト", word="で"
+i=10(す): Extract features → predict → label=-1 (O) → word="です"
+i=11(。): Extract features → predict → label=+1 (B) → push "です", word="。"
+</code></pre>
+<h3 id="ステップ-5-最後の単語をプッシュ"><a class="header" href="#ステップ-5-最後の単語をプッシュ">ステップ 5: 最後の単語をプッシュ</a></h3>
+<p>残りの単語 “。” を結果に追加します。</p>
+<h3 id="結果"><a class="header" href="#結果">結果</a></h3>
+<pre><code class="language-text">["これ", "は", "テスト", "です", "。"]
+</code></pre>
+<h2 id="各位置での予測の仕組み"><a class="header" href="#各位置での予測の仕組み">各位置での予測の仕組み</a></h2>
+<p>各位置 <em>i</em> で、セグメンタは以下を実行します:</p>
+<ol>
+<li><strong>特徴量の抽出</strong> – <code>get_attributes(i, tags, chars, types)</code> を呼び出し、38-42 個の特徴量からなる <code>HashSet&lt;String&gt;</code> を構築</li>
+<li><strong>スコアの計算</strong> – AdaBoost 学習器がマッチするすべての特徴量のモデル重みとバイアスを合計:
+<pre><code class="language-text">score = bias + sum(model[feature] for feature in attributes)
+</code></pre>
+</li>
+<li><strong>判定</strong> – <code>score &gt;= 0</code> の場合、その文字は新しい単語を開始（境界）、そうでなければ現在の単語を継続</li>
+<li><strong>タグの更新</strong> – tags 配列に “B” または “O” をプッシュし、後続の位置での特徴量抽出に影響を与える</li>
+</ol>
+<h2 id="学習と予測の比較"><a class="header" href="#学習と予測の比較">学習と予測の比較</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>観点</th><th>学習（<code>process_corpus</code>）</th><th>予測（<code>segment</code>）</th></tr>
+</thead>
+<tbody>
+<tr><td>タグの情報源</td><td>アノテーション済みコーパスから事前計算</td><td>モデルにより動的に生成</td></tr>
+<tr><td>最初のタグ</td><td>“U”（位置 3 の “B” を上書き）</td><td>“U”（先行する判定なし）</td></tr>
+<tr><td>ラベル</td><td>コーパスから既知（+1 または -1）</td><td>AdaBoost による予測</td></tr>
+<tr><td>特徴量</td><td>コールバックを通じてファイルに書き出し</td><td><code>predict()</code> に直接渡される</td></tr>
+</tbody>
+</table>
+</div>
+<p>学習時は、タグが正解のコーパス分割から導出されるため、モデルは正しい境界判定から学習します。予測時は、タグがその場で生成されるため、各判定は過去のすべての予測に依存します – これは<strong>左から右への貪欲法</strong>（Left-to-right Greedy）アプローチです。</p>
+<h2 id="パフォーマンス特性"><a class="header" href="#パフォーマンス特性">パフォーマンス特性</a></h2>
+<p>分割アルゴリズムは入力長に対して<strong>線形</strong>です:</p>
+<ul>
+<li>各文字位置を 1 回ずつ訪問: O(n)</li>
+<li>各位置での特徴量抽出: O(1)（固定数の特徴量）</li>
+<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42）</li>
+<li>合計: O(n * f)、実質的に O(n)</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="言語サポート概要"><a class="header" href="#言語サポート概要">言語サポート概要</a></h1>
+<p>Litseaは、<code>Language</code> 列挙型に基づく統一的なフレームワークを通じて、3つの言語の単語分割をサポートしています。</p>
+<h2 id="サポート言語"><a class="header" href="#サポート言語">サポート言語</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Count</th><th>Pre-trained Model Accuracy</th></tr>
+</thead>
+<tbody>
+<tr><td>日本語</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>94.15%</td></tr>
+<tr><td>中国語</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>80.72%</td></tr>
+<tr><td>韓国語</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>85.08%</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="language-列挙型"><a class="header" href="#language-列挙型">Language 列挙型</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Language {
+    #[default]
+    Japanese,
+    Chinese,
+    Korean,
+}
+<span class="boring">}</span></code></pre>
+<ul>
+<li><strong>デフォルト</strong>は <code>Japanese</code></li>
+<li><code>FromStr</code> を実装 – 完全な言語名またはISO 639-1コードからパース可能（大文字小文字を区別しない）</li>
+<li><code>Display</code> を実装 – 小文字の完全な言語名を出力</li>
+</ul>
+<h3 id="パース例"><a class="header" href="#パース例">パース例</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::Language;
+
+let ja: Language = "japanese".parse().unwrap();
+let zh: Language = "zh".parse().unwrap();
+let ko: Language = "Korean".parse().unwrap();   // case-insensitive
+let err = "french".parse::&lt;Language&gt;();          // Err(...)
+<span class="boring">}</span></code></pre>
+<h2 id="言語間の違い"><a class="header" href="#言語間の違い">言語間の違い</a></h2>
+<p>各言語は独自の<strong>文字タイプパターン</strong>を定義しており、文字をタイプコードに分類します。これらのタイプコードはAdaBoost分類器の特徴量として使用されます。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Aspect</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+</thead>
+<tbody>
+<tr><td>文字タイプ数</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
+<tr><td>WC特徴量</td><td>あり（4個追加）</td><td>あり（4個追加）</td><td>なし</td></tr>
+<tr><td>総特徴量数</td><td>42</td><td>42</td><td>38</td></tr>
+<tr><td>マッチング方式</td><td>正規表現のみ</td><td>正規表現のみ</td><td>正規表現 + クロージャ</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="韓国語の特徴量が少ない理由"><a class="header" href="#韓国語の特徴量が少ない理由">韓国語の特徴量が少ない理由</a></h3>
+<p>韓国語のハングル音節は、<strong>SN</strong>（받침/終声なし）と<strong>SF</strong>（받침あり）の2種類にのみ分類されます。この二値的な区別では、WC特徴量（単語＋文字タイプの組み合わせ）は冗長な情報を生成し、識別力がほとんどありません。これらを除外することで、ノイズを低減し、モデルをコンパクトに保ちます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="日本語"><a class="header" href="#日本語">日本語</a></h1>
+<p>日本語はLitseaのデフォルト言語です。</p>
+<h2 id="文字タイプ"><a class="header" href="#文字タイプ">文字タイプ</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>M</strong></td><td>漢数字</td><td><code>[一二三四五六七八九十百千万億兆]</code></td><td>一, 三, 千, 億</td></tr>
+<tr><td><strong>H</strong></td><td>漢字 / CJK</td><td><code>[一-龠々〆ヵヶ]</code></td><td>漢, 字, 学, 々</td></tr>
+<tr><td><strong>I</strong></td><td>ひらがな</td><td><code>[ぁ-ん]</code></td><td>あ, い, う, を</td></tr>
+<tr><td><strong>K</strong></td><td>カタカナ</td><td><code>[ァ-ヴーｱ-ﾝﾞﾟ]</code></td><td>ア, カ, ー, ﾊ</td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>CJK記号 + 全角</td><td>。, 、, 「, 」</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/ラテン文字</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z, Ｂ</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, 5, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>@, #, $</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="パターンの優先順位"><a class="header" href="#パターンの優先順位">パターンの優先順位</a></h3>
+<p>パターンは順番に評価されます。特に注意すべき点は以下の通りです。</p>
+<ul>
+<li><strong>MはHより先に評価</strong>: 一や百などの文字は、汎用的な「漢字」(H)ではなく「漢数字」(M)に分類されます</li>
+<li>この区別により、モデルは数字特有の境界パターンを学習できます</li>
+</ul>
+<h2 id="学習済みモデル"><a class="header" href="#学習済みモデル">学習済みモデル</a></h2>
+<h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
+<ul>
+<li><strong>学習コーパス</strong>: 日本語Wikipedia記事</li>
+<li><strong>トークナイザ</strong>: Lindera（UniDic辞書使用）</li>
+<li><strong>精度（Accuracy）</strong>: 94.15%</li>
+<li><strong>適合率（Precision）</strong>: 95.57%</li>
+<li><strong>再現率（Recall）</strong>: 94.36%</li>
+</ul>
+<h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
+<ul>
+<li><strong>出典</strong>: オリジナルのTinySegmenterから抽出</li>
+<li><strong>ライセンス</strong>: BSD 3-Clause（工藤拓）</li>
+<li><strong>サイズ</strong>: 約22 KB</li>
+</ul>
+<h3 id="jeita_genpaku_chasen_ipadicmodel"><a class="header" href="#jeita_genpaku_chasen_ipadicmodel">JEITA_Genpaku_ChaSen_IPAdic.model</a></h3>
+<ul>
+<li><strong>学習コーパス</strong>: JEITA杉田玄白プロジェクトのコーパス</li>
+<li><strong>トークナイザ</strong>: ChaSen（IPAdic辞書使用）</li>
+<li><strong>サイズ</strong>: 約17 KB</li>
+</ul>
+<h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
+<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
+  | litsea segment -l japanese ./resources/japanese.model
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="中国語"><a class="header" href="#中国語">中国語</a></h1>
+<p>Litseaは簡体字・繁体字の両方を対象とした中国語の単語分割をサポートしています。</p>
+<h2 id="文字タイプ-1"><a class="header" href="#文字タイプ-1">文字タイプ</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>F</strong></td><td>機能語</td><td>高頻度の文法語</td><td>的, 了, 在, 是, 和</td></tr>
+<tr><td><strong>C</strong></td><td>CJK統合漢字</td><td>U+4E00–U+9FFF</td><td>中, 国, 人</td></tr>
+<tr><td><strong>X</strong></td><td>CJK拡張A</td><td>U+3400–U+4DBF</td><td>稀少文字</td></tr>
+<tr><td><strong>R</strong></td><td>CJK部首</td><td>U+2E80–U+2FDF</td><td>康熙部首</td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>CJK記号 + 全角</td><td>。, ，, 《, 》</td></tr>
+<tr><td><strong>B</strong></td><td>注音符号</td><td>U+3100–U+312F, U+31A0–U+31BF</td><td>注音記号</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/ラテン文字</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, 5, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>@, #, $</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="中国語の機能語虚词"><a class="header" href="#中国語の機能語虚词">中国語の機能語（虚词）</a></h3>
+<p>「F」タイプは、分割において重要な高頻度の文法語を捉えます。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Category</th><th>Characters</th></tr>
+</thead>
+<tbody>
+<tr><td>構造助詞</td><td>的, 地, 得</td></tr>
+<tr><td>アスペクト・語気助詞</td><td>了, 着, 过, 吗, 呢, 吧, 啊, 嘛</td></tr>
+<tr><td>接続詞</td><td>和, 与, 或, 但, 而, 且, 及</td></tr>
+<tr><td>前置詞</td><td>在, 从, 到, 把, 被, 对, 向, 给</td></tr>
+<tr><td>文法動詞・副詞</td><td>是, 有, 不, 也, 都, 就, 要, 会, 能, 可</td></tr>
+</tbody>
+</table>
+</div>
+<p>これらの文字は圧倒的に文法的な役割で出現し、内容語とは異なる形で語境界を示します。</p>
+<h2 id="学習済みモデル-1"><a class="header" href="#学習済みモデル-1">学習済みモデル</a></h2>
+<h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
+<ul>
+<li><strong>学習コーパス</strong>: 中国語Wikipedia記事</li>
+<li><strong>トークナイザ</strong>: Lindera（CC-CEDICT辞書使用）</li>
+<li><strong>精度（Accuracy）</strong>: 80.72%</li>
+</ul>
+<h2 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h2>
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="韓国語"><a class="header" href="#韓国語">韓国語</a></h1>
+<p>Litseaは、ハングル文字タイプの特殊な検出機能を備えた韓国語の単語分割をサポートしています。</p>
+<h2 id="文字タイプ-2"><a class="header" href="#文字タイプ-2">文字タイプ</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>E</strong></td><td>助詞/語尾</td><td><code>[은는을를의에]</code></td><td>은, 는, 을, 를, 의, 에</td></tr>
+<tr><td><strong>SN</strong></td><td>ハングル（받침なし）</td><td>コードポイント演算</td><td>가, 나, 하, 모</td></tr>
+<tr><td><strong>SF</strong></td><td>ハングル（받침あり）</td><td>コードポイント演算</td><td>한, 글, 각, 붙</td></tr>
+<tr><td><strong>J</strong></td><td>ハングル字母</td><td>U+1100–U+11FF</td><td>個別の子音/母音</td></tr>
+<tr><td><strong>G</strong></td><td>互換字母</td><td>U+3130–U+318F</td><td>ㄱ, ㅏ, ㅎ</td></tr>
+<tr><td><strong>H</strong></td><td>漢字</td><td>U+4E00–U+9FFF</td><td>CJK統合漢字</td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>CJK記号 + 全角</td><td>。, ，</td></tr>
+<tr><td><strong>A</strong></td><td>ASCII/ラテン文字</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, 5, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>@, #, $</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="韓国語の助詞조사"><a class="header" href="#韓国語の助詞조사">韓国語の助詞（조사）</a></h3>
+<p>「E」タイプは、6つの高頻度文法助詞を捉えます。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Character</th><th>Role</th><th>Name</th></tr>
+</thead>
+<tbody>
+<tr><td>은/는</td><td>主題マーカー</td><td>주격 조사</td></tr>
+<tr><td>을/를</td><td>目的語マーカー</td><td>목적격 조사</td></tr>
+<tr><td>의</td><td>所有格</td><td>관형격 조사</td></tr>
+<tr><td>에</td><td>場所格</td><td>부사격 조사</td></tr>
+</tbody>
+</table>
+</div>
+<p>これらの助詞は語境界に頻繁に出現するため、分割精度を向上させるために独自のタイプコードが割り当てられています。</p>
+<h3 id="ハングル音節構造받침検出"><a class="header" href="#ハングル音節構造받침検出">ハングル音節構造（받침検出）</a></h3>
+<p>韓国語では、SNとSFタイプに正規表現ではなく<strong>クロージャベースのマッチング</strong>を使用します。これはUnicodeハングルエンコーディングの体系的な構造を活用しています。</p>
+<ul>
+<li>ハングル音節: U+AC00–U+D7AF（11,172音節）</li>
+<li>各音節 = <code>(初声 * 21 + 中声) * 28 + 終声 + 0xAC00</code></li>
+<li><strong>SN</strong>（받침なし）: <code>(codepoint - 0xAC00) % 28 == 0</code></li>
+<li><strong>SF</strong>（받침あり）: <code>(codepoint - 0xAC00) % 28 != 0</code></li>
+</ul>
+<p>받침（終声子音）の有無の区別は言語学的に重要であり、助詞が語にどのように接続するか、また境界がどこに生じるかに影響します。</p>
+<h3 id="wc特徴量なし"><a class="header" href="#wc特徴量なし">WC特徴量なし</a></h3>
+<p>韓国語ではWC（単語＋文字タイプ）特徴量を<strong>使用しません</strong>。ほとんどのハングル音節はSNとSFの2つのタイプにしか分類されないため、WC特徴量は低エントロピーでノイズの多い組み合わせを生成し、モデルの精度を低下させます。</p>
+<h2 id="学習済みモデル-2"><a class="header" href="#学習済みモデル-2">学習済みモデル</a></h2>
+<h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
+<ul>
+<li><strong>学習コーパス</strong>: 韓国語Wikipedia記事</li>
+<li><strong>トークナイザ</strong>: Lindera（ko-dic辞書使用）</li>
+<li><strong>精度（Accuracy）</strong>: 85.08%</li>
+</ul>
+<h2 id="使用例-2"><a class="header" href="#使用例-2">使用例</a></h2>
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="新しい言語の追加"><a class="header" href="#新しい言語の追加">新しい言語の追加</a></h1>
+<p>Litseaの多言語フレームワークは、容易に拡張できるよう設計されています。本ガイドでは、新しい言語のサポートを追加する方法を説明します。</p>
+<h2 id="手順の概要"><a class="header" href="#手順の概要">手順の概要</a></h2>
+<ol>
+<li><code>Language</code> 列挙型にバリアントを追加</li>
+<li><code>Display</code> および <code>FromStr</code> のmatchアームを実装</li>
+<li>文字タイプパターン関数を作成</li>
+<li>パターン関数を登録</li>
+<li>WC特徴量の有無を決定</li>
+<li>学習コーパスを用意してモデルを学習</li>
+<li>テストを追加</li>
+</ol>
+<h2 id="手順1-language-にバリアントを追加"><a class="header" href="#手順1-language-にバリアントを追加">手順1: <code>Language</code> にバリアントを追加</a></h2>
+<p><code>litsea/src/language.rs</code> で、<code>Language</code> 列挙型に新しいバリアントを追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum Language {
+    #[default]
+    Japanese,
+    Chinese,
+    Korean,
+    Thai,       // ← new language
+}
+<span class="boring">}</span></code></pre>
+<h2 id="手順2-display-と-fromstr-を実装"><a class="header" href="#手順2-display-と-fromstr-を実装">手順2: Display と FromStr を実装</a></h2>
+<p>新しい言語のmatchアームを追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// In Display impl
+Language::Thai =&gt; write!(f, "thai"),
+
+// In FromStr impl
+"thai" | "th" =&gt; Ok(Language::Thai),
+<span class="boring">}</span></code></pre>
+<h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
+<p>新しい言語の <code>CharTypePatterns</code> を返す関数を定義します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn thai_patterns() -&gt; CharTypePatterns {
+    CharTypePatterns::from_matchers(vec![
+        // Thai characters (U+0E01-U+0E3A)
+        (CharMatcher::Regex(
+            Regex::new(r"[\u{0E01}-\u{0E3A}]").unwrap()
+        ), "T"),
+        // Thai vowels (U+0E40-U+0E4E)
+        (CharMatcher::Regex(
+            Regex::new(r"[\u{0E40}-\u{0E4E}]").unwrap()
+        ), "V"),
+        // Thai digits (U+0E50-U+0E59)
+        (CharMatcher::Regex(
+            Regex::new(r"[\u{0E50}-\u{0E59}]").unwrap()
+        ), "N"),
+        // ASCII + Full-width Latin
+        (CharMatcher::Regex(
+            Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()
+        ), "A"),
+        // Digits
+        (CharMatcher::Regex(
+            Regex::new(r"[0-9０-９]").unwrap()
+        ), "N"),
+    ])
+}
+<span class="boring">}</span></code></pre>
+<h3 id="文字タイプ設計のヒント"><a class="header" href="#文字タイプ設計のヒント">文字タイプ設計のヒント</a></h3>
+<ul>
+<li>語境界パターンと相関する<strong>言語学的に異なるカテゴリ</strong>を特定する</li>
+<li><strong>順序は重要</strong> – 最初にマッチしたものが優先されるため、より具体的なパターンを汎用的なパターンの前に配置する</li>
+<li>中国語の「F」のように、<strong>高頻度の機能語</strong>を別のタイプとして検討する</li>
+<li>単一の正規表現では表現できない複雑なロジックには<strong>クロージャ</strong>を使用する</li>
+</ul>
+<h2 id="手順4-パターン関数を登録"><a class="header" href="#手順4-パターン関数を登録">手順4: パターン関数を登録</a></h2>
+<p><code>Language::char_type_patterns()</code> にmatchアームを追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns {
+    match self {
+        Language::Japanese =&gt; japanese_patterns(),
+        Language::Chinese =&gt; chinese_patterns(),
+        Language::Korean =&gt; korean_patterns(),
+        Language::Thai =&gt; thai_patterns(),    // ← new
+    }
+}
+<span class="boring">}</span></code></pre>
+<h2 id="手順5-wc特徴量の有無を決定"><a class="header" href="#手順5-wc特徴量の有無を決定">手順5: WC特徴量の有無を決定</a></h2>
+<p><code>segmenter.rs</code> の <code>get_attributes()</code> では、WC特徴量を含めるかどうかを言語に基づいて <code>match</code> で判定しています。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match self.language {
+    Language::Japanese | Language::Chinese =&gt; {
+        // Include WC features
+        attrs.insert(format!("WC1:{}{}", w3, c4));
+        attrs.insert(format!("WC2:{}{}", c3, w4));
+        attrs.insert(format!("WC3:{}{}", w3, c3));
+        attrs.insert(format!("WC4:{}{}", w4, c4));
+    }
+    _ =&gt; {}
+}
+<span class="boring">}</span></code></pre>
+<p>対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、matchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。</p>
+<h2 id="手順6-コーパスを用意してモデルを学習"><a class="header" href="#手順6-コーパスを用意してモデルを学習">手順6: コーパスを用意してモデルを学習</a></h2>
+<ol>
+<li>
+<p><strong>コーパスを用意</strong>します（単語をスペースで区切った形式）。</p>
+<pre><code class="language-text">word1 word2 word3 word4
+</code></pre>
+</li>
+<li>
+<p><strong>特徴量を抽出</strong>します。</p>
+<pre><code class="language-sh">litsea extract -l thai ./corpus.txt ./features.txt
+</code></pre>
+</li>
+<li>
+<p><strong>モデルを学習</strong>します。</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/thai.model
+</code></pre>
+</li>
+</ol>
+<h2 id="手順7-テストを追加"><a class="header" href="#手順7-テストを追加">手順7: テストを追加</a></h2>
+<p><code>language.rs</code> と <code>segmenter.rs</code> の両方にテストを追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// In language.rs tests
+#[test]
+fn test_thai_patterns() {
+    let p = Language::Thai.char_type_patterns();
+    assert_eq!(p.get_type("ก"), "T");   // Thai consonant
+    assert_eq!(p.get_type("A"), "A");   // ASCII
+    assert_eq!(p.get_type("@"), "O");   // Other
+}
+
+// In segmenter.rs tests
+#[test]
+fn test_get_type_thai() {
+    let segmenter = Segmenter::new(Language::Thai, None);
+    assert_eq!(segmenter.get_type("ก"), "T");
+}
+<span class="boring">}</span></code></pre>
+<p>全テストを実行して検証します。</p>
+<pre><code class="language-sh">cargo test --workspace
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="cliリファレンス概要"><a class="header" href="#cliリファレンス概要">CLIリファレンス概要</a></h1>
+<p><code>litsea</code> CLIは、単語分割、モデル学習、テキスト処理のためのコマンドを提供します。</p>
+<h2 id="使い方"><a class="header" href="#使い方">使い方</a></h2>
+<pre><code class="language-sh">litsea &lt;COMMAND&gt; [OPTIONS] [ARGS]
+</code></pre>
+<h2 id="コマンド一覧"><a class="header" href="#コマンド一覧">コマンド一覧</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#extract"><code>extract</code></a></td><td>学習用にコーパスから特徴量を抽出</td></tr>
+<tr><td><a href="#train"><code>train</code></a></td><td>単語分割モデルを学習</td></tr>
+<tr><td><a href="#segment"><code>segment</code></a></td><td>学習済みモデルを使用してテキストを単語に分割</td></tr>
+<tr><td><a href="#split-sentences"><code>split-sentences</code></a></td><td>Unicode UAX #29を使用してテキストを文に分割</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="グローバルオプション"><a class="header" href="#グローバルオプション">グローバルオプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-h</code>, <code>--help</code></td><td>ヘルプ情報を表示</td></tr>
+<tr><td><code>-V</code>, <code>--version</code></td><td>バージョン番号を表示</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="一般的なワークフロー"><a class="header" href="#一般的なワークフロー">一般的なワークフロー</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
+    B --&gt; C["3. litsea train"]
+    C --&gt; D["4. litsea segment"]
+</code></pre>
+<ol>
+<li>単語をスペースで区切ったコーパスを用意する</li>
+<li>特徴量を抽出する: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
+<li>モデルを学習する: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
+<li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extract"><a class="header" href="#extract">extract</a></h1>
+<p>モデル学習用にコーパスファイルから特徴量を抽出します。</p>
+<h2 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h2>
+<pre><code class="language-sh">litsea extract [OPTIONS] &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
+</code></pre>
+<h2 id="引数"><a class="header" href="#引数">引数</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CORPUS_FILE</code></td><td>入力コーパスファイルのパス（単語をスペースで区切り、1行に1文）</td></tr>
+<tr><td><code>FEATURES_FILE</code></td><td>出力特徴量ファイルのパス</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="オプション"><a class="header" href="#オプション">オプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="コーパスの形式"><a class="header" href="#コーパスの形式">コーパスの形式</a></h2>
+<p>入力コーパスは、単語をスペースで区切り、1行に1文とする形式です。</p>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h2 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h2>
+<p>特徴量ファイルには、文字位置ごとに1行が含まれます。</p>
+<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
+-1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+</code></pre>
+<ul>
+<li><code>1</code> = 語境界</li>
+<li><code>-1</code> = 非境界</li>
+<li>特徴量はタブ区切り</li>
+</ul>
+<h2 id="使用例-3"><a class="header" href="#使用例-3">使用例</a></h2>
+<pre><code class="language-sh"># Japanese
+litsea extract -l japanese ./corpus.txt ./features.txt
+
+# Chinese
+litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
+
+# Korean
+litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+</code></pre>
+<p>成功時のstderr出力:</p>
+<pre><code class="language-text">Feature extraction completed successfully.
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="train"><a class="header" href="#train">train</a></h1>
+<p>AdaBoostを使用して単語分割モデルを学習します。</p>
+<h2 id="使い方-2"><a class="header" href="#使い方-2">使い方</a></h2>
+<pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h2 id="引数-1"><a class="header" href="#引数-1">引数</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FEATURES_FILE</code></td><td>入力特徴量ファイルのパス（<code>extract</code> の出力）</td></tr>
+<tr><td><code>MODEL_FILE</code></td><td>出力モデルファイルのパス</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="オプション-1"><a class="header" href="#オプション-1">オプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる</td></tr>
+<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
+<tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="出力"><a class="header" href="#出力">出力</a></h2>
+<p>学習メトリクスはstderrに出力されます。</p>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 94.15% ( 564133 / 599198 )
+  Precision: 95.57% ( 330454 / 345758 )
+  Recall: 94.36% ( 330454 / 350215 )
+  Confusion Matrix:
+    True Positives: 330454
+    False Positives: 15304
+    False Negatives: 19761
+    True Negatives: 233679
+</code></pre>
+<h2 id="ctrlc-のハンドリング"><a class="header" href="#ctrlc-のハンドリング">Ctrl+C のハンドリング</a></h2>
+<p>学習は優雅な中断をサポートしています。</p>
+<ul>
+<li><strong>1回目のCtrl+C</strong>: 学習を停止し、現在の状態でモデルを保存する</li>
+<li><strong>2回目のCtrl+C</strong>: 保存せずに即座に終了する</li>
+</ul>
+<p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
+<h2 id="使用例-4"><a class="header" href="#使用例-4">使用例</a></h2>
+<p>基本的な学習:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+</code></pre>
+<p>高精度な学習（低い閾値、多い反復回数）:</p>
+<pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
+</code></pre>
+<p>既存モデルからの再学習:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
+    ./new_features.txt ./resources/japanese_v2.model
+</code></pre>
+<h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>値を小さくした場合の効果</th><th>値を大きくした場合の効果</th></tr>
+</thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>反復回数が増加、精度が向上する可能性あり、学習時間が長くなる</td><td>反復回数が減少、学習が高速化、アンダーフィットの可能性あり</td></tr>
+<tr><td><code>num_iterations</code></td><td>ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり</td><td>ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="segment"><a class="header" href="#segment">segment</a></h1>
+<p>学習済みモデルを使用してテキストを単語に分割します。</p>
+<h2 id="使い方-3"><a class="header" href="#使い方-3">使い方</a></h2>
+<pre><code class="language-sh">echo "text" | litsea segment [OPTIONS] &lt;MODEL_URI&gt;
+</code></pre>
+<h2 id="引数-2"><a class="header" href="#引数-2">引数</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>MODEL_URI</code></td><td>学習済みモデルファイルのパスまたはURL。サポート形式: ローカルファイルパス, <code>file://</code>, <code>http://</code>, <code>https://</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="オプション-2"><a class="header" href="#オプション-2">オプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="入力--出力"><a class="header" href="#入力--出力">入力 / 出力</a></h2>
+<ul>
+<li><strong>入力</strong>: stdinから読み取り、1行に1文。空行はスキップされます。</li>
+<li><strong>出力</strong>: stdoutに書き込み、スペース区切りのトークン、入力行ごとに1行。</li>
+</ul>
+<h2 id="使用例-5"><a class="header" href="#使用例-5">使用例</a></h2>
+<p><strong>日本語:</strong></p>
+<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
+  | litsea segment -l japanese ./resources/japanese.model
+</code></pre>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+</code></pre>
+<p><strong>中国語:</strong></p>
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+</code></pre>
+<p><strong>韓国語:</strong></p>
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
+  | litsea segment -l korean ./resources/korean.model
+</code></pre>
+<p><strong>ファイルの処理:</strong></p>
+<pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./resources/japanese.model &gt; output.txt
+</code></pre>
+<p><strong>URLからモデルを読み込み:</strong></p>
+<pre><code class="language-sh">echo "テスト文です。" \
+  | litsea segment -l japanese https://example.com/models/japanese.model
+</code></pre>
+<h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
+<ul>
+<li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
+<li>モデルの読み込みは非同期で行われ、TLS（rustls）を使用したHTTP/HTTPSをサポートしています</li>
+<li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="split-sentences"><a class="header" href="#split-sentences">split-sentences</a></h1>
+<p>Unicode UAX #29のルールを使用してテキストを文に分割します。</p>
+<h2 id="使い方-4"><a class="header" href="#使い方-4">使い方</a></h2>
+<pre><code class="language-sh">echo "text" | litsea split-sentences
+</code></pre>
+<h2 id="引数-3"><a class="header" href="#引数-3">引数</a></h2>
+<p>なし。</p>
+<h2 id="オプション-3"><a class="header" href="#オプション-3">オプション</a></h2>
+<p>なし（<code>--help</code> と <code>--version</code> を除く）。</p>
+<h2 id="入力--出力-1"><a class="header" href="#入力--出力-1">入力 / 出力</a></h2>
+<ul>
+<li><strong>入力</strong>: stdinから読み取り、1行に1段落。空行はスキップされます。</li>
+<li><strong>出力</strong>: stdoutに書き込み、1行に1文。</li>
+</ul>
+<h2 id="動作の仕組み"><a class="header" href="#動作の仕組み">動作の仕組み</a></h2>
+<p>このコマンドは、ICU4Xの <code>SentenceSegmenter</code> を使用しており、Unicode Standard Annex #29（UAX #29）の文区切りルールを実装しています。<strong>言語非依存</strong>のため、<code>--language</code> フラグは不要です。</p>
+<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
+<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">これはテストです。
+次の文です。
+</code></pre>
+<p>複数行の入力:</p>
+<pre><code class="language-sh">echo -e "First sentence. Second sentence.\nThird sentence! Fourth." \
+  | litsea split-sentences
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">First sentence.
+Second sentence.
+Third sentence!
+Fourth.
+</code></pre>
+<h2 id="ユースケース"><a class="header" href="#ユースケース">ユースケース</a></h2>
+<ul>
+<li>単語分割の前処理として、テキストを1行1文に変換</li>
+<li>大規模なドキュメントを分析用に個別の文に分割</li>
+<li>生テキストから学習コーパスを準備</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ライブラリ-api-概要"><a class="header" href="#ライブラリ-api-概要">ライブラリ API 概要</a></h1>
+<p><code>litsea</code> クレートは、単語分割、モデル学習、特徴量抽出のための Rust API を提供します。</p>
+<h2 id="インストール-1"><a class="header" href="#インストール-1">インストール</a></h2>
+<pre><code class="language-toml">[dependencies]
+litsea = "0.4.0"
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+</code></pre>
+<h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
+<pre><code class="language-mermaid">graph LR
+    A["litsea::segmenter"] --- B["Segmenter"]
+    C["litsea::adaboost"] --- D["AdaBoost, Metrics"]
+    E["litsea::language"] --- F["Language, CharTypePatterns"]
+    G["litsea::extractor"] --- H["Extractor"]
+    I["litsea::trainer"] --- J["Trainer"]
+    K["litsea::util"] --- L["ModelScheme"]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>モジュール</th><th>主要な型</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>単語分割</td></tr>
+<tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code>, <code>Metrics</code></td><td>二値分類、モデルの入出力</td></tr>
+<tr><td><code>litsea::language</code></td><td><code>Language</code>, <code>CharTypePatterns</code></td><td>言語定義、文字分類</td></tr>
+<tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>コーパスからの特徴量抽出</td></tr>
+<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code></td><td>学習パイプラインの制御</td></tr>
+<tr><td><code>litsea::util</code></td><td><code>ModelScheme</code></td><td>URI スキームの解析</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="クイックスタート-1"><a class="header" href="#クイックスタート-1">クイックスタート</a></h2>
+<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut learner = AdaBoost::new(0.01, 100);
+    learner.load_model("./resources/japanese.model").await?;
+
+    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let tokens = segmenter.segment("これはテストです。");
+
+    assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
+    Ok(())
+}</code></pre>
+<h2 id="api-ドキュメント"><a class="header" href="#api-ドキュメント">API ドキュメント</a></h2>
+<p>完全な API ドキュメントは <a href="https://docs.rs/litsea">docs.rs/litsea</a> で参照できます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="segmenter"><a class="header" href="#segmenter">Segmenter</a></h1>
+<p><code>Segmenter</code> 構造体は、単語分割のための主要なインターフェースです。</p>
+<h2 id="定義"><a class="header" href="#定義">定義</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Segmenter {
+    pub language: Language,
+    pub learner: AdaBoost,
+    // internal: char_types: CharTypePatterns
+}
+<span class="boring">}</span></code></pre>
+<h2 id="コンストラクタ"><a class="header" href="#コンストラクタ">コンストラクタ</a></h2>
+<h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(language: Language, learner: Option&lt;AdaBoost&gt;) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>新しい Segmenter を作成します。</p>
+<ul>
+<li><code>language</code> – 文字種分類に使用する言語</li>
+<li><code>learner</code> – 学習済みの <code>AdaBoost</code> モデル（オプション）。<code>None</code> の場合、デフォルト（未学習）のインスタンスが作成されます。</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+// 学習済みモデルを使用する場合
+let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+
+// モデルなし（学習や特徴量抽出用）
+let segmenter = Segmenter::new(Language::Japanese, None);
+<span class="boring">}</span></code></pre>
+<h2 id="メソッド"><a class="header" href="#メソッド">メソッド</a></h2>
+<h3 id="segment-1"><a class="header" href="#segment-1"><code>segment</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn segment(&amp;self, sentence: &amp;str) -&gt; Vec&lt;String&gt;
+<span class="boring">}</span></code></pre>
+<p>文を単語に分割します。空の入力に対しては空のベクターを返します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let tokens = segmenter.segment("これはテストです。");
+// ["これ", "は", "テスト", "です", "。"]
+<span class="boring">}</span></code></pre>
+<h3 id="get_type"><a class="header" href="#get_type"><code>get_type</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+<span class="boring">}</span></code></pre>
+<p>言語固有のパターンを使用して、1文字をその文字種コードに分類します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let segmenter = Segmenter::new(Language::Japanese, None);
+assert_eq!(segmenter.get_type("あ"), "I");  // ひらがな
+assert_eq!(segmenter.get_type("漢"), "H");  // 漢字
+assert_eq!(segmenter.get_type("A"), "A");   // ASCII
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus"><a class="header" href="#add_corpus"><code>add_corpus</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus(&amp;mut self, corpus: &amp;str)
+<span class="boring">}</span></code></pre>
+<p>スペース区切りのコーパスを処理し、内部の AdaBoost 学習器にインスタンスを追加します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut segmenter = Segmenter::new(Language::Japanese, None);
+segmenter.add_corpus("テスト です");
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus_with_writer"><a class="header" href="#add_corpus_with_writer"><code>add_corpus_with_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_with_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, i8),
+<span class="boring">}</span></code></pre>
+<p>コーパスを処理し、各文字位置の特徴量セットとラベルをコールバックに渡します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
+    println!("Features: {:?}, Label: {}", attrs, label);
+});
+<span class="boring">}</span></code></pre>
+<h3 id="get_attributes"><a class="header" href="#get_attributes"><code>get_attributes</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_attributes(
+    &amp;self,
+    i: usize,
+    tags: &amp;[String],
+    chars: &amp;[String],
+    types: &amp;[String],
+) -&gt; HashSet&lt;String&gt;
+<span class="boring">}</span></code></pre>
+<p>特定の文字位置における特徴量セットを抽出します。韓国語では38個、日本語・中国語では42個の特徴量を返します。</p>
+<blockquote>
+<p>これは主に <code>segment()</code> と <code>process_corpus()</code> の内部で使用されます。</p>
+</blockquote>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
+<p><code>Extractor</code> 構造体は、モデル学習用にコーパスファイルから特徴量を抽出します。</p>
+<h2 id="定義-1"><a class="header" href="#定義-1">定義</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Extractor {
+    segmenter: Segmenter,
+}
+<span class="boring">}</span></code></pre>
+<h2 id="コンストラクタ-1"><a class="header" href="#コンストラクタ-1">コンストラクタ</a></h2>
+<h3 id="extractornew"><a class="header" href="#extractornew"><code>Extractor::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(language: Language) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>指定した言語に対応する新しい Extractor を作成します。内部的に、学習済みモデルを持たない <code>Segmenter</code> を作成します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::extractor::Extractor;
+use litsea::language::Language;
+
+let mut extractor = Extractor::new(Language::Japanese);
+<span class="boring">}</span></code></pre>
+<h2 id="メソッド-1"><a class="header" href="#メソッド-1">メソッド</a></h2>
+<h3 id="extract-1"><a class="header" href="#extract-1"><code>extract</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract(
+    &amp;mut self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;
+<span class="boring">}</span></code></pre>
+<p>コーパスファイル（スペース区切りの単語、1行1文）を読み込み、抽出した特徴量を出力ファイルに書き込みます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+extractor.extract(
+    Path::new("./corpus.txt"),
+    Path::new("./features.txt"),
+)?;
+<span class="boring">}</span></code></pre>
+<h3 id="パイプライン"><a class="header" href="#パイプライン">パイプライン</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["corpus.txt&lt;br/&gt;(space-separated words)"] --&gt; B["Extractor::extract()"]
+    B --&gt; C["features.txt&lt;br/&gt;(label + features per position)"]
+</code></pre>
+<p>Extractor は以下の処理を行います:</p>
+<ol>
+<li>コーパスファイルから各行を読み込む</li>
+<li><code>Segmenter::add_corpus_with_writer()</code> を呼び出して各行を処理する</li>
+<li>各文字位置のラベルと特徴量セットを出力ファイルに書き込む</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="trainer"><a class="header" href="#trainer">Trainer</a></h1>
+<p><code>Trainer</code> 構造体は、モデル学習パイプライン全体を制御します。</p>
+<h2 id="定義-2"><a class="header" href="#定義-2">定義</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Trainer {
+    learner: AdaBoost,
+}
+<span class="boring">}</span></code></pre>
+<h2 id="コンストラクタ-2"><a class="header" href="#コンストラクタ-2">コンストラクタ</a></h2>
+<h3 id="trainernew"><a class="header" href="#trainernew"><code>Trainer::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(
+    threshold: f64,
+    num_iterations: usize,
+    features_path: &amp;Path,
+) -&gt; io::Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p>Trainer を作成し、特徴量ファイルから初期化します。内部で <code>AdaBoost::initialize_features()</code> と <code>AdaBoost::initialize_instances()</code> を呼び出します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+use litsea::trainer::Trainer;
+
+let mut trainer = Trainer::new(
+    0.005,                           // 閾値
+    1000,                            // 最大反復回数
+    Path::new("./features.txt"),     // 特徴量ファイル
+)?;
+<span class="boring">}</span></code></pre>
+<h2 id="メソッド-2"><a class="header" href="#メソッド-2">メソッド</a></h2>
+<h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>再学習用に既存のモデルを読み込みます。ファイルパス、<code>file://</code>、<code>http://</code>、<code>https://</code> URI に対応しています。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>trainer.load_model("./resources/japanese.model").await?;
+<span class="boring">}</span></code></pre>
+<h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(
+    &amp;mut self,
+    running: Arc&lt;AtomicBool&gt;,
+    model_path: &amp;Path,
+) -&gt; Result&lt;Metrics, Box&lt;dyn std::error::Error&gt;&gt;
+<span class="boring">}</span></code></pre>
+<p>モデルを学習し、指定したパスに保存します。評価メトリクスを返します。</p>
+<p><code>running</code> フラグにより、学習の途中停止が可能です。<code>false</code> に設定すると学習を早期終了します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+let running = Arc::new(AtomicBool::new(true));
+let metrics = trainer.train(running, Path::new("./model.model"))?;
+
+println!("Accuracy: {:.2}%", metrics.accuracy);
+<span class="boring">}</span></code></pre>
+<h2 id="学習の完全な例"><a class="header" href="#学習の完全な例">学習の完全な例</a></h2>
+<pre class="playground"><code class="language-rust">use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::Trainer;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut trainer = Trainer::new(
+        0.005,
+        1000,
+        Path::new("./features.txt"),
+    )?;
+
+    // 必要に応じて既存モデルから再開
+    // trainer.load_model("./resources/japanese.model").await?;
+
+    let running = Arc::new(AtomicBool::new(true));
+    let metrics = trainer.train(running, Path::new("./model.model"))?;
+
+    println!("Accuracy:  {:.2}%", metrics.accuracy);
+    println!("Precision: {:.2}%", metrics.precision);
+    println!("Recall:    {:.2}%", metrics.recall);
+
+    Ok(())
+}</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="adaboost"><a class="header" href="#adaboost">AdaBoost</a></h1>
+<p><code>AdaBoost</code> 構造体は、単語境界検出のための二値分類を実装しています。</p>
+<h2 id="定義-3"><a class="header" href="#定義-3">定義</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct AdaBoost {
+    pub threshold: f64,
+    pub num_iterations: usize,
+    // internal fields: model weights, features, instances, etc.
+}
+<span class="boring">}</span></code></pre>
+<h2 id="コンストラクタ-3"><a class="header" href="#コンストラクタ-3">コンストラクタ</a></h2>
+<h3 id="adaboostnew"><a class="header" href="#adaboostnew"><code>AdaBoost::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(threshold: f64, num_iterations: usize) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>指定したハイパーパラメータで新しい AdaBoost インスタンスを作成します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::adaboost::AdaBoost;
+
+let mut learner = AdaBoost::new(0.01, 100);
+<span class="boring">}</span></code></pre>
+<h2 id="モデルの読み込み"><a class="header" href="#モデルの読み込み">モデルの読み込み</a></h2>
+<h3 id="load_model-1"><a class="header" href="#load_model-1"><code>load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>URI からモデルの重みを読み込みます。以下の形式に対応しています:</p>
+<ul>
+<li>ローカルファイルパス: <code>./resources/japanese.model</code></li>
+<li>File URI: <code>file:///path/to/model</code></li>
+<li>HTTP: <code>http://example.com/model</code></li>
+<li>HTTPS: <code>https://example.com/model</code></li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>learner.load_model("./resources/japanese.model").await?;
+learner.load_model("https://example.com/model").await?;
+<span class="boring">}</span></code></pre>
+<h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>モデルの重みをファイルに保存します。モデルが空の場合はエラーを返します。</p>
+<h2 id="学習メソッド"><a class="header" href="#学習メソッド">学習メソッド</a></h2>
+<h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>特徴量ファイルを読み込み、特徴量インデックスを構築します。<code>initialize_instances</code> の前に呼び出す必要があります。</p>
+<h3 id="initialize_instances"><a class="header" href="#initialize_instances"><code>initialize_instances</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>同じ特徴量ファイルを読み込み、ラベル付きインスタンスとその重みを初期化します。</p>
+<h3 id="train-2"><a class="header" href="#train-2"><code>train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(&amp;mut self, running: Arc&lt;AtomicBool&gt;)
+<span class="boring">}</span></code></pre>
+<p>AdaBoost の学習ループを実行します。<code>running</code> を <code>false</code> に設定すると早期終了します。</p>
+<h3 id="add_instance"><a class="header" href="#add_instance"><code>add_instance</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_instance(&amp;mut self, attributes: HashSet&lt;String&gt;, label: i8)
+<span class="boring">}</span></code></pre>
+<p>特徴量セットとラベルを持つ単一の学習インスタンスを追加します。</p>
+<h2 id="予測-1"><a class="header" href="#予測-1">予測</a></h2>
+<h3 id="predict"><a class="header" href="#predict"><code>predict</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn predict(&amp;self, attributes: HashSet&lt;String&gt;) -&gt; i8
+<span class="boring">}</span></code></pre>
+<p>与えられた特徴量セットに対してラベルを予測します。<code>+1</code>（境界）または <code>-1</code>（非境界）を返します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::collections::HashSet;
+
+let mut attrs = HashSet::new();
+attrs.insert("UW4:は".to_string());
+attrs.insert("UC4:I".to_string());
+// ... その他の特徴量
+
+let label = learner.predict(attrs);
+// label == 1 (境界) or -1 (非境界)
+<span class="boring">}</span></code></pre>
+<h3 id="get_bias"><a class="header" href="#get_bias"><code>get_bias</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_bias(&amp;self) -&gt; f64
+<span class="boring">}</span></code></pre>
+<p>バイアス項を返します: <code>-sum(all model weights) / 2.0</code></p>
+<h2 id="評価"><a class="header" href="#評価">評価</a></h2>
+<h3 id="get_metrics"><a class="header" href="#get_metrics"><code>get_metrics</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_metrics(&amp;self) -&gt; Metrics
+<span class="boring">}</span></code></pre>
+<p>学習データに対する評価メトリクスを算出します。</p>
+<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Metrics {
+    pub accuracy: f64,          // 正解率（パーセント）
+    pub precision: f64,         // 適合率（パーセント）
+    pub recall: f64,            // 再現率（パーセント）
+    pub num_instances: usize,
+    pub true_positives: usize,
+    pub false_positives: usize,
+    pub false_negatives: usize,
+    pub true_negatives: usize,
+}
+<span class="boring">}</span></code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="language"><a class="header" href="#language">Language</a></h1>
+<p><code>Language</code> 列挙型と <code>CharTypePatterns</code> 構造体は、言語固有の動作を定義します。</p>
+<h2 id="language-列挙型-1"><a class="header" href="#language-列挙型-1">Language 列挙型</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Language {
+    #[default]
+    Japanese,
+    Chinese,
+    Korean,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="トレイト"><a class="header" href="#トレイト">トレイト</a></h3>
+<ul>
+<li><code>Default</code> – <code>Language::Japanese</code> を返す</li>
+<li><code>Display</code> – 小文字の名前を返す（<code>"japanese"</code>、<code>"chinese"</code>、<code>"korean"</code>）</li>
+<li><code>FromStr</code> – 完全名または ISO 639-1 コードから解析（大文字・小文字を区別しない）</li>
+</ul>
+<h3 id="パース"><a class="header" href="#パース">パース</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::Language;
+
+// 完全名
+let ja: Language = "japanese".parse().unwrap();
+let zh: Language = "chinese".parse().unwrap();
+let ko: Language = "korean".parse().unwrap();
+
+// ISO 639-1 コード
+let ja: Language = "ja".parse().unwrap();
+let zh: Language = "zh".parse().unwrap();
+let ko: Language = "ko".parse().unwrap();
+
+// 大文字・小文字を区別しない
+let ko: Language = "KOREAN".parse().unwrap();
+
+// 無効な値
+assert!("french".parse::&lt;Language&gt;().is_err());
+<span class="boring">}</span></code></pre>
+<h3 id="char_type_patterns"><a class="header" href="#char_type_patterns"><code>char_type_patterns</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns
+<span class="boring">}</span></code></pre>
+<p>この言語に対応する文字種パターンを作成します。呼び出しのたびに正規表現パターンをコンパイルするため、パフォーマンスのために結果をキャッシュすることを推奨します（<code>Segmenter::new</code> は自動的にキャッシュします）。</p>
+<h2 id="chartypepatterns"><a class="header" href="#chartypepatterns">CharTypePatterns</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct CharTypePatterns {
+    // internal: Vec&lt;(CharMatcher, &amp;'static str)&gt;
+}
+<span class="boring">}</span></code></pre>
+<h3 id="get_type-1"><a class="header" href="#get_type-1"><code>get_type</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+<span class="boring">}</span></code></pre>
+<p>文字をその文字種コードに分類します。一致するパターンがない場合は <code>"O"</code>（その他）を返します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let patterns = Language::Japanese.char_type_patterns();
+assert_eq!(patterns.get_type("あ"), "I");
+assert_eq!(patterns.get_type("漢"), "H");
+assert_eq!(patterns.get_type("@"), "O");
+<span class="boring">}</span></code></pre>
+<h3 id="new"><a class="header" href="#new"><code>new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(patterns: Vec&lt;(Regex, &amp;'static str)&gt;) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>正規表現と文字種コードのペアのリストからパターンを作成します。パターンは順番にチェックされ、最初に一致したものが使用されます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="コーパスの準備"><a class="header" href="#コーパスの準備">コーパスの準備</a></h1>
+<p>良質な学習コーパスは、モデルの精度にとって不可欠です。このガイドでは、コーパスの準備方法を説明します。</p>
+<h2 id="コーパスの形式-1"><a class="header" href="#コーパスの形式-1">コーパスの形式</a></h2>
+<p>コーパスは以下の条件を満たすプレーンテキストファイルである必要があります:</p>
+<ul>
+<li><strong>1行1文</strong></li>
+<li><strong>単語をスペースで区切る</strong></li>
+</ul>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h2 id="コーパスの自動作成"><a class="header" href="#コーパスの自動作成">コーパスの自動作成</a></h2>
+<p>Litsea には、Wikipedia からコーパスを構築するためのヘルパースクリプトが <code>scripts/</code> ディレクトリに用意されています。</p>
+<h3 id="ステップ-1-wikipedia-テキストのダウンロード"><a class="header" href="#ステップ-1-wikipedia-テキストのダウンロード">ステップ 1: Wikipedia テキストのダウンロード</a></h3>
+<pre><code class="language-sh">bash scripts/wikitexts.sh ja   # Japanese
+bash scripts/wikitexts.sh ko   # Korean
+bash scripts/wikitexts.sh zh   # Chinese
+</code></pre>
+<p>このスクリプトは以下の処理を行います:</p>
+<ol>
+<li>Wikipedia API から記事タイトルをダウンロード</li>
+<li>言語固有の基準でフィルタリング</li>
+<li>記事テキストを取得</li>
+<li><code>litsea split-sentences</code> を使用して文に分割</li>
+</ol>
+<h3 id="ステップ-2-lindera-によるトークン化"><a class="header" href="#ステップ-2-lindera-によるトークン化">ステップ 2: Lindera によるトークン化</a></h3>
+<pre><code class="language-sh">bash scripts/corpus.sh ja ./wikitexts_ja.txt ./corpus_ja.txt
+bash scripts/corpus.sh ko ./wikitexts_ko.txt ./corpus_ko.txt
+bash scripts/corpus.sh zh ./wikitexts_zh.txt ./corpus_zh.txt
+</code></pre>
+<p>このスクリプトは <a href="https://github.com/lindera/lindera">Lindera</a> を言語固有の辞書とともに使用します:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>言語</th><th>辞書</th><th>備考</th></tr>
+</thead>
+<tbody>
+<tr><td>日本語</td><td>UniDic</td><td>複合語フィルタ付き</td></tr>
+<tr><td>韓国語</td><td>ko-dic</td><td>韓国語辞書</td></tr>
+<tr><td>中国語</td><td>CC-CEDICT</td><td>中英辞書</td></tr>
+</tbody>
+</table>
+</div>
+<p>出力は <strong>wakati</strong> 形式（スペース区切りのトークン）で、特徴量抽出にそのまま使用できます。</p>
+<h2 id="コーパスの品質に関するヒント"><a class="header" href="#コーパスの品質に関するヒント">コーパスの品質に関するヒント</a></h2>
+<ul>
+<li><strong>多様性</strong> – さまざまな分野のテキストを含める（ニュース、文学、ウェブなど）</li>
+<li><strong>データ量</strong> – 大きなコーパスほど一般的に良いモデルを生成するが、収穫逓減がある</li>
+<li><strong>一貫性</strong> – コーパス全体で一貫したトークン化を確保する</li>
+<li><strong>重複排除</strong> – 偏りを避けるために重複文を除去する</li>
+<li><strong>クリーニング</strong> – HTML タグ、特殊なフォーマット、非テキストコンテンツを除去する</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="特徴量の抽出"><a class="header" href="#特徴量の抽出">特徴量の抽出</a></h1>
+<p>コーパスの準備ができたら、次のステップはモデル学習用の特徴量を抽出することです。</p>
+<h2 id="コマンド"><a class="header" href="#コマンド">コマンド</a></h2>
+<pre><code class="language-sh">litsea extract -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
+</code></pre>
+<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
+<pre><code class="language-sh">litsea extract -l japanese ./corpus.txt ./features.txt
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">Feature extraction completed successfully.
+</code></pre>
+<h2 id="内部処理の仕組み"><a class="header" href="#内部処理の仕組み">内部処理の仕組み</a></h2>
+<pre><code class="language-mermaid">flowchart TD
+    A["Read corpus line by line"] --&gt; B["Split line into words"]
+    B --&gt; C["Build chars, types, and tags arrays"]
+    C --&gt; D["For each character position"]
+    D --&gt; E["Extract 38-42 features"]
+    E --&gt; F["Write label + features to file"]
+</code></pre>
+<ol>
+<li><code>Extractor</code> がコーパスの各行を読み込む</li>
+<li>各文に対して、文字配列・文字種配列・タグ配列を持つ <code>Segmenter</code> コンテキストを作成する</li>
+<li>各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む</li>
+</ol>
+<h2 id="特徴量ファイルの形式"><a class="header" href="#特徴量ファイルの形式">特徴量ファイルの形式</a></h2>
+<p>各行は1つの文字位置を表します:</p>
+<pre><code class="language-text">1	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:は ...
+-1	UP1:U UP2:U UP3:B BP1:UB BP2:BU UW1:B1 UW2:は UW3:テ ...
+</code></pre>
+<ul>
+<li>最初の列: ラベル（<code>1</code> = 境界、<code>-1</code> = 非境界）</li>
+<li>残りの列: 特徴量（タブ区切り）</li>
+</ul>
+<h2 id="ファイルサイズの目安"><a class="header" href="#ファイルサイズの目安">ファイルサイズの目安</a></h2>
+<p>特徴量ファイルは、各文字位置が38-42個の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="モデルの学習"><a class="header" href="#モデルの学習">モデルの学習</a></h1>
+<p>特徴量の抽出が完了したら、AdaBoost を使用してモデルを学習します。</p>
+<h2 id="コマンド-1"><a class="header" href="#コマンド-1">コマンド</a></h2>
+<pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h2 id="基本的な使用例"><a class="header" href="#基本的な使用例">基本的な使用例</a></h2>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+</code></pre>
+<h2 id="学習プロセス"><a class="header" href="#学習プロセス">学習プロセス</a></h2>
+<pre><code class="language-mermaid">flowchart TD
+    A["Initialize features&lt;br/&gt;(read feature names)"] --&gt; B["Initialize instances&lt;br/&gt;(read labels + features)"]
+    B --&gt; C["AdaBoost training loop"]
+    C --&gt; D{"Converged or&lt;br/&gt;max iterations?"}
+    D --&gt;|No| C
+    D --&gt;|Yes| E["Save model"]
+    E --&gt; F["Output metrics"]
+</code></pre>
+<ol>
+<li><strong>特徴量の初期化</strong> – 特徴量ファイルを読み込み、特徴量インデックスを構築する</li>
+<li><strong>インスタンスの初期化</strong> – 再度読み込み、ラベル付きインスタンスと初期重みをロードする</li>
+<li><strong>学習ループ</strong> – 最適な特徴量を反復的に選択し、モデルの重みを更新し、インスタンスの重みを調整する</li>
+<li><strong>モデルの保存</strong> – 非ゼロの特徴量の重みをモデルファイルに書き込む</li>
+<li><strong>メトリクスの出力</strong> – 正解率、適合率、再現率、混同行列を表示する</li>
+</ol>
+<h2 id="ハイパーパラメータ-1"><a class="header" href="#ハイパーパラメータ-1">ハイパーパラメータ</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>パラメータ</th><th>フラグ</th><th>デフォルト値</th><th>ガイダンス</th></tr>
+</thead>
+<tbody>
+<tr><td>閾値</td><td><code>-t</code></td><td>0.01</td><td>0.005 から開始することを推奨。値を低くすると反復回数が増えるが、学習時間も増加する</td></tr>
+<tr><td>反復回数</td><td><code>-i</code></td><td>100</td><td>1000 から開始することを推奨。学習停止時にまだ精度が向上している場合は増やす</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="出力の解釈"><a class="header" href="#出力の解釈">出力の解釈</a></h2>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 94.15% ( 564133 / 599198 )
+  Precision: 95.57% ( 330454 / 345758 )
+  Recall: 94.36% ( 330454 / 350215 )
+  Confusion Matrix:
+    True Positives: 330454
+    False Positives: 15304
+    False Negatives: 19761
+    True Negatives: 233679
+</code></pre>
+<ul>
+<li><strong>Accuracy（正解率）</strong> – 正しい予測の割合（境界と非境界の両方を含む）</li>
+<li><strong>Precision（適合率）</strong> – 境界と予測されたもののうち、実際に正しかった割合</li>
+<li><strong>Recall（再現率）</strong> – 実際の境界のうち、検出できた割合</li>
+<li><strong>True Positives（真陽性）</strong> – 正しく予測された境界</li>
+<li><strong>False Positives（偽陽性）</strong> – 境界がないのに境界と予測されたもの</li>
+<li><strong>False Negatives（偽陰性）</strong> – 見逃された実際の境界</li>
+<li><strong>True Negatives（真陰性）</strong> – 正しく予測された非境界</li>
+</ul>
+<h2 id="途中停止"><a class="header" href="#途中停止">途中停止</a></h2>
+<p>学習中に <strong>Ctrl+C を1回</strong>押すと、現在の状態でモデルを保存して停止します。<strong>Ctrl+C を2回</strong>押すと、保存せずに即時終了します。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="モデルの評価"><a class="header" href="#モデルの評価">モデルの評価</a></h1>
+<p>モデルの品質を理解することは、良好な分割結果を得るために不可欠です。</p>
+<h2 id="メトリクス"><a class="header" href="#メトリクス">メトリクス</a></h2>
+<p><code>train</code> コマンドは学習後に3つの主要なメトリクスを出力します:</p>
+<h3 id="accuracy正解率"><a class="header" href="#accuracy正解率">Accuracy（正解率）</a></h3>
+<pre><code class="language-text">Accuracy = (TP + TN) / Total Instances
+</code></pre>
+<p>すべての文字位置のうち、正しく分類された割合（境界と非境界の両方を含む）です。モデル品質の最も広範な指標です。</p>
+<h3 id="precision適合率"><a class="header" href="#precision適合率">Precision（適合率）</a></h3>
+<pre><code class="language-text">Precision = TP / (TP + FP)
+</code></pre>
+<p>モデルが<strong>予測した</strong>境界のうち、<strong>正しかった</strong>割合です。高い適合率は、誤った境界（過分割）が少ないことを意味します。</p>
+<h3 id="recall再現率"><a class="header" href="#recall再現率">Recall（再現率）</a></h3>
+<pre><code class="language-text">Recall = TP / (TP + FN)
+</code></pre>
+<p><strong>実際の</strong>境界のうち、モデルが<strong>検出した</strong>割合です。高い再現率は、見逃された境界（不足分割）が少ないことを意味します。</p>
+<h2 id="混同行列"><a class="header" href="#混同行列">混同行列</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th></th><th>境界と予測 (+1)</th><th>非境界と予測 (-1)</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>実際の境界</strong></td><td>True Positive (TP)</td><td>False Negative (FN)</td></tr>
+<tr><td><strong>実際の非境界</strong></td><td>False Positive (FP)</td><td>True Negative (TN)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="事前学習済みモデルのベンチマーク"><a class="header" href="#事前学習済みモデルのベンチマーク">事前学習済みモデルのベンチマーク</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>モデル</th><th>正解率</th><th>適合率</th><th>再現率</th><th>学習コーパス</th></tr>
+</thead>
+<tbody>
+<tr><td>japanese.model</td><td>94.15%</td><td>95.57%</td><td>94.36%</td><td>Wikipedia (Lindera UniDic)</td></tr>
+<tr><td>korean.model</td><td>85.08%</td><td>–</td><td>–</td><td>Wikipedia (Lindera ko-dic)</td></tr>
+<tr><td>chinese.model</td><td>80.72%</td><td>–</td><td>–</td><td>Wikipedia (Lindera CC-CEDICT)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="モデル品質の改善"><a class="header" href="#モデル品質の改善">モデル品質の改善</a></h2>
+<p>精度が不十分な場合は、以下を検討してください:</p>
+<ol>
+<li><strong>より多くの学習データ</strong> – より大規模で多様なコーパスを用意する</li>
+<li><strong>閾値を下げる</strong> – <code>-t 0.001</code> を試して、より多くのブースティング反復を許可する</li>
+<li><strong>反復回数を増やす</strong> – <code>-i 5000</code> 以上を試す</li>
+<li><strong>コーパスの品質向上</strong> – 一貫したトークン化とクリーンなテキストを確保する</li>
+<li><strong>再学習</strong> – 既存のモデルから開始し、追加データで学習する（<a href="#モデルの再学習">モデルの再学習</a>を参照）</li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="モデルの再学習"><a class="header" href="#モデルの再学習">モデルの再学習</a></h1>
+<p>既存のモデルに新しいデータで学習を再開することで、モデルを改善できます。</p>
+<h2 id="コマンド-2"><a class="header" href="#コマンド-2">コマンド</a></h2>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
+</code></pre>
+<h2 id="使用例-8"><a class="header" href="#使用例-8">使用例</a></h2>
+<pre><code class="language-sh"># 新しいコーパスから特徴量を抽出
+litsea extract -l japanese ./new_corpus.txt ./new_features.txt
+
+# 既存モデルから再学習
+litsea train -t 0.005 -i 1000 \
+    -m ./resources/japanese.model \
+    ./new_features.txt \
+    ./resources/japanese_v2.model
+</code></pre>
+<h2 id="仕組み-2"><a class="header" href="#仕組み-2">仕組み</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    A["Existing model&lt;br/&gt;(weights)"] --&gt; C["Trainer"]
+    B["New features"] --&gt; C
+    C --&gt; D["Retrained model&lt;br/&gt;(updated weights)"]
+</code></pre>
+<ol>
+<li>Trainer が新しい特徴量ファイルから特徴量とインスタンスを初期化する</li>
+<li><code>-m</code> オプションで既存のモデルの重みを読み込む</li>
+<li>読み込まれた重みを出発点として学習を継続する</li>
+<li>新しいモデルは、学習済みのパターンをすべて引き継ぎつつ、新しいデータで改良される</li>
+</ol>
+<h2 id="ユースケース-1"><a class="header" href="#ユースケース-1">ユースケース</a></h2>
+<ul>
+<li><strong>ドメイン適応</strong> – 汎用モデルをドメイン固有のテキスト（医療、法律など）でファインチューニングする</li>
+<li><strong>段階的な改善</strong> – ゼロから再学習せずに、より多くの学習データを追加する</li>
+<li><strong>エラー修正</strong> – 現在のモデルが誤りを犯す例を使って学習する</li>
+</ul>
+<h2 id="注意事項-1"><a class="header" href="#注意事項-1">注意事項</a></h2>
+<ul>
+<li>出力モデルのパスは入力モデルと同じパスを指定できます（上書き）</li>
+<li><code>-m</code> フラグはファイルパス、<code>file://</code>、<code>http://</code>、<code>https://</code> URI に対応しています</li>
+<li>再学習は既存の重みから開始するため、必要な反復回数が少なくなる場合があります</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="モデルファイル形式-1"><a class="header" href="#モデルファイル形式-1">モデルファイル形式</a></h1>
+<p>Litsea のモデルは、シンプルなプレーンテキストファイルとして保存されます。</p>
+<h2 id="形式の仕様"><a class="header" href="#形式の仕様">形式の仕様</a></h2>
+<pre><code class="language-text">&lt;feature_name&gt;\t&lt;weight&gt;
+&lt;feature_name&gt;\t&lt;weight&gt;
+...
+&lt;bias&gt;
+</code></pre>
+<ul>
+<li>最終行を除く各行は、タブ文字で区切られた<strong>特徴量名</strong>と<strong>重み</strong>を含む</li>
+<li><strong>重みがゼロの特徴量</strong>は、ファイルをコンパクトに保つために省略される</li>
+<li><strong>最終行</strong>はバイアス項を単一の数値として含む</li>
+</ul>
+<h2 id="例"><a class="header" href="#例">例</a></h2>
+<pre><code class="language-text">BC1:IK	0.3456
+BC2:KI	-0.1234
+UW4:は	0.5678
+UC4:I	0.2345
+...
+-0.0891
+</code></pre>
+<h2 id="バイアスの復元"><a class="header" href="#バイアスの復元">バイアスの復元</a></h2>
+<p>モデルの読み込み時に、バイアスは以下の式で復元されます:</p>
+<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(all_feature_weights)
+</code></pre>
+<p>予測時:</p>
+<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0
+score = bias + sum(model[feature] for feature in input_attributes)
+</code></pre>
+<h2 id="ファイルサイズ"><a class="header" href="#ファイルサイズ">ファイルサイズ</a></h2>
+<p>モデルファイルは非常にコンパクトです:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>モデル</th><th>サイズ</th><th>特徴量</th></tr>
+</thead>
+<tbody>
+<tr><td>japanese.model</td><td>約 2.9 KB</td><td>Wikipedia で学習</td></tr>
+<tr><td>korean.model</td><td>約 1.8 KB</td><td>Wikipedia で学習</td></tr>
+<tr><td>chinese.model</td><td>約 1.3 KB</td><td>Wikipedia で学習</td></tr>
+<tr><td>RWCP.model</td><td>約 22 KB</td><td>オリジナルの TinySegmenter</td></tr>
+<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 17 KB</td><td>JEITA コーパス</td></tr>
+</tbody>
+</table>
+</div>
+<p>コンパクトなサイズは Litsea の主要な利点の一つです。モデルはアプリケーションに直接埋め込んだり、最小限のオーバーヘッドで HTTP 経由で配信したりできます。</p>
+<h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
+<ul>
+<li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>
+<li>形式は<strong>決定的</strong>です（特徴量は BTreeMap により整列されます）</li>
+<li>モデルは<strong>前方互換性</strong>があります。入力に含まれるがモデルにない新しい特徴量は、予測時に単純に無視されます</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="リモートモデルの読み込み"><a class="header" href="#リモートモデルの読み込み">リモートモデルの読み込み</a></h1>
+<p>Litsea は、ローカルファイルに加えて HTTP/HTTPS URL からのモデル読み込みに対応しています。</p>
+<h2 id="対応する-uri-スキーム"><a class="header" href="#対応する-uri-スキーム">対応する URI スキーム</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>スキーム</th><th>例</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td>(なし)</td><td><code>./model.model</code></td><td>ローカルファイルパス（デフォルト）</td></tr>
+<tr><td><code>file://</code></td><td><code>file:///path/to/model</code></td><td>明示的な File URI</td></tr>
+<tr><td><code>http://</code></td><td><code>http://example.com/model</code></td><td>HTTP URL</td></tr>
+<tr><td><code>https://</code></td><td><code>https://example.com/model</code></td><td>HTTPS URL</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="cli-での使用"><a class="header" href="#cli-での使用">CLI での使用</a></h2>
+<pre><code class="language-sh">echo "テスト" | litsea segment -l japanese https://example.com/japanese.model
+</code></pre>
+<h2 id="ライブラリでの使用"><a class="header" href="#ライブラリでの使用">ライブラリでの使用</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut learner = AdaBoost::new(0.01, 100);
+
+// ローカルファイル
+learner.load_model("./resources/japanese.model").await?;
+
+// HTTP URL
+learner.load_model("https://example.com/models/japanese.model").await?;
+<span class="boring">}</span></code></pre>
+<h2 id="実装の詳細"><a class="header" href="#実装の詳細">実装の詳細</a></h2>
+<ul>
+<li>HTTP クライアント: <strong>reqwest</strong> + <strong>rustls</strong>（OpenSSL 依存なし）</li>
+<li>カスタム User-Agent: <code>Litsea/&lt;version&gt;</code></li>
+<li><code>load_model</code> メソッドが**非同期（async）**なのは、HTTP 読み込みに非同期ランタイムが必要なため</li>
+<li>CLI では <code>tokio</code> が非同期ランタイムを提供</li>
+</ul>
+<h2 id="wasm-に関する注意事項"><a class="header" href="#wasm-に関する注意事項">WASM に関する注意事項</a></h2>
+<p><code>wasm32</code> ターゲットでは:</p>
+<ul>
+<li><strong>ローカルファイルパスは非対応</strong> – ファイルシステムへのアクセスが利用できない</li>
+<li><strong><code>file://</code> スキームは非対応</strong></li>
+<li><strong>HTTP/HTTPS の読み込みは動作する</strong> – ブラウザの fetch API 経由（reqwest の WASM サポート）</li>
+</ul>
+<p>WASM 環境で実行する場合、ファイルパスの代わりに URL を使用するようエラーメッセージが案内します。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ベンチマーク"><a class="header" href="#ベンチマーク">ベンチマーク</a></h1>
+<p>Litsea には、パフォーマンス測定のための Criterion ベンチマークスイートが含まれています。</p>
+<h2 id="ベンチマークの実行"><a class="header" href="#ベンチマークの実行">ベンチマークの実行</a></h2>
+<pre><code class="language-sh">cargo bench --bench bench
+</code></pre>
+<p>または Makefile を使用:</p>
+<pre><code class="language-sh">make bench
+</code></pre>
+<h2 id="ベンチマークスイート"><a class="header" href="#ベンチマークスイート">ベンチマークスイート</a></h2>
+<p>ベンチマークは <code>litsea/benches/bench.rs</code> で定義されています:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ベンチマーク</th><th>説明</th></tr>
+</thead>
+<tbody>
+<tr><td><code>segment_japanese_short</code></td><td>短い日本語文の分割</td></tr>
+<tr><td><code>segment_japanese_long</code></td><td>坊っちゃんの全文の分割（約 300 KB）</td></tr>
+<tr><td><code>segment_chinese_short</code></td><td>短い中国語文の分割</td></tr>
+<tr><td><code>segment_korean_short</code></td><td>短い韓国語文の分割</td></tr>
+<tr><td><code>get_type_hiragana</code></td><td>文字種分類</td></tr>
+<tr><td><code>add_corpus</code></td><td>学習用コーパスの取り込み</td></tr>
+<tr><td><code>char_type_patterns_japanese</code></td><td>パターンコンパイルのコスト</td></tr>
+<tr><td><code>predict</code></td><td>単一の AdaBoost 予測</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="html-レポート"><a class="header" href="#html-レポート">HTML レポート</a></h2>
+<p>Criterion は、統計情報と比較グラフを含む詳細な HTML レポートを以下の場所に生成します:</p>
+<pre><code class="language-text">target/criterion/report/index.html
+</code></pre>
+<p>ベンチマーク実行後にこのファイルをブラウザで開くと、以下を確認できます:</p>
+<ul>
+<li>信頼区間付きの反復時間</li>
+<li>スループット測定</li>
+<li>前回実行との比較（自動回帰検出）</li>
+</ul>
+<h2 id="結果の解釈"><a class="header" href="#結果の解釈">結果の解釈</a></h2>
+<p>パフォーマンスに影響する主な要因:</p>
+<ul>
+<li><strong>分割処理</strong>は入力長に対して線形（O(n)）</li>
+<li><strong>パターンコンパイル</strong>（正規表現）は最もコストが高い初回処理 – <code>Segmenter::new()</code> がパターンをキャッシュする</li>
+<li>各位置での<strong>予測</strong>は特徴量の数に依存（38-42個、定数）</li>
+<li><strong>モデル読み込み</strong>時間はモデルファイルサイズに比例</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="事前学習済みモデル"><a class="header" href="#事前学習済みモデル">事前学習済みモデル</a></h1>
+<p>Litsea は <code>resources/</code> ディレクトリに複数の事前学習済みモデルを同梱しています。</p>
+<h2 id="モデルカタログ"><a class="header" href="#モデルカタログ">モデルカタログ</a></h2>
+<h3 id="japanesemodel-1"><a class="header" href="#japanesemodel-1">japanese.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>日本語</td></tr>
+<tr><td>学習コーパス</td><td>日本語 Wikipedia 記事</td></tr>
+<tr><td>トークナイザ</td><td>Lindera (UniDic)</td></tr>
+<tr><td>正解率</td><td>94.15%</td></tr>
+<tr><td>適合率</td><td>95.57%</td></tr>
+<tr><td>再現率</td><td>94.36%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 2.9 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="koreanmodel-1"><a class="header" href="#koreanmodel-1">korean.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>韓国語</td></tr>
+<tr><td>学習コーパス</td><td>韓国語 Wikipedia 記事</td></tr>
+<tr><td>トークナイザ</td><td>Lindera (ko-dic)</td></tr>
+<tr><td>正解率</td><td>85.08%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 1.8 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chinesemodel-1"><a class="header" href="#chinesemodel-1">chinese.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>中国語（簡体字・繁体字）</td></tr>
+<tr><td>学習コーパス</td><td>中国語 Wikipedia 記事</td></tr>
+<tr><td>トークナイザ</td><td>Lindera (CC-CEDICT)</td></tr>
+<tr><td>正解率</td><td>80.72%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 1.3 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="rwcpmodel-1"><a class="header" href="#rwcpmodel-1">RWCP.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>日本語</td></tr>
+<tr><td>ソース</td><td>オリジナルの <a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> から抽出</td></tr>
+<tr><td>ライセンス</td><td>BSD 3-Clause (Taku Kudo)</td></tr>
+<tr><td>ファイルサイズ</td><td>約 22 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="jeita_genpaku_chasen_ipadicmodel-1"><a class="header" href="#jeita_genpaku_chasen_ipadicmodel-1">JEITA_Genpaku_ChaSen_IPAdic.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>日本語</td></tr>
+<tr><td>学習コーパス</td><td>JEITA プロジェクト 杉田玄白コーパス</td></tr>
+<tr><td>トークナイザ</td><td>ChaSen with IPAdic</td></tr>
+<tr><td>ファイルサイズ</td><td>約 17 KB</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="モデルの選択"><a class="header" href="#モデルの選択">モデルの選択</a></h2>
+<ul>
+<li><strong>日本語</strong>には、最高精度を求める場合は <code>japanese.model</code> を、オリジナルの TinySegmenter との互換性を重視する場合は <code>RWCP.model</code> を使用</li>
+<li><strong>中国語</strong>には <code>chinese.model</code> を使用</li>
+<li><strong>韓国語</strong>には <code>korean.model</code> を使用</li>
+<li><strong>ドメイン固有</strong>の用途には、<a href="#コーパスの準備">独自モデルの学習</a>または既存モデルの<a href="#モデルの再学習">再学習</a>を検討</li>
+</ul>
+<h2 id="サンプルデータ"><a class="header" href="#サンプルデータ">サンプルデータ</a></h2>
+<p><code>resources/</code> ディレクトリには以下も含まれています:</p>
+<ul>
+<li><strong>bocchan.txt</strong> – 夏目漱石の小説「坊っちゃん」のサンプル日本語コーパス（約 307 KB）。ベンチマークに使用されます。</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ライセンス"><a class="header" href="#ライセンス">ライセンス</a></h1>
+<p>Litsea はデュアルライセンスで配布されています。</p>
+<h2 id="mit-license"><a class="header" href="#mit-license">MIT License</a></h2>
+<p>Litsea のメインコードベースは MIT License の下でライセンスされています:</p>
+<pre><code class="language-text">MIT License
+
+Copyright (c) 2025 Minoru OSUKA
+Copyright (c) 2022 ICHINOSE Shogo
+</code></pre>
+<h2 id="bsd-3-clause-license"><a class="header" href="#bsd-3-clause-license">BSD 3-Clause License</a></h2>
+<p>Taku Kudo 氏が開発したオリジナルのコード（TinySegmenter）は BSD 3-Clause License の下でライセンスされています:</p>
+<pre><code class="language-text">Copyright (c) 2008, Taku Kudo
+All rights reserved.
+</code></pre>
+<h2 id="ライセンス全文"><a class="header" href="#ライセンス全文">ライセンス全文</a></h2>
+<p>完全なライセンス文はリポジトリ内の <a href="https://github.com/mosuka/litsea/blob/main/LICENSE">LICENSE</a> ファイルで確認できます。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+        <script src="mermaid-eefea253.min.js"></script>
+        <script src="mermaid-init-ccf746f1.js"></script>
+
+        <script>
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+
+    </div>
+    </body>
+</html>
