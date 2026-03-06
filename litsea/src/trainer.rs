@@ -1,8 +1,12 @@
+use std::collections::HashSet;
+use std::fs::File;
+use std::io::{self, BufRead};
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use crate::adaboost::{AdaBoost, Metrics};
+use crate::perceptron::{self, AveragedPerceptron};
 
 /// Trainer struct for managing the AdaBoost training process.
 /// It initializes the AdaBoost learner with the specified parameters,
@@ -10,6 +14,13 @@ use crate::adaboost::{AdaBoost, Metrics};
 /// and save the trained model.
 pub struct Trainer {
     learner: AdaBoost,
+}
+
+/// 品詞推定モデル用のトレーナー。
+/// Averaged Perceptronによる多クラス分類の学習を管理する。
+pub struct PosTrainer {
+    learner: AveragedPerceptron,
+    num_epochs: usize,
 }
 
 impl Trainer {
@@ -73,6 +84,62 @@ impl Trainer {
         // Save the trained model to the specified file
         self.learner.save_model(model_path)?;
 
+        Ok(self.learner.get_metrics())
+    }
+}
+
+impl PosTrainer {
+    /// 品詞付き特徴量ファイルからPosTrainerを作成する。
+    ///
+    /// 特徴量ファイルのフォーマット: 各行が "ラベル\t特徴1\t特徴2\t..." 形式。
+    /// ラベルは "B-NOUN", "O" 等のSegmentLabel文字列。
+    ///
+    /// # Arguments
+    /// * `num_epochs` - 学習エポック数
+    /// * `features_path` - 特徴量ファイルのパス
+    pub fn new(num_epochs: usize, features_path: &Path) -> io::Result<Self> {
+        let mut learner = AveragedPerceptron::new();
+
+        let file = File::open(features_path)?;
+        let reader = io::BufReader::new(file);
+
+        for line in reader.lines() {
+            let line = line?;
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let mut parts = line.split('\t');
+            let label = parts.next().ok_or_else(|| {
+                io::Error::new(io::ErrorKind::InvalidData, "Missing label in feature line")
+            })?;
+            let features: HashSet<String> = parts.map(|s| s.to_string()).collect();
+            if features.is_empty() {
+                continue;
+            }
+            learner.add_instance(features, label.to_string());
+        }
+
+        Ok(PosTrainer { learner, num_epochs })
+    }
+
+    /// 既存モデルをURIから読み込む。
+    pub async fn load_model(&mut self, model_uri: &str) -> io::Result<()> {
+        self.learner.load_model(model_uri).await
+    }
+
+    /// モデルを学習して保存する。
+    ///
+    /// # Arguments
+    /// * `running` - 学習中断フラグ
+    /// * `model_path` - モデルの保存先パス
+    pub fn train(
+        &mut self,
+        running: Arc<AtomicBool>,
+        model_path: &Path,
+    ) -> Result<perceptron::Metrics, Box<dyn std::error::Error>> {
+        self.learner.train(self.num_epochs, running);
+        self.learner.save_model(model_path)?;
         Ok(self.learner.get_metrics())
     }
 }
@@ -163,6 +230,53 @@ mod tests {
         assert!(metrics.accuracy >= 0.0);
         assert!(metrics.precision >= 0.0);
         assert!(metrics.recall >= 0.0);
+        Ok(())
+    }
+
+    // --- PosTrainer テスト ---
+
+    fn create_dummy_pos_features_file() -> NamedTempFile {
+        let mut file = NamedTempFile::new().expect("Failed to create temp file");
+        // 品詞付き特徴量ファイル（SegmentLabel形式のラベル）
+        writeln!(file, "B-NOUN\tUW4:猫\tUC4:H").expect("write");
+        writeln!(file, "O\tUW4:は\tUC4:I").expect("write");
+        writeln!(file, "B-VERB\tUW4:食\tUC4:H").expect("write");
+        writeln!(file, "O\tUW4:べ\tUC4:I").expect("write");
+        file
+    }
+
+    #[test]
+    fn test_pos_trainer_new() -> Result<(), Box<dyn std::error::Error>> {
+        let features_file = create_dummy_pos_features_file();
+        let trainer = PosTrainer::new(5, features_file.path())?;
+        assert_eq!(trainer.num_epochs, 5);
+        Ok(())
+    }
+
+    #[test]
+    fn test_pos_trainer_train() -> Result<(), Box<dyn std::error::Error>> {
+        let features_file = create_dummy_pos_features_file();
+        let mut trainer = PosTrainer::new(5, features_file.path())?;
+
+        let model_out = NamedTempFile::new()?;
+        let running = Arc::new(AtomicBool::new(true));
+
+        let metrics = trainer.train(running, model_out.path())?;
+        assert!(metrics.accuracy >= 0.0);
+        assert_eq!(metrics.num_instances, 4);
+        Ok(())
+    }
+
+    #[test]
+    fn test_pos_trainer_train_immediate_stop() -> Result<(), Box<dyn std::error::Error>> {
+        let features_file = create_dummy_pos_features_file();
+        let mut trainer = PosTrainer::new(5, features_file.path())?;
+
+        let model_out = NamedTempFile::new()?;
+        let running = Arc::new(AtomicBool::new(false));
+
+        let metrics = trainer.train(running, model_out.path())?;
+        assert_eq!(metrics.num_instances, 4);
         Ok(())
     }
 }
