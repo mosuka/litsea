@@ -1,6 +1,6 @@
 # Litsea
 
-Litsea is an extremely compact word segmentation software implemented in Rust, inspired by [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) and [TinySegmenterMaker](https://github.com/shogo82148/TinySegmenterMaker). Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries but instead performs segmentation using a compact pre-trained model. It features a fast and safe Rust implementation along with a learner designed to be simple and highly extensible.
+Litsea is an extremely compact word segmentation and POS (Part-of-Speech) tagging software implemented in Rust, inspired by [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) and [TinySegmenterMaker](https://github.com/shogo82148/TinySegmenterMaker). Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries but instead performs segmentation and POS tagging using compact pre-trained models. It features a fast and safe Rust implementation along with learners designed to be simple and highly extensible.
 
 There is a small plant called Litsea cubeba (Aomoji) in the same camphoraceae family as Lindera (Kuromoji). This is the origin of the name Litsea.
 
@@ -105,6 +105,61 @@ The output will look like:
 
 ```text
 Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+```
+
+## How to segment sentences with POS tagging
+
+Use the `--pos` flag with the `segment` command to perform joint word segmentation and POS tagging:
+
+```sh
+echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment --pos -l japanese ./resources/japanese_pos.model
+```
+
+The output will look like:
+
+```text
+Litsea/PROPN は/ADP TinySegmenter/PROPN を/ADP 参考/NOUN に/ADP 開発/VERB さ/AUX れ/AUX た/AUX 、/PUNCT Rust/PROPN で/ADP 実装/VERB さ/AUX れ/AUX た/AUX 極めて/ADV コンパクト/ADJ な/AUX 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+```
+
+## How to convert CoNLL-U files
+
+Use the `convert-conllu` command to convert [Universal Dependencies](https://universaldependencies.org/) CoNLL-U files to Litsea POS corpus format:
+
+```sh
+./target/release/litsea convert-conllu ./ja_gsd-ud-train.conllu ./corpus_pos.txt
+```
+
+The output will look like:
+
+```text
+Converted 7125 sentences.
+```
+
+## How to train POS models
+
+### Step 1: Extract POS features
+
+Use the `--pos` flag with the `extract` command:
+
+```sh
+./target/release/litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
+```
+
+### Step 2: Train the POS model
+
+Use the `--pos` flag with the `train` command. Use `--num-epochs` to set the number of training epochs:
+
+```sh
+./target/release/litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+```
+
+The output from the `train` command is similar to:
+
+```text
+Result Metrics (POS):
+  Accuracy: 98.34% ( 12486 )
+  Macro Precision: 93.21%
+  Macro Recall: 89.45%
 ```
 
 ## Pre-trained models

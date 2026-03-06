@@ -2,15 +2,16 @@
 
 **Litsea** is an extremely compact word segmentation library implemented in Rust, inspired by [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) and [TinySegmenterMaker](https://github.com/shogo82148/TinySegmenterMaker).
 
-Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the **AdaBoost binary classification** algorithm.
+Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the **AdaBoost binary classification** algorithm. Litsea also supports **joint word segmentation and POS (Part-of-Speech) tagging** using the **Averaged Perceptron** multiclass classifier with the [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tagset.
 
 ## Key Features
 
 - **Fast and safe Rust implementation** -- built with Rust's safety guarantees and performance
 - **Compact pre-trained models** -- model files are only a few kilobytes in size
 - **No dictionary dependency** -- segmentation is driven entirely by a statistical model
+- **POS tagging** -- joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron
 - **Multilingual support** -- Japanese, Chinese (Simplified/Traditional), and Korean
-- **Model training capabilities** -- train custom models using AdaBoost with your own corpora
+- **Model training capabilities** -- train custom models using AdaBoost or Averaged Perceptron with your own corpora
 - **Remote model loading** -- load models from HTTP/HTTPS URLs or local files
 - **Simple and extensible API** -- easy to integrate into Rust projects as a library
 
@@ -23,6 +24,13 @@ Input:  "LitseaはRust製です"
          ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
          O O O O B O B O B   ← boundary predictions
 Output: ["Litsea", "は", "Rust製", "です"]
+```
+
+With POS tagging enabled, Litsea performs **joint segmentation and POS tagging** as a multiclass classification problem. Instead of binary boundary/non-boundary labels, each boundary position is labeled with a UPOS tag (e.g., `B-NOUN`, `B-VERB`), producing both word boundaries and POS tags in a single pass:
+
+```text
+Input:  "今日はいい天気ですね。"
+Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
 ## Name Origin

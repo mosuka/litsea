@@ -11,6 +11,7 @@
 - **辞書不要** -- 統計モデルのみで分割を実行
 - **多言語対応** -- 日本語、中国語（簡体字/繁体字）、韓国語
 - **モデル学習機能** -- AdaBoost を使用して独自のコーパスからカスタムモデルを学習可能
+- **品詞推定（POS Tagging）** -- Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定
 - **リモートモデル読み込み** -- HTTP/HTTPS URL またはローカルファイルからモデルを読み込み
 - **シンプルで拡張性の高い API** -- Rust プロジェクトへのライブラリとしての統合が容易
 
@@ -23,6 +24,22 @@ Input:  "LitseaはRust製です"
          ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
          O O O O B O B O B   ← boundary predictions
 Output: ["Litsea", "は", "Rust製", "です"]
+```
+
+### 品詞推定（POS Tagging）
+
+Litsea は単語分割に加えて、**品詞推定**（Part-of-Speech Tagging）もサポートしています。**Averaged Perceptron** 多クラス分類器を使用し、単語分割と品詞推定を同時に（Joint方式で）行います。
+
+各文字位置に対して、18 クラスの **SegmentLabel** を予測します:
+
+- `B-NOUN`, `B-VERB`, ..., `B-X`（17 品詞の境界ラベル）
+- `O`（非境界 = 単語の継続）
+
+品詞タグには [Universal Dependencies](https://universaldependencies.org/) の **UPOS タグセット**（17 品詞）を採用しています。
+
+```text
+Input:  "今日はいい天気ですね。"
+Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
 ## 名前の由来

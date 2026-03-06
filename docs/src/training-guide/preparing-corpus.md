@@ -49,6 +49,47 @@ This script uses [Lindera](https://github.com/lindera/lindera) with language-spe
 
 The output is in **wakati** format (space-separated tokens), ready for feature extraction.
 
+## Preparing a POS Corpus
+
+For POS (Part-of-Speech) tagging, Litsea uses a different corpus format where each word is annotated with its POS tag.
+
+### POS Corpus Format
+
+Each line represents one sentence, with words annotated as `word/POS` pairs separated by spaces:
+
+```text
+これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+```
+
+The POS tags follow the [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tagset with 17 categories: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X.
+
+### Using UD Treebanks as Data Source
+
+[Universal Dependencies (UD)](https://universaldependencies.org/) provides high-quality treebank data in CoNLL-U format for many languages. Litsea includes a converter to transform CoNLL-U files into the POS corpus format.
+
+#### Step 1: Download a UD Treebank
+
+```sh
+git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+```
+
+Available UD Treebanks for supported languages:
+
+| Language | Treebank | Repository |
+|----------|----------|------------|
+| Japanese | UD Japanese-GSD | `UD_Japanese-GSD` |
+| Chinese | UD Chinese-GSD | `UD_Chinese-GSD` |
+| Korean | UD Korean-GSD | `UD_Korean-GSD` |
+
+#### Step 2: Convert CoNLL-U to POS Corpus
+
+```sh
+litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+```
+
+This converts the CoNLL-U format into the `word/POS` format that Litsea expects. Multi-word tokens and empty nodes are automatically handled during conversion.
+
 ## Corpus Quality Tips
 
 - **Diversity** -- Include text from various domains (news, literature, web, etc.)

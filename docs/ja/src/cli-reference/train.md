@@ -69,6 +69,45 @@ litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
     ./new_features.txt ./resources/japanese_v2.model
 ```
 
+## 品詞モデルの学習（`--pos`）
+
+`--pos` フラグを指定すると、Averaged Perceptron による品詞推定モデルを学習します。
+
+### 使い方
+
+```sh
+litsea train --pos [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
+```
+
+### POS 学習固有のオプション
+
+| Option | Default | Description |
+|--------|---------|------------|
+| `--pos` | false | 品詞推定モデル（Averaged Perceptron）を学習する |
+| `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数 |
+
+### 使用例
+
+```sh
+# 品詞モデルの学習（10エポック）
+litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+```
+
+### 出力
+
+学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。
+
+```text
+Result Metrics:
+  Accuracy: 98.34%
+  Macro Precision: 97.87%
+  Macro Recall: 91.67%
+```
+
+### Ctrl+C のハンドリング
+
+AdaBoost と同様に、学習は優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。
+
 ## ハイパーパラメータの調整
 
 | Parameter | 値を小さくした場合の効果 | 値を大きくした場合の効果 |

@@ -9,8 +9,9 @@ use clap::{Args, Parser, Subcommand};
 use litsea::adaboost::AdaBoost;
 use litsea::extractor::Extractor;
 use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
-use litsea::trainer::Trainer;
+use litsea::trainer::{PosTrainer, Trainer};
 use litsea::version;
 
 /// Arguments for the extract command.
@@ -23,6 +24,10 @@ use litsea::version;
 struct ExtractArgs {
     #[arg(short, long, default_value = "japanese")]
     language: String,
+
+    /// 品詞付きコーパスから特徴量を抽出する（コーパスフォーマット: "単語/品詞 単語/品詞 ..."）
+    #[arg(long, default_value = "false")]
+    pos: bool,
 
     corpus_file: PathBuf,
     features_file: PathBuf,
@@ -44,6 +49,14 @@ struct TrainArgs {
     #[arg(short = 'm', long)]
     load_model_uri: Option<String>,
 
+    /// Averaged Perceptronで品詞推定モデルを学習する
+    #[arg(long, default_value = "false")]
+    pos: bool,
+
+    /// 品詞モデル学習時のエポック数
+    #[arg(long, default_value = "10")]
+    num_epochs: usize,
+
     features_file: PathBuf,
     model_file: PathBuf,
 }
@@ -58,7 +71,25 @@ struct SegmentArgs {
     #[arg(short, long, default_value = "japanese")]
     language: String,
 
+    /// 品詞推定付きで分割する（Averaged Perceptronモデルを使用）
+    #[arg(long, default_value = "false")]
+    pos: bool,
+
     model_uri: String,
+}
+
+/// Arguments for the convert-conllu command.
+#[derive(Debug, Args)]
+#[command(
+    author,
+    about = "Convert CoNLL-U file to Litsea POS corpus format",
+    version = version(),
+)]
+struct ConvertConlluArgs {
+    /// CoNLL-Uファイルのパス
+    input_file: PathBuf,
+    /// 出力ファイルのパス（Litseaコーパス形式）
+    output_file: PathBuf,
 }
 
 /// Arguments for the split-sentences command.
@@ -76,6 +107,7 @@ enum Commands {
     Extract(ExtractArgs),
     Train(TrainArgs),
     Segment(SegmentArgs),
+    ConvertConllu(ConvertConlluArgs),
     SplitSentences(SplitSentencesArgs),
 }
 
@@ -106,7 +138,11 @@ fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
         args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
     let mut extractor = Extractor::new(language);
 
-    extractor.extract(args.corpus_file.as_path(), args.features_file.as_path())?;
+    if args.pos {
+        extractor.extract_with_pos(args.corpus_file.as_path(), args.features_file.as_path())?;
+    } else {
+        extractor.extract(args.corpus_file.as_path(), args.features_file.as_path())?;
+    }
 
     eprintln!("Feature extraction completed successfully.");
     Ok(())
@@ -133,41 +169,58 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
         }
     })?;
 
-    let mut trainer =
-        Trainer::new(args.threshold, args.num_iterations, args.features_file.as_path())?;
+    if args.pos {
+        // Averaged Perceptronによる品詞推定モデルの学習
+        let mut trainer = PosTrainer::new(args.num_epochs, args.features_file.as_path())?;
 
-    if let Some(model_uri) = &args.load_model_uri {
-        trainer.load_model(model_uri).await?;
+        if let Some(model_uri) = &args.load_model_uri {
+            trainer.load_model(model_uri).await?;
+        }
+
+        let metrics = trainer.train(running, args.model_file.as_path())?;
+
+        eprintln!("Result Metrics (POS):");
+        eprintln!("  Accuracy: {:.2}% ( {} )", metrics.accuracy, metrics.num_instances);
+        eprintln!("  Macro Precision: {:.2}%", metrics.macro_precision);
+        eprintln!("  Macro Recall: {:.2}%", metrics.macro_recall);
+    } else {
+        // 既存のAdaBoostによる単語分割モデルの学習
+        let mut trainer =
+            Trainer::new(args.threshold, args.num_iterations, args.features_file.as_path())?;
+
+        if let Some(model_uri) = &args.load_model_uri {
+            trainer.load_model(model_uri).await?;
+        }
+
+        let metrics = trainer.train(running, args.model_file.as_path())?;
+
+        eprintln!("Result Metrics:");
+        eprintln!(
+            "  Accuracy: {:.2}% ( {} / {} )",
+            metrics.accuracy,
+            metrics.true_positives + metrics.true_negatives,
+            metrics.num_instances
+        );
+        eprintln!(
+            "  Precision: {:.2}% ( {} / {} )",
+            metrics.precision,
+            metrics.true_positives,
+            metrics.true_positives + metrics.false_positives
+        );
+        eprintln!(
+            "  Recall: {:.2}% ( {} / {} )",
+            metrics.recall,
+            metrics.true_positives,
+            metrics.true_positives + metrics.false_negatives
+        );
+        eprintln!(
+            "  Confusion Matrix:\n    True Positives: {}\n    False Positives: {}\n    False Negatives: {}\n    True Negatives: {}",
+            metrics.true_positives,
+            metrics.false_positives,
+            metrics.false_negatives,
+            metrics.true_negatives
+        );
     }
-
-    let metrics = trainer.train(running, args.model_file.as_path())?;
-
-    eprintln!("Result Metrics:");
-    eprintln!(
-        "  Accuracy: {:.2}% ( {} / {} )",
-        metrics.accuracy,
-        metrics.true_positives + metrics.true_negatives,
-        metrics.num_instances
-    );
-    eprintln!(
-        "  Precision: {:.2}% ( {} / {} )",
-        metrics.precision,
-        metrics.true_positives,
-        metrics.true_positives + metrics.false_positives
-    );
-    eprintln!(
-        "  Recall: {:.2}% ( {} / {} )",
-        metrics.recall,
-        metrics.true_positives,
-        metrics.true_positives + metrics.false_negatives
-    );
-    eprintln!(
-        "  Confusion Matrix:\n    True Positives: {}\n    False Positives: {}\n    False Negatives: {}\n    True Negatives: {}",
-        metrics.true_positives,
-        metrics.false_positives,
-        metrics.false_negatives,
-        metrics.true_negatives
-    );
 
     Ok(())
 }
@@ -185,25 +238,58 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
 async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     let language: Language =
         args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
-    // AdaBoost parameters are not used for prediction; only the loaded model weights matter.
-    let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model(args.model_uri.as_str()).await?;
 
-    let segmenter = Segmenter::new(language, Some(learner));
     let stdin = io::stdin();
     let stdout = io::stdout();
     let mut writer = io::BufWriter::new(stdout.lock());
 
-    for line in stdin.lock().lines() {
-        let line = line?;
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
+    if args.pos {
+        // Averaged Perceptronモデルで品詞推定付き分割
+        let mut pos_learner = AveragedPerceptron::new();
+        pos_learner.load_model(args.model_uri.as_str()).await?;
+
+        let segmenter = Segmenter::with_pos_learner(language, pos_learner);
+
+        for line in stdin.lock().lines() {
+            let line = line?;
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let tokens = segmenter.segment_with_pos(line);
+            let formatted: Vec<String> =
+                tokens.iter().map(|(word, pos)| format!("{}/{}", word, pos)).collect();
+            writeln!(writer, "{}", formatted.join(" "))?;
         }
-        let tokens = segmenter.segment(line);
-        writeln!(writer, "{}", tokens.join(" "))?;
+    } else {
+        // 既存のAdaBoostモデルで単語分割のみ
+        let mut learner = AdaBoost::new(0.01, 100);
+        learner.load_model(args.model_uri.as_str()).await?;
+
+        let segmenter = Segmenter::new(language, Some(learner));
+
+        for line in stdin.lock().lines() {
+            let line = line?;
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+            let tokens = segmenter.segment(line);
+            writeln!(writer, "{}", tokens.join(" "))?;
+        }
     }
 
+    Ok(())
+}
+
+/// CoNLL-UファイルをLitsea品詞コーパス形式に変換する。
+///
+/// # Arguments
+/// * `args` - convert-conlluコマンドの引数 [`ConvertConlluArgs`]
+fn convert_conllu_cmd(args: ConvertConlluArgs) -> Result<(), Box<dyn Error>> {
+    let count =
+        litsea::conllu::convert_conllu(args.input_file.as_path(), args.output_file.as_path())?;
+    eprintln!("Converted {} sentences.", count);
     Ok(())
 }
 
@@ -255,6 +341,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Extract(args) => extract(args),
         Commands::Train(args) => train(args).await,
         Commands::Segment(args) => segment(args).await,
+        Commands::ConvertConllu(args) => convert_conllu_cmd(args),
         Commands::SplitSentences(args) => split_sentences(args),
     }
 }
