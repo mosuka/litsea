@@ -22,6 +22,7 @@
 # Algorithm
 
 - [AdaBoost Binary Classification](algorithm/adaboost.md)
+- [Averaged Perceptron](algorithm/averaged-perceptron.md)
 - [Feature Extraction](algorithm/feature-extraction.md)
 - [Character Type Classification](algorithm/character-type-classification.md)
 - [Prediction Pipeline](algorithm/prediction-pipeline.md)
@@ -44,6 +45,7 @@
 - [extract](cli-reference/extract.md)
 - [train](cli-reference/train.md)
 - [segment](cli-reference/segment.md)
+- [convert-conllu](cli-reference/convert-conllu.md)
 - [split-sentences](cli-reference/split-sentences.md)
 
 ---
@@ -55,6 +57,9 @@
 - [Extractor](library-api/extractor.md)
 - [Trainer](library-api/trainer.md)
 - [AdaBoost](library-api/adaboost.md)
+- [Averaged Perceptron](library-api/averaged-perceptron.md)
+- [UPOS](library-api/upos.md)
+- [CoNLL-U Converter](library-api/conllu.md)
 - [Language](library-api/language.md)
 
 ---

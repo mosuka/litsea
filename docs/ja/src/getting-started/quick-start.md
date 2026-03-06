@@ -31,6 +31,21 @@ echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.mod
 echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
 ```
 
+### 品詞推定付き分割
+
+`--pos` フラグを付けると、単語分割と同時に UPOS 品詞タグを推定します:
+
+```sh
+echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+```
+
+出力:
+
+```text
+今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+```
+
 ### 文分割
 
 Unicode UAX #29 規則を使用してテキストを文に分割します:
@@ -68,6 +83,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tokens = segmenter.segment("これはテストです。");
     println!("{}", tokens.join(" "));
     // Output: これ は テスト です 。
+
+    Ok(())
+}
+```
+
+## ライブラリ クイックスタート（品詞推定）
+
+品詞推定付きモデルを読み込み、単語分割と品詞推定を同時に行う例です:
+
+```rust
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // POS モデルを読み込み
+    let mut pos_learner = AveragedPerceptron::new();
+    pos_learner.load_model("./resources/japanese_pos.model").await?;
+
+    // POS 対応 Segmenter を作成
+    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+
+    // 品詞推定付き分割
+    let tokens = segmenter.segment_with_pos("これはテストです。");
+    for (word, pos) in &tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
 
     Ok(())
 }

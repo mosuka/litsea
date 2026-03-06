@@ -31,6 +31,23 @@ echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.mod
 echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
 ```
 
+### POS Tagging
+
+Litsea can perform joint word segmentation and POS tagging using a POS model. Add the `--pos` flag to the `segment` command:
+
+```sh
+echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+```
+
+Output:
+
+```text
+今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+```
+
+Each token is annotated with a [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tag.
+
 ### Splitting Sentences
 
 Split text into sentences using Unicode UAX #29 rules:
@@ -68,6 +85,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tokens = segmenter.segment("これはテストです。");
     println!("{}", tokens.join(" "));
     // Output: これ は テスト です 。
+
+    Ok(())
+}
+```
+
+### POS Tagging with the Library
+
+Here is a minimal Rust program that loads a POS model and segments text with POS tags:
+
+```rust
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load the pre-trained POS model
+    let mut pos_learner = AveragedPerceptron::new();
+    pos_learner.load_model("./resources/japanese_pos.model").await?;
+
+    // Create a segmenter with POS support
+    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+
+    // Segment text with POS tags
+    let tokens = segmenter.segment_with_pos("今日はいい天気ですね。");
+    for (word, pos) in &tokens {
+        print!("{}/{} ", word, pos);
+    }
+    // Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 
     Ok(())
 }

@@ -1,6 +1,16 @@
 # Litsea
 
-Litsea is an extremely compact word segmentation software implemented in Rust, inspired by [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) and [TinySegmenterMaker](https://github.com/shogo82148/TinySegmenterMaker). Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries but instead performs segmentation using a compact pre-trained model. It features a fast and safe Rust implementation along with a learner designed to be simple and highly extensible.
+Litsea is an extremely compact word segmentation and POS (Part-of-Speech) tagging software implemented in Rust, inspired by [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) and [TinySegmenterMaker](https://github.com/shogo82148/TinySegmenterMaker). Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries but instead performs segmentation and POS tagging using compact pre-trained models. It features a fast and safe Rust implementation along with learners designed to be simple and highly extensible.
+
+The library provides the following key modules:
+
+- `segmenter` — Word segmentation (AdaBoost) and joint segmentation + POS tagging (Averaged Perceptron)
+- `extractor` — Feature extraction from corpora (with or without POS annotations)
+- `adaboost` — AdaBoost binary classifier for word boundary detection
+- `perceptron` — Averaged Perceptron for POS tagging
+- `upos` — UPOS (Universal POS) tagset enum (17 tags from [Universal Dependencies](https://universaldependencies.org/u/pos/))
+- `conllu` — CoNLL-U file parser and converter for UD Treebank data
+- `language` — Language enum (Japanese, Korean, Chinese)
 
 There is a small plant called Litsea cubeba (Aomoji) in the same camphoraceae family as Lindera (Kuromoji). This is the origin of the name Litsea.
 
@@ -106,6 +116,29 @@ The output will look like:
 ```text
 Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```
+
+## How to segment sentences with POS tagging
+
+Use `Segmenter::with_pos_learner()` and `segment_with_pos()` for joint word segmentation and POS tagging:
+
+```rust
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+// Load an Averaged Perceptron POS model
+let mut pos_learner = AveragedPerceptron::new();
+// pos_learner.load_model("./resources/japanese_pos.model").await?;
+
+let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+
+let tokens = segmenter.segment_with_pos("これはテストです。");
+for (word, pos) in &tokens {
+    println!("{}/{}", word, pos);
+}
+```
+
+The result is a `Vec<(String, Upos)>` where each element is a word paired with its UPOS tag (e.g., `NOUN`, `VERB`, `ADP`, `PUNCT`).
 
 ## Pre-trained models
 

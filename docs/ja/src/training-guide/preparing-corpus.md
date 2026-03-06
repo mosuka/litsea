@@ -49,6 +49,47 @@ bash scripts/corpus.sh zh ./wikitexts_zh.txt ./corpus_zh.txt
 
 出力は **wakati** 形式（スペース区切りのトークン）で、特徴量抽出にそのまま使用できます。
 
+## 品詞付きコーパスの準備
+
+品詞推定（POS Tagging）を行う場合、Litsea では各単語に品詞タグを付与した形式のコーパスを使用します。
+
+### 品詞付きコーパスの形式
+
+1行1文で、各単語を `単語/品詞` の形式でスペース区切りに記述します:
+
+```text
+これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+```
+
+品詞タグは [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) タグセットに準拠し、17カテゴリで構成されます: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X。
+
+### UD Treebanks をデータソースとして使用
+
+[Universal Dependencies (UD)](https://universaldependencies.org/) は、多くの言語に対して CoNLL-U 形式の高品質なツリーバンクデータを提供しています。Litsea には CoNLL-U ファイルを品詞付きコーパス形式に変換するコンバーターが含まれています。
+
+#### ステップ 1: UD Treebank のダウンロード
+
+```sh
+git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+```
+
+サポート言語で利用可能な UD Treebanks:
+
+| 言語 | ツリーバンク | リポジトリ |
+|----------|----------|------------|
+| 日本語 | UD Japanese-GSD | `UD_Japanese-GSD` |
+| 中国語 | UD Chinese-GSD | `UD_Chinese-GSD` |
+| 韓国語 | UD Korean-GSD | `UD_Korean-GSD` |
+
+#### ステップ 2: CoNLL-U から品詞付きコーパスに変換
+
+```sh
+litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+```
+
+このコマンドは CoNLL-U 形式を Litsea が期待する `単語/品詞` 形式に変換します。複合語トークンや空ノードは変換時に自動的に処理されます。
+
 ## コーパスの品質に関するヒント
 
 - **多様性** -- さまざまな分野のテキストを含める（ニュース、文学、ウェブなど）

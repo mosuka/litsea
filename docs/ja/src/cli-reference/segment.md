@@ -64,6 +64,35 @@ echo "テスト文です。" \
   | litsea segment -l japanese https://example.com/models/japanese.model
 ```
 
+## 品詞推定付き分割（`--pos`）
+
+`--pos` フラグを指定すると、Averaged Perceptron モデルを使用して単語分割と品詞推定を同時に行います。
+
+### 使い方
+
+```sh
+echo "text" | litsea segment --pos [OPTIONS] <MODEL_URI>
+```
+
+### 出力形式
+
+各単語が `単語/品詞` の形式で出力されます。品詞は UPOS タグセットに準拠します。
+
+```sh
+echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+```
+
+```text
+今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+```
+
+### ファイルの処理
+
+```sh
+cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model > output.txt
+```
+
 ## 注意事項
 
 - `--language` フラグは、モデルが学習された言語と一致する必要があります

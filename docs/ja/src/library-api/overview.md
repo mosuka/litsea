@@ -20,12 +20,18 @@ graph LR
     G["litsea::extractor"] --- H["Extractor"]
     I["litsea::trainer"] --- J["Trainer"]
     K["litsea::util"] --- L["ModelScheme"]
+    M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
+    O["litsea::upos"] --- P["Upos, SegmentLabel"]
+    Q["litsea::conllu"] --- R["convert_conllu"]
 ```
 
 | モジュール | 主要な型 | 用途 |
 |--------|--------------|---------|
-| `litsea::segmenter` | `Segmenter` | 単語分割 |
+| `litsea::segmenter` | `Segmenter` | 単語分割、品詞推定付き分割 |
 | `litsea::adaboost` | `AdaBoost`, `Metrics` | 二値分類、モデルの入出力 |
+| `litsea::perceptron` | `AveragedPerceptron`, `Metrics` | 多クラス分類（品詞推定）、モデルの入出力 |
+| `litsea::upos` | `Upos`, `SegmentLabel` | UPOS 品詞タグ、セグメントラベル |
+| `litsea::conllu` | `convert_conllu` | CoNLL-U 形式の変換 |
 | `litsea::language` | `Language`, `CharTypePatterns` | 言語定義、文字分類 |
 | `litsea::extractor` | `Extractor` | コーパスからの特徴量抽出 |
 | `litsea::trainer` | `Trainer` | 学習パイプラインの制御 |
@@ -47,6 +53,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tokens = segmenter.segment("これはテストです。");
 
     assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
+    Ok(())
+}
+```
+
+## クイックスタート（品詞推定）
+
+```rust
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut pos_learner = AveragedPerceptron::new();
+    pos_learner.load_model("./resources/japanese_pos.model").await?;
+
+    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let tokens = segmenter.segment_with_pos("これはテストです。");
+
+    for (word, pos) in &tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
+
     Ok(())
 }
 ```

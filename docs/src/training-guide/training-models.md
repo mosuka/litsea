@@ -64,3 +64,51 @@ Result Metrics:
 ## Graceful Interruption
 
 Press **Ctrl+C once** during training to stop and save the model at its current state. Press **Ctrl+C twice** to exit immediately without saving.
+
+## POS Model Training
+
+For training POS tagging models, use the `--pos` flag. POS models use the **Averaged Perceptron** algorithm (multiclass classifier) instead of AdaBoost (binary classifier).
+
+### POS Training Command
+
+```sh
+litsea train --pos --num-epochs 10 <FEATURES_FILE> <MODEL_FILE>
+```
+
+### POS Training Example
+
+```sh
+litsea train --pos --num-epochs 10 ./features.txt ./resources/japanese_pos.model
+```
+
+### Averaged Perceptron vs AdaBoost
+
+| Aspect | AdaBoost (Segmentation) | Averaged Perceptron (POS) |
+|--------|------------------------|---------------------------|
+| Classification | Binary (boundary / non-boundary) | Multiclass (18 segment labels) |
+| Labels | `1`, `-1` | `B-NOUN`, `B-VERB`, ..., `O` |
+| Hyperparameters | Threshold, Iterations | Number of epochs |
+| Model size | ~1-22 KB | ~11 MB |
+
+### POS Hyperparameters
+
+| Parameter | Flag | Default | Guidance |
+|-----------|------|---------|----------|
+| Epochs | `--num-epochs` | 10 | Number of passes over the training data. Start with 10 and adjust based on metrics |
+
+### POS Training Output
+
+```text
+Result Metrics:
+  Accuracy: 98.34%
+  Macro Precision: 97.87%
+  Macro Recall: 91.67%
+```
+
+- **Accuracy** -- Percentage of correct predictions across all classes
+- **Macro Precision** -- Average precision across all POS classes
+- **Macro Recall** -- Average recall across all POS classes
+
+### POS Graceful Interruption
+
+Press **Ctrl+C once** during POS training to stop and save the model at its current state. Press **Ctrl+C twice** to exit immediately without saving.

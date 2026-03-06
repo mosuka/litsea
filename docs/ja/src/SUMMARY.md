@@ -22,6 +22,7 @@
 # アルゴリズム
 
 - [AdaBoost 二値分類](algorithm/adaboost.md)
+- [Averaged Perceptron](algorithm/averaged-perceptron.md)
 - [特徴量抽出](algorithm/feature-extraction.md)
 - [文字種分類](algorithm/character-type-classification.md)
 - [予測パイプライン](algorithm/prediction-pipeline.md)
@@ -45,6 +46,7 @@
 - [train](cli-reference/train.md)
 - [segment](cli-reference/segment.md)
 - [split-sentences](cli-reference/split-sentences.md)
+- [convert-conllu](cli-reference/convert-conllu.md)
 
 ---
 
@@ -55,6 +57,9 @@
 - [Extractor](library-api/extractor.md)
 - [Trainer](library-api/trainer.md)
 - [AdaBoost](library-api/adaboost.md)
+- [Averaged Perceptron](library-api/averaged-perceptron.md)
+- [UPOS](library-api/upos.md)
+- [CoNLL-Uコンバーター](library-api/conllu.md)
 - [Language](library-api/language.md)
 
 ---

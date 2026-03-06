@@ -22,6 +22,8 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-t`, `--threshold <THRESHOLD>` | `0.01` | Weak classifier accuracy threshold for early stopping. Lower values allow more iterations |
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | Maximum number of boosting iterations |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | URI of an existing model to resume training from (file path or HTTP/HTTPS URL) |
+| `--pos` | off | Enable POS (Part-of-Speech) training mode using Averaged Perceptron |
+| `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (POS mode only) |
 
 ## Output
 
@@ -75,3 +77,36 @@ litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
 |-----------|---------------------|---------------------|
 | `threshold` | More iterations, potentially higher accuracy, longer training time | Fewer iterations, faster training, may underfit |
 | `num_iterations` | Fewer boosting rounds, smaller model, may underfit | More rounds, larger model, potentially higher accuracy |
+
+## POS Model Training
+
+When the `--pos` flag is specified, `train` uses the **Averaged Perceptron** algorithm instead of AdaBoost. This trains a multiclass classifier for joint word segmentation and POS tagging.
+
+### POS Training Options
+
+| Option | Default | Description |
+|--------|---------|------------|
+| `--pos` | off | Enable POS training mode |
+| `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs |
+
+### POS Training Output
+
+```text
+Result Metrics:
+  Accuracy: 98.34%
+  Macro Precision: 97.87%
+  Macro Recall: 91.67%
+```
+
+### POS Training Example
+
+```sh
+# Train a POS model from POS features
+litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
+```
+
+### POS Hyperparameters
+
+| Parameter | Effect of Decreasing | Effect of Increasing |
+|-----------|---------------------|---------------------|
+| `num_epochs` | Faster training, may underfit | Better accuracy, longer training, may overfit |

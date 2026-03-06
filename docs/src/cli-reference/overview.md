@@ -15,6 +15,7 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 | [`extract`](extract.md) | Extract features from a corpus for training |
 | [`train`](train.md) | Train a word segmentation model |
 | [`segment`](segment.md) | Segment text into words using a trained model |
+| [`convert-conllu`](convert-conllu.md) | Convert CoNLL-U (Universal Dependencies) files to Litsea POS corpus format |
 | [`split-sentences`](split-sentences.md) | Split text into sentences using Unicode UAX #29 |
 
 ## Global Options
@@ -37,3 +38,19 @@ flowchart LR
 2. Extract features: `litsea extract -l japanese corpus.txt features.txt`
 3. Train a model: `litsea train -t 0.005 -i 1000 features.txt model.model`
 4. Segment text: `echo "text" | litsea segment -l japanese model.model`
+
+### POS Tagging Workflow
+
+```mermaid
+flowchart LR
+    A["1. UD Treebank\n(CoNLL-U)"] --> B["2. litsea convert-conllu"]
+    B --> C["3. litsea extract --pos"]
+    C --> D["4. litsea train --pos"]
+    D --> E["5. litsea segment --pos"]
+```
+
+1. Obtain a Universal Dependencies treebank in CoNLL-U format
+2. Convert to Litsea POS corpus: `litsea convert-conllu ud_data.conllu corpus_pos.txt`
+3. Extract POS features: `litsea extract --pos -l japanese corpus_pos.txt features_pos.txt`
+4. Train a POS model: `litsea train --pos -e 10 features_pos.txt model_pos.model`
+5. Segment with POS tags: `echo "text" | litsea segment --pos -l japanese model_pos.model`

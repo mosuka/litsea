@@ -54,11 +54,39 @@ Litsea ships with several pre-trained models in the `resources/` directory.
 | Tokenizer | ChaSen with IPAdic |
 | File Size | ~17 KB |
 
+## POS Tagging Models
+
+### japanese_pos.model
+
+| Property | Value |
+|----------|-------|
+| Language | Japanese |
+| Algorithm | Averaged Perceptron |
+| Training Corpus | UD Japanese-GSD (7,050 sentences) |
+| Epochs | 10 |
+| Accuracy | 98.34% |
+| Macro Precision | 97.87% |
+| Macro Recall | 91.67% |
+| File Size | ~11 MB |
+
+#### Usage
+
+```sh
+echo "これはテストです。" | litsea segment --pos -l japanese resources/japanese_pos.model
+```
+
+Output:
+
+```text
+これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+```
+
 ## Choosing a Model
 
 - For **Japanese**, use `japanese.model` for the best accuracy, or `RWCP.model` for compatibility with the original TinySegmenter
 - For **Chinese**, use `chinese.model`
 - For **Korean**, use `korean.model`
+- For **Japanese POS tagging**, use `japanese_pos.model` for joint word segmentation and POS tagging
 - For **domain-specific** needs, consider [training your own model](training-guide/preparing-corpus.md) or [retraining](training-guide/retraining-models.md) an existing one
 
 ## Sample Data

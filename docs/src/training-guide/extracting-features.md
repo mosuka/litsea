@@ -47,6 +47,42 @@ Each line represents one character position:
 - First column: label (`1` = boundary, `-1` = non-boundary)
 - Remaining columns: features (tab-separated)
 
+## POS Feature Extraction
+
+For POS tagging models, use the `--pos` flag to extract features with POS labels instead of binary boundary labels.
+
+### Command
+
+```sh
+litsea extract --pos -l <LANGUAGE> <CORPUS_FILE> <FEATURES_FILE>
+```
+
+### Example
+
+```sh
+litsea extract --pos -l japanese ./corpus.txt ./features.txt
+```
+
+### POS Labels
+
+When extracting POS features, each character position is labeled with one of 18 segment labels instead of the binary `1`/`-1` labels:
+
+- **B-NOUN**, **B-VERB**, **B-ADJ**, **B-ADP**, **B-ADV**, **B-AUX**, **B-CCONJ**, **B-DET**, **B-INTJ**, **B-NUM**, **B-PART**, **B-PRON**, **B-PROPN**, **B-PUNCT**, **B-SCONJ**, **B-SYM**, **B-X** -- Word boundary with the corresponding POS tag
+- **O** -- Non-boundary (inside a word)
+
+The feature template (character n-grams, type n-grams, etc.) is the same as for standard segmentation -- only the label scheme differs.
+
+### POS Feature File Format
+
+```text
+B-NOUN	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:は ...
+O	UP1:U UP2:U UP3:B BP1:UB BP2:BU UW1:B1 UW2:は UW3:テ ...
+B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
+```
+
+- First column: segment label (e.g., `B-NOUN`, `O`)
+- Remaining columns: features (tab-separated)
+
 ## File Size Expectations
 
 The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings. For a 1 MB corpus, expect a features file of roughly 50-100 MB.

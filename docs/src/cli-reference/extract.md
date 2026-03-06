@@ -20,6 +20,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `--pos` | off | Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input |
 
 ## Corpus Format
 
@@ -60,4 +61,30 @@ Output to stderr on success:
 
 ```text
 Feature extraction completed successfully.
+```
+
+## POS Feature Extraction
+
+When the `--pos` flag is specified, `extract` expects a **POS corpus** instead of a plain word-separated corpus. Each line contains words annotated with UPOS tags in the format `word/POS`:
+
+### POS Corpus Format
+
+```text
+これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
+今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+```
+
+### POS Feature Output Format
+
+In POS mode, the label column uses segment labels (`B-NOUN`, `B-VERB`, ..., `B-X`, `O`) instead of binary `1`/`-1`:
+
+```text
+B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
+O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
+```
+
+### POS Extraction Example
+
+```sh
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
 ```
