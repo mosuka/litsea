@@ -17,8 +17,8 @@ struct Token {
 /// CoNLL-Uフォーマット:
 /// ```text
 /// # text = 太郎は花子が読んでいる本を次郎に渡した。
-/// 1	太郎	太郎	PROPN	_	_	12	nsubj	_	SpaceAfter=No
-/// 2	は	は	ADP	_	_	1	case	_	SpaceAfter=No
+/// 1    太郎    太郎    PROPN    _    _    12    nsubj    _    SpaceAfter=No
+/// 2    は    は    ADP    _    _    1    case    _    SpaceAfter=No
 /// ...
 /// ```
 ///

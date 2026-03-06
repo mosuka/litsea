@@ -49,6 +49,12 @@ pub struct Metrics {
     pub gold_per_class: HashMap<String, usize>,
 }
 
+impl Default for AveragedPerceptron {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AveragedPerceptron {
     /// 新しいAveraged Perceptronインスタンスを作成する。
     pub fn new() -> Self {
