@@ -78,6 +78,20 @@ struct SegmentArgs {
     model_uri: String,
 }
 
+/// Arguments for the convert-conllu command.
+#[derive(Debug, Args)]
+#[command(
+    author,
+    about = "Convert CoNLL-U file to Litsea POS corpus format",
+    version = version(),
+)]
+struct ConvertConlluArgs {
+    /// CoNLL-Uファイルのパス
+    input_file: PathBuf,
+    /// 出力ファイルのパス（Litseaコーパス形式）
+    output_file: PathBuf,
+}
+
 /// Arguments for the split-sentences command.
 #[derive(Debug, Args)]
 #[command(
@@ -93,6 +107,7 @@ enum Commands {
     Extract(ExtractArgs),
     Train(TrainArgs),
     Segment(SegmentArgs),
+    ConvertConllu(ConvertConlluArgs),
     SplitSentences(SplitSentencesArgs),
 }
 
@@ -279,6 +294,19 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// CoNLL-UファイルをLitsea品詞コーパス形式に変換する。
+///
+/// # Arguments
+/// * `args` - convert-conlluコマンドの引数 [`ConvertConlluArgs`]
+fn convert_conllu_cmd(args: ConvertConlluArgs) -> Result<(), Box<dyn Error>> {
+    let count = litsea::conllu::convert_conllu(
+        args.input_file.as_path(),
+        args.output_file.as_path(),
+    )?;
+    eprintln!("Converted {} sentences.", count);
+    Ok(())
+}
+
 /// Split text into sentences using ICU4X SentenceSegmenter (Unicode UAX #29).
 /// This function reads text from standard input (one paragraph per line),
 /// splits each line into sentences, and writes one sentence per line to standard output.
@@ -327,6 +355,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Extract(args) => extract(args),
         Commands::Train(args) => train(args).await,
         Commands::Segment(args) => segment(args).await,
+        Commands::ConvertConllu(args) => convert_conllu_cmd(args),
         Commands::SplitSentences(args) => split_sentences(args),
     }
 }
