@@ -153,12 +153,8 @@ impl AveragedPerceptron {
             .or_insert(0);
         let elapsed = self.step - *last_step;
         if elapsed > 0 {
-            let current_weight = self
-                .weights
-                .get(class)
-                .and_then(|cw| cw.get(feature))
-                .copied()
-                .unwrap_or(0.0);
+            let current_weight =
+                self.weights.get(class).and_then(|cw| cw.get(feature)).copied().unwrap_or(0.0);
             *self
                 .accumulated
                 .entry(class.to_string())
@@ -187,10 +183,7 @@ impl AveragedPerceptron {
                     .copied()
                     .unwrap_or(0.0);
                 let avg = acc / self.step.max(1) as f64;
-                self.weights
-                    .entry(class.to_string())
-                    .or_default()
-                    .insert(feat, avg);
+                self.weights.entry(class.to_string()).or_default().insert(feat, avg);
             }
         }
     }

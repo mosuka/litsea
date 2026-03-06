@@ -120,7 +120,10 @@ impl PosTrainer {
             learner.add_instance(features, label.to_string());
         }
 
-        Ok(PosTrainer { learner, num_epochs })
+        Ok(PosTrainer {
+            learner,
+            num_epochs,
+        })
     }
 
     /// 既存モデルをURIから読み込む。

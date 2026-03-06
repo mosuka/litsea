@@ -420,7 +420,8 @@ impl Segmenter {
         // 先頭単語の品詞を決定: 最初の文字位置で予測
         if result.is_empty() {
             // 文全体が1単語の場合
-            let first_attrs = self.get_attributes(4.min(chars.len().saturating_sub(3)), &tags, &chars, &types);
+            let first_attrs =
+                self.get_attributes(4.min(chars.len().saturating_sub(3)), &tags, &chars, &types);
             let first_label_str = pos_learner.predict(&first_attrs);
             let first_label: SegmentLabel = first_label_str.parse().unwrap_or(SegmentLabel::O);
             current_pos = first_label.pos().unwrap_or(Upos::X);
@@ -829,10 +830,7 @@ mod tests {
 
     #[test]
     fn test_segment_with_pos_empty() {
-        let segmenter = Segmenter::with_pos_learner(
-            Language::Japanese,
-            AveragedPerceptron::new(),
-        );
+        let segmenter = Segmenter::with_pos_learner(Language::Japanese, AveragedPerceptron::new());
         let result = segmenter.segment_with_pos("");
         assert!(result.is_empty());
     }

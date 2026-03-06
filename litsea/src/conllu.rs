@@ -97,10 +97,7 @@ pub fn convert_conllu(input_path: &Path, output_path: &Path) -> Result<usize, Bo
 
 /// 1文をLitseaコーパス形式で書き出す。
 fn write_sentence<W: Write>(writer: &mut W, tokens: &[Token]) -> io::Result<()> {
-    let formatted: Vec<String> = tokens
-        .iter()
-        .map(|t| format!("{}/{}", t.form, t.upos))
-        .collect();
+    let formatted: Vec<String> = tokens.iter().map(|t| format!("{}/{}", t.form, t.upos)).collect();
     writeln!(writer, "{}", formatted.join(" "))
 }
 
@@ -206,10 +203,7 @@ mod tests {
     fn test_convert_conllu_no_trailing_newline() -> Result<(), Box<dyn Error>> {
         let mut input = NamedTempFile::new()?;
         // 末尾に空行がないファイル
-        write!(
-            input,
-            "1\t花\t花\tNOUN\t_\t_\t0\troot\t_\t_"
-        )?;
+        write!(input, "1\t花\t花\tNOUN\t_\t_\t0\troot\t_\t_")?;
         input.as_file().sync_all()?;
 
         let output = NamedTempFile::new()?;

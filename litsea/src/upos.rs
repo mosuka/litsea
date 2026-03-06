@@ -154,7 +154,8 @@ impl FromStr for SegmentLabel {
 impl SegmentLabel {
     /// 全ラベルの一覧を返す（B-ADJ, B-ADP, ..., B-X, O）。
     pub fn all_labels() -> Vec<SegmentLabel> {
-        let mut labels: Vec<SegmentLabel> = Upos::ALL.iter().map(|&pos| SegmentLabel::B(pos)).collect();
+        let mut labels: Vec<SegmentLabel> =
+            Upos::ALL.iter().map(|&pos| SegmentLabel::B(pos)).collect();
         labels.push(SegmentLabel::O);
         labels
     }

@@ -171,8 +171,7 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
 
     if args.pos {
         // Averaged Perceptronによる品詞推定モデルの学習
-        let mut trainer =
-            PosTrainer::new(args.num_epochs, args.features_file.as_path())?;
+        let mut trainer = PosTrainer::new(args.num_epochs, args.features_file.as_path())?;
 
         if let Some(model_uri) = &args.load_model_uri {
             trainer.load_model(model_uri).await?;
@@ -181,18 +180,9 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
         let metrics = trainer.train(running, args.model_file.as_path())?;
 
         eprintln!("Result Metrics (POS):");
-        eprintln!(
-            "  Accuracy: {:.2}% ( {} )",
-            metrics.accuracy, metrics.num_instances
-        );
-        eprintln!(
-            "  Macro Precision: {:.2}%",
-            metrics.macro_precision
-        );
-        eprintln!(
-            "  Macro Recall: {:.2}%",
-            metrics.macro_recall
-        );
+        eprintln!("  Accuracy: {:.2}% ( {} )", metrics.accuracy, metrics.num_instances);
+        eprintln!("  Macro Precision: {:.2}%", metrics.macro_precision);
+        eprintln!("  Macro Recall: {:.2}%", metrics.macro_recall);
     } else {
         // 既存のAdaBoostによる単語分割モデルの学習
         let mut trainer =
@@ -267,10 +257,8 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
                 continue;
             }
             let tokens = segmenter.segment_with_pos(line);
-            let formatted: Vec<String> = tokens
-                .iter()
-                .map(|(word, pos)| format!("{}/{}", word, pos))
-                .collect();
+            let formatted: Vec<String> =
+                tokens.iter().map(|(word, pos)| format!("{}/{}", word, pos)).collect();
             writeln!(writer, "{}", formatted.join(" "))?;
         }
     } else {
@@ -299,10 +287,8 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
 /// # Arguments
 /// * `args` - convert-conlluコマンドの引数 [`ConvertConlluArgs`]
 fn convert_conllu_cmd(args: ConvertConlluArgs) -> Result<(), Box<dyn Error>> {
-    let count = litsea::conllu::convert_conllu(
-        args.input_file.as_path(),
-        args.output_file.as_path(),
-    )?;
+    let count =
+        litsea::conllu::convert_conllu(args.input_file.as_path(), args.output_file.as_path())?;
     eprintln!("Converted {} sentences.", count);
     Ok(())
 }
