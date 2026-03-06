@@ -69,6 +69,32 @@ Litsea ships with several pre-trained models in the `resources/` directory.
 | Macro Recall | 91.67% |
 | File Size | ~11 MB |
 
+### chinese_pos.model
+
+| Property | Value |
+|----------|-------|
+| Language | Chinese (Simplified & Traditional) |
+| Algorithm | Averaged Perceptron |
+| Training Corpus | UD Chinese-GSD (3,997 sentences) |
+| Epochs | 10 |
+| Accuracy | 97.09% |
+| Macro Precision | 97.31% |
+| Macro Recall | 96.23% |
+| File Size | ~19 MB |
+
+### korean_pos.model
+
+| Property | Value |
+|----------|-------|
+| Language | Korean |
+| Algorithm | Averaged Perceptron |
+| Training Corpus | UD Korean-GSD (4,400 sentences) |
+| Epochs | 10 |
+| Accuracy | 95.33% |
+| Macro Precision | 95.30% |
+| Macro Recall | 87.69% |
+| File Size | ~8.4 MB |
+
 #### Usage
 
 ```sh
@@ -86,7 +112,7 @@ Output:
 - For **Japanese**, use `japanese.model` for the best accuracy, or `RWCP.model` for compatibility with the original TinySegmenter
 - For **Chinese**, use `chinese.model`
 - For **Korean**, use `korean.model`
-- For **Japanese POS tagging**, use `japanese_pos.model` for joint word segmentation and POS tagging
+- For **POS tagging**, use the corresponding `*_pos.model` (`japanese_pos.model`, `chinese_pos.model`, `korean_pos.model`) for joint word segmentation and POS tagging
 - For **domain-specific** needs, consider [training your own model](training-guide/preparing-corpus.md) or [retraining](training-guide/retraining-models.md) an existing one
 
 ## Sample Data
