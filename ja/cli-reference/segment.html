@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-df49344a.js";
+            window.path_to_searchindex_js = "../searchindex-04015350.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dbe37805.js"></script>
+        <script src="../toc-fe6f6d22.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -232,6 +232,21 @@
 <p><strong>URLからモデルを読み込み:</strong></p>
 <pre><code class="language-sh">echo "テスト文です。" \
   | litsea segment -l japanese https://example.com/models/japanese.model
+</code></pre>
+<h2 id="品詞推定付き分割--pos"><a class="header" href="#品詞推定付き分割--pos">品詞推定付き分割（<code>--pos</code>）</a></h2>
+<p><code>--pos</code> フラグを指定すると、Averaged Perceptron モデルを使用して単語分割と品詞推定を同時に行います。</p>
+<h3 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h3>
+<pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
+</code></pre>
+<h3 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h3>
+<p>各単語が <code>単語/品詞</code> の形式で出力されます。品詞は UPOS タグセットに準拠します。</p>
+<pre><code class="language-sh">echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+</code></pre>
+<h3 id="ファイルの処理"><a class="header" href="#ファイルの処理">ファイルの処理</a></h3>
+<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model &gt; output.txt
 </code></pre>
 <h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
 <ul>

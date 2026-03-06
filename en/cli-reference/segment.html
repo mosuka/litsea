@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1d16b926.js";
+            window.path_to_searchindex_js = "../searchindex-9ce83e0f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2e92acbd.js"></script>
+        <script src="../toc-3e5df682.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,6 +204,7 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a POS model trained with <code>train --pos</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -233,11 +234,23 @@
 <pre><code class="language-sh">echo "テスト文です。" \
   | litsea segment -l japanese https://example.com/models/japanese.model
 </code></pre>
+<h2 id="pos-tagged-segmentation"><a class="header" href="#pos-tagged-segmentation">POS-Tagged Segmentation</a></h2>
+<p>When the <code>--pos</code> flag is specified, <code>segment</code> outputs each token annotated with its UPOS tag in <code>word/POS</code> format. This requires a POS model trained with <code>train --pos</code>.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-sh">echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+</code></pre>
+<p><strong>Processing a file with POS tags:</strong></p>
+<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model &gt; output.txt
+</code></pre>
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
 <ul>
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
 <li>Model loading is asynchronous and supports HTTP/HTTPS with TLS (rustls)</li>
 <li>The model URI is not restricted to file paths – any valid URL is accepted</li>
+<li>When using <code>--pos</code>, the model must be a POS model trained with <code>train --pos</code></li>
 </ul>
 
                     </main>
@@ -248,7 +261,7 @@
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../cli-reference/split-sentences.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../cli-reference/convert-conllu.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -262,7 +275,7 @@
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../cli-reference/split-sentences.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../cli-reference/convert-conllu.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

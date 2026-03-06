@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-df49344a.js";
+            window.path_to_searchindex_js = "searchindex-04015350.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-dbe37805.js"></script>
+        <script src="toc-fe6f6d22.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -190,6 +190,7 @@
 <li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
 <li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
 <li><strong>モデル学習機能</strong> – AdaBoost を使用して独自のコーパスからカスタムモデルを学習可能</li>
+<li><strong>品詞推定（POS Tagging）</strong> – Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定</li>
 <li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL またはローカルファイルからモデルを読み込み</li>
 <li><strong>シンプルで拡張性の高い API</strong> – Rust プロジェクトへのライブラリとしての統合が容易</li>
 </ul>
@@ -199,6 +200,17 @@
          ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
          O O O O B O B O B   ← boundary predictions
 Output: ["Litsea", "は", "Rust製", "です"]
+</code></pre>
+<h3 id="品詞推定pos-tagging"><a class="header" href="#品詞推定pos-tagging">品詞推定（POS Tagging）</a></h3>
+<p>Litsea は単語分割に加えて、<strong>品詞推定</strong>（Part-of-Speech Tagging）もサポートしています。<strong>Averaged Perceptron</strong> 多クラス分類器を使用し、単語分割と品詞推定を同時に（Joint方式で）行います。</p>
+<p>各文字位置に対して、18 クラスの <strong>SegmentLabel</strong> を予測します:</p>
+<ul>
+<li><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>（17 品詞の境界ラベル）</li>
+<li><code>O</code>（非境界 = 単語の継続）</li>
+</ul>
+<p>品詞タグには <a href="https://universaldependencies.org/">Universal Dependencies</a> の <strong>UPOS タグセット</strong>（17 品詞）を採用しています。</p>
+<pre><code class="language-text">Input:  "今日はいい天気ですね。"
+Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h2 id="名前の由来"><a class="header" href="#名前の由来">名前の由来</a></h2>
 <p>クスノキ科には <em>Lindera</em>（クロモジ）と同じ科に属する <em>Litsea cubeba</em>（アオモジ）という小さな植物があります。これが <strong>Litsea</strong> という名前の由来です。</p>

@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1d16b926.js";
+            window.path_to_searchindex_js = "searchindex-9ce83e0f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2e92acbd.js"></script>
+        <script src="toc-3e5df682.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -258,11 +258,73 @@
 </tbody>
 </table>
 </div>
+<h2 id="pos-tagging-models"><a class="header" href="#pos-tagging-models">POS Tagging Models</a></h2>
+<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>Japanese</td></tr>
+<tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
+<tr><td>Training Corpus</td><td>UD Japanese-GSD (7,050 sentences)</td></tr>
+<tr><td>Epochs</td><td>10</td></tr>
+<tr><td>Accuracy</td><td>98.34%</td></tr>
+<tr><td>Macro Precision</td><td>97.87%</td></tr>
+<tr><td>Macro Recall</td><td>91.67%</td></tr>
+<tr><td>File Size</td><td>~11 MB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>Chinese (Simplified &amp; Traditional)</td></tr>
+<tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
+<tr><td>Training Corpus</td><td>UD Chinese-GSD (3,997 sentences)</td></tr>
+<tr><td>Epochs</td><td>10</td></tr>
+<tr><td>Accuracy</td><td>97.09%</td></tr>
+<tr><td>Macro Precision</td><td>97.31%</td></tr>
+<tr><td>Macro Recall</td><td>96.23%</td></tr>
+<tr><td>File Size</td><td>~19 MB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>Korean</td></tr>
+<tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
+<tr><td>Training Corpus</td><td>UD Korean-GSD (4,400 sentences)</td></tr>
+<tr><td>Epochs</td><td>10</td></tr>
+<tr><td>Accuracy</td><td>95.33%</td></tr>
+<tr><td>Macro Precision</td><td>95.30%</td></tr>
+<tr><td>Macro Recall</td><td>87.69%</td></tr>
+<tr><td>File Size</td><td>~8.4 MB</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="usage"><a class="header" href="#usage">Usage</a></h4>
+<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese resources/japanese_pos.model
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+</code></pre>
 <h2 id="choosing-a-model"><a class="header" href="#choosing-a-model">Choosing a Model</a></h2>
 <ul>
 <li>For <strong>Japanese</strong>, use <code>japanese.model</code> for the best accuracy, or <code>RWCP.model</code> for compatibility with the original TinySegmenter</li>
 <li>For <strong>Chinese</strong>, use <code>chinese.model</code></li>
 <li>For <strong>Korean</strong>, use <code>korean.model</code></li>
+<li>For <strong>POS tagging</strong>, use the corresponding <code>*_pos.model</code> (<code>japanese_pos.model</code>, <code>chinese_pos.model</code>, <code>korean_pos.model</code>) for joint word segmentation and POS tagging</li>
 <li>For <strong>domain-specific</strong> needs, consider <a href="training-guide/preparing-corpus.html">training your own model</a> or <a href="training-guide/retraining-models.html">retraining</a> an existing one</li>
 </ul>
 <h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>

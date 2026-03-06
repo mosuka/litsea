@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-df49344a.js";
+            window.path_to_searchindex_js = "../searchindex-04015350.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dbe37805.js"></script>
+        <script src="../toc-fe6f6d22.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,6 +195,9 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
     G["litsea::extractor"] --- H["Extractor"]
     I["litsea::trainer"] --- J["Trainer"]
     K["litsea::util"] --- L["ModelScheme"]
+    M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
+    O["litsea::upos"] --- P["Upos, SegmentLabel"]
+    Q["litsea::conllu"] --- R["convert_conllu"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -202,8 +205,11 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 <tr><th>モジュール</th><th>主要な型</th><th>用途</th></tr>
 </thead>
 <tbody>
-<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>単語分割</td></tr>
+<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>単語分割、品詞推定付き分割</td></tr>
 <tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code>, <code>Metrics</code></td><td>二値分類、モデルの入出力</td></tr>
+<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code>, <code>Metrics</code></td><td>多クラス分類（品詞推定）、モデルの入出力</td></tr>
+<tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS 品詞タグ、セグメントラベル</td></tr>
+<tr><td><code>litsea::conllu</code></td><td><code>convert_conllu</code></td><td>CoNLL-U 形式の変換</td></tr>
 <tr><td><code>litsea::language</code></td><td><code>Language</code>, <code>CharTypePatterns</code></td><td>言語定義、文字分類</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>コーパスからの特徴量抽出</td></tr>
 <tr><td><code>litsea::trainer</code></td><td><code>Trainer</code></td><td>学習パイプラインの制御</td></tr>
@@ -227,6 +233,26 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
     Ok(())
 }</code></pre>
+<h2 id="クイックスタート品詞推定"><a class="header" href="#クイックスタート品詞推定">クイックスタート（品詞推定）</a></h2>
+<pre class="playground"><code class="language-rust">use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut pos_learner = AveragedPerceptron::new();
+    pos_learner.load_model("./resources/japanese_pos.model").await?;
+
+    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let tokens = segmenter.segment_with_pos("これはテストです。");
+
+    for (word, pos) in &amp;tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
+
+    Ok(())
+}</code></pre>
 <h2 id="api-ドキュメント"><a class="header" href="#api-ドキュメント">API ドキュメント</a></h2>
 <p>完全な API ドキュメントは <a href="https://docs.rs/litsea">docs.rs/litsea</a> で参照できます。</p>
 
@@ -234,7 +260,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../cli-reference/split-sentences.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../cli-reference/convert-conllu.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -248,7 +274,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../cli-reference/split-sentences.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../cli-reference/convert-conllu.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

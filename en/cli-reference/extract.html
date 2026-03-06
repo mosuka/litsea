@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1d16b926.js";
+            window.path_to_searchindex_js = "../searchindex-9ce83e0f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2e92acbd.js"></script>
+        <script src="../toc-3e5df682.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -205,6 +205,7 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input</td></tr>
 </tbody>
 </table>
 </div>
@@ -235,6 +236,20 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 </code></pre>
 <p>Output to stderr on success:</p>
 <pre><code class="language-text">Feature extraction completed successfully.
+</code></pre>
+<h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
+<p>When the <code>--pos</code> flag is specified, <code>extract</code> expects a <strong>POS corpus</strong> instead of a plain word-separated corpus. Each line contains words annotated with UPOS tags in the format <code>word/POS</code>:</p>
+<h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
+<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
+今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+</code></pre>
+<h3 id="pos-feature-output-format"><a class="header" href="#pos-feature-output-format">POS Feature Output Format</a></h3>
+<p>In POS mode, the label column uses segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>) instead of binary <code>1</code>/<code>-1</code>:</p>
+<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
+O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
+</code></pre>
+<h3 id="pos-extraction-example"><a class="header" href="#pos-extraction-example">POS Extraction Example</a></h3>
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
 </code></pre>
 
                     </main>

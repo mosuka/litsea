@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1d16b926.js";
+            window.path_to_searchindex_js = "../searchindex-9ce83e0f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2e92acbd.js"></script>
+        <script src="../toc-3e5df682.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -238,6 +238,52 @@
 </ul>
 <h2 id="graceful-interruption"><a class="header" href="#graceful-interruption">Graceful Interruption</a></h2>
 <p>Press <strong>Ctrl+C once</strong> during training to stop and save the model at its current state. Press <strong>Ctrl+C twice</strong> to exit immediately without saving.</p>
+<h2 id="pos-model-training"><a class="header" href="#pos-model-training">POS Model Training</a></h2>
+<p>For training POS tagging models, use the <code>--pos</code> flag. POS models use the <strong>Averaged Perceptron</strong> algorithm (multiclass classifier) instead of AdaBoost (binary classifier).</p>
+<h3 id="pos-training-command"><a class="header" href="#pos-training-command">POS Training Command</a></h3>
+<pre><code class="language-sh">litsea train --pos --num-epochs 10 &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
+<pre><code class="language-sh">litsea train --pos --num-epochs 10 ./features.txt ./resources/japanese_pos.model
+</code></pre>
+<h3 id="averaged-perceptron-vs-adaboost"><a class="header" href="#averaged-perceptron-vs-adaboost">Averaged Perceptron vs AdaBoost</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Aspect</th><th>AdaBoost (Segmentation)</th><th>Averaged Perceptron (POS)</th></tr>
+</thead>
+<tbody>
+<tr><td>Classification</td><td>Binary (boundary / non-boundary)</td><td>Multiclass (18 segment labels)</td></tr>
+<tr><td>Labels</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
+<tr><td>Hyperparameters</td><td>Threshold, Iterations</td><td>Number of epochs</td></tr>
+<tr><td>Model size</td><td>~1-22 KB</td><td>~11 MB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Flag</th><th>Default</th><th>Guidance</th></tr>
+</thead>
+<tbody>
+<tr><td>Epochs</td><td><code>--num-epochs</code></td><td>10</td><td>Number of passes over the training data. Start with 10 and adjust based on metrics</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="pos-training-output"><a class="header" href="#pos-training-output">POS Training Output</a></h3>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 98.34%
+  Macro Precision: 97.87%
+  Macro Recall: 91.67%
+</code></pre>
+<ul>
+<li><strong>Accuracy</strong> – Percentage of correct predictions across all classes</li>
+<li><strong>Macro Precision</strong> – Average precision across all POS classes</li>
+<li><strong>Macro Recall</strong> – Average recall across all POS classes</li>
+</ul>
+<h3 id="pos-graceful-interruption"><a class="header" href="#pos-graceful-interruption">POS Graceful Interruption</a></h3>
+<p>Press <strong>Ctrl+C once</strong> during POS training to stop and save the model at its current state. Press <strong>Ctrl+C twice</strong> to exit immediately without saving.</p>
 
                     </main>
 

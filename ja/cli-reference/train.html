@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-df49344a.js";
+            window.path_to_searchindex_js = "../searchindex-04015350.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dbe37805.js"></script>
+        <script src="../toc-fe6f6d22.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -240,6 +240,36 @@
 <pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
     ./new_features.txt ./resources/japanese_v2.model
 </code></pre>
+<h2 id="品詞モデルの学習--pos"><a class="header" href="#品詞モデルの学習--pos">品詞モデルの学習（<code>--pos</code>）</a></h2>
+<p><code>--pos</code> フラグを指定すると、Averaged Perceptron による品詞推定モデルを学習します。</p>
+<h3 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h3>
+<pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h3 id="pos-学習固有のオプション"><a class="header" href="#pos-学習固有のオプション">POS 学習固有のオプション</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--pos</code></td><td>false</td><td>品詞推定モデル（Averaged Perceptron）を学習する</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h3>
+<pre><code class="language-sh"># 品詞モデルの学習（10エポック）
+litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+</code></pre>
+<h3 id="出力-1"><a class="header" href="#出力-1">出力</a></h3>
+<p>学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。</p>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 98.34%
+  Macro Precision: 97.87%
+  Macro Recall: 91.67%
+</code></pre>
+<h3 id="ctrlc-のハンドリング-1"><a class="header" href="#ctrlc-のハンドリング-1">Ctrl+C のハンドリング</a></h3>
+<p>AdaBoost と同様に、学習は優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。</p>
 <h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
 <div class="table-wrapper">
 <table>

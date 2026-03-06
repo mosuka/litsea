@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-df49344a.js";
+            window.path_to_searchindex_js = "../searchindex-04015350.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dbe37805.js"></script>
+        <script src="../toc-fe6f6d22.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -224,6 +224,36 @@ bash scripts/corpus.sh zh ./wikitexts_zh.txt ./corpus_zh.txt
 </table>
 </div>
 <p>出力は <strong>wakati</strong> 形式（スペース区切りのトークン）で、特徴量抽出にそのまま使用できます。</p>
+<h2 id="品詞付きコーパスの準備"><a class="header" href="#品詞付きコーパスの準備">品詞付きコーパスの準備</a></h2>
+<p>品詞推定（POS Tagging）を行う場合、Litsea では各単語に品詞タグを付与した形式のコーパスを使用します。</p>
+<h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>
+<p>1行1文で、各単語を <code>単語/品詞</code> の形式でスペース区切りに記述します:</p>
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+</code></pre>
+<p>品詞タグは <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットに準拠し、17カテゴリで構成されます: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X。</p>
+<h3 id="ud-treebanks-をデータソースとして使用"><a class="header" href="#ud-treebanks-をデータソースとして使用">UD Treebanks をデータソースとして使用</a></h3>
+<p><a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> は、多くの言語に対して CoNLL-U 形式の高品質なツリーバンクデータを提供しています。Litsea には CoNLL-U ファイルを品詞付きコーパス形式に変換するコンバーターが含まれています。</p>
+<h4 id="ステップ-1-ud-treebank-のダウンロード"><a class="header" href="#ステップ-1-ud-treebank-のダウンロード">ステップ 1: UD Treebank のダウンロード</a></h4>
+<pre><code class="language-sh">git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+</code></pre>
+<p>サポート言語で利用可能な UD Treebanks:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>言語</th><th>ツリーバンク</th><th>リポジトリ</th></tr>
+</thead>
+<tbody>
+<tr><td>日本語</td><td>UD Japanese-GSD</td><td><code>UD_Japanese-GSD</code></td></tr>
+<tr><td>中国語</td><td>UD Chinese-GSD</td><td><code>UD_Chinese-GSD</code></td></tr>
+<tr><td>韓国語</td><td>UD Korean-GSD</td><td><code>UD_Korean-GSD</code></td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="ステップ-2-conll-u-から品詞付きコーパスに変換"><a class="header" href="#ステップ-2-conll-u-から品詞付きコーパスに変換">ステップ 2: CoNLL-U から品詞付きコーパスに変換</a></h4>
+<pre><code class="language-sh">litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+</code></pre>
+<p>このコマンドは CoNLL-U 形式を Litsea が期待する <code>単語/品詞</code> 形式に変換します。複合語トークンや空ノードは変換時に自動的に処理されます。</p>
 <h2 id="コーパスの品質に関するヒント"><a class="header" href="#コーパスの品質に関するヒント">コーパスの品質に関するヒント</a></h2>
 <ul>
 <li><strong>多様性</strong> – さまざまな分野のテキストを含める（ニュース、文学、ウェブなど）</li>

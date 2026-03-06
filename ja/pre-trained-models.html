@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-df49344a.js";
+            window.path_to_searchindex_js = "searchindex-04015350.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-dbe37805.js"></script>
+        <script src="toc-fe6f6d22.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -258,11 +258,73 @@
 </tbody>
 </table>
 </div>
+<h2 id="品詞推定モデル"><a class="header" href="#品詞推定モデル">品詞推定モデル</a></h2>
+<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>日本語</td></tr>
+<tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
+<tr><td>学習コーパス</td><td>UD Japanese-GSD（7,050 文）</td></tr>
+<tr><td>エポック数</td><td>10</td></tr>
+<tr><td>正解率</td><td>98.34%</td></tr>
+<tr><td>マクロ適合率</td><td>97.87%</td></tr>
+<tr><td>マクロ再現率</td><td>91.67%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 11 MB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>中国語（簡体字・繁体字）</td></tr>
+<tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
+<tr><td>学習コーパス</td><td>UD Chinese-GSD（3,997 文）</td></tr>
+<tr><td>エポック数</td><td>10</td></tr>
+<tr><td>正解率</td><td>97.09%</td></tr>
+<tr><td>マクロ適合率</td><td>97.31%</td></tr>
+<tr><td>マクロ再現率</td><td>96.23%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 19 MB</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>韓国語</td></tr>
+<tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
+<tr><td>学習コーパス</td><td>UD Korean-GSD（4,400 文）</td></tr>
+<tr><td>エポック数</td><td>10</td></tr>
+<tr><td>正解率</td><td>95.33%</td></tr>
+<tr><td>マクロ適合率</td><td>95.30%</td></tr>
+<tr><td>マクロ再現率</td><td>87.69%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 8.4 MB</td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="使用方法"><a class="header" href="#使用方法">使用方法</a></h4>
+<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese resources/japanese_pos.model
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+</code></pre>
 <h2 id="モデルの選択"><a class="header" href="#モデルの選択">モデルの選択</a></h2>
 <ul>
 <li><strong>日本語</strong>には、最高精度を求める場合は <code>japanese.model</code> を、オリジナルの TinySegmenter との互換性を重視する場合は <code>RWCP.model</code> を使用</li>
 <li><strong>中国語</strong>には <code>chinese.model</code> を使用</li>
 <li><strong>韓国語</strong>には <code>korean.model</code> を使用</li>
+<li><strong>品詞推定</strong>には、対応する <code>*_pos.model</code>（<code>japanese_pos.model</code>、<code>chinese_pos.model</code>、<code>korean_pos.model</code>）を使用して単語分割と品詞推定を同時実行</li>
 <li><strong>ドメイン固有</strong>の用途には、<a href="training-guide/preparing-corpus.html">独自モデルの学習</a>または既存モデルの<a href="training-guide/retraining-models.html">再学習</a>を検討</li>
 </ul>
 <h2 id="サンプルデータ"><a class="header" href="#サンプルデータ">サンプルデータ</a></h2>

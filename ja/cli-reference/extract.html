@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-df49344a.js";
+            window.path_to_searchindex_js = "../searchindex-04015350.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dbe37805.js"></script>
+        <script src="../toc-fe6f6d22.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -235,6 +235,25 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 </code></pre>
 <p>成功時のstderr出力:</p>
 <pre><code class="language-text">Feature extraction completed successfully.
+</code></pre>
+<h2 id="品詞付き特徴量抽出--pos"><a class="header" href="#品詞付き特徴量抽出--pos">品詞付き特徴量抽出（<code>--pos</code>）</a></h2>
+<p><code>--pos</code> フラグを指定すると、品詞付きコーパスから Averaged Perceptron 用の特徴量を抽出します。</p>
+<h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>
+<p>品詞付きコーパスは、<code>単語/品詞</code> をスペースで区切り、1行に1文とする形式です。品詞タグは UPOS タグセット（ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X）を使用します。</p>
+<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
+私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT
+</code></pre>
+<blockquote>
+<p><strong>ヒント</strong>: <a href="convert-conllu.html"><code>convert-conllu</code></a> コマンドで Universal Dependencies の CoNLL-U ファイルからこの形式に変換できます。</p>
+</blockquote>
+<h3 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h3>
+<pre><code class="language-sh">litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
+</code></pre>
+<h3 id="出力形式-1"><a class="header" href="#出力形式-1">出力形式</a></h3>
+<p>品詞付き特徴量ファイルでは、ラベルが <code>SegmentLabel</code>（<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>）の18クラスとなります。</p>
+<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:テ UW4:ス UC1:O UC2:O UC3:K UC4:K ...
+O	UW1:B1 UW2:テ UW3:ス UW4:ト UC1:O UC2:K UC3:K UC4:K ...
+B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
 </code></pre>
 
                     </main>

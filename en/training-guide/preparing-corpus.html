@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1d16b926.js";
+            window.path_to_searchindex_js = "../searchindex-9ce83e0f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2e92acbd.js"></script>
+        <script src="../toc-3e5df682.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -224,6 +224,36 @@ bash scripts/corpus.sh zh ./wikitexts_zh.txt ./corpus_zh.txt
 </table>
 </div>
 <p>The output is in <strong>wakati</strong> format (space-separated tokens), ready for feature extraction.</p>
+<h2 id="preparing-a-pos-corpus"><a class="header" href="#preparing-a-pos-corpus">Preparing a POS Corpus</a></h2>
+<p>For POS (Part-of-Speech) tagging, Litsea uses a different corpus format where each word is annotated with its POS tag.</p>
+<h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
+<p>Each line represents one sentence, with words annotated as <code>word/POS</code> pairs separated by spaces:</p>
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+</code></pre>
+<p>The POS tags follow the <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tagset with 17 categories: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X.</p>
+<h3 id="using-ud-treebanks-as-data-source"><a class="header" href="#using-ud-treebanks-as-data-source">Using UD Treebanks as Data Source</a></h3>
+<p><a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> provides high-quality treebank data in CoNLL-U format for many languages. Litsea includes a converter to transform CoNLL-U files into the POS corpus format.</p>
+<h4 id="step-1-download-a-ud-treebank"><a class="header" href="#step-1-download-a-ud-treebank">Step 1: Download a UD Treebank</a></h4>
+<pre><code class="language-sh">git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+</code></pre>
+<p>Available UD Treebanks for supported languages:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Treebank</th><th>Repository</th></tr>
+</thead>
+<tbody>
+<tr><td>Japanese</td><td>UD Japanese-GSD</td><td><code>UD_Japanese-GSD</code></td></tr>
+<tr><td>Chinese</td><td>UD Chinese-GSD</td><td><code>UD_Chinese-GSD</code></td></tr>
+<tr><td>Korean</td><td>UD Korean-GSD</td><td><code>UD_Korean-GSD</code></td></tr>
+</tbody>
+</table>
+</div>
+<h4 id="step-2-convert-conll-u-to-pos-corpus"><a class="header" href="#step-2-convert-conll-u-to-pos-corpus">Step 2: Convert CoNLL-U to POS Corpus</a></h4>
+<pre><code class="language-sh">litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+</code></pre>
+<p>This converts the CoNLL-U format into the <code>word/POS</code> format that Litsea expects. Multi-word tokens and empty nodes are automatically handled during conversion.</p>
 <h2 id="corpus-quality-tips"><a class="header" href="#corpus-quality-tips">Corpus Quality Tips</a></h2>
 <ul>
 <li><strong>Diversity</strong> – Include text from various domains (news, literature, web, etc.)</li>

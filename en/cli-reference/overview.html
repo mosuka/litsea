@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1d16b926.js";
+            window.path_to_searchindex_js = "../searchindex-9ce83e0f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2e92acbd.js"></script>
+        <script src="../toc-3e5df682.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,6 +195,7 @@
 <tr><td><a href="extract.html"><code>extract</code></a></td><td>Extract features from a corpus for training</td></tr>
 <tr><td><a href="train.html"><code>train</code></a></td><td>Train a word segmentation model</td></tr>
 <tr><td><a href="segment.html"><code>segment</code></a></td><td>Segment text into words using a trained model</td></tr>
+<tr><td><a href="convert-conllu.html"><code>convert-conllu</code></a></td><td>Convert CoNLL-U (Universal Dependencies) files to Litsea POS corpus format</td></tr>
 <tr><td><a href="split-sentences.html"><code>split-sentences</code></a></td><td>Split text into sentences using Unicode UAX #29</td></tr>
 </tbody>
 </table>
@@ -222,6 +223,20 @@
 <li>Extract features: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
 <li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
+</ol>
+<h3 id="pos-tagging-workflow"><a class="header" href="#pos-tagging-workflow">POS Tagging Workflow</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. UD Treebank\n(CoNLL-U)"] --&gt; B["2. litsea convert-conllu"]
+    B --&gt; C["3. litsea extract --pos"]
+    C --&gt; D["4. litsea train --pos"]
+    D --&gt; E["5. litsea segment --pos"]
+</code></pre>
+<ol>
+<li>Obtain a Universal Dependencies treebank in CoNLL-U format</li>
+<li>Convert to Litsea POS corpus: <code>litsea convert-conllu ud_data.conllu corpus_pos.txt</code></li>
+<li>Extract POS features: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
+<li>Train a POS model: <code>litsea train --pos -e 10 features_pos.txt model_pos.model</code></li>
+<li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
 </ol>
 
                     </main>

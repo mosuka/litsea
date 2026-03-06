@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1d16b926.js";
+            window.path_to_searchindex_js = "../searchindex-9ce83e0f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2e92acbd.js"></script>
+        <script src="../toc-3e5df682.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -207,6 +207,8 @@
 <tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>Weak classifier accuracy threshold for early stopping. Lower values allow more iterations</td></tr>
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) training mode using Averaged Perceptron</td></tr>
+<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS mode only)</td></tr>
 </tbody>
 </table>
 </div>
@@ -249,6 +251,41 @@
 <tbody>
 <tr><td><code>threshold</code></td><td>More iterations, potentially higher accuracy, longer training time</td><td>Fewer iterations, faster training, may underfit</td></tr>
 <tr><td><code>num_iterations</code></td><td>Fewer boosting rounds, smaller model, may underfit</td><td>More rounds, larger model, potentially higher accuracy</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="pos-model-training"><a class="header" href="#pos-model-training">POS Model Training</a></h2>
+<p>When the <code>--pos</code> flag is specified, <code>train</code> uses the <strong>Averaged Perceptron</strong> algorithm instead of AdaBoost. This trains a multiclass classifier for joint word segmentation and POS tagging.</p>
+<h3 id="pos-training-options"><a class="header" href="#pos-training-options">POS Training Options</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS training mode</td></tr>
+<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="pos-training-output"><a class="header" href="#pos-training-output">POS Training Output</a></h3>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 98.34%
+  Macro Precision: 97.87%
+  Macro Recall: 91.67%
+</code></pre>
+<h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
+<pre><code class="language-sh"># Train a POS model from POS features
+litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
+</code></pre>
+<h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Effect of Decreasing</th><th>Effect of Increasing</th></tr>
+</thead>
+<tbody>
+<tr><td><code>num_epochs</code></td><td>Faster training, may underfit</td><td>Better accuracy, longer training, may overfit</td></tr>
 </tbody>
 </table>
 </div>

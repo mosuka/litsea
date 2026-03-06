@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1d16b926.js";
+            window.path_to_searchindex_js = "searchindex-9ce83e0f.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2e92acbd.js"></script>
+        <script src="toc-3e5df682.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -182,14 +182,15 @@
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
 <p><strong>Litsea</strong> is an extremely compact word segmentation library implemented in Rust, inspired by <a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> and <a href="https://github.com/shogo82148/TinySegmenterMaker">TinySegmenterMaker</a>.</p>
-<p>Unlike traditional morphological analyzers such as <a href="https://taku910.github.io/mecab/">MeCab</a> and <a href="https://github.com/lindera/lindera">Lindera</a>, Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the <strong>AdaBoost binary classification</strong> algorithm.</p>
+<p>Unlike traditional morphological analyzers such as <a href="https://taku910.github.io/mecab/">MeCab</a> and <a href="https://github.com/lindera/lindera">Lindera</a>, Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the <strong>AdaBoost binary classification</strong> algorithm. Litsea also supports <strong>joint word segmentation and POS (Part-of-Speech) tagging</strong> using the <strong>Averaged Perceptron</strong> multiclass classifier with the <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tagset.</p>
 <h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
 <ul>
 <li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
 <li><strong>Compact pre-trained models</strong> – model files are only a few kilobytes in size</li>
 <li><strong>No dictionary dependency</strong> – segmentation is driven entirely by a statistical model</li>
+<li><strong>POS tagging</strong> – joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron</li>
 <li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), and Korean</li>
-<li><strong>Model training capabilities</strong> – train custom models using AdaBoost with your own corpora</li>
+<li><strong>Model training capabilities</strong> – train custom models using AdaBoost or Averaged Perceptron with your own corpora</li>
 <li><strong>Remote model loading</strong> – load models from HTTP/HTTPS URLs or local files</li>
 <li><strong>Simple and extensible API</strong> – easy to integrate into Rust projects as a library</li>
 </ul>
@@ -199,6 +200,10 @@
          ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
          O O O O B O B O B   ← boundary predictions
 Output: ["Litsea", "は", "Rust製", "です"]
+</code></pre>
+<p>With POS tagging enabled, Litsea performs <strong>joint segmentation and POS tagging</strong> as a multiclass classification problem. Instead of binary boundary/non-boundary labels, each boundary position is labeled with a UPOS tag (e.g., <code>B-NOUN</code>, <code>B-VERB</code>), producing both word boundaries and POS tags in a single pass:</p>
+<pre><code class="language-text">Input:  "今日はいい天気ですね。"
+Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>

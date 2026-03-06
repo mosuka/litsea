@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-df49344a.js";
+            window.path_to_searchindex_js = "../searchindex-04015350.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dbe37805.js"></script>
+        <script src="../toc-fe6f6d22.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,6 +196,7 @@
 <tr><td><a href="train.html"><code>train</code></a></td><td>単語分割モデルを学習</td></tr>
 <tr><td><a href="segment.html"><code>segment</code></a></td><td>学習済みモデルを使用してテキストを単語に分割</td></tr>
 <tr><td><a href="split-sentences.html"><code>split-sentences</code></a></td><td>Unicode UAX #29を使用してテキストを文に分割</td></tr>
+<tr><td><a href="convert-conllu.html"><code>convert-conllu</code></a></td><td>CoNLL-U（Universal Dependencies）形式をLitsea品詞コーパス形式に変換</td></tr>
 </tbody>
 </table>
 </div>
@@ -212,6 +213,7 @@
 </table>
 </div>
 <h2 id="一般的なワークフロー"><a class="header" href="#一般的なワークフロー">一般的なワークフロー</a></h2>
+<h3 id="adaboost-ワークフロー単語分割のみ"><a class="header" href="#adaboost-ワークフロー単語分割のみ">AdaBoost ワークフロー（単語分割のみ）</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
     B --&gt; C["3. litsea train"]
@@ -222,6 +224,20 @@
 <li>特徴量を抽出する: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
 <li>モデルを学習する: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
+</ol>
+<h3 id="pos-ワークフロー品詞推定付き単語分割"><a class="header" href="#pos-ワークフロー品詞推定付き単語分割">POS ワークフロー（品詞推定付き単語分割）</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. UD Treebank"] --&gt; B["2. litsea convert-conllu"]
+    B --&gt; C["3. litsea extract --pos"]
+    C --&gt; D["4. litsea train --pos"]
+    D --&gt; E["5. litsea segment --pos"]
+</code></pre>
+<ol>
+<li>Universal Dependencies Treebank（例: UD_Japanese-GSD）を取得する</li>
+<li>CoNLL-U 形式を変換する: <code>litsea convert-conllu input.conllu corpus_pos.txt</code></li>
+<li>品詞付き特徴量を抽出する: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
+<li>POS モデルを学習する: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
+<li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
 </ol>
 
                     </main>
