@@ -29,24 +29,24 @@
 
 # litsea (ライブラリ)
 
-- [ライブラリ概要](library-api.md)
-  - [Segmenter](library-api/segmenter.md)
-  - [Extractor](library-api/extractor.md)
-  - [Trainer](library-api/trainer.md)
-  - [AdaBoost](library-api/adaboost.md)
-  - [Averaged Perceptron](library-api/averaged-perceptron.md)
-  - [UPOS](library-api/upos.md)
-  - [CoNLL-U コンバーター](library-api/conllu.md)
-  - [Language](library-api/language.md)
+- [ライブラリ概要](litsea.md)
+  - [Segmenter](litsea/segmenter.md)
+  - [Extractor](litsea/extractor.md)
+  - [Trainer](litsea/trainer.md)
+  - [AdaBoost](litsea/adaboost.md)
+  - [Averaged Perceptron](litsea/averaged-perceptron.md)
+  - [UPOS](litsea/upos.md)
+  - [CoNLL-U コンバーター](litsea/conllu.md)
+  - [Language](litsea/language.md)
 
 # litsea-cli (CLI)
 
-- [CLI 概要](cli-reference.md)
-  - [extract](cli-reference/extract.md)
-  - [train](cli-reference/train.md)
-  - [segment](cli-reference/segment.md)
-  - [convert-conllu](cli-reference/convert-conllu.md)
-  - [split-sentences](cli-reference/split-sentences.md)
+- [CLI 概要](litsea-cli.md)
+  - [extract](litsea-cli/extract.md)
+  - [train](litsea-cli/train.md)
+  - [segment](litsea-cli/segment.md)
+  - [convert-conllu](litsea-cli/convert-conllu.md)
+  - [split-sentences](litsea-cli/split-sentences.md)
 
 # トレーニングガイド
 

@@ -121,6 +121,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## What's Next
 
-- [CLI Reference](../cli-reference.md) -- learn all CLI commands and options
+- [CLI Reference](../litsea-cli.md) -- learn all CLI commands and options
 - [Training Guide](../training-guide/preparing-corpus.md) -- train your own models
 - [Architecture](../architecture/overview.md) -- understand how Litsea works internally
