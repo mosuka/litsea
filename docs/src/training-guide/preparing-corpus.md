@@ -1,59 +1,50 @@
 # Preparing a Corpus
 
-A good training corpus is essential for model accuracy. This guide explains how to prepare one.
+A good training corpus is essential for model accuracy. This guide explains how to prepare one using [Universal Dependencies (UD)](https://universaldependencies.org/) Treebanks.
 
-## Corpus Format
+## Data Source: UD Treebanks
 
-The corpus must be a plain text file with:
+Litsea uses UD Treebanks as the data source for both word segmentation and POS tagging. UD Treebanks provide high-quality, manually annotated data in CoNLL-U format for many languages.
+
+### Available Treebanks
+
+| Language | Treebank | Repository |
+|----------|----------|------------|
+| Japanese | UD Japanese-GSD | `UD_Japanese-GSD` |
+| Chinese | UD Chinese-GSD | `UD_Chinese-GSD` |
+| Korean | UD Korean-GSD | `UD_Korean-GSD` |
+
+### Step 1: Download a UD Treebank
+
+```sh
+git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+```
+
+## Corpus for Word Segmentation
+
+For word segmentation (AdaBoost), the corpus must be a plain text file with:
 
 - **One sentence per line**
 - **Words separated by spaces**
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
-Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+太郎 は 走っ た 。
+Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
-## Automated Corpus Preparation
+### Convert CoNLL-U to Word Segmentation Corpus
 
-Litsea includes helper scripts in the `scripts/` directory for building corpora from Wikipedia.
-
-### Step 1: Download Wikipedia Texts
+Use `litsea convert-conllu` (without `--pos`) to extract space-separated words from a CoNLL-U file:
 
 ```sh
-bash scripts/wikitexts.sh ja   # Japanese
-bash scripts/wikitexts.sh ko   # Korean
-bash scripts/wikitexts.sh zh   # Chinese
+litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
 ```
 
-This script:
+This strips POS tags and outputs only space-separated words, one sentence per line.
 
-1. Downloads article titles from the Wikipedia API
-2. Filters by language-specific criteria
-3. Fetches article text
-4. Splits into sentences using `litsea split-sentences`
+## Corpus for POS Tagging
 
-### Step 2: Tokenize with Lindera
-
-```sh
-bash scripts/corpus.sh ja ./wikitexts_ja.txt ./corpus_ja.txt
-bash scripts/corpus.sh ko ./wikitexts_ko.txt ./corpus_ko.txt
-bash scripts/corpus.sh zh ./wikitexts_zh.txt ./corpus_zh.txt
-```
-
-This script uses [Lindera](https://github.com/lindera/lindera) with language-specific dictionaries:
-
-| Language | Dictionary | Notes |
-|----------|-----------|-------|
-| Japanese | UniDic | With compound word filters |
-| Korean | ko-dic | Korean dictionary |
-| Chinese | CC-CEDICT | Chinese-English dictionary |
-
-The output is in **wakati** format (space-separated tokens), ready for feature extraction.
-
-## Preparing a POS Corpus
-
-For POS (Part-of-Speech) tagging, Litsea uses a different corpus format where each word is annotated with its POS tag.
+For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.
 
 ### POS Corpus Format
 
@@ -66,31 +57,31 @@ Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 
 
 The POS tags follow the [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tagset with 17 categories: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X.
 
-### Using UD Treebanks as Data Source
+### Convert CoNLL-U to POS Corpus
 
-[Universal Dependencies (UD)](https://universaldependencies.org/) provides high-quality treebank data in CoNLL-U format for many languages. Litsea includes a converter to transform CoNLL-U files into the POS corpus format.
-
-#### Step 1: Download a UD Treebank
+Use `litsea convert-conllu --pos` to convert a CoNLL-U file to the `word/POS` format:
 
 ```sh
-git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+litsea convert-conllu --pos UD_Japanese-GSD/ja_gsd-ud-train.conllu pos_corpus.txt
 ```
 
-Available UD Treebanks for supported languages:
+Multi-word tokens and empty nodes are automatically handled during conversion.
 
-| Language | Treebank | Repository |
-|----------|----------|------------|
-| Japanese | UD Japanese-GSD | `UD_Japanese-GSD` |
-| Chinese | UD Chinese-GSD | `UD_Chinese-GSD` |
-| Korean | UD Korean-GSD | `UD_Korean-GSD` |
+## Automated Corpus Preparation
 
-#### Step 2: Convert CoNLL-U to POS Corpus
+Litsea includes a helper script in the `scripts/` directory that automates the UD Treebank download and conversion:
 
 ```sh
-litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+bash scripts/corpus.sh -l ja -c corpus.txt -p pos_corpus.txt
 ```
 
-This converts the CoNLL-U format into the `word/POS` format that Litsea expects. Multi-word tokens and empty nodes are automatically handled during conversion.
+This script:
+
+1. Clones the appropriate UD Treebank repository for the specified language
+2. Converts the training data to word segmentation corpus format (`corpus.txt`)
+3. Converts the training data to POS corpus format (`pos_corpus.txt`)
+
+Supported languages: `ja` (Japanese), `ko` (Korean), `zh` (Chinese).
 
 ## Corpus Quality Tips
 

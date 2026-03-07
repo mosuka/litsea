@@ -34,8 +34,7 @@ These characters appear overwhelmingly in grammatical roles and signal word boun
 
 ### chinese.model
 
-- **Training corpus**: Chinese Wikipedia articles
-- **Tokenizer**: Lindera with CC-CEDICT dictionary
+- **Training corpus**: UD Chinese-GSD
 - **Accuracy**: 80.72%
 
 ## Example

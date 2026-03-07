@@ -9,8 +9,7 @@ Litsea ships with several pre-trained models in the `resources/` directory.
 | Property | Value |
 |----------|-------|
 | Language | Japanese |
-| Training Corpus | Japanese Wikipedia articles |
-| Tokenizer | Lindera (UniDic) |
+| Training Corpus | UD Japanese-GSD |
 | Accuracy | 94.15% |
 | Precision | 95.57% |
 | Recall | 94.36% |
@@ -21,8 +20,7 @@ Litsea ships with several pre-trained models in the `resources/` directory.
 | Property | Value |
 |----------|-------|
 | Language | Korean |
-| Training Corpus | Korean Wikipedia articles |
-| Tokenizer | Lindera (ko-dic) |
+| Training Corpus | UD Korean-GSD |
 | Accuracy | 85.08% |
 | File Size | ~1.8 KB |
 
@@ -31,8 +29,7 @@ Litsea ships with several pre-trained models in the `resources/` directory.
 | Property | Value |
 |----------|-------|
 | Language | Chinese (Simplified & Traditional) |
-| Training Corpus | Chinese Wikipedia articles |
-| Tokenizer | Lindera (CC-CEDICT) |
+| Training Corpus | UD Chinese-GSD |
 | Accuracy | 80.72% |
 | File Size | ~1.3 KB |
 

@@ -26,8 +26,7 @@ Patterns are evaluated in order. Notably:
 
 ### japanese.model
 
-- **Training corpus**: Japanese Wikipedia articles
-- **Tokenizer**: Lindera with UniDic dictionary
+- **Training corpus**: UD Japanese-GSD
 - **Accuracy**: 94.15%
 - **Precision**: 95.57%
 - **Recall**: 94.36%

@@ -41,9 +41,9 @@ Recall = TP / (TP + FN)
 
 | モデル | 正解率 | 適合率 | 再現率 | 学習コーパス |
 |-------|----------|-----------|--------|-----------------|
-| japanese.model | 94.15% | 95.57% | 94.36% | Wikipedia (Lindera UniDic) |
-| korean.model | 85.08% | -- | -- | Wikipedia (Lindera ko-dic) |
-| chinese.model | 80.72% | -- | -- | Wikipedia (Lindera CC-CEDICT) |
+| japanese.model | 94.15% | 95.57% | 94.36% | UD Japanese-GSD |
+| korean.model | 85.08% | -- | -- | UD Korean-GSD |
+| chinese.model | 80.72% | -- | -- | UD Chinese-GSD |
 
 ## モデル品質の改善
 

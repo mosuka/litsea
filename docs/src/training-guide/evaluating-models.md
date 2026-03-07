@@ -41,9 +41,9 @@ Of the **actual** boundaries, what fraction did the model **find**. High recall 
 
 | Model | Accuracy | Precision | Recall | Training Corpus |
 |-------|----------|-----------|--------|-----------------|
-| japanese.model | 94.15% | 95.57% | 94.36% | Wikipedia (Lindera UniDic) |
-| korean.model | 85.08% | -- | -- | Wikipedia (Lindera ko-dic) |
-| chinese.model | 80.72% | -- | -- | Wikipedia (Lindera CC-CEDICT) |
+| japanese.model | 94.15% | 95.57% | 94.36% | UD Japanese-GSD |
+| korean.model | 85.08% | -- | -- | UD Korean-GSD |
+| chinese.model | 80.72% | -- | -- | UD Chinese-GSD |
 
 ## Improving Model Quality
 

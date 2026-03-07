@@ -49,8 +49,7 @@ Korean does **not** use WC (word + character-type) features. Since most Hangul s
 
 ### korean.model
 
-- **Training corpus**: Korean Wikipedia articles
-- **Tokenizer**: Lindera with ko-dic dictionary
+- **Training corpus**: UD Korean-GSD
 - **Accuracy**: 85.08%
 
 ## Example
