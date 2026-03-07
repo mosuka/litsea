@@ -6,8 +6,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use reqwest::Client;
-
 use crate::util::ModelScheme;
 
 type Label = i8;
@@ -358,9 +356,19 @@ impl AdaBoost {
             })?;
             match scheme {
                 ModelScheme::Http | ModelScheme::Https => {
-                    self.load_model_from_url(uri).await.map_err(|e| {
-                        std::io::Error::other(format!("Failed to load model from URL: {}", e))
-                    })
+                    #[cfg(not(feature = "remote_model"))]
+                    {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::Unsupported,
+                            "http:// and https:// scheme is not supported in this build. Use file:// URLs.",
+                        ));
+                    }
+                    #[cfg(feature = "remote_model")]
+                    {
+                        self.load_model_from_url(uri).await.map_err(|e| {
+                            std::io::Error::other(format!("Failed to load model from URL: {}", e))
+                        })
+                    }
                 }
                 ModelScheme::File => {
                     #[cfg(target_arch = "wasm32")]
@@ -403,7 +411,10 @@ impl AdaBoost {
     /// # Returns: A result indicating success or failure.
     ///
     /// # Errors: Returns an error if the URL cannot be accessed or the file cannot be read.
+    #[cfg(feature = "remote_model")]
     async fn load_model_from_url(&mut self, url: &str) -> std::io::Result<()> {
+        use reqwest::Client;
+
         // Create HTTP client with a custom user agent
         let client = Client::builder()
             .user_agent(format!("Litsea/{}", env!("CARGO_PKG_VERSION")))

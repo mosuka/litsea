@@ -14,7 +14,7 @@ license.workspace = true
 
 [dependencies]
 regex.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, optional = true }
 
 [dev-dependencies]
 criterion.workspace = true
@@ -27,3 +27,7 @@ tokio-test.workspace = true
 [[bench]]
 name = "bench"
 harness = false
+
+[features]
+default = ["remote_model"]
+remote_model = ["dep:reqwest"]
