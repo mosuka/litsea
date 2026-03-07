@@ -12,8 +12,7 @@ use litsea::segmenter::Segmenter;
 /// Load an AdaBoost model file from the models directory.
 fn load_adaboost_model(model_name: &str) -> AdaBoost {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let model_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
+    let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
     let mut learner = AdaBoost::new(0.01, 100);
     rt.block_on(learner.load_model(model_path.to_str().unwrap()))
         .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
@@ -23,8 +22,7 @@ fn load_adaboost_model(model_name: &str) -> AdaBoost {
 /// Load an AveragedPerceptron model file from the models directory.
 fn load_perceptron_model(model_name: &str) -> AveragedPerceptron {
     let rt = tokio::runtime::Runtime::new().unwrap();
-    let model_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
+    let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
     let mut learner = AveragedPerceptron::new();
     rt.block_on(learner.load_model(model_path.to_str().unwrap()))
         .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
@@ -58,13 +56,9 @@ fn bench_segment_short(c: &mut Criterion) {
         // AdaBoost (word segmentation only)
         let ada_learner = load_adaboost_model(ada_model);
         let ada_segmenter = Segmenter::new(*language, Some(ada_learner));
-        group.bench_with_input(
-            BenchmarkId::new("adaboost", lang),
-            &input,
-            |b, &text| {
-                b.iter(|| black_box(ada_segmenter.segment(black_box(text))));
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("adaboost", lang), &input, |b, &text| {
+            b.iter(|| black_box(ada_segmenter.segment(black_box(text))));
+        });
 
         // Averaged Perceptron (segmentation + POS)
         let pos_learner = load_perceptron_model(pos_model);
