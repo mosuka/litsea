@@ -11,7 +11,7 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 ## 基本的な使用例
 
 ```sh
-litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 ```
 
 ## 学習プロセス
@@ -78,7 +78,7 @@ litsea train --pos --num-epochs 10 <FEATURES_FILE> <MODEL_FILE>
 ### 品詞学習の使用例
 
 ```sh
-litsea train --pos --num-epochs 10 ./features.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 ```
 
 ### Averaged Perceptron と AdaBoost の比較

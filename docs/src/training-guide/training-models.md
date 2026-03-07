@@ -11,7 +11,7 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 ## Basic Example
 
 ```sh
-litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 ```
 
 ## Training Process
@@ -78,7 +78,7 @@ litsea train --pos --num-epochs 10 <FEATURES_FILE> <MODEL_FILE>
 ### POS Training Example
 
 ```sh
-litsea train --pos --num-epochs 10 ./features.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 ```
 
 ### Averaged Perceptron vs AdaBoost

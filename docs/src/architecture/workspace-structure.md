@@ -28,12 +28,13 @@ litsea/
 │   ├── Cargo.toml
 │   └── src/
 │       └── main.rs         # CLI entry point
-├── resources/              # Pre-trained models and sample data
+├── models/                 # Pre-trained models
 │   ├── japanese.model
 │   ├── chinese.model
 │   ├── korean.model
 │   ├── RWCP.model
-│   ├── JEITA_Genpaku_ChaSen_IPAdic.model
+│   └── JEITA_Genpaku_ChaSen_IPAdic.model
+├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
 │   └── corpus.sh           # Download UD Treebanks and create training corpora

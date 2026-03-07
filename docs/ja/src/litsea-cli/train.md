@@ -53,7 +53,7 @@ Result Metrics:
 基本的な学習:
 
 ```sh
-litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 ```
 
 高精度な学習（低い閾値、多い反復回数）:
@@ -65,8 +65,8 @@ litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 既存モデルからの再学習:
 
 ```sh
-litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
-    ./new_features.txt ./resources/japanese_v2.model
+litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
+    ./new_features.txt ./models/japanese_v2.model
 ```
 
 ## 品詞モデルの学習（`--pos`）
@@ -90,7 +90,7 @@ litsea train --pos [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 
 ```sh
 # 品詞モデルの学習（10エポック）
-litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
 ```
 
 ### 出力

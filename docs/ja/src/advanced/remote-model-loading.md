@@ -23,7 +23,7 @@ echo "テスト" | litsea segment -l japanese https://example.com/japanese.model
 let mut learner = AdaBoost::new(0.01, 100);
 
 // ローカルファイル
-learner.load_model("./resources/japanese.model").await?;
+learner.load_model("./models/japanese.model").await?;
 
 // HTTP URL
 learner.load_model("https://example.com/models/japanese.model").await?;

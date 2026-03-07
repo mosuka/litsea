@@ -47,7 +47,7 @@ Patterns are evaluated in order. Notably:
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./resources/japanese.model
+  | litsea segment -l japanese ./models/japanese.model
 ```
 
 Output:

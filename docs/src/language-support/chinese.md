@@ -40,5 +40,5 @@ These characters appear overwhelmingly in grammatical roles and signal word boun
 ## Example
 
 ```sh
-echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 ```

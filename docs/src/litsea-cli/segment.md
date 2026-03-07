@@ -32,7 +32,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./resources/japanese.model
+  | litsea segment -l japanese ./models/japanese.model
 ```
 
 ```text
@@ -42,20 +42,20 @@ Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 **Chinese:**
 
 ```sh
-echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 ```
 
 **Korean:**
 
 ```sh
 echo "한국어 단어 분할 테스트입니다." \
-  | litsea segment -l korean ./resources/korean.model
+  | litsea segment -l korean ./models/korean.model
 ```
 
 **Processing a file:**
 
 ```sh
-cat input.txt | litsea segment -l japanese ./resources/japanese.model > output.txt
+cat input.txt | litsea segment -l japanese ./models/japanese.model > output.txt
 ```
 
 **Loading a model from a URL:**
@@ -73,7 +73,7 @@ When the `--pos` flag is specified, `segment` outputs each token annotated with 
 
 ```sh
 echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_pos.model
 ```
 
 ```text
@@ -83,7 +83,7 @@ echo "今日はいい天気ですね。" \
 **Processing a file with POS tags:**
 
 ```sh
-cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model > output.txt
+cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > output.txt
 ```
 
 ## Notes

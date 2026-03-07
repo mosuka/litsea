@@ -46,7 +46,7 @@ pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
 Loads an existing model for retraining. Supports file paths, `file://`, `http://`, and `https://` URIs.
 
 ```rust
-trainer.load_model("./resources/japanese.model").await?;
+trainer.load_model("./models/japanese.model").await?;
 ```
 
 ### `train`
@@ -92,7 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     // Optionally resume from an existing model
-    // trainer.load_model("./resources/japanese.model").await?;
+    // trainer.load_model("./models/japanese.model").await?;
 
     let running = Arc::new(AtomicBool::new(true));
     let metrics = trainer.train(running, Path::new("./model.model"))?;

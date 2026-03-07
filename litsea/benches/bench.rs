@@ -9,22 +9,22 @@ use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-/// Load an AdaBoost model file from the resources directory.
+/// Load an AdaBoost model file from the models directory.
 fn load_adaboost_model(model_name: &str) -> AdaBoost {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let model_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources").join(model_name);
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
     let mut learner = AdaBoost::new(0.01, 100);
     rt.block_on(learner.load_model(model_path.to_str().unwrap()))
         .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
     learner
 }
 
-/// Load an AveragedPerceptron model file from the resources directory.
+/// Load an AveragedPerceptron model file from the models directory.
 fn load_perceptron_model(model_name: &str) -> AveragedPerceptron {
     let rt = tokio::runtime::Runtime::new().unwrap();
     let model_path =
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources").join(model_name);
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
     let mut learner = AveragedPerceptron::new();
     rt.block_on(learner.load_model(model_path.to_str().unwrap()))
         .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
