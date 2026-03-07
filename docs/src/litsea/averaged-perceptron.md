@@ -36,12 +36,12 @@ pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
 
 Loads model weights from a URI. Supports the same URI schemes as `AdaBoost::load_model`:
 
-- Local file path: `./resources/japanese_pos.model`
+- Local file path: `./models/japanese_pos.model`
 - File URI: `file:///path/to/model`
 - HTTP/HTTPS: `https://example.com/model`
 
 ```rust
-learner.load_model("./resources/japanese_pos.model").await?;
+learner.load_model("./models/japanese_pos.model").await?;
 ```
 
 ### `save_model`

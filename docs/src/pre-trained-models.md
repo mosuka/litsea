@@ -1,6 +1,6 @@
 # Pre-trained Models
 
-Litsea ships with several pre-trained models in the `resources/` directory.
+Litsea ships with several pre-trained models in the `models/` directory.
 
 ## Model Catalog
 
@@ -95,7 +95,7 @@ Litsea ships with several pre-trained models in the `resources/` directory.
 #### Usage
 
 ```sh
-echo "これはテストです。" | litsea segment --pos -l japanese resources/japanese_pos.model
+echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 ```
 
 Output:
@@ -114,6 +114,6 @@ Output:
 
 ## Sample Data
 
-The `resources/` directory also contains:
+The `resources/` directory also contains sample data:
 
 - **bocchan.txt** -- Sample Japanese corpus from the novel "Botchan" by Natsume Soseki (~307 KB). Used for benchmarking.

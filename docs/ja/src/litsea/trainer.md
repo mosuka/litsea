@@ -46,7 +46,7 @@ pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
 再学習用に既存のモデルを読み込みます。ファイルパス、`file://`、`http://`、`https://` URI に対応しています。
 
 ```rust
-trainer.load_model("./resources/japanese.model").await?;
+trainer.load_model("./models/japanese.model").await?;
 ```
 
 ### `train`
@@ -92,7 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     // 必要に応じて既存モデルから再開
-    // trainer.load_model("./resources/japanese.model").await?;
+    // trainer.load_model("./models/japanese.model").await?;
 
     let running = Arc::new(AtomicBool::new(true));
     let metrics = trainer.train(running, Path::new("./model.model"))?;

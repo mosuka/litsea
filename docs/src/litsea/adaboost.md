@@ -38,13 +38,13 @@ pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
 
 Loads model weights from a URI. Supports:
 
-- Local file path: `./resources/japanese.model`
+- Local file path: `./models/japanese.model`
 - File URI: `file:///path/to/model`
 - HTTP: `http://example.com/model`
 - HTTPS: `https://example.com/model`
 
 ```rust
-learner.load_model("./resources/japanese.model").await?;
+learner.load_model("./models/japanese.model").await?;
 learner.load_model("https://example.com/model").await?;
 ```
 

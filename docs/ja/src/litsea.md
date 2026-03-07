@@ -47,7 +47,7 @@ use litsea::segmenter::Segmenter;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./resources/japanese.model").await?;
+    learner.load_model("./models/japanese.model").await?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");
@@ -67,7 +67,7 @@ use litsea::segmenter::Segmenter;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./resources/japanese_pos.model").await?;
+    pos_learner.load_model("./models/japanese_pos.model").await?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
     let tokens = segmenter.segment_with_pos("これはテストです。");

@@ -104,13 +104,13 @@ pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
 
 URI からモデルを読み込みます。以下の形式に対応しています:
 
-- ローカルファイルパス: `./resources/japanese_pos.model`
+- ローカルファイルパス: `./models/japanese_pos.model`
 - File URI: `file:///path/to/model`
 - HTTP: `http://example.com/model`
 - HTTPS: `https://example.com/model`
 
 ```rust
-learner.load_model("./resources/japanese_pos.model").await?;
+learner.load_model("./models/japanese_pos.model").await?;
 ```
 
 ## 評価

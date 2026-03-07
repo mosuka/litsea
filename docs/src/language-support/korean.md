@@ -55,5 +55,5 @@ Korean does **not** use WC (word + character-type) features. Since most Hangul s
 ## Example
 
 ```sh
-echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
+echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 ```

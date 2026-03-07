@@ -16,9 +16,9 @@ litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # Retrain from existing model
 litsea train -t 0.005 -i 1000 \
-    -m ./resources/japanese.model \
+    -m ./models/japanese.model \
     ./new_features.txt \
-    ./resources/japanese_v2.model
+    ./models/japanese_v2.model
 ```
 
 ## How It Works

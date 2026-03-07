@@ -127,7 +127,7 @@ match self.language {
 3. **モデルを学習**します。
 
    ```sh
-   litsea train -t 0.005 -i 1000 ./features.txt ./resources/thai.model
+   litsea train -t 0.005 -i 1000 ./features.txt ./models/thai.model
    ```
 
 ## 手順7: テストを追加

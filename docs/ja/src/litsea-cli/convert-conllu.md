@@ -90,7 +90,7 @@ litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
 litsea extract -l japanese ./corpus.txt ./features.txt
 
 # 3. モデルを学習
-litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 ```
 
 ### 品詞推定の完全なワークフロー
@@ -103,7 +103,7 @@ litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_po
 litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
 
 # 3. POS モデルを学習
-litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
 ```
 
 成功時のstderr出力:

@@ -38,13 +38,13 @@ pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
 
 URI からモデルの重みを読み込みます。以下の形式に対応しています:
 
-- ローカルファイルパス: `./resources/japanese.model`
+- ローカルファイルパス: `./models/japanese.model`
 - File URI: `file:///path/to/model`
 - HTTP: `http://example.com/model`
 - HTTPS: `https://example.com/model`
 
 ```rust
-learner.load_model("./resources/japanese.model").await?;
+learner.load_model("./models/japanese.model").await?;
 learner.load_model("https://example.com/model").await?;
 ```
 

@@ -47,7 +47,7 @@ use litsea::segmenter::Segmenter;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./resources/japanese.model").await?;
+    learner.load_model("./models/japanese.model").await?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");
