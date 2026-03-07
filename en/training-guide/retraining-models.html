@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4ac343d7.js";
+            window.path_to_searchindex_js = "../searchindex-775375b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b64cce5c.js"></script>
@@ -191,9 +191,9 @@ litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # Retrain from existing model
 litsea train -t 0.005 -i 1000 \
-    -m ./resources/japanese.model \
+    -m ./models/japanese.model \
     ./new_features.txt \
-    ./resources/japanese_v2.model
+    ./models/japanese_v2.model
 </code></pre>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
 <pre><code class="language-mermaid">flowchart LR

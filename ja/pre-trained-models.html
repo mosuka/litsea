@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-06cb1f2c.js";
+            window.path_to_searchindex_js = "searchindex-948b2537.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b7688c67.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="事前学習済みモデル"><a class="header" href="#事前学習済みモデル">事前学習済みモデル</a></h1>
-<p>Litsea は <code>resources/</code> ディレクトリに複数の事前学習済みモデルを同梱しています。</p>
+<p>Litsea は <code>models/</code> ディレクトリに複数の事前学習済みモデルを同梱しています。</p>
 <h2 id="モデルカタログ"><a class="header" href="#モデルカタログ">モデルカタログ</a></h2>
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <div class="table-wrapper">
@@ -311,7 +311,7 @@
 </table>
 </div>
 <h4 id="使用方法"><a class="header" href="#使用方法">使用方法</a></h4>
-<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese resources/japanese_pos.model
+<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
 <p>出力:</p>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT

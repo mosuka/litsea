@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4ac343d7.js";
+            window.path_to_searchindex_js = "../searchindex-775375b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b64cce5c.js"></script>
@@ -233,14 +233,14 @@
 <p>This allows you to stop long-running training sessions without losing progress.</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <p>Basic training:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 </code></pre>
 <p>Training with higher precision (lower threshold, more iterations):</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>Retraining from an existing model:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
-    ./new_features.txt ./resources/japanese_v2.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
+    ./new_features.txt ./models/japanese_v2.model
 </code></pre>
 <h2 id="hyperparameter-tuning"><a class="header" href="#hyperparameter-tuning">Hyperparameter Tuning</a></h2>
 <div class="table-wrapper">
@@ -276,7 +276,7 @@
 </code></pre>
 <h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
 <pre><code class="language-sh"># Train a POS model from POS features
-litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
+litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
 <div class="table-wrapper">

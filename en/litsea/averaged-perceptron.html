@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4ac343d7.js";
+            window.path_to_searchindex_js = "../searchindex-775375b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b64cce5c.js"></script>
@@ -210,13 +210,13 @@ let mut learner = AveragedPerceptron::new();
 <span class="boring">}</span></code></pre>
 <p>Loads model weights from a URI. Supports the same URI schemes as <code>AdaBoost::load_model</code>:</p>
 <ul>
-<li>Local file path: <code>./resources/japanese_pos.model</code></li>
+<li>Local file path: <code>./models/japanese_pos.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
 <li>HTTP/HTTPS: <code>https://example.com/model</code></li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./resources/japanese_pos.model").await?;
+</span>learner.load_model("./models/japanese_pos.model").await?;
 <span class="boring">}</span></code></pre>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

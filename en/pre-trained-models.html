@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4ac343d7.js";
+            window.path_to_searchindex_js = "searchindex-775375b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b64cce5c.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="pre-trained-models"><a class="header" href="#pre-trained-models">Pre-trained Models</a></h1>
-<p>Litsea ships with several pre-trained models in the <code>resources/</code> directory.</p>
+<p>Litsea ships with several pre-trained models in the <code>models/</code> directory.</p>
 <h2 id="model-catalog"><a class="header" href="#model-catalog">Model Catalog</a></h2>
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <div class="table-wrapper">
@@ -311,7 +311,7 @@
 </table>
 </div>
 <h4 id="usage"><a class="header" href="#usage">Usage</a></h4>
-<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese resources/japanese_pos.model
+<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
@@ -325,7 +325,7 @@
 <li>For <strong>domain-specific</strong> needs, consider <a href="training-guide/preparing-corpus.html">training your own model</a> or <a href="training-guide/retraining-models.html">retraining</a> an existing one</li>
 </ul>
 <h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>
-<p>The <code>resources/</code> directory also contains:</p>
+<p>The <code>resources/</code> directory also contains sample data:</p>
 <ul>
 <li><strong>bocchan.txt</strong> – Sample Japanese corpus from the novel “Botchan” by Natsume Soseki (~307 KB). Used for benchmarking.</li>
 </ul>

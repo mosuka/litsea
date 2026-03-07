@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4ac343d7.js";
+            window.path_to_searchindex_js = "searchindex-775375b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b64cce5c.js"></script>
@@ -270,24 +270,24 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 <h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
 <h2 id="cli-quick-start"><a class="header" href="#cli-quick-start">CLI Quick Start</a></h2>
 <h3 id="segmenting-text"><a class="header" href="#segmenting-text">Segmenting Text</a></h3>
-<p>Litsea ships with pre-trained models in the <code>resources/</code> directory. Pipe text into the <code>segment</code> command:</p>
+<p>Litsea ships with pre-trained models in the <code>models/</code> directory. Pipe text into the <code>segment</code> command:</p>
 <p><strong>Japanese:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./resources/japanese.model
+  | litsea segment -l japanese ./models/japanese.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <p><strong>Chinese:</strong></p>
-<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 </code></pre>
 <p><strong>Korean:</strong></p>
-<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
 <h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
 <p>Litsea can perform joint word segmentation and POS tagging using a POS model. Add the <code>--pos</code> flag to the <code>segment</code> command:</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
@@ -311,7 +311,7 @@ use litsea::segmenter::Segmenter;
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./resources/japanese.model").await?;
+    learner.load_model("./models/japanese.model").await?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -333,7 +333,7 @@ use litsea::segmenter::Segmenter;
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // Load the pre-trained POS model
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./resources/japanese_pos.model").await?;
+    pos_learner.load_model("./models/japanese_pos.model").await?;
 
     // Create a segmenter with POS support
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
@@ -416,12 +416,13 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 │   ├── Cargo.toml
 │   └── src/
 │       └── main.rs         # CLI entry point
-├── resources/              # Pre-trained models and sample data
+├── models/                 # Pre-trained models
 │   ├── japanese.model
 │   ├── chinese.model
 │   ├── korean.model
 │   ├── RWCP.model
-│   ├── JEITA_Genpaku_ChaSen_IPAdic.model
+│   └── JEITA_Genpaku_ChaSen_IPAdic.model
+├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
 │   └── corpus.sh           # Download UD Treebanks and create training corpora
@@ -1139,7 +1140,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 </ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./resources/japanese.model
+  | litsea segment -l japanese ./models/japanese.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
@@ -1190,7 +1191,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <li><strong>Accuracy</strong>: 80.72%</li>
 </ul>
 <h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
-<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="korean"><a class="header" href="#korean">Korean</a></h1>
@@ -1249,7 +1250,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <li><strong>Accuracy</strong>: 85.08%</li>
 </ul>
 <h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
-<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="adding-a-new-language"><a class="header" href="#adding-a-new-language">Adding a New Language</a></h1>
@@ -1365,7 +1366,7 @@ Language::Thai =&gt; write!(f, "thai"),
 </li>
 <li>
 <p><strong>Train a model</strong>:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/thai.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/thai.model
 </code></pre>
 </li>
 </ol>
@@ -1438,7 +1439,7 @@ use litsea::segmenter::Segmenter;
 #[tokio::main]
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./resources/japanese.model").await?;
+    learner.load_model("./models/japanese.model").await?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");
@@ -1643,7 +1644,7 @@ let mut trainer = Trainer::new(
 <p>Loads an existing model for retraining. Supports file paths, <code>file://</code>, <code>http://</code>, and <code>https://</code> URIs.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>trainer.load_model("./resources/japanese.model").await?;
+</span>trainer.load_model("./models/japanese.model").await?;
 <span class="boring">}</span></code></pre>
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1683,7 +1684,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     )?;
 
     // Optionally resume from an existing model
-    // trainer.load_model("./resources/japanese.model").await?;
+    // trainer.load_model("./models/japanese.model").await?;
 
     let running = Arc::new(AtomicBool::new(true));
     let metrics = trainer.train(running, Path::new("./model.model"))?;
@@ -1727,14 +1728,14 @@ let mut learner = AdaBoost::new(0.01, 100);
 <span class="boring">}</span></code></pre>
 <p>Loads model weights from a URI. Supports:</p>
 <ul>
-<li>Local file path: <code>./resources/japanese.model</code></li>
+<li>Local file path: <code>./models/japanese.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
 <li>HTTP: <code>http://example.com/model</code></li>
 <li>HTTPS: <code>https://example.com/model</code></li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./resources/japanese.model").await?;
+</span>learner.load_model("./models/japanese.model").await?;
 learner.load_model("https://example.com/model").await?;
 <span class="boring">}</span></code></pre>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
@@ -1845,13 +1846,13 @@ let mut learner = AveragedPerceptron::new();
 <span class="boring">}</span></code></pre>
 <p>Loads model weights from a URI. Supports the same URI schemes as <code>AdaBoost::load_model</code>:</p>
 <ul>
-<li>Local file path: <code>./resources/japanese_pos.model</code></li>
+<li>Local file path: <code>./models/japanese_pos.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
 <li>HTTP/HTTPS: <code>https://example.com/model</code></li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./resources/japanese_pos.model").await?;
+</span>learner.load_model("./models/japanese_pos.model").await?;
 <span class="boring">}</span></code></pre>
 <h3 id="save_model-1"><a class="header" href="#save_model-1"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2296,14 +2297,14 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 <p>This allows you to stop long-running training sessions without losing progress.</p>
 <h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
 <p>Basic training:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 </code></pre>
 <p>Training with higher precision (lower threshold, more iterations):</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>Retraining from an existing model:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
-    ./new_features.txt ./resources/japanese_v2.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
+    ./new_features.txt ./models/japanese_v2.model
 </code></pre>
 <h2 id="hyperparameter-tuning"><a class="header" href="#hyperparameter-tuning">Hyperparameter Tuning</a></h2>
 <div class="table-wrapper">
@@ -2339,7 +2340,7 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 </code></pre>
 <h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
 <pre><code class="language-sh"># Train a POS model from POS features
-litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
+litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
 <div class="table-wrapper">
@@ -2389,19 +2390,19 @@ litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
 <h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
 <p><strong>Japanese:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./resources/japanese.model
+  | litsea segment -l japanese ./models/japanese.model
 </code></pre>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 </code></pre>
 <p><strong>Chinese:</strong></p>
-<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 </code></pre>
 <p><strong>Korean:</strong></p>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
-  | litsea segment -l korean ./resources/korean.model
+  | litsea segment -l korean ./models/korean.model
 </code></pre>
 <p><strong>Processing a file:</strong></p>
-<pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./resources/japanese.model &gt; output.txt
+<pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./models/japanese.model &gt; output.txt
 </code></pre>
 <p><strong>Loading a model from a URL:</strong></p>
 <pre><code class="language-sh">echo "テスト文です。" \
@@ -2411,12 +2412,12 @@ litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
 <p>When the <code>--pos</code> flag is specified, <code>segment</code> outputs each token annotated with its UPOS tag in <code>word/POS</code> format. This requires a POS model trained with <code>train --pos</code>.</p>
 <p><strong>Example:</strong></p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p><strong>Processing a file with POS tags:</strong></p>
-<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model &gt; output.txt
+<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
 </code></pre>
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
 <ul>
@@ -2502,7 +2503,7 @@ litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
 litsea extract -l japanese ./corpus.txt ./features.txt
 
 # 3. Train a model
-litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 </code></pre>
 <h3 id="full-pos-training-workflow"><a class="header" href="#full-pos-training-workflow">Full POS training workflow</a></h3>
 <pre><code class="language-sh"># 1. Convert CoNLL-U to POS corpus
@@ -2512,7 +2513,7 @@ litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_po
 litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
 
 # 3. Train a POS model
-litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
 </code></pre>
 <h2 id="data-source"><a class="header" href="#data-source">Data Source</a></h2>
 <p>Universal Dependencies treebanks are available at <a href="https://universaldependencies.org/">universaldependencies.org</a>. For Japanese, the recommended treebank is <a href="https://github.com/UniversalDependencies/UD_Japanese-GSD">UD_Japanese-GSD</a> (7,050 sentences).</p>
@@ -2711,7 +2712,7 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 </code></pre>
 <h2 id="training-process"><a class="header" href="#training-process">Training Process</a></h2>
 <pre><code class="language-mermaid">flowchart TD
@@ -2769,7 +2770,7 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 <pre><code class="language-sh">litsea train --pos --num-epochs 10 &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h3 id="pos-training-example-1"><a class="header" href="#pos-training-example-1">POS Training Example</a></h3>
-<pre><code class="language-sh">litsea train --pos --num-epochs 10 ./features.txt ./resources/japanese_pos.model
+<pre><code class="language-sh">litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="averaged-perceptron-vs-adaboost"><a class="header" href="#averaged-perceptron-vs-adaboost">Averaged Perceptron vs AdaBoost</a></h3>
 <div class="table-wrapper">
@@ -2872,9 +2873,9 @@ litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # Retrain from existing model
 litsea train -t 0.005 -i 1000 \
-    -m ./resources/japanese.model \
+    -m ./models/japanese.model \
     ./new_features.txt \
-    ./resources/japanese_v2.model
+    ./models/japanese_v2.model
 </code></pre>
 <h2 id="how-it-works-3"><a class="header" href="#how-it-works-3">How It Works</a></h2>
 <pre><code class="language-mermaid">flowchart LR
@@ -2979,7 +2980,7 @@ score = bias + sum(model[feature] for feature in input_attributes)
 </span>let mut learner = AdaBoost::new(0.01, 100);
 
 // Local file
-learner.load_model("./resources/japanese.model").await?;
+learner.load_model("./models/japanese.model").await?;
 
 // HTTP URL
 learner.load_model("https://example.com/models/japanese.model").await?;
@@ -3047,7 +3048,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="pre-trained-models-1"><a class="header" href="#pre-trained-models-1">Pre-trained Models</a></h1>
-<p>Litsea ships with several pre-trained models in the <code>resources/</code> directory.</p>
+<p>Litsea ships with several pre-trained models in the <code>models/</code> directory.</p>
 <h2 id="model-catalog"><a class="header" href="#model-catalog">Model Catalog</a></h2>
 <h3 id="japanesemodel-1"><a class="header" href="#japanesemodel-1">japanese.model</a></h3>
 <div class="table-wrapper">
@@ -3177,7 +3178,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </table>
 </div>
 <h4 id="usage-6"><a class="header" href="#usage-6">Usage</a></h4>
-<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese resources/japanese_pos.model
+<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
@@ -3191,7 +3192,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <li>For <strong>domain-specific</strong> needs, consider <a href="#preparing-a-corpus">training your own model</a> or <a href="#retraining-models">retraining</a> an existing one</li>
 </ul>
 <h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>
-<p>The <code>resources/</code> directory also contains:</p>
+<p>The <code>resources/</code> directory also contains sample data:</p>
 <ul>
 <li><strong>bocchan.txt</strong> – Sample Japanese corpus from the novel “Botchan” by Natsume Soseki (~307 KB). Used for benchmarking.</li>
 </ul>

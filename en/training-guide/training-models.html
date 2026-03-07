@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4ac343d7.js";
+            window.path_to_searchindex_js = "../searchindex-775375b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b64cce5c.js"></script>
@@ -186,7 +186,7 @@
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 </code></pre>
 <h2 id="training-process"><a class="header" href="#training-process">Training Process</a></h2>
 <pre><code class="language-mermaid">flowchart TD
@@ -244,7 +244,7 @@
 <pre><code class="language-sh">litsea train --pos --num-epochs 10 &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
-<pre><code class="language-sh">litsea train --pos --num-epochs 10 ./features.txt ./resources/japanese_pos.model
+<pre><code class="language-sh">litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="averaged-perceptron-vs-adaboost"><a class="header" href="#averaged-perceptron-vs-adaboost">Averaged Perceptron vs AdaBoost</a></h3>
 <div class="table-wrapper">

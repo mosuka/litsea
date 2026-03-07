@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-06cb1f2c.js";
+            window.path_to_searchindex_js = "../searchindex-948b2537.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b7688c67.js"></script>
@@ -186,7 +186,7 @@
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h2 id="基本的な使用例"><a class="header" href="#基本的な使用例">基本的な使用例</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 </code></pre>
 <h2 id="学習プロセス"><a class="header" href="#学習プロセス">学習プロセス</a></h2>
 <pre><code class="language-mermaid">flowchart TD
@@ -244,7 +244,7 @@
 <pre><code class="language-sh">litsea train --pos --num-epochs 10 &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h3 id="品詞学習の使用例"><a class="header" href="#品詞学習の使用例">品詞学習の使用例</a></h3>
-<pre><code class="language-sh">litsea train --pos --num-epochs 10 ./features.txt ./resources/japanese_pos.model
+<pre><code class="language-sh">litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="averaged-perceptron-と-adaboost-の比較"><a class="header" href="#averaged-perceptron-と-adaboost-の比較">Averaged Perceptron と AdaBoost の比較</a></h3>
 <div class="table-wrapper">

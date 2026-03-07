@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-06cb1f2c.js";
+            window.path_to_searchindex_js = "../searchindex-948b2537.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b7688c67.js"></script>
@@ -231,14 +231,14 @@
 <p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <p>基本的な学習:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 </code></pre>
 <p>高精度な学習（低い閾値、多い反復回数）:</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>既存モデルからの再学習:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
-    ./new_features.txt ./resources/japanese_v2.model
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
+    ./new_features.txt ./models/japanese_v2.model
 </code></pre>
 <h2 id="品詞モデルの学習--pos"><a class="header" href="#品詞モデルの学習--pos">品詞モデルの学習（<code>--pos</code>）</a></h2>
 <p><code>--pos</code> フラグを指定すると、Averaged Perceptron による品詞推定モデルを学習します。</p>
@@ -259,7 +259,7 @@
 </div>
 <h3 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h3>
 <pre><code class="language-sh"># 品詞モデルの学習（10エポック）
-litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="出力-1"><a class="header" href="#出力-1">出力</a></h3>
 <p>学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。</p>

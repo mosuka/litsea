@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-06cb1f2c.js";
+            window.path_to_searchindex_js = "../searchindex-948b2537.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b7688c67.js"></script>
@@ -205,7 +205,7 @@
 </span>let mut learner = AdaBoost::new(0.01, 100);
 
 // ローカルファイル
-learner.load_model("./resources/japanese.model").await?;
+learner.load_model("./models/japanese.model").await?;
 
 // HTTP URL
 learner.load_model("https://example.com/models/japanese.model").await?;

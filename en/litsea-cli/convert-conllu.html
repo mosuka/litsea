@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4ac343d7.js";
+            window.path_to_searchindex_js = "../searchindex-775375b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b64cce5c.js"></script>
@@ -256,7 +256,7 @@ litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
 litsea extract -l japanese ./corpus.txt ./features.txt
 
 # 3. Train a model
-litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 </code></pre>
 <h3 id="full-pos-training-workflow"><a class="header" href="#full-pos-training-workflow">Full POS training workflow</a></h3>
 <pre><code class="language-sh"># 1. Convert CoNLL-U to POS corpus
@@ -266,7 +266,7 @@ litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_po
 litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
 
 # 3. Train a POS model
-litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
 </code></pre>
 <h2 id="data-source"><a class="header" href="#data-source">Data Source</a></h2>
 <p>Universal Dependencies treebanks are available at <a href="https://universaldependencies.org/">universaldependencies.org</a>. For Japanese, the recommended treebank is <a href="https://github.com/UniversalDependencies/UD_Japanese-GSD">UD_Japanese-GSD</a> (7,050 sentences).</p>

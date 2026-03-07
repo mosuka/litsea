@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4ac343d7.js";
+            window.path_to_searchindex_js = "../searchindex-775375b4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b64cce5c.js"></script>
@@ -220,7 +220,7 @@ let mut trainer = Trainer::new(
 <p>Loads an existing model for retraining. Supports file paths, <code>file://</code>, <code>http://</code>, and <code>https://</code> URIs.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>trainer.load_model("./resources/japanese.model").await?;
+</span>trainer.load_model("./models/japanese.model").await?;
 <span class="boring">}</span></code></pre>
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -260,7 +260,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     )?;
 
     // Optionally resume from an existing model
-    // trainer.load_model("./resources/japanese.model").await?;
+    // trainer.load_model("./models/japanese.model").await?;
 
     let running = Arc::new(AtomicBool::new(true));
     let metrics = trainer.train(running, Path::new("./model.model"))?;

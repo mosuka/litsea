@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-06cb1f2c.js";
+            window.path_to_searchindex_js = "../searchindex-948b2537.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b7688c67.js"></script>
@@ -183,24 +183,24 @@
                         <h1 id="クイックスタート"><a class="header" href="#クイックスタート">クイックスタート</a></h1>
 <h2 id="cli-クイックスタート"><a class="header" href="#cli-クイックスタート">CLI クイックスタート</a></h2>
 <h3 id="テキストの分割"><a class="header" href="#テキストの分割">テキストの分割</a></h3>
-<p>Litsea には <code>resources/</code> ディレクトリに学習済みモデルが同梱されています。テキストを <code>segment</code> コマンドにパイプで渡します:</p>
+<p>Litsea には <code>models/</code> ディレクトリに学習済みモデルが同梱されています。テキストを <code>segment</code> コマンドにパイプで渡します:</p>
 <p><strong>日本語:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./resources/japanese.model
+  | litsea segment -l japanese ./models/japanese.model
 </code></pre>
 <p>出力:</p>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <p><strong>中国語:</strong></p>
-<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 </code></pre>
 <p><strong>韓国語:</strong></p>
-<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./resources/korean.model
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
 <h3 id="品詞推定付き分割"><a class="header" href="#品詞推定付き分割">品詞推定付き分割</a></h3>
 <p><code>--pos</code> フラグを付けると、単語分割と同時に UPOS 品詞タグを推定します:</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <p>出力:</p>
 <pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
@@ -223,7 +223,7 @@ use litsea::segmenter::Segmenter;
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./resources/japanese.model").await?;
+    learner.load_model("./models/japanese.model").await?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -245,7 +245,7 @@ use litsea::segmenter::Segmenter;
 async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     // POS モデルを読み込み
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./resources/japanese_pos.model").await?;
+    pos_learner.load_model("./models/japanese_pos.model").await?;
 
     // POS 対応 Segmenter を作成
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
