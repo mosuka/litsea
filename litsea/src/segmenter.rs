@@ -617,9 +617,8 @@ mod tests {
     async fn test_segment() {
         let sentence = "これはテストです。";
 
-        let model_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../models")
-            .join("RWCP.model");
+        let model_file =
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("RWCP.model");
         let mut learner = AdaBoost::new(0.01, 100);
         learner.load_model(model_file.to_str().unwrap()).await.unwrap();
 
