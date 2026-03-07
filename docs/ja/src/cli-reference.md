@@ -12,11 +12,11 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 
 | Command | Description |
 |---------|------------|
-| [`extract`](extract.md) | 学習用にコーパスから特徴量を抽出 |
-| [`train`](train.md) | 単語分割モデルを学習 |
-| [`segment`](segment.md) | 学習済みモデルを使用してテキストを単語に分割 |
-| [`split-sentences`](split-sentences.md) | Unicode UAX #29を使用してテキストを文に分割 |
-| [`convert-conllu`](convert-conllu.md) | CoNLL-U（Universal Dependencies）形式をLitsea品詞コーパス形式に変換 |
+| [`extract`](cli-reference/extract.md) | 学習用にコーパスから特徴量を抽出 |
+| [`train`](cli-reference/train.md) | 単語分割モデルを学習 |
+| [`segment`](cli-reference/segment.md) | 学習済みモデルを使用してテキストを単語に分割 |
+| [`split-sentences`](cli-reference/split-sentences.md) | Unicode UAX #29を使用してテキストを文に分割 |
+| [`convert-conllu`](cli-reference/convert-conllu.md) | CoNLL-U（Universal Dependencies）形式をLitsea品詞コーパス形式に変換 |
 
 ## グローバルオプション
 
