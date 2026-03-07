@@ -41,6 +41,7 @@ The `CharTypePatterns` struct holds an ordered list of `(CharMatcher, type_code)
 | **O** | Other | Fallback | @, # |
 
 **Chinese function words** include:
+
 - Structural particles: 的, 地, 得
 - Aspect/modal particles: 了, 着, 过, 吗, 呢, 吧, 啊, 嘛
 - Conjunctions: 和, 与, 或, 但, 而, 且, 及

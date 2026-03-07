@@ -5,6 +5,7 @@ A good training corpus is essential for model accuracy. This guide explains how 
 ## Corpus Format
 
 The corpus must be a plain text file with:
+
 - **One sentence per line**
 - **Words separated by spaces**
 
@@ -26,6 +27,7 @@ bash scripts/wikitexts.sh zh   # Chinese
 ```
 
 This script:
+
 1. Downloads article titles from the Wikipedia API
 2. Filters by language-specific criteria
 3. Fetches article text

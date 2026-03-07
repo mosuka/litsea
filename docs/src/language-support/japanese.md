@@ -18,6 +18,7 @@ Japanese is the default language in Litsea.
 ### Pattern Priority
 
 Patterns are evaluated in order. Notably:
+
 - **M before H**: Characters like 一 and 百 are classified as "Kanji Numbers" (M), not generic "Kanji" (H)
 - This distinction helps the model learn number-specific boundary patterns
 
