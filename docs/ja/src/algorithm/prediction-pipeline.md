@@ -61,9 +61,11 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 
 1. **特徴量の抽出** -- `get_attributes(i, tags, chars, types)` を呼び出し、38-42 個の特徴量からなる `HashSet<String>` を構築
 2. **スコアの計算** -- AdaBoost 学習器がマッチするすべての特徴量のモデル重みとバイアスを合計:
+
    ```text
    score = bias + sum(model[feature] for feature in attributes)
    ```
+
 3. **判定** -- `score >= 0` の場合、その文字は新しい単語を開始（境界）、そうでなければ現在の単語を継続
 4. **タグの更新** -- tags 配列に "B" または "O" をプッシュし、後続の位置での特徴量抽出に影響を与える
 

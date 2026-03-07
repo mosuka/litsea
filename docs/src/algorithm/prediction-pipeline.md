@@ -61,9 +61,11 @@ At each position *i*, the segmenter:
 
 1. **Extracts features** -- Calls `get_attributes(i, tags, chars, types)` to build a `HashSet<String>` of 38--42 features
 2. **Computes score** -- The AdaBoost learner sums the model weights for all matching features plus the bias:
+
    ```text
    score = bias + sum(model[feature] for feature in attributes)
    ```
+
 3. **Makes decision** -- If `score >= 0`, the character starts a new word (boundary); otherwise, it continues the current word
 4. **Updates tags** -- Pushes "B" or "O" to the tags array, which affects feature extraction for subsequent positions
 

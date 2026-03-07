@@ -1,25 +1,17 @@
 # Summary
 
-[はじめに](introduction.md)
-
----
+[はじめに](README.md)
 
 # 導入
 
-- [インストール](getting-started/installation.md)
-- [クイックスタート](getting-started/quick-start.md)
+- [導入](getting-started.md)
+  - [インストール](getting-started/installation.md)
+  - [クイックスタート](getting-started/quick-start.md)
+- [アーキテクチャ概要](architecture/overview.md)
+  - [ワークスペース構成](architecture/workspace-structure.md)
+  - [モジュール設計](architecture/module-design.md)
 
----
-
-# アーキテクチャ
-
-- [概要](architecture/overview.md)
-- [ワークスペース構成](architecture/workspace-structure.md)
-- [モジュール設計](architecture/module-design.md)
-
----
-
-# アルゴリズム
+# コアコンセプト
 
 - [AdaBoost 二値分類](algorithm/adaboost.md)
 - [Averaged Perceptron](algorithm/averaged-perceptron.md)
@@ -27,60 +19,49 @@
 - [文字種分類](algorithm/character-type-classification.md)
 - [予測パイプライン](algorithm/prediction-pipeline.md)
 
----
-
 # 言語サポート
 
-- [概要](language-support/overview.md)
-- [日本語](language-support/japanese.md)
-- [中国語](language-support/chinese.md)
-- [韓国語](language-support/korean.md)
-- [新しい言語の追加](language-support/adding-a-new-language.md)
+- [言語サポート](language-support/overview.md)
+  - [日本語](language-support/japanese.md)
+  - [中国語](language-support/chinese.md)
+  - [韓国語](language-support/korean.md)
+  - [新しい言語の追加](language-support/adding-a-new-language.md)
 
----
+# litsea (ライブラリ)
 
-# CLI リファレンス
+- [ライブラリ概要](litsea.md)
+  - [Segmenter](litsea/segmenter.md)
+  - [Extractor](litsea/extractor.md)
+  - [Trainer](litsea/trainer.md)
+  - [AdaBoost](litsea/adaboost.md)
+  - [Averaged Perceptron](litsea/averaged-perceptron.md)
+  - [UPOS](litsea/upos.md)
+  - [CoNLL-U コンバーター](litsea/conllu.md)
+  - [Language](litsea/language.md)
 
-- [概要](cli-reference/overview.md)
-- [extract](cli-reference/extract.md)
-- [train](cli-reference/train.md)
-- [segment](cli-reference/segment.md)
-- [split-sentences](cli-reference/split-sentences.md)
-- [convert-conllu](cli-reference/convert-conllu.md)
+# litsea-cli (CLI)
 
----
-
-# ライブラリ API
-
-- [概要](library-api/overview.md)
-- [Segmenter](library-api/segmenter.md)
-- [Extractor](library-api/extractor.md)
-- [Trainer](library-api/trainer.md)
-- [AdaBoost](library-api/adaboost.md)
-- [Averaged Perceptron](library-api/averaged-perceptron.md)
-- [UPOS](library-api/upos.md)
-- [CoNLL-Uコンバーター](library-api/conllu.md)
-- [Language](library-api/language.md)
-
----
+- [CLI 概要](litsea-cli.md)
+  - [extract](litsea-cli/extract.md)
+  - [train](litsea-cli/train.md)
+  - [segment](litsea-cli/segment.md)
+  - [convert-conllu](litsea-cli/convert-conllu.md)
+  - [split-sentences](litsea-cli/split-sentences.md)
 
 # トレーニングガイド
 
-- [コーパスの準備](training-guide/preparing-corpus.md)
-- [特徴量の抽出](training-guide/extracting-features.md)
-- [モデルの訓練](training-guide/training-models.md)
-- [モデルの評価](training-guide/evaluating-models.md)
-- [モデルの再訓練](training-guide/retraining-models.md)
-
----
+- [トレーニングガイド](training-guide.md)
+  - [コーパスの準備](training-guide/preparing-corpus.md)
+  - [特徴量の抽出](training-guide/extracting-features.md)
+  - [モデルの訓練](training-guide/training-models.md)
+  - [モデルの評価](training-guide/evaluating-models.md)
+  - [モデルの再訓練](training-guide/retraining-models.md)
 
 # 上級トピック
 
 - [モデルファイル形式](advanced/model-file-format.md)
 - [リモートモデルの読み込み](advanced/remote-model-loading.md)
 - [ベンチマーク](advanced/benchmarking.md)
-
----
 
 # リファレンス
 

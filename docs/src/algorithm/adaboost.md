@@ -24,7 +24,7 @@ The training loop in `AdaBoost::train()` works as follows:
 
 For each iteration *t* (up to `num_iterations`):
 
-**Step 1: Calculate weighted errors**
+#### Step 1: Calculate weighted errors
 
 For each feature *h*, compute its weighted error over all instances:
 
@@ -34,7 +34,7 @@ error[h] -= D[i] * y[i]   (for each instance i that has feature h)
 
 where *D[i]* is the instance weight and *y[i]* is the true label.
 
-**Step 2: Select the best weak learner**
+#### Step 2: Select the best weak learner
 
 Find the feature with the lowest weighted error rate:
 
@@ -45,11 +45,11 @@ h_best = argmax_h |0.5 - error_rate(h)|
 
 The baseline competitor is the "all-negative" classifier (always predicts -1), whose error rate equals the fraction of positive instances. Any real feature must beat this baseline.
 
-**Step 3: Check convergence**
+#### Step 3: Check convergence
 
 If `|0.5 - best_error_rate| < threshold`, stop early -- no feature can significantly improve the model.
 
-**Step 4: Compute the weak learner weight**
+#### Step 4: Compute the weak learner weight
 
 ```text
 alpha = 0.5 * ln((1 - error_rate) / error_rate)
@@ -58,7 +58,7 @@ model[h_best] += alpha
 
 A lower error rate produces a higher alpha, giving more influence to better features.
 
-**Step 5: Update instance weights**
+#### Step 5: Update instance weights
 
 ```text
 For each instance i:

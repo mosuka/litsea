@@ -59,6 +59,7 @@ flowchart LR
 ```
 
 Extractor は以下の処理を行います:
+
 1. コーパスファイルから各行を読み込む
 2. `Segmenter::add_corpus_with_writer()` を呼び出して各行を処理する
 3. 各文字位置のラベルと特徴量セットを出力ファイルに書き込む

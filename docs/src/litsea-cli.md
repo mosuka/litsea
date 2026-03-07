@@ -12,11 +12,11 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 
 | Command | Description |
 |---------|------------|
-| [`extract`](extract.md) | Extract features from a corpus for training |
-| [`train`](train.md) | Train a word segmentation model |
-| [`segment`](segment.md) | Segment text into words using a trained model |
-| [`convert-conllu`](convert-conllu.md) | Convert CoNLL-U (Universal Dependencies) files to Litsea POS corpus format |
-| [`split-sentences`](split-sentences.md) | Split text into sentences using Unicode UAX #29 |
+| [`extract`](litsea-cli/extract.md) | Extract features from a corpus for training |
+| [`train`](litsea-cli/train.md) | Train a word segmentation model |
+| [`segment`](litsea-cli/segment.md) | Segment text into words using a trained model |
+| [`convert-conllu`](litsea-cli/convert-conllu.md) | Convert CoNLL-U (Universal Dependencies) files to Litsea POS corpus format |
+| [`split-sentences`](litsea-cli/split-sentences.md) | Split text into sentences using Unicode UAX #29 |
 
 ## Global Options
 

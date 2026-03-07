@@ -59,6 +59,7 @@ flowchart LR
 ```
 
 The extractor:
+
 1. Reads each line from the corpus file
 2. Calls `Segmenter::add_corpus_with_writer()` to process each line
 3. Writes the label and feature set for each character position to the output file

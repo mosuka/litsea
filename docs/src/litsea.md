@@ -20,12 +20,18 @@ graph LR
     G["litsea::extractor"] --- H["Extractor"]
     I["litsea::trainer"] --- J["Trainer"]
     K["litsea::util"] --- L["ModelScheme"]
+    M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
+    O["litsea::upos"] --- P["Upos, SegmentLabel"]
+    Q["litsea::conllu"] --- R["convert_conllu"]
 ```
 
 | Module | Primary Types | Purpose |
 |--------|--------------|---------|
-| `litsea::segmenter` | `Segmenter` | Word segmentation |
+| `litsea::segmenter` | `Segmenter` | Word segmentation, joint segmentation with POS tagging |
 | `litsea::adaboost` | `AdaBoost`, `Metrics` | Binary classification, model I/O |
+| `litsea::perceptron` | `AveragedPerceptron`, `Metrics` | Multiclass classification (POS tagging), model I/O |
+| `litsea::upos` | `Upos`, `SegmentLabel` | UPOS POS tags, segment labels |
+| `litsea::conllu` | `convert_conllu` | CoNLL-U format conversion |
 | `litsea::language` | `Language`, `CharTypePatterns` | Language definitions, character classification |
 | `litsea::extractor` | `Extractor` | Feature extraction from corpus |
 | `litsea::trainer` | `Trainer` | Training orchestration |

@@ -113,16 +113,19 @@ If your language's character types have enough variety to make WC features infor
 ## Step 6: Prepare Corpus and Train a Model
 
 1. **Prepare a corpus** with words separated by spaces:
+
    ```text
    word1 word2 word3 word4
    ```
 
 2. **Extract features**:
+
    ```sh
    litsea extract -l thai ./corpus.txt ./features.txt
    ```
 
 3. **Train a model**:
+
    ```sh
    litsea train -t 0.005 -i 1000 ./features.txt ./resources/thai.model
    ```

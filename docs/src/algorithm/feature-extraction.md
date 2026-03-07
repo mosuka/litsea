@@ -85,5 +85,6 @@ The `extract` command writes features to a file in this format:
 ```
 
 Each line contains:
+
 1. A label (`1` for boundary, `-1` for non-boundary)
 2. Tab-separated feature strings
