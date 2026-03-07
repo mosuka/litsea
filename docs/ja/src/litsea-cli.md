@@ -16,7 +16,7 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 | [`train`](litsea-cli/train.md) | 単語分割モデルを学習 |
 | [`segment`](litsea-cli/segment.md) | 学習済みモデルを使用してテキストを単語に分割 |
 | [`split-sentences`](litsea-cli/split-sentences.md) | Unicode UAX #29を使用してテキストを文に分割 |
-| [`convert-conllu`](litsea-cli/convert-conllu.md) | CoNLL-U（Universal Dependencies）形式をLitsea品詞コーパス形式に変換 |
+| [`convert-conllu`](litsea-cli/convert-conllu.md) | CoNLL-U（Universal Dependencies）形式をLitseaコーパス形式に変換 |
 
 ## グローバルオプション
 
@@ -36,7 +36,7 @@ flowchart LR
     C --> D["4. litsea segment"]
 ```
 
-1. 単語をスペースで区切ったコーパスを用意する
+1. UD Treebank からコーパスを準備する: `litsea convert-conllu ud_data.conllu corpus.txt`
 2. 特徴量を抽出する: `litsea extract -l japanese corpus.txt features.txt`
 3. モデルを学習する: `litsea train -t 0.005 -i 1000 features.txt model.model`
 4. テキストを分割する: `echo "text" | litsea segment -l japanese model.model`
@@ -52,7 +52,7 @@ flowchart LR
 ```
 
 1. Universal Dependencies Treebank（例: UD\_Japanese-GSD）を取得する
-2. CoNLL-U 形式を変換する: `litsea convert-conllu input.conllu corpus_pos.txt`
+2. CoNLL-U 形式を変換する: `litsea convert-conllu --pos input.conllu corpus_pos.txt`
 3. 品詞付き特徴量を抽出する: `litsea extract --pos -l japanese corpus_pos.txt features_pos.txt`
 4. POS モデルを学習する: `litsea train --pos --num-epochs 10 features_pos.txt model_pos.model`
 5. 品詞推定付き分割: `echo "text" | litsea segment --pos -l japanese model_pos.model`

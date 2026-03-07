@@ -26,8 +26,7 @@
 
 ### japanese.model
 
-- **学習コーパス**: 日本語Wikipedia記事
-- **トークナイザ**: Lindera（UniDic辞書使用）
+- **学習コーパス**: UD Japanese-GSD
 - **精度（Accuracy）**: 94.15%
 - **適合率（Precision）**: 95.57%
 - **再現率（Recall）**: 94.36%

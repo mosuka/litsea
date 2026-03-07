@@ -36,8 +36,7 @@ litsea/
 │   ├── JEITA_Genpaku_ChaSen_IPAdic.model
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   ├── wikitexts.sh        # Download Wikipedia texts
-│   └── corpus.sh           # Create training corpus with Lindera
+│   └── corpus.sh           # Download UD Treebanks and create training corpora
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines

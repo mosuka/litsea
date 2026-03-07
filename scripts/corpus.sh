@@ -1,54 +1,52 @@
 #!/bin/bash
 set -euo pipefail
 
-lang="${WIKI_LANG:-ja}"
-texts_file="${WIKI_TEXTS_FILE:-texts.txt}"
-corpus_file="${WIKI_CORPUS_FILE:-corpus.txt}"
+lang="${LANG_CODE:-ja}"
+corpus_file="${CORPUS_FILE:-corpus.txt}"
+pos_corpus_file="${POS_CORPUS_FILE:-pos_corpus.txt}"
+litsea_cli="${LITSEA_CLI:-cargo run --bin litsea --}"
 
 ###############################################################################
 # usage function
 # Displays the usage information for the script.
-# Usage: usage
-# This function is called when the script is run with the -h option or when an invalid option is provided.
-# It prints the usage information and exits the script with a status code of 1.
 ###############################################################################
 usage() {
-    echo "Usage: $0 [-h] [-l lang] [-t texts_file] [-c corpus_file]"
-    echo "  -l lang         Language code: ja, ko, zh (default: ja)"
-    echo "  -t texts_file   Input texts file (default: texts.txt)"
-    echo "  -c corpus_file  Output corpus file (default: corpus.txt)"
+    echo "Usage: $0 [-h] [-l lang] [-c corpus_file] [-p pos_corpus_file]"
+    echo ""
+    echo "Download a UD Treebank and convert it to Litsea corpus format."
+    echo ""
+    echo "  -l lang             Language code: ja, ko, zh (default: ja)"
+    echo "  -c corpus_file      Output corpus file for word segmentation (default: corpus.txt)"
+    echo "  -p pos_corpus_file  Output POS corpus file (default: pos_corpus.txt)"
     exit 1
 }
 
-while getopts "hl:t:c:" opt; do
+while getopts "hl:c:p:" opt; do
     case "$opt" in
         h) usage ;;
         l) lang="$OPTARG" ;;
-        t) texts_file="$OPTARG" ;;
         c) corpus_file="$OPTARG" ;;
+        p) pos_corpus_file="$OPTARG" ;;
         *) usage ;;
     esac
 done
 shift $((OPTIND - 1))
 
 ###############################################################################
-# Set language-specific lindera options
+# Set language-specific UD Treebank variables
 ###############################################################################
 case "$lang" in
     ja)
-        lindera_dict="embedded://unidic"
-        lindera_filters=( \
-            --token-filter 'japanese_compound_word:{"kind":"unidic","tags":["名詞,数詞"],"new_tag":"複合語"}' \
-            --token-filter 'japanese_compound_word:{"kind":"unidic","tags":["記号,文字"],"new_tag":"複合語"}' \
-        )
+        ud_repo="UD_Japanese-GSD"
+        ud_prefix="ja_gsd-ud"
         ;;
     ko)
-        lindera_dict="embedded://ko-dic"
-        lindera_filters=()
+        ud_repo="UD_Korean-GSD"
+        ud_prefix="ko_gsd-ud"
         ;;
     zh)
-        lindera_dict="embedded://cc-cedict"
-        lindera_filters=()
+        ud_repo="UD_Chinese-GSD"
+        ud_prefix="zh_gsd-ud"
         ;;
     *)
         echo "Error: Unsupported language '${lang}'. Supported: ja, ko, zh"
@@ -56,70 +54,41 @@ case "$lang" in
         ;;
 esac
 
+ud_url="https://github.com/UniversalDependencies/${ud_repo}.git"
+ud_dir="/tmp/${ud_repo}"
+conllu_file="${ud_dir}/${ud_prefix}-train.conllu"
+
 echo "Language: ${lang}"
-echo "Lindera dict: ${lindera_dict}"
-echo "Texts file: ${texts_file}"
+echo "UD Treebank: ${ud_repo}"
 echo "Corpus file: ${corpus_file}"
+echo "POS corpus file: ${pos_corpus_file}"
 
 ###############################################################################
-# spinner definition
+# Download UD Treebank (clone if not already present)
 ###############################################################################
-spinner=( '|' '/' '-' '\' )
-spin_idx=0
+if [ -d "${ud_dir}" ]; then
+    echo "UD Treebank already exists at ${ud_dir}, skipping download."
+else
+    echo "Cloning ${ud_url} ..."
+    git clone --depth 1 "${ud_url}" "${ud_dir}"
+    echo "Cloning completed."
+fi
+
+if [ ! -f "${conllu_file}" ]; then
+    echo "Error: CoNLL-U file not found: ${conllu_file}"
+    exit 1
+fi
 
 ###############################################################################
-# cleanup function
-# This function is called when the script exits or receives a signal.
-# It kills the spinner process and exits the script.
-# It is used to ensure that the spinner stops when the script is interrupted.
-# Usage: cleanup
+# Convert CoNLL-U to word segmentation corpus (space-separated words)
 ###############################################################################
-cleanup() {
-    if [[ -n "$spinner_pid" ]]; then
-        kill "$spinner_pid" 2>/dev/null
-    fi
-}
+echo "Converting to word segmentation corpus: ${corpus_file}"
+${litsea_cli} convert-conllu "${conllu_file}" "${corpus_file}"
 
 ###############################################################################
-# Call cleanup when SIGINT, SIGTERM, or EXIT is received.
+# Convert CoNLL-U to POS corpus (word/POS format)
 ###############################################################################
-trap cleanup EXIT
-trap 'exit 1' INT TERM
+echo "Converting to POS corpus: ${pos_corpus_file}"
+${litsea_cli} convert-conllu --pos "${conllu_file}" "${pos_corpus_file}"
 
-
-###############################################################################
-# spinner_loop function
-# This function displays a spinner while a task is running.
-# It takes a message as an argument to display.
-# Usage: spinner_loop "Your message here"
-###############################################################################
-spinner_loop() {
-    local msg="$1"
-    while true; do
-        echo -ne "${msg} ... ${spinner[spin_idx]} \r"
-        spin_idx=$(( (spin_idx + 1) % ${#spinner[@]} ))
-        sleep 0.1
-    done
-}
-
-
-###############################################################################
-# Create the corpus file
-###############################################################################
-spinner_loop "Creating ${corpus_file}" &
-spinner_pid=$!
-
-# Pre-process the texts file (normalize spaces, remove empty lines),
-# then tokenize all lines at once with Lindera, and normalize the output.
-sed 's/^[[:space:]]*//;s/[[:space:]]*$//' "$texts_file" | \
-    tr -s ' ' | \
-    sed '/^$/d' | \
-    lindera tokenize --dict "${lindera_dict}" \
-        --output wakati \
-        "${lindera_filters[@]}" | \
-    tr -s ' ' > "$corpus_file"
-
-# Stop the spinner after the loop is complete.
-kill "${spinner_pid}" 2>/dev/null
-wait "${spinner_pid}" 2>/dev/null
-echo "Creating ${corpus_file} completed."
+echo "Done."

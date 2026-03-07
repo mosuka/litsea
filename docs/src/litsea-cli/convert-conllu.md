@@ -1,11 +1,11 @@
 # convert-conllu
 
-Convert [CoNLL-U](https://universaldependencies.org/format.html) (Universal Dependencies) format files to Litsea POS corpus format.
+Convert [CoNLL-U](https://universaldependencies.org/format.html) (Universal Dependencies) format files to Litsea corpus format.
 
 ## Usage
 
 ```sh
-litsea convert-conllu <INPUT_FILE> <OUTPUT_FILE>
+litsea convert-conllu [OPTIONS] <INPUT_FILE> <OUTPUT_FILE>
 ```
 
 ## Arguments
@@ -13,7 +13,13 @@ litsea convert-conllu <INPUT_FILE> <OUTPUT_FILE>
 | Argument | Description |
 |----------|------------|
 | `INPUT_FILE` | Path to the input CoNLL-U file |
-| `OUTPUT_FILE` | Path to the output Litsea POS corpus file |
+| `OUTPUT_FILE` | Path to the output Litsea corpus file |
+
+## Options
+
+| Option | Description |
+|--------|------------|
+| `--pos` | Include POS tags in output (`word/POS` format). Without this flag, outputs space-separated words only |
 
 ## Input Format (CoNLL-U)
 
@@ -36,7 +42,17 @@ The relevant fields for conversion are:
 - Column 2: `FORM` -- word form (surface text)
 - Column 4: `UPOS` -- Universal POS tag
 
-## Output Format (Litsea POS Corpus)
+## Output Format
+
+### Word segmentation mode (default)
+
+Space-separated words, one sentence per line:
+
+```text
+太郎 は 花子 が 読ん で いる 本 を 次郎 に 渡し た 。
+```
+
+### POS tagging mode (`--pos`)
 
 Each sentence becomes one line with tokens in `word/POS` format:
 
@@ -49,27 +65,46 @@ Each sentence becomes one line with tokens in `word/POS` format:
 - **Comment lines** (`# ...`): Skipped
 - **Multiword tokens** (range IDs like `1-2`): Skipped (individual tokens are used instead)
 - **Empty nodes** (decimal IDs like `1.1`): Skipped
-- **Missing UPOS** (`_` in column 4): Token is assigned the `X` tag
+- **Missing UPOS** (`_` in column 4): Token is skipped
 
 ## Examples
 
-Convert a UD Japanese-GSD treebank file:
+### Word segmentation corpus
 
 ```sh
-litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
 ```
 
-Full POS training workflow starting from a UD treebank:
+### POS corpus
 
 ```sh
-# 1. Convert CoNLL-U to Litsea POS corpus
-litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+```
+
+### Full training workflow
+
+```sh
+# 1. Convert CoNLL-U to word segmentation corpus
+litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
+
+# 2. Extract features
+litsea extract -l japanese ./corpus.txt ./features.txt
+
+# 3. Train a model
+litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+```
+
+### Full POS training workflow
+
+```sh
+# 1. Convert CoNLL-U to POS corpus
+litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
 
 # 2. Extract POS features
 litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
 
 # 3. Train a POS model
-litsea train --pos -e 10 ./features_pos.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
 ```
 
 ## Data Source

@@ -82,13 +82,17 @@ struct SegmentArgs {
 #[derive(Debug, Args)]
 #[command(
     author,
-    about = "Convert CoNLL-U file to Litsea POS corpus format",
+    about = "Convert CoNLL-U file to Litsea corpus format",
     version = version(),
 )]
 struct ConvertConlluArgs {
-    /// CoNLL-Uファイルのパス
+    /// Include POS tags in output (word/POS format). Without this flag, outputs space-separated words only.
+    #[arg(long, default_value = "false")]
+    pos: bool,
+
+    /// Path to the CoNLL-U input file.
     input_file: PathBuf,
-    /// 出力ファイルのパス（Litseaコーパス形式）
+    /// Path to the output corpus file.
     output_file: PathBuf,
 }
 
@@ -282,13 +286,20 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// CoNLL-UファイルをLitsea品詞コーパス形式に変換する。
+/// Converts a CoNLL-U file to Litsea corpus format.
+///
+/// Without `--pos`, outputs space-separated words (for word segmentation training).
+/// With `--pos`, outputs `word/POS` format (for POS tagging training).
 ///
 /// # Arguments
-/// * `args` - convert-conlluコマンドの引数 [`ConvertConlluArgs`]
+///
+/// * `args` - Arguments for the convert-conllu command [`ConvertConlluArgs`].
 fn convert_conllu_cmd(args: ConvertConlluArgs) -> Result<(), Box<dyn Error>> {
-    let count =
-        litsea::conllu::convert_conllu(args.input_file.as_path(), args.output_file.as_path())?;
+    let count = litsea::conllu::convert_conllu(
+        args.input_file.as_path(),
+        args.output_file.as_path(),
+        args.pos,
+    )?;
     eprintln!("Converted {} sentences.", count);
     Ok(())
 }
