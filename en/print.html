@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9ce83e0f.js";
+            window.path_to_searchindex_js = "searchindex-ad6c0be6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-3e5df682.js"></script>
+        <script src="toc-b64cce5c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -213,6 +213,15 @@ Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <li><a href="https://crates.io/crates/litsea">crates.io</a></li>
 <li><a href="https://docs.rs/litsea">API Documentation (docs.rs)</a></li>
 <li><a href="../ja">Japanese Documentation (日本語)</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="getting-started"><a class="header" href="#getting-started">Getting Started</a></h1>
+<p>Welcome to Litsea! This section will help you get up and running quickly.</p>
+<p>Litsea is a compact word segmentation library in Rust that supports both <strong>word segmentation</strong> (AdaBoost) and <strong>joint segmentation with POS tagging</strong> (Averaged Perceptron).</p>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="#installation">Installation</a> – install Litsea from source or crates.io</li>
+<li><a href="#quick-start">Quick Start</a> – segment your first sentence in minutes</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
@@ -597,25 +606,25 @@ pub fn version() -&gt; &amp;'static str { VERSION }
 </ol>
 <h3 id="iterative-boosting"><a class="header" href="#iterative-boosting">Iterative Boosting</a></h3>
 <p>For each iteration <em>t</em> (up to <code>num_iterations</code>):</p>
-<p><strong>Step 1: Calculate weighted errors</strong></p>
+<h4 id="step-1-calculate-weighted-errors"><a class="header" href="#step-1-calculate-weighted-errors">Step 1: Calculate weighted errors</a></h4>
 <p>For each feature <em>h</em>, compute its weighted error over all instances:</p>
 <pre><code class="language-text">error[h] -= D[i] * y[i]   (for each instance i that has feature h)
 </code></pre>
 <p>where <em>D[i]</em> is the instance weight and <em>y[i]</em> is the true label.</p>
-<p><strong>Step 2: Select the best weak learner</strong></p>
+<h4 id="step-2-select-the-best-weak-learner"><a class="header" href="#step-2-select-the-best-weak-learner">Step 2: Select the best weak learner</a></h4>
 <p>Find the feature with the lowest weighted error rate:</p>
 <pre><code class="language-text">error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
 h_best = argmax_h |0.5 - error_rate(h)|
 </code></pre>
 <p>The baseline competitor is the “all-negative” classifier (always predicts -1), whose error rate equals the fraction of positive instances. Any real feature must beat this baseline.</p>
-<p><strong>Step 3: Check convergence</strong></p>
+<h4 id="step-3-check-convergence"><a class="header" href="#step-3-check-convergence">Step 3: Check convergence</a></h4>
 <p>If <code>|0.5 - best_error_rate| &lt; threshold</code>, stop early – no feature can significantly improve the model.</p>
-<p><strong>Step 4: Compute the weak learner weight</strong></p>
+<h4 id="step-4-compute-the-weak-learner-weight"><a class="header" href="#step-4-compute-the-weak-learner-weight">Step 4: Compute the weak learner weight</a></h4>
 <pre><code class="language-text">alpha = 0.5 * ln((1 - error_rate) / error_rate)
 model[h_best] += alpha
 </code></pre>
 <p>A lower error rate produces a higher alpha, giving more influence to better features.</p>
-<p><strong>Step 5: Update instance weights</strong></p>
+<h4 id="step-5-update-instance-weights"><a class="header" href="#step-5-update-instance-weights">Step 5: Update instance weights</a></h4>
 <pre><code class="language-text">For each instance i:
     prediction = +1 if h_best in features(i), else -1
 
@@ -985,13 +994,20 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <h2 id="how-prediction-works-at-each-position"><a class="header" href="#how-prediction-works-at-each-position">How Prediction Works at Each Position</a></h2>
 <p>At each position <em>i</em>, the segmenter:</p>
 <ol>
-<li><strong>Extracts features</strong> – Calls <code>get_attributes(i, tags, chars, types)</code> to build a <code>HashSet&lt;String&gt;</code> of 38–42 features</li>
-<li><strong>Computes score</strong> – The AdaBoost learner sums the model weights for all matching features plus the bias:
+<li>
+<p><strong>Extracts features</strong> – Calls <code>get_attributes(i, tags, chars, types)</code> to build a <code>HashSet&lt;String&gt;</code> of 38–42 features</p>
+</li>
+<li>
+<p><strong>Computes score</strong> – The AdaBoost learner sums the model weights for all matching features plus the bias:</p>
 <pre><code class="language-text">score = bias + sum(model[feature] for feature in attributes)
 </code></pre>
 </li>
-<li><strong>Makes decision</strong> – If <code>score &gt;= 0</code>, the character starts a new word (boundary); otherwise, it continues the current word</li>
-<li><strong>Updates tags</strong> – Pushes “B” or “O” to the tags array, which affects feature extraction for subsequent positions</li>
+<li>
+<p><strong>Makes decision</strong> – If <code>score &gt;= 0</code>, the character starts a new word (boundary); otherwise, it continues the current word</p>
+</li>
+<li>
+<p><strong>Updates tags</strong> – Pushes “B” or “O” to the tags array, which affects feature extraction for subsequent positions</p>
+</li>
 </ol>
 <h2 id="training-vs-prediction"><a class="header" href="#training-vs-prediction">Training vs. Prediction</a></h2>
 <div class="table-wrapper">
@@ -1381,422 +1397,6 @@ fn test_get_type_thai() {
 <pre><code class="language-sh">cargo test --workspace
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="cli-reference-overview"><a class="header" href="#cli-reference-overview">CLI Reference Overview</a></h1>
-<p>The <code>litsea</code> CLI provides commands for word segmentation, model training, and text processing.</p>
-<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-sh">litsea &lt;COMMAND&gt; [OPTIONS] [ARGS]
-</code></pre>
-<h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Command</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><a href="#extract"><code>extract</code></a></td><td>Extract features from a corpus for training</td></tr>
-<tr><td><a href="#train"><code>train</code></a></td><td>Train a word segmentation model</td></tr>
-<tr><td><a href="#segment"><code>segment</code></a></td><td>Segment text into words using a trained model</td></tr>
-<tr><td><a href="#convert-conllu"><code>convert-conllu</code></a></td><td>Convert CoNLL-U (Universal Dependencies) files to Litsea POS corpus format</td></tr>
-<tr><td><a href="#split-sentences"><code>split-sentences</code></a></td><td>Split text into sentences using Unicode UAX #29</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="global-options"><a class="header" href="#global-options">Global Options</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>-h</code>, <code>--help</code></td><td>Show help information</td></tr>
-<tr><td><code>-V</code>, <code>--version</code></td><td>Show version number</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="typical-workflow"><a class="header" href="#typical-workflow">Typical Workflow</a></h2>
-<pre><code class="language-mermaid">flowchart LR
-    A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
-    B --&gt; C["3. litsea train"]
-    C --&gt; D["4. litsea segment"]
-</code></pre>
-<ol>
-<li>Prepare a corpus with words separated by spaces</li>
-<li>Extract features: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
-<li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
-<li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
-</ol>
-<h3 id="pos-tagging-workflow"><a class="header" href="#pos-tagging-workflow">POS Tagging Workflow</a></h3>
-<pre><code class="language-mermaid">flowchart LR
-    A["1. UD Treebank\n(CoNLL-U)"] --&gt; B["2. litsea convert-conllu"]
-    B --&gt; C["3. litsea extract --pos"]
-    C --&gt; D["4. litsea train --pos"]
-    D --&gt; E["5. litsea segment --pos"]
-</code></pre>
-<ol>
-<li>Obtain a Universal Dependencies treebank in CoNLL-U format</li>
-<li>Convert to Litsea POS corpus: <code>litsea convert-conllu ud_data.conllu corpus_pos.txt</code></li>
-<li>Extract POS features: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
-<li>Train a POS model: <code>litsea train --pos -e 10 features_pos.txt model_pos.model</code></li>
-<li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
-</ol>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="extract"><a class="header" href="#extract">extract</a></h1>
-<p>Extract features from a corpus file for model training.</p>
-<h2 id="usage-1"><a class="header" href="#usage-1">Usage</a></h2>
-<pre><code class="language-sh">litsea extract [OPTIONS] &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
-</code></pre>
-<h2 id="arguments"><a class="header" href="#arguments">Arguments</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>CORPUS_FILE</code></td><td>Path to the input corpus file (words separated by spaces, one sentence per line)</td></tr>
-<tr><td><code>FEATURES_FILE</code></td><td>Path to the output features file</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="options"><a class="header" href="#options">Options</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="corpus-format"><a class="header" href="#corpus-format">Corpus Format</a></h2>
-<p>The input corpus must have words separated by spaces, one sentence per line:</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
-Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
-</code></pre>
-<h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
-<p>The features file contains one line per character position:</p>
-<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
-</code></pre>
-<ul>
-<li><code>1</code> = word boundary</li>
-<li><code>-1</code> = non-boundary</li>
-<li>Features are tab-separated</li>
-</ul>
-<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
-<pre><code class="language-sh"># Japanese
-litsea extract -l japanese ./corpus.txt ./features.txt
-
-# Chinese
-litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
-
-# Korean
-litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
-</code></pre>
-<p>Output to stderr on success:</p>
-<pre><code class="language-text">Feature extraction completed successfully.
-</code></pre>
-<h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
-<p>When the <code>--pos</code> flag is specified, <code>extract</code> expects a <strong>POS corpus</strong> instead of a plain word-separated corpus. Each line contains words annotated with UPOS tags in the format <code>word/POS</code>:</p>
-<h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
-<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
-今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
-</code></pre>
-<h3 id="pos-feature-output-format"><a class="header" href="#pos-feature-output-format">POS Feature Output Format</a></h3>
-<p>In POS mode, the label column uses segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>) instead of binary <code>1</code>/<code>-1</code>:</p>
-<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
-O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
-</code></pre>
-<h3 id="pos-extraction-example"><a class="header" href="#pos-extraction-example">POS Extraction Example</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="train"><a class="header" href="#train">train</a></h1>
-<p>Train a word segmentation model using AdaBoost.</p>
-<h2 id="usage-2"><a class="header" href="#usage-2">Usage</a></h2>
-<pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
-</code></pre>
-<h2 id="arguments-1"><a class="header" href="#arguments-1">Arguments</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>FEATURES_FILE</code></td><td>Path to the input features file (output from <code>extract</code>)</td></tr>
-<tr><td><code>MODEL_FILE</code></td><td>Path to the output model file</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="options-1"><a class="header" href="#options-1">Options</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>Weak classifier accuracy threshold for early stopping. Lower values allow more iterations</td></tr>
-<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
-<tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) training mode using Averaged Perceptron</td></tr>
-<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS mode only)</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="output"><a class="header" href="#output">Output</a></h2>
-<p>Training metrics are printed to stderr:</p>
-<pre><code class="language-text">Result Metrics:
-  Accuracy: 94.15% ( 564133 / 599198 )
-  Precision: 95.57% ( 330454 / 345758 )
-  Recall: 94.36% ( 330454 / 350215 )
-  Confusion Matrix:
-    True Positives: 330454
-    False Positives: 15304
-    False Negatives: 19761
-    True Negatives: 233679
-</code></pre>
-<h2 id="ctrlc-handling"><a class="header" href="#ctrlc-handling">Ctrl+C Handling</a></h2>
-<p>Training supports graceful interruption:</p>
-<ul>
-<li><strong>First Ctrl+C</strong>: Stops training and saves the model at its current state</li>
-<li><strong>Second Ctrl+C</strong>: Exits immediately without saving</li>
-</ul>
-<p>This allows you to stop long-running training sessions without losing progress.</p>
-<h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
-<p>Basic training:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
-</code></pre>
-<p>Training with higher precision (lower threshold, more iterations):</p>
-<pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
-</code></pre>
-<p>Retraining from an existing model:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
-    ./new_features.txt ./resources/japanese_v2.model
-</code></pre>
-<h2 id="hyperparameter-tuning"><a class="header" href="#hyperparameter-tuning">Hyperparameter Tuning</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Parameter</th><th>Effect of Decreasing</th><th>Effect of Increasing</th></tr>
-</thead>
-<tbody>
-<tr><td><code>threshold</code></td><td>More iterations, potentially higher accuracy, longer training time</td><td>Fewer iterations, faster training, may underfit</td></tr>
-<tr><td><code>num_iterations</code></td><td>Fewer boosting rounds, smaller model, may underfit</td><td>More rounds, larger model, potentially higher accuracy</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="pos-model-training"><a class="header" href="#pos-model-training">POS Model Training</a></h2>
-<p>When the <code>--pos</code> flag is specified, <code>train</code> uses the <strong>Averaged Perceptron</strong> algorithm instead of AdaBoost. This trains a multiclass classifier for joint word segmentation and POS tagging.</p>
-<h3 id="pos-training-options"><a class="header" href="#pos-training-options">POS Training Options</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS training mode</td></tr>
-<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="pos-training-output"><a class="header" href="#pos-training-output">POS Training Output</a></h3>
-<pre><code class="language-text">Result Metrics:
-  Accuracy: 98.34%
-  Macro Precision: 97.87%
-  Macro Recall: 91.67%
-</code></pre>
-<h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
-<pre><code class="language-sh"># Train a POS model from POS features
-litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
-</code></pre>
-<h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Parameter</th><th>Effect of Decreasing</th><th>Effect of Increasing</th></tr>
-</thead>
-<tbody>
-<tr><td><code>num_epochs</code></td><td>Faster training, may underfit</td><td>Better accuracy, longer training, may overfit</td></tr>
-</tbody>
-</table>
-</div>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="segment"><a class="header" href="#segment">segment</a></h1>
-<p>Segment text into words using a trained model.</p>
-<h2 id="usage-3"><a class="header" href="#usage-3">Usage</a></h2>
-<pre><code class="language-sh">echo "text" | litsea segment [OPTIONS] &lt;MODEL_URI&gt;
-</code></pre>
-<h2 id="arguments-2"><a class="header" href="#arguments-2">Arguments</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>MODEL_URI</code></td><td>Path or URL to the trained model file. Supports: local file paths, <code>file://</code>, <code>http://</code>, <code>https://</code></td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="options-2"><a class="header" href="#options-2">Options</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a POS model trained with <code>train --pos</code></td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="input--output"><a class="header" href="#input--output">Input / Output</a></h2>
-<ul>
-<li><strong>Input</strong>: Reads from stdin, one sentence per line. Empty lines are skipped.</li>
-<li><strong>Output</strong>: Writes to stdout, space-separated tokens, one line per input line.</li>
-</ul>
-<h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
-<p><strong>Japanese:</strong></p>
-<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./resources/japanese.model
-</code></pre>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
-</code></pre>
-<p><strong>Chinese:</strong></p>
-<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
-</code></pre>
-<p><strong>Korean:</strong></p>
-<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
-  | litsea segment -l korean ./resources/korean.model
-</code></pre>
-<p><strong>Processing a file:</strong></p>
-<pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./resources/japanese.model &gt; output.txt
-</code></pre>
-<p><strong>Loading a model from a URL:</strong></p>
-<pre><code class="language-sh">echo "テスト文です。" \
-  | litsea segment -l japanese https://example.com/models/japanese.model
-</code></pre>
-<h2 id="pos-tagged-segmentation"><a class="header" href="#pos-tagged-segmentation">POS-Tagged Segmentation</a></h2>
-<p>When the <code>--pos</code> flag is specified, <code>segment</code> outputs each token annotated with its UPOS tag in <code>word/POS</code> format. This requires a POS model trained with <code>train --pos</code>.</p>
-<p><strong>Example:</strong></p>
-<pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./resources/japanese_pos.model
-</code></pre>
-<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
-</code></pre>
-<p><strong>Processing a file with POS tags:</strong></p>
-<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model &gt; output.txt
-</code></pre>
-<h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
-<ul>
-<li>The <code>--language</code> flag must match the language the model was trained for</li>
-<li>Model loading is asynchronous and supports HTTP/HTTPS with TLS (rustls)</li>
-<li>The model URI is not restricted to file paths – any valid URL is accepted</li>
-<li>When using <code>--pos</code>, the model must be a POS model trained with <code>train --pos</code></li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="convert-conllu"><a class="header" href="#convert-conllu">convert-conllu</a></h1>
-<p>Convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> (Universal Dependencies) format files to Litsea POS corpus format.</p>
-<h2 id="usage-4"><a class="header" href="#usage-4">Usage</a></h2>
-<pre><code class="language-sh">litsea convert-conllu &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
-</code></pre>
-<h2 id="arguments-3"><a class="header" href="#arguments-3">Arguments</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>INPUT_FILE</code></td><td>Path to the input CoNLL-U file</td></tr>
-<tr><td><code>OUTPUT_FILE</code></td><td>Path to the output Litsea POS corpus file</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="input-format-conll-u"><a class="header" href="#input-format-conll-u">Input Format (CoNLL-U)</a></h2>
-<p>CoNLL-U is a tab-separated format used by <a href="https://universaldependencies.org/">Universal Dependencies</a> treebanks. Each line represents a token with 10 fields:</p>
-<pre><code class="language-text"># sent_id = example-1
-# text = 太郎は花子が読んでいる本を次郎に渡した。
-1	太郎	太郎	PROPN	_	_	13	nsubj	_	SpaceAfter=No
-2	は	は	ADP	_	_	1	case	_	SpaceAfter=No
-3	花子	花子	PROPN	_	_	5	nsubj	_	SpaceAfter=No
-4	が	が	ADP	_	_	3	case	_	SpaceAfter=No
-5	読ん	読む	VERB	_	_	8	acl	_	SpaceAfter=No
-...
-</code></pre>
-<p>The relevant fields for conversion are:</p>
-<ul>
-<li>Column 1: <code>ID</code> – token index (integer, range, or decimal)</li>
-<li>Column 2: <code>FORM</code> – word form (surface text)</li>
-<li>Column 4: <code>UPOS</code> – Universal POS tag</li>
-</ul>
-<h2 id="output-format-litsea-pos-corpus"><a class="header" href="#output-format-litsea-pos-corpus">Output Format (Litsea POS Corpus)</a></h2>
-<p>Each sentence becomes one line with tokens in <code>word/POS</code> format:</p>
-<pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 次郎/PROPN に/ADP 渡し/VERB た/AUX 。/PUNCT
-</code></pre>
-<h2 id="handling-special-cases"><a class="header" href="#handling-special-cases">Handling Special Cases</a></h2>
-<ul>
-<li><strong>Comment lines</strong> (<code># ...</code>): Skipped</li>
-<li><strong>Multiword tokens</strong> (range IDs like <code>1-2</code>): Skipped (individual tokens are used instead)</li>
-<li><strong>Empty nodes</strong> (decimal IDs like <code>1.1</code>): Skipped</li>
-<li><strong>Missing UPOS</strong> (<code>_</code> in column 4): Token is assigned the <code>X</code> tag</li>
-</ul>
-<h2 id="examples-3"><a class="header" href="#examples-3">Examples</a></h2>
-<p>Convert a UD Japanese-GSD treebank file:</p>
-<pre><code class="language-sh">litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
-</code></pre>
-<p>Full POS training workflow starting from a UD treebank:</p>
-<pre><code class="language-sh"># 1. Convert CoNLL-U to Litsea POS corpus
-litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
-
-# 2. Extract POS features
-litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
-
-# 3. Train a POS model
-litsea train --pos -e 10 ./features_pos.txt ./resources/japanese_pos.model
-</code></pre>
-<h2 id="data-source"><a class="header" href="#data-source">Data Source</a></h2>
-<p>Universal Dependencies treebanks are available at <a href="https://universaldependencies.org/">universaldependencies.org</a>. For Japanese, the recommended treebank is <a href="https://github.com/UniversalDependencies/UD_Japanese-GSD">UD_Japanese-GSD</a> (7,050 sentences).</p>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="split-sentences"><a class="header" href="#split-sentences">split-sentences</a></h1>
-<p>Split text into sentences using Unicode UAX #29 rules.</p>
-<h2 id="usage-5"><a class="header" href="#usage-5">Usage</a></h2>
-<pre><code class="language-sh">echo "text" | litsea split-sentences
-</code></pre>
-<h2 id="arguments-4"><a class="header" href="#arguments-4">Arguments</a></h2>
-<p>None.</p>
-<h2 id="options-3"><a class="header" href="#options-3">Options</a></h2>
-<p>None (besides <code>--help</code> and <code>--version</code>).</p>
-<h2 id="input--output-1"><a class="header" href="#input--output-1">Input / Output</a></h2>
-<ul>
-<li><strong>Input</strong>: Reads from stdin, one paragraph per line. Empty lines are skipped.</li>
-<li><strong>Output</strong>: Writes to stdout, one sentence per line.</li>
-</ul>
-<h2 id="how-it-works-2"><a class="header" href="#how-it-works-2">How It Works</a></h2>
-<p>This command uses ICU4X’s <code>SentenceSegmenter</code> which implements the Unicode Standard Annex #29 (UAX #29) sentence break rules. It is <strong>language-independent</strong> – no <code>--language</code> flag is needed.</p>
-<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
-<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
-</code></pre>
-<p>Output:</p>
-<pre><code class="language-text">これはテストです。
-次の文です。
-</code></pre>
-<p>Multi-line input:</p>
-<pre><code class="language-sh">echo -e "First sentence. Second sentence.\nThird sentence! Fourth." \
-  | litsea split-sentences
-</code></pre>
-<p>Output:</p>
-<pre><code class="language-text">First sentence.
-Second sentence.
-Third sentence!
-Fourth.
-</code></pre>
-<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
-<ul>
-<li>Pre-processing text before word segmentation (one sentence per line)</li>
-<li>Splitting large documents into individual sentences for analysis</li>
-<li>Preparing training corpora from raw text</li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="library-api-overview"><a class="header" href="#library-api-overview">Library API Overview</a></h1>
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
@@ -1812,6 +1412,9 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
     G["litsea::extractor"] --- H["Extractor"]
     I["litsea::trainer"] --- J["Trainer"]
     K["litsea::util"] --- L["ModelScheme"]
+    M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
+    O["litsea::upos"] --- P["Upos, SegmentLabel"]
+    Q["litsea::conllu"] --- R["convert_conllu"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -1819,8 +1422,11 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 <tr><th>Module</th><th>Primary Types</th><th>Purpose</th></tr>
 </thead>
 <tbody>
-<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>Word segmentation</td></tr>
+<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>Word segmentation, joint segmentation with POS tagging</td></tr>
 <tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code>, <code>Metrics</code></td><td>Binary classification, model I/O</td></tr>
+<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code>, <code>Metrics</code></td><td>Multiclass classification (POS tagging), model I/O</td></tr>
+<tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS POS tags, segment labels</td></tr>
+<tr><td><code>litsea::conllu</code></td><td><code>convert_conllu</code></td><td>CoNLL-U format conversion</td></tr>
 <tr><td><code>litsea::language</code></td><td><code>Language</code>, <code>CharTypePatterns</code></td><td>Language definitions, character classification</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>Feature extraction from corpus</td></tr>
 <tr><td><code>litsea::trainer</code></td><td><code>Trainer</code></td><td>Training orchestration</td></tr>
@@ -1881,7 +1487,7 @@ let segmenter = Segmenter::new(Language::Japanese, Some(learner));
 let segmenter = Segmenter::new(Language::Japanese, None);
 <span class="boring">}</span></code></pre>
 <h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
-<h3 id="segment-1"><a class="header" href="#segment-1"><code>segment</code></a></h3>
+<h3 id="segment"><a class="header" href="#segment"><code>segment</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn segment(&amp;self, sentence: &amp;str) -&gt; Vec&lt;String&gt;
@@ -1970,7 +1576,7 @@ use litsea::language::Language;
 let mut extractor = Extractor::new(Language::Japanese);
 <span class="boring">}</span></code></pre>
 <h2 id="methods-1"><a class="header" href="#methods-1">Methods</a></h2>
-<h3 id="extract-1"><a class="header" href="#extract-1"><code>extract</code></a></h3>
+<h3 id="extract"><a class="header" href="#extract"><code>extract</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn extract(
@@ -2043,7 +1649,7 @@ let mut trainer = Trainer::new(
 </span><span class="boring">fn main() {
 </span>trainer.load_model("./resources/japanese.model").await?;
 <span class="boring">}</span></code></pre>
-<h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
+<h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(
@@ -2154,7 +1760,7 @@ learner.load_model("https://example.com/model").await?;
 </span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Reads the same features file and initializes labeled instances with their weights.</p>
-<h3 id="train-2"><a class="header" href="#train-2"><code>train</code></a></h3>
+<h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(&amp;mut self, running: Arc&lt;AtomicBool&gt;)
@@ -2270,7 +1876,7 @@ let mut learner = AveragedPerceptron::new();
 </span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Reads the same features file and initializes labeled instances.</p>
-<h3 id="train-3"><a class="header" href="#train-3"><code>train</code></a></h3>
+<h3 id="train-2"><a class="header" href="#train-2"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(&amp;mut self, num_epochs: usize, running: Arc&lt;AtomicBool&gt;)
@@ -2391,10 +1997,10 @@ convert_conllu(
 2	は	は	ADP	_	_	1	case	_	SpaceAfter=No
 </code></pre>
 <p>The converter uses columns 1 (ID), 2 (FORM), and 4 (UPOS).</p>
-<h2 id="output-format-1"><a class="header" href="#output-format-1">Output Format</a></h2>
+<h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
 <pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 渡し/VERB た/AUX 。/PUNCT
 </code></pre>
-<h2 id="handling-special-cases-1"><a class="header" href="#handling-special-cases-1">Handling Special Cases</a></h2>
+<h2 id="handling-special-cases"><a class="header" href="#handling-special-cases">Handling Special Cases</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2483,6 +2089,444 @@ assert_eq!(patterns.get_type("@"), "O");
 </span>pub fn new(patterns: Vec&lt;(Regex, &amp;'static str)&gt;) -&gt; Self
 <span class="boring">}</span></code></pre>
 <p>Creates patterns from a list of regex + type code pairs. Patterns are checked in order; first match wins.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="cli-reference-overview"><a class="header" href="#cli-reference-overview">CLI Reference Overview</a></h1>
+<p>The <code>litsea</code> CLI provides commands for word segmentation, model training, and text processing.</p>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<pre><code class="language-sh">litsea &lt;COMMAND&gt; [OPTIONS] [ARGS]
+</code></pre>
+<h2 id="commands"><a class="header" href="#commands">Commands</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#extract-1"><code>extract</code></a></td><td>Extract features from a corpus for training</td></tr>
+<tr><td><a href="#train-3"><code>train</code></a></td><td>Train a word segmentation model</td></tr>
+<tr><td><a href="#segment-1"><code>segment</code></a></td><td>Segment text into words using a trained model</td></tr>
+<tr><td><a href="#convert-conllu"><code>convert-conllu</code></a></td><td>Convert CoNLL-U (Universal Dependencies) files to Litsea POS corpus format</td></tr>
+<tr><td><a href="#split-sentences"><code>split-sentences</code></a></td><td>Split text into sentences using Unicode UAX #29</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="global-options"><a class="header" href="#global-options">Global Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-h</code>, <code>--help</code></td><td>Show help information</td></tr>
+<tr><td><code>-V</code>, <code>--version</code></td><td>Show version number</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="typical-workflow"><a class="header" href="#typical-workflow">Typical Workflow</a></h2>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
+    B --&gt; C["3. litsea train"]
+    C --&gt; D["4. litsea segment"]
+</code></pre>
+<ol>
+<li>Prepare a corpus with words separated by spaces</li>
+<li>Extract features: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
+<li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
+<li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
+</ol>
+<h3 id="pos-tagging-workflow"><a class="header" href="#pos-tagging-workflow">POS Tagging Workflow</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. UD Treebank\n(CoNLL-U)"] --&gt; B["2. litsea convert-conllu"]
+    B --&gt; C["3. litsea extract --pos"]
+    C --&gt; D["4. litsea train --pos"]
+    D --&gt; E["5. litsea segment --pos"]
+</code></pre>
+<ol>
+<li>Obtain a Universal Dependencies treebank in CoNLL-U format</li>
+<li>Convert to Litsea POS corpus: <code>litsea convert-conllu ud_data.conllu corpus_pos.txt</code></li>
+<li>Extract POS features: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
+<li>Train a POS model: <code>litsea train --pos -e 10 features_pos.txt model_pos.model</code></li>
+<li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extract-1"><a class="header" href="#extract-1">extract</a></h1>
+<p>Extract features from a corpus file for model training.</p>
+<h2 id="usage-1"><a class="header" href="#usage-1">Usage</a></h2>
+<pre><code class="language-sh">litsea extract [OPTIONS] &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
+</code></pre>
+<h2 id="arguments"><a class="header" href="#arguments">Arguments</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CORPUS_FILE</code></td><td>Path to the input corpus file (words separated by spaces, one sentence per line)</td></tr>
+<tr><td><code>FEATURES_FILE</code></td><td>Path to the output features file</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options"><a class="header" href="#options">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="corpus-format"><a class="header" href="#corpus-format">Corpus Format</a></h2>
+<p>The input corpus must have words separated by spaces, one sentence per line:</p>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h2 id="output-format-1"><a class="header" href="#output-format-1">Output Format</a></h2>
+<p>The features file contains one line per character position:</p>
+<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
+-1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+</code></pre>
+<ul>
+<li><code>1</code> = word boundary</li>
+<li><code>-1</code> = non-boundary</li>
+<li>Features are tab-separated</li>
+</ul>
+<h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
+<pre><code class="language-sh"># Japanese
+litsea extract -l japanese ./corpus.txt ./features.txt
+
+# Chinese
+litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
+
+# Korean
+litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+</code></pre>
+<p>Output to stderr on success:</p>
+<pre><code class="language-text">Feature extraction completed successfully.
+</code></pre>
+<h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
+<p>When the <code>--pos</code> flag is specified, <code>extract</code> expects a <strong>POS corpus</strong> instead of a plain word-separated corpus. Each line contains words annotated with UPOS tags in the format <code>word/POS</code>:</p>
+<h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
+<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
+今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+</code></pre>
+<h3 id="pos-feature-output-format"><a class="header" href="#pos-feature-output-format">POS Feature Output Format</a></h3>
+<p>In POS mode, the label column uses segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>) instead of binary <code>1</code>/<code>-1</code>:</p>
+<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
+O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
+</code></pre>
+<h3 id="pos-extraction-example"><a class="header" href="#pos-extraction-example">POS Extraction Example</a></h3>
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="train-3"><a class="header" href="#train-3">train</a></h1>
+<p>Train a word segmentation model using AdaBoost.</p>
+<h2 id="usage-2"><a class="header" href="#usage-2">Usage</a></h2>
+<pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h2 id="arguments-1"><a class="header" href="#arguments-1">Arguments</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FEATURES_FILE</code></td><td>Path to the input features file (output from <code>extract</code>)</td></tr>
+<tr><td><code>MODEL_FILE</code></td><td>Path to the output model file</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options-1"><a class="header" href="#options-1">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>Weak classifier accuracy threshold for early stopping. Lower values allow more iterations</td></tr>
+<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
+<tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) training mode using Averaged Perceptron</td></tr>
+<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS mode only)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="output"><a class="header" href="#output">Output</a></h2>
+<p>Training metrics are printed to stderr:</p>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 94.15% ( 564133 / 599198 )
+  Precision: 95.57% ( 330454 / 345758 )
+  Recall: 94.36% ( 330454 / 350215 )
+  Confusion Matrix:
+    True Positives: 330454
+    False Positives: 15304
+    False Negatives: 19761
+    True Negatives: 233679
+</code></pre>
+<h2 id="ctrlc-handling"><a class="header" href="#ctrlc-handling">Ctrl+C Handling</a></h2>
+<p>Training supports graceful interruption:</p>
+<ul>
+<li><strong>First Ctrl+C</strong>: Stops training and saves the model at its current state</li>
+<li><strong>Second Ctrl+C</strong>: Exits immediately without saving</li>
+</ul>
+<p>This allows you to stop long-running training sessions without losing progress.</p>
+<h2 id="examples-1"><a class="header" href="#examples-1">Examples</a></h2>
+<p>Basic training:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+</code></pre>
+<p>Training with higher precision (lower threshold, more iterations):</p>
+<pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
+</code></pre>
+<p>Retraining from an existing model:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
+    ./new_features.txt ./resources/japanese_v2.model
+</code></pre>
+<h2 id="hyperparameter-tuning"><a class="header" href="#hyperparameter-tuning">Hyperparameter Tuning</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Effect of Decreasing</th><th>Effect of Increasing</th></tr>
+</thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>More iterations, potentially higher accuracy, longer training time</td><td>Fewer iterations, faster training, may underfit</td></tr>
+<tr><td><code>num_iterations</code></td><td>Fewer boosting rounds, smaller model, may underfit</td><td>More rounds, larger model, potentially higher accuracy</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="pos-model-training"><a class="header" href="#pos-model-training">POS Model Training</a></h2>
+<p>When the <code>--pos</code> flag is specified, <code>train</code> uses the <strong>Averaged Perceptron</strong> algorithm instead of AdaBoost. This trains a multiclass classifier for joint word segmentation and POS tagging.</p>
+<h3 id="pos-training-options"><a class="header" href="#pos-training-options">POS Training Options</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS training mode</td></tr>
+<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="pos-training-output"><a class="header" href="#pos-training-output">POS Training Output</a></h3>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 98.34%
+  Macro Precision: 97.87%
+  Macro Recall: 91.67%
+</code></pre>
+<h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
+<pre><code class="language-sh"># Train a POS model from POS features
+litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
+</code></pre>
+<h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Effect of Decreasing</th><th>Effect of Increasing</th></tr>
+</thead>
+<tbody>
+<tr><td><code>num_epochs</code></td><td>Faster training, may underfit</td><td>Better accuracy, longer training, may overfit</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="segment-1"><a class="header" href="#segment-1">segment</a></h1>
+<p>Segment text into words using a trained model.</p>
+<h2 id="usage-3"><a class="header" href="#usage-3">Usage</a></h2>
+<pre><code class="language-sh">echo "text" | litsea segment [OPTIONS] &lt;MODEL_URI&gt;
+</code></pre>
+<h2 id="arguments-2"><a class="header" href="#arguments-2">Arguments</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>MODEL_URI</code></td><td>Path or URL to the trained model file. Supports: local file paths, <code>file://</code>, <code>http://</code>, <code>https://</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options-2"><a class="header" href="#options-2">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a POS model trained with <code>train --pos</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="input--output"><a class="header" href="#input--output">Input / Output</a></h2>
+<ul>
+<li><strong>Input</strong>: Reads from stdin, one sentence per line. Empty lines are skipped.</li>
+<li><strong>Output</strong>: Writes to stdout, space-separated tokens, one line per input line.</li>
+</ul>
+<h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
+<p><strong>Japanese:</strong></p>
+<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
+  | litsea segment -l japanese ./resources/japanese.model
+</code></pre>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+</code></pre>
+<p><strong>Chinese:</strong></p>
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+</code></pre>
+<p><strong>Korean:</strong></p>
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
+  | litsea segment -l korean ./resources/korean.model
+</code></pre>
+<p><strong>Processing a file:</strong></p>
+<pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./resources/japanese.model &gt; output.txt
+</code></pre>
+<p><strong>Loading a model from a URL:</strong></p>
+<pre><code class="language-sh">echo "テスト文です。" \
+  | litsea segment -l japanese https://example.com/models/japanese.model
+</code></pre>
+<h2 id="pos-tagged-segmentation"><a class="header" href="#pos-tagged-segmentation">POS-Tagged Segmentation</a></h2>
+<p>When the <code>--pos</code> flag is specified, <code>segment</code> outputs each token annotated with its UPOS tag in <code>word/POS</code> format. This requires a POS model trained with <code>train --pos</code>.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-sh">echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+</code></pre>
+<p><strong>Processing a file with POS tags:</strong></p>
+<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model &gt; output.txt
+</code></pre>
+<h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
+<ul>
+<li>The <code>--language</code> flag must match the language the model was trained for</li>
+<li>Model loading is asynchronous and supports HTTP/HTTPS with TLS (rustls)</li>
+<li>The model URI is not restricted to file paths – any valid URL is accepted</li>
+<li>When using <code>--pos</code>, the model must be a POS model trained with <code>train --pos</code></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="convert-conllu"><a class="header" href="#convert-conllu">convert-conllu</a></h1>
+<p>Convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> (Universal Dependencies) format files to Litsea POS corpus format.</p>
+<h2 id="usage-4"><a class="header" href="#usage-4">Usage</a></h2>
+<pre><code class="language-sh">litsea convert-conllu &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
+</code></pre>
+<h2 id="arguments-3"><a class="header" href="#arguments-3">Arguments</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>INPUT_FILE</code></td><td>Path to the input CoNLL-U file</td></tr>
+<tr><td><code>OUTPUT_FILE</code></td><td>Path to the output Litsea POS corpus file</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="input-format-conll-u"><a class="header" href="#input-format-conll-u">Input Format (CoNLL-U)</a></h2>
+<p>CoNLL-U is a tab-separated format used by <a href="https://universaldependencies.org/">Universal Dependencies</a> treebanks. Each line represents a token with 10 fields:</p>
+<pre><code class="language-text"># sent_id = example-1
+# text = 太郎は花子が読んでいる本を次郎に渡した。
+1	太郎	太郎	PROPN	_	_	13	nsubj	_	SpaceAfter=No
+2	は	は	ADP	_	_	1	case	_	SpaceAfter=No
+3	花子	花子	PROPN	_	_	5	nsubj	_	SpaceAfter=No
+4	が	が	ADP	_	_	3	case	_	SpaceAfter=No
+5	読ん	読む	VERB	_	_	8	acl	_	SpaceAfter=No
+...
+</code></pre>
+<p>The relevant fields for conversion are:</p>
+<ul>
+<li>Column 1: <code>ID</code> – token index (integer, range, or decimal)</li>
+<li>Column 2: <code>FORM</code> – word form (surface text)</li>
+<li>Column 4: <code>UPOS</code> – Universal POS tag</li>
+</ul>
+<h2 id="output-format-litsea-pos-corpus"><a class="header" href="#output-format-litsea-pos-corpus">Output Format (Litsea POS Corpus)</a></h2>
+<p>Each sentence becomes one line with tokens in <code>word/POS</code> format:</p>
+<pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 次郎/PROPN に/ADP 渡し/VERB た/AUX 。/PUNCT
+</code></pre>
+<h2 id="handling-special-cases-1"><a class="header" href="#handling-special-cases-1">Handling Special Cases</a></h2>
+<ul>
+<li><strong>Comment lines</strong> (<code># ...</code>): Skipped</li>
+<li><strong>Multiword tokens</strong> (range IDs like <code>1-2</code>): Skipped (individual tokens are used instead)</li>
+<li><strong>Empty nodes</strong> (decimal IDs like <code>1.1</code>): Skipped</li>
+<li><strong>Missing UPOS</strong> (<code>_</code> in column 4): Token is assigned the <code>X</code> tag</li>
+</ul>
+<h2 id="examples-3"><a class="header" href="#examples-3">Examples</a></h2>
+<p>Convert a UD Japanese-GSD treebank file:</p>
+<pre><code class="language-sh">litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+</code></pre>
+<p>Full POS training workflow starting from a UD treebank:</p>
+<pre><code class="language-sh"># 1. Convert CoNLL-U to Litsea POS corpus
+litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+
+# 2. Extract POS features
+litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
+
+# 3. Train a POS model
+litsea train --pos -e 10 ./features_pos.txt ./resources/japanese_pos.model
+</code></pre>
+<h2 id="data-source"><a class="header" href="#data-source">Data Source</a></h2>
+<p>Universal Dependencies treebanks are available at <a href="https://universaldependencies.org/">universaldependencies.org</a>. For Japanese, the recommended treebank is <a href="https://github.com/UniversalDependencies/UD_Japanese-GSD">UD_Japanese-GSD</a> (7,050 sentences).</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="split-sentences"><a class="header" href="#split-sentences">split-sentences</a></h1>
+<p>Split text into sentences using Unicode UAX #29 rules.</p>
+<h2 id="usage-5"><a class="header" href="#usage-5">Usage</a></h2>
+<pre><code class="language-sh">echo "text" | litsea split-sentences
+</code></pre>
+<h2 id="arguments-4"><a class="header" href="#arguments-4">Arguments</a></h2>
+<p>None.</p>
+<h2 id="options-3"><a class="header" href="#options-3">Options</a></h2>
+<p>None (besides <code>--help</code> and <code>--version</code>).</p>
+<h2 id="input--output-1"><a class="header" href="#input--output-1">Input / Output</a></h2>
+<ul>
+<li><strong>Input</strong>: Reads from stdin, one paragraph per line. Empty lines are skipped.</li>
+<li><strong>Output</strong>: Writes to stdout, one sentence per line.</li>
+</ul>
+<h2 id="how-it-works-2"><a class="header" href="#how-it-works-2">How It Works</a></h2>
+<p>This command uses ICU4X’s <code>SentenceSegmenter</code> which implements the Unicode Standard Annex #29 (UAX #29) sentence break rules. It is <strong>language-independent</strong> – no <code>--language</code> flag is needed.</p>
+<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
+<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">これはテストです。
+次の文です。
+</code></pre>
+<p>Multi-line input:</p>
+<pre><code class="language-sh">echo -e "First sentence. Second sentence.\nThird sentence! Fourth." \
+  | litsea split-sentences
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">First sentence.
+Second sentence.
+Third sentence!
+Fourth.
+</code></pre>
+<h2 id="use-cases"><a class="header" href="#use-cases">Use Cases</a></h2>
+<ul>
+<li>Pre-processing text before word segmentation (one sentence per line)</li>
+<li>Splitting large documents into individual sentences for analysis</li>
+<li>Preparing training corpora from raw text</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="training-guide"><a class="header" href="#training-guide">Training Guide</a></h1>
+<p>This guide walks you through training custom word segmentation and POS tagging models with Litsea.</p>
+<p>Litsea supports two training workflows:</p>
+<h2 id="word-segmentation-adaboost"><a class="header" href="#word-segmentation-adaboost">Word Segmentation (AdaBoost)</a></h2>
+<ol>
+<li><a href="#preparing-a-corpus">Prepare a corpus</a> with space-separated words</li>
+<li><a href="#extracting-features">Extract features</a> from the corpus</li>
+<li><a href="#training-models">Train a model</a> using AdaBoost</li>
+</ol>
+<h2 id="pos-tagging-averaged-perceptron"><a class="header" href="#pos-tagging-averaged-perceptron">POS Tagging (Averaged Perceptron)</a></h2>
+<ol>
+<li>Download a <a href="https://universaldependencies.org/">Universal Dependencies</a> treebank</li>
+<li>Convert CoNLL-U format: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
+<li><a href="#extracting-features">Extract POS features</a>: <code>litsea extract --pos -l japanese corpus.txt features.txt</code></li>
+<li><a href="#training-models">Train a POS model</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
+</ol>
+<h2 id="additional-topics"><a class="header" href="#additional-topics">Additional Topics</a></h2>
+<ul>
+<li><a href="#evaluating-models">Evaluating Models</a> – assess model quality</li>
+<li><a href="#retraining-models">Retraining Models</a> – fine-tune existing models</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="preparing-a-corpus"><a class="header" href="#preparing-a-corpus">Preparing a Corpus</a></h1>
 <p>A good training corpus is essential for model accuracy. This guide explains how to prepare one.</p>

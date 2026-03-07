@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9ce83e0f.js";
+            window.path_to_searchindex_js = "../searchindex-ad6c0be6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-3e5df682.js"></script>
+        <script src="../toc-b64cce5c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -217,13 +217,20 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <h2 id="how-prediction-works-at-each-position"><a class="header" href="#how-prediction-works-at-each-position">How Prediction Works at Each Position</a></h2>
 <p>At each position <em>i</em>, the segmenter:</p>
 <ol>
-<li><strong>Extracts features</strong> – Calls <code>get_attributes(i, tags, chars, types)</code> to build a <code>HashSet&lt;String&gt;</code> of 38–42 features</li>
-<li><strong>Computes score</strong> – The AdaBoost learner sums the model weights for all matching features plus the bias:
+<li>
+<p><strong>Extracts features</strong> – Calls <code>get_attributes(i, tags, chars, types)</code> to build a <code>HashSet&lt;String&gt;</code> of 38–42 features</p>
+</li>
+<li>
+<p><strong>Computes score</strong> – The AdaBoost learner sums the model weights for all matching features plus the bias:</p>
 <pre><code class="language-text">score = bias + sum(model[feature] for feature in attributes)
 </code></pre>
 </li>
-<li><strong>Makes decision</strong> – If <code>score &gt;= 0</code>, the character starts a new word (boundary); otherwise, it continues the current word</li>
-<li><strong>Updates tags</strong> – Pushes “B” or “O” to the tags array, which affects feature extraction for subsequent positions</li>
+<li>
+<p><strong>Makes decision</strong> – If <code>score &gt;= 0</code>, the character starts a new word (boundary); otherwise, it continues the current word</p>
+</li>
+<li>
+<p><strong>Updates tags</strong> – Pushes “B” or “O” to the tags array, which affects feature extraction for subsequent positions</p>
+</li>
 </ol>
 <h2 id="training-vs-prediction"><a class="header" href="#training-vs-prediction">Training vs. Prediction</a></h2>
 <div class="table-wrapper">

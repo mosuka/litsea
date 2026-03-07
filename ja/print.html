@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-04015350.js";
+            window.path_to_searchindex_js = "searchindex-af5b1803.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-fe6f6d22.js"></script>
+        <script src="toc-b7688c67.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -222,6 +222,15 @@ Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <li><a href="../..">English Documentation</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="導入"><a class="header" href="#導入">導入</a></h1>
+<p>Litsea へようこそ！ このセクションでは、すぐに使い始められるようガイドします。</p>
+<p>Litsea は、<strong>単語分割</strong>（AdaBoost）と<strong>品詞推定付き単語分割</strong>（Averaged Perceptron）の両方をサポートする Rust 製コンパクト単語分割ライブラリです。</p>
+<h2 id="次のステップ"><a class="header" href="#次のステップ">次のステップ</a></h2>
+<ul>
+<li><a href="#インストール">インストール</a> – ソースまたは crates.io から Litsea をインストール</li>
+<li><a href="#クイックスタート">クイックスタート</a> – 数分で最初の文を分割</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="インストール"><a class="header" href="#インストール">インストール</a></h1>
 <h2 id="前提条件"><a class="header" href="#前提条件">前提条件</a></h2>
 <ul>
@@ -344,7 +353,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
     Ok(())
 }</code></pre>
-<h2 id="次のステップ"><a class="header" href="#次のステップ">次のステップ</a></h2>
+<h2 id="次のステップ-1"><a class="header" href="#次のステップ-1">次のステップ</a></h2>
 <ul>
 <li><a href="#cliリファレンス概要">CLI リファレンス</a> – すべての CLI コマンドとオプションの詳細</li>
 <li><a href="#コーパスの準備">学習ガイド</a> – 独自モデルの学習方法</li>
@@ -603,25 +612,25 @@ pub fn version() -&gt; &amp;'static str { VERSION }
 </ol>
 <h3 id="反復ブースティング"><a class="header" href="#反復ブースティング">反復ブースティング</a></h3>
 <p>各イテレーション <em>t</em>（最大 <code>num_iterations</code> 回）について:</p>
-<p><strong>ステップ 1: 重み付き誤差の計算</strong></p>
+<h4 id="ステップ-1-重み付き誤差の計算"><a class="header" href="#ステップ-1-重み付き誤差の計算">ステップ 1: 重み付き誤差の計算</a></h4>
 <p>各特徴量 <em>h</em> について、全インスタンスに対する重み付き誤差を計算します:</p>
 <pre><code class="language-text">error[h] -= D[i] * y[i]   (for each instance i that has feature h)
 </code></pre>
 <p>ここで <em>D[i]</em> はインスタンスの重み、<em>y[i]</em> は真のラベルです。</p>
-<p><strong>ステップ 2: 最良の弱学習器の選択</strong></p>
+<h4 id="ステップ-2-最良の弱学習器の選択"><a class="header" href="#ステップ-2-最良の弱学習器の選択">ステップ 2: 最良の弱学習器の選択</a></h4>
 <p>重み付き誤差率が最も低い特徴量を選択します:</p>
 <pre><code class="language-text">error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
 h_best = argmax_h |0.5 - error_rate(h)|
 </code></pre>
 <p>基準となる競合対象は「全て負」分類器（常に -1 を予測）であり、その誤差率は正のインスタンスの割合に等しくなります。実際の特徴量はこの基準を上回る必要があります。</p>
-<p><strong>ステップ 3: 収束判定</strong></p>
+<h4 id="ステップ-3-収束判定"><a class="header" href="#ステップ-3-収束判定">ステップ 3: 収束判定</a></h4>
 <p><code>|0.5 - best_error_rate| &lt; threshold</code> の場合、早期停止します – どの特徴量もモデルを大幅に改善できないためです。</p>
-<p><strong>ステップ 4: 弱学習器の重みの計算</strong></p>
+<h4 id="ステップ-4-弱学習器の重みの計算"><a class="header" href="#ステップ-4-弱学習器の重みの計算">ステップ 4: 弱学習器の重みの計算</a></h4>
 <pre><code class="language-text">alpha = 0.5 * ln((1 - error_rate) / error_rate)
 model[h_best] += alpha
 </code></pre>
 <p>誤差率が低いほど alpha が高くなり、より良い特徴量により大きな影響力を与えます。</p>
-<p><strong>ステップ 5: インスタンスの重みの更新</strong></p>
+<h4 id="ステップ-5-インスタンスの重みの更新"><a class="header" href="#ステップ-5-インスタンスの重みの更新">ステップ 5: インスタンスの重みの更新</a></h4>
 <pre><code class="language-text">For each instance i:
     prediction = +1 if h_best in features(i), else -1
 
@@ -1000,13 +1009,20 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <h2 id="各位置での予測の仕組み"><a class="header" href="#各位置での予測の仕組み">各位置での予測の仕組み</a></h2>
 <p>各位置 <em>i</em> で、セグメンタは以下を実行します:</p>
 <ol>
-<li><strong>特徴量の抽出</strong> – <code>get_attributes(i, tags, chars, types)</code> を呼び出し、38-42 個の特徴量からなる <code>HashSet&lt;String&gt;</code> を構築</li>
-<li><strong>スコアの計算</strong> – AdaBoost 学習器がマッチするすべての特徴量のモデル重みとバイアスを合計:
+<li>
+<p><strong>特徴量の抽出</strong> – <code>get_attributes(i, tags, chars, types)</code> を呼び出し、38-42 個の特徴量からなる <code>HashSet&lt;String&gt;</code> を構築</p>
+</li>
+<li>
+<p><strong>スコアの計算</strong> – AdaBoost 学習器がマッチするすべての特徴量のモデル重みとバイアスを合計:</p>
 <pre><code class="language-text">score = bias + sum(model[feature] for feature in attributes)
 </code></pre>
 </li>
-<li><strong>判定</strong> – <code>score &gt;= 0</code> の場合、その文字は新しい単語を開始（境界）、そうでなければ現在の単語を継続</li>
-<li><strong>タグの更新</strong> – tags 配列に “B” または “O” をプッシュし、後続の位置での特徴量抽出に影響を与える</li>
+<li>
+<p><strong>判定</strong> – <code>score &gt;= 0</code> の場合、その文字は新しい単語を開始（境界）、そうでなければ現在の単語を継続</p>
+</li>
+<li>
+<p><strong>タグの更新</strong> – tags 配列に “B” または “O” をプッシュし、後続の位置での特徴量抽出に影響を与える</p>
+</li>
 </ol>
 <h2 id="学習と予測の比較"><a class="header" href="#学習と予測の比較">学習と予測の比較</a></h2>
 <div class="table-wrapper">
@@ -1396,419 +1412,6 @@ fn test_get_type_thai() {
 <pre><code class="language-sh">cargo test --workspace
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="cliリファレンス概要"><a class="header" href="#cliリファレンス概要">CLIリファレンス概要</a></h1>
-<p><code>litsea</code> CLIは、単語分割、モデル学習、テキスト処理のためのコマンドを提供します。</p>
-<h2 id="使い方"><a class="header" href="#使い方">使い方</a></h2>
-<pre><code class="language-sh">litsea &lt;COMMAND&gt; [OPTIONS] [ARGS]
-</code></pre>
-<h2 id="コマンド一覧"><a class="header" href="#コマンド一覧">コマンド一覧</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Command</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><a href="#extract"><code>extract</code></a></td><td>学習用にコーパスから特徴量を抽出</td></tr>
-<tr><td><a href="#train"><code>train</code></a></td><td>単語分割モデルを学習</td></tr>
-<tr><td><a href="#segment"><code>segment</code></a></td><td>学習済みモデルを使用してテキストを単語に分割</td></tr>
-<tr><td><a href="#split-sentences"><code>split-sentences</code></a></td><td>Unicode UAX #29を使用してテキストを文に分割</td></tr>
-<tr><td><a href="#convert-conllu"><code>convert-conllu</code></a></td><td>CoNLL-U（Universal Dependencies）形式をLitsea品詞コーパス形式に変換</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="グローバルオプション"><a class="header" href="#グローバルオプション">グローバルオプション</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>-h</code>, <code>--help</code></td><td>ヘルプ情報を表示</td></tr>
-<tr><td><code>-V</code>, <code>--version</code></td><td>バージョン番号を表示</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="一般的なワークフロー"><a class="header" href="#一般的なワークフロー">一般的なワークフロー</a></h2>
-<h3 id="adaboost-ワークフロー単語分割のみ"><a class="header" href="#adaboost-ワークフロー単語分割のみ">AdaBoost ワークフロー（単語分割のみ）</a></h3>
-<pre><code class="language-mermaid">flowchart LR
-    A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
-    B --&gt; C["3. litsea train"]
-    C --&gt; D["4. litsea segment"]
-</code></pre>
-<ol>
-<li>単語をスペースで区切ったコーパスを用意する</li>
-<li>特徴量を抽出する: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
-<li>モデルを学習する: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
-<li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
-</ol>
-<h3 id="pos-ワークフロー品詞推定付き単語分割"><a class="header" href="#pos-ワークフロー品詞推定付き単語分割">POS ワークフロー（品詞推定付き単語分割）</a></h3>
-<pre><code class="language-mermaid">flowchart LR
-    A["1. UD Treebank"] --&gt; B["2. litsea convert-conllu"]
-    B --&gt; C["3. litsea extract --pos"]
-    C --&gt; D["4. litsea train --pos"]
-    D --&gt; E["5. litsea segment --pos"]
-</code></pre>
-<ol>
-<li>Universal Dependencies Treebank（例: UD_Japanese-GSD）を取得する</li>
-<li>CoNLL-U 形式を変換する: <code>litsea convert-conllu input.conllu corpus_pos.txt</code></li>
-<li>品詞付き特徴量を抽出する: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
-<li>POS モデルを学習する: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
-<li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
-</ol>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="extract"><a class="header" href="#extract">extract</a></h1>
-<p>モデル学習用にコーパスファイルから特徴量を抽出します。</p>
-<h2 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h2>
-<pre><code class="language-sh">litsea extract [OPTIONS] &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
-</code></pre>
-<h2 id="引数"><a class="header" href="#引数">引数</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>CORPUS_FILE</code></td><td>入力コーパスファイルのパス（単語をスペースで区切り、1行に1文）</td></tr>
-<tr><td><code>FEATURES_FILE</code></td><td>出力特徴量ファイルのパス</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="オプション"><a class="header" href="#オプション">オプション</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="コーパスの形式"><a class="header" href="#コーパスの形式">コーパスの形式</a></h2>
-<p>入力コーパスは、単語をスペースで区切り、1行に1文とする形式です。</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
-Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
-</code></pre>
-<h2 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h2>
-<p>特徴量ファイルには、文字位置ごとに1行が含まれます。</p>
-<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
-</code></pre>
-<ul>
-<li><code>1</code> = 語境界</li>
-<li><code>-1</code> = 非境界</li>
-<li>特徴量はタブ区切り</li>
-</ul>
-<h2 id="使用例-3"><a class="header" href="#使用例-3">使用例</a></h2>
-<pre><code class="language-sh"># Japanese
-litsea extract -l japanese ./corpus.txt ./features.txt
-
-# Chinese
-litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
-
-# Korean
-litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
-</code></pre>
-<p>成功時のstderr出力:</p>
-<pre><code class="language-text">Feature extraction completed successfully.
-</code></pre>
-<h2 id="品詞付き特徴量抽出--pos"><a class="header" href="#品詞付き特徴量抽出--pos">品詞付き特徴量抽出（<code>--pos</code>）</a></h2>
-<p><code>--pos</code> フラグを指定すると、品詞付きコーパスから Averaged Perceptron 用の特徴量を抽出します。</p>
-<h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>
-<p>品詞付きコーパスは、<code>単語/品詞</code> をスペースで区切り、1行に1文とする形式です。品詞タグは UPOS タグセット（ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X）を使用します。</p>
-<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
-私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT
-</code></pre>
-<blockquote>
-<p><strong>ヒント</strong>: <a href="#convert-conllu"><code>convert-conllu</code></a> コマンドで Universal Dependencies の CoNLL-U ファイルからこの形式に変換できます。</p>
-</blockquote>
-<h3 id="使い方-1-1"><a class="header" href="#使い方-1-1">使い方</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
-</code></pre>
-<h3 id="出力形式-1"><a class="header" href="#出力形式-1">出力形式</a></h3>
-<p>品詞付き特徴量ファイルでは、ラベルが <code>SegmentLabel</code>（<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>）の18クラスとなります。</p>
-<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:テ UW4:ス UC1:O UC2:O UC3:K UC4:K ...
-O	UW1:B1 UW2:テ UW3:ス UW4:ト UC1:O UC2:K UC3:K UC4:K ...
-B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="train"><a class="header" href="#train">train</a></h1>
-<p>AdaBoostを使用して単語分割モデルを学習します。</p>
-<h2 id="使い方-2"><a class="header" href="#使い方-2">使い方</a></h2>
-<pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
-</code></pre>
-<h2 id="引数-1"><a class="header" href="#引数-1">引数</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>FEATURES_FILE</code></td><td>入力特徴量ファイルのパス（<code>extract</code> の出力）</td></tr>
-<tr><td><code>MODEL_FILE</code></td><td>出力モデルファイルのパス</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="オプション-1"><a class="header" href="#オプション-1">オプション</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる</td></tr>
-<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
-<tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="出力"><a class="header" href="#出力">出力</a></h2>
-<p>学習メトリクスはstderrに出力されます。</p>
-<pre><code class="language-text">Result Metrics:
-  Accuracy: 94.15% ( 564133 / 599198 )
-  Precision: 95.57% ( 330454 / 345758 )
-  Recall: 94.36% ( 330454 / 350215 )
-  Confusion Matrix:
-    True Positives: 330454
-    False Positives: 15304
-    False Negatives: 19761
-    True Negatives: 233679
-</code></pre>
-<h2 id="ctrlc-のハンドリング"><a class="header" href="#ctrlc-のハンドリング">Ctrl+C のハンドリング</a></h2>
-<p>学習は優雅な中断をサポートしています。</p>
-<ul>
-<li><strong>1回目のCtrl+C</strong>: 学習を停止し、現在の状態でモデルを保存する</li>
-<li><strong>2回目のCtrl+C</strong>: 保存せずに即座に終了する</li>
-</ul>
-<p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
-<h2 id="使用例-4"><a class="header" href="#使用例-4">使用例</a></h2>
-<p>基本的な学習:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
-</code></pre>
-<p>高精度な学習（低い閾値、多い反復回数）:</p>
-<pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
-</code></pre>
-<p>既存モデルからの再学習:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
-    ./new_features.txt ./resources/japanese_v2.model
-</code></pre>
-<h2 id="品詞モデルの学習--pos"><a class="header" href="#品詞モデルの学習--pos">品詞モデルの学習（<code>--pos</code>）</a></h2>
-<p><code>--pos</code> フラグを指定すると、Averaged Perceptron による品詞推定モデルを学習します。</p>
-<h3 id="使い方-1-2"><a class="header" href="#使い方-1-2">使い方</a></h3>
-<pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
-</code></pre>
-<h3 id="pos-学習固有のオプション"><a class="header" href="#pos-学習固有のオプション">POS 学習固有のオプション</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>--pos</code></td><td>false</td><td>品詞推定モデル（Averaged Perceptron）を学習する</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="使用例-1-1"><a class="header" href="#使用例-1-1">使用例</a></h3>
-<pre><code class="language-sh"># 品詞モデルの学習（10エポック）
-litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
-</code></pre>
-<h3 id="出力-1"><a class="header" href="#出力-1">出力</a></h3>
-<p>学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。</p>
-<pre><code class="language-text">Result Metrics:
-  Accuracy: 98.34%
-  Macro Precision: 97.87%
-  Macro Recall: 91.67%
-</code></pre>
-<h3 id="ctrlc-のハンドリング-1"><a class="header" href="#ctrlc-のハンドリング-1">Ctrl+C のハンドリング</a></h3>
-<p>AdaBoost と同様に、学習は優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。</p>
-<h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Parameter</th><th>値を小さくした場合の効果</th><th>値を大きくした場合の効果</th></tr>
-</thead>
-<tbody>
-<tr><td><code>threshold</code></td><td>反復回数が増加、精度が向上する可能性あり、学習時間が長くなる</td><td>反復回数が減少、学習が高速化、アンダーフィットの可能性あり</td></tr>
-<tr><td><code>num_iterations</code></td><td>ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり</td><td>ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり</td></tr>
-</tbody>
-</table>
-</div>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="segment"><a class="header" href="#segment">segment</a></h1>
-<p>学習済みモデルを使用してテキストを単語に分割します。</p>
-<h2 id="使い方-3"><a class="header" href="#使い方-3">使い方</a></h2>
-<pre><code class="language-sh">echo "text" | litsea segment [OPTIONS] &lt;MODEL_URI&gt;
-</code></pre>
-<h2 id="引数-2"><a class="header" href="#引数-2">引数</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>MODEL_URI</code></td><td>学習済みモデルファイルのパスまたはURL。サポート形式: ローカルファイルパス, <code>file://</code>, <code>http://</code>, <code>https://</code></td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="オプション-2"><a class="header" href="#オプション-2">オプション</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Default</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="入力--出力"><a class="header" href="#入力--出力">入力 / 出力</a></h2>
-<ul>
-<li><strong>入力</strong>: stdinから読み取り、1行に1文。空行はスキップされます。</li>
-<li><strong>出力</strong>: stdoutに書き込み、スペース区切りのトークン、入力行ごとに1行。</li>
-</ul>
-<h2 id="使用例-5"><a class="header" href="#使用例-5">使用例</a></h2>
-<p><strong>日本語:</strong></p>
-<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./resources/japanese.model
-</code></pre>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
-</code></pre>
-<p><strong>中国語:</strong></p>
-<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
-</code></pre>
-<p><strong>韓国語:</strong></p>
-<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
-  | litsea segment -l korean ./resources/korean.model
-</code></pre>
-<p><strong>ファイルの処理:</strong></p>
-<pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./resources/japanese.model &gt; output.txt
-</code></pre>
-<p><strong>URLからモデルを読み込み:</strong></p>
-<pre><code class="language-sh">echo "テスト文です。" \
-  | litsea segment -l japanese https://example.com/models/japanese.model
-</code></pre>
-<h2 id="品詞推定付き分割--pos"><a class="header" href="#品詞推定付き分割--pos">品詞推定付き分割（<code>--pos</code>）</a></h2>
-<p><code>--pos</code> フラグを指定すると、Averaged Perceptron モデルを使用して単語分割と品詞推定を同時に行います。</p>
-<h3 id="使い方-1-3"><a class="header" href="#使い方-1-3">使い方</a></h3>
-<pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
-</code></pre>
-<h3 id="出力形式-2"><a class="header" href="#出力形式-2">出力形式</a></h3>
-<p>各単語が <code>単語/品詞</code> の形式で出力されます。品詞は UPOS タグセットに準拠します。</p>
-<pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./resources/japanese_pos.model
-</code></pre>
-<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
-</code></pre>
-<h3 id="ファイルの処理"><a class="header" href="#ファイルの処理">ファイルの処理</a></h3>
-<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model &gt; output.txt
-</code></pre>
-<h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
-<ul>
-<li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
-<li>モデルの読み込みは非同期で行われ、TLS（rustls）を使用したHTTP/HTTPSをサポートしています</li>
-<li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="split-sentences"><a class="header" href="#split-sentences">split-sentences</a></h1>
-<p>Unicode UAX #29のルールを使用してテキストを文に分割します。</p>
-<h2 id="使い方-4"><a class="header" href="#使い方-4">使い方</a></h2>
-<pre><code class="language-sh">echo "text" | litsea split-sentences
-</code></pre>
-<h2 id="引数-3"><a class="header" href="#引数-3">引数</a></h2>
-<p>なし。</p>
-<h2 id="オプション-3"><a class="header" href="#オプション-3">オプション</a></h2>
-<p>なし（<code>--help</code> と <code>--version</code> を除く）。</p>
-<h2 id="入力--出力-1"><a class="header" href="#入力--出力-1">入力 / 出力</a></h2>
-<ul>
-<li><strong>入力</strong>: stdinから読み取り、1行に1段落。空行はスキップされます。</li>
-<li><strong>出力</strong>: stdoutに書き込み、1行に1文。</li>
-</ul>
-<h2 id="動作の仕組み"><a class="header" href="#動作の仕組み">動作の仕組み</a></h2>
-<p>このコマンドは、ICU4Xの <code>SentenceSegmenter</code> を使用しており、Unicode Standard Annex #29（UAX #29）の文区切りルールを実装しています。<strong>言語非依存</strong>のため、<code>--language</code> フラグは不要です。</p>
-<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
-<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
-</code></pre>
-<p>出力:</p>
-<pre><code class="language-text">これはテストです。
-次の文です。
-</code></pre>
-<p>複数行の入力:</p>
-<pre><code class="language-sh">echo -e "First sentence. Second sentence.\nThird sentence! Fourth." \
-  | litsea split-sentences
-</code></pre>
-<p>出力:</p>
-<pre><code class="language-text">First sentence.
-Second sentence.
-Third sentence!
-Fourth.
-</code></pre>
-<h2 id="ユースケース"><a class="header" href="#ユースケース">ユースケース</a></h2>
-<ul>
-<li>単語分割の前処理として、テキストを1行1文に変換</li>
-<li>大規模なドキュメントを分析用に個別の文に分割</li>
-<li>生テキストから学習コーパスを準備</li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="convert-conllu"><a class="header" href="#convert-conllu">convert-conllu</a></h1>
-<p>CoNLL-U（Universal Dependencies）形式のファイルを Litsea の品詞付きコーパス形式に変換します。</p>
-<h2 id="目的"><a class="header" href="#目的">目的</a></h2>
-<p><a href="https://universaldependencies.org/">Universal Dependencies</a> プロジェクトが提供する Treebank（CoNLL-U 形式）を、Litsea の品詞推定モデル学習に必要なコーパス形式に変換します。</p>
-<h2 id="使い方-5"><a class="header" href="#使い方-5">使い方</a></h2>
-<pre><code class="language-sh">litsea convert-conllu &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
-</code></pre>
-<h2 id="引数-4"><a class="header" href="#引数-4">引数</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>INPUT_FILE</code></td><td>入力 CoNLL-U ファイルのパス</td></tr>
-<tr><td><code>OUTPUT_FILE</code></td><td>出力 Litsea コーパスファイルのパス</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="入力形式conll-u"><a class="header" href="#入力形式conll-u">入力形式（CoNLL-U）</a></h2>
-<p>CoNLL-U はタブ区切りの10カラム形式です。本コマンドでは ID、FORM（表層形）、UPOS（品詞）の3カラムを使用します。</p>
-<pre><code class="language-text"># text = 太郎は花子が読んでいる本を次郎に渡した。
-1	太郎	太郎	PROPN	_	_	12	nsubj	_	SpaceAfter=No
-2	は	は	ADP	_	_	1	case	_	SpaceAfter=No
-3	花子	花子	PROPN	_	_	5	nsubj	_	SpaceAfter=No
-4	が	が	ADP	_	_	3	case	_	SpaceAfter=No
-5	読ん	読む	VERB	_	_	9	acl	_	SpaceAfter=No
-...
-</code></pre>
-<h2 id="出力形式litsea-コーパス"><a class="header" href="#出力形式litsea-コーパス">出力形式（Litsea コーパス）</a></h2>
-<p><code>単語/品詞</code> をスペースで区切り、1行に1文を出力します。</p>
-<pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 次郎/PROPN に/ADP 渡し/VERB た/AUX 。/PUNCT
-</code></pre>
-<h2 id="スキップされるデータ"><a class="header" href="#スキップされるデータ">スキップされるデータ</a></h2>
-<p>変換時に以下の行はスキップされます:</p>
-<ul>
-<li><strong>コメント行</strong>: <code>#</code> で始まる行</li>
-<li><strong>マルチワードトークン</strong>: ID が <code>1-2</code> のようにハイフンを含む行</li>
-<li><strong>空ノード</strong>: ID が <code>1.1</code> のようにピリオドを含む行</li>
-<li><strong>UPOS 未注釈</strong>: UPOS カラムが <code>_</code> のトークン</li>
-</ul>
-<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
-<h3 id="ud-japanese-gsd-での使用"><a class="header" href="#ud-japanese-gsd-での使用">UD Japanese-GSD での使用</a></h3>
-<pre><code class="language-sh"># UD Japanese-GSD リポジトリをクローン
-git clone https://github.com/UniversalDependencies/UD_Japanese-GSD.git
-
-# CoNLL-U を Litsea コーパス形式に変換
-litsea convert-conllu \
-    ./UD_Japanese-GSD/ja_gsd-ud-train.conllu \
-    ./corpus_pos.txt
-
-# 変換後のコーパスで品詞モデルを学習
-litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
-litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
-</code></pre>
-<p>成功時のstderr出力:</p>
-<pre><code class="language-text">Converted 7050 sentences.
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ライブラリ-api-概要"><a class="header" href="#ライブラリ-api-概要">ライブラリ API 概要</a></h1>
 <p><code>litsea</code> クレートは、単語分割、モデル学習、特徴量抽出のための Rust API を提供します。</p>
 <h2 id="インストール-1"><a class="header" href="#インストール-1">インストール</a></h2>
@@ -1919,7 +1522,7 @@ let segmenter = Segmenter::new(Language::Japanese, Some(learner));
 let segmenter = Segmenter::new(Language::Japanese, None);
 <span class="boring">}</span></code></pre>
 <h2 id="メソッド"><a class="header" href="#メソッド">メソッド</a></h2>
-<h3 id="segment-1"><a class="header" href="#segment-1"><code>segment</code></a></h3>
+<h3 id="segment"><a class="header" href="#segment"><code>segment</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn segment(&amp;self, sentence: &amp;str) -&gt; Vec&lt;String&gt;
@@ -2008,7 +1611,7 @@ use litsea::language::Language;
 let mut extractor = Extractor::new(Language::Japanese);
 <span class="boring">}</span></code></pre>
 <h2 id="メソッド-1"><a class="header" href="#メソッド-1">メソッド</a></h2>
-<h3 id="extract-1"><a class="header" href="#extract-1"><code>extract</code></a></h3>
+<h3 id="extract"><a class="header" href="#extract"><code>extract</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn extract(
@@ -2081,7 +1684,7 @@ let mut trainer = Trainer::new(
 </span><span class="boring">fn main() {
 </span>trainer.load_model("./resources/japanese.model").await?;
 <span class="boring">}</span></code></pre>
-<h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
+<h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(
@@ -2192,7 +1795,7 @@ learner.load_model("https://example.com/model").await?;
 </span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>同じ特徴量ファイルを読み込み、ラベル付きインスタンスとその重みを初期化します。</p>
-<h3 id="train-2"><a class="header" href="#train-2"><code>train</code></a></h3>
+<h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(&amp;mut self, running: Arc&lt;AtomicBool&gt;)
@@ -2292,7 +1895,7 @@ feats.insert("UC4:H".to_string());
 learner.add_instance(feats, "B-NOUN".to_string());
 <span class="boring">}</span></code></pre>
 <h2 id="学習"><a class="header" href="#学習">学習</a></h2>
-<h3 id="train-3"><a class="header" href="#train-3"><code>train</code></a></h3>
+<h3 id="train-2"><a class="header" href="#train-2"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(&amp;mut self, num_epochs: usize, running: Arc&lt;AtomicBool&gt;)
@@ -2473,7 +2076,7 @@ assert_eq!(label_o.pos(), None);
 ) -&gt; Result&lt;usize, Box&lt;dyn Error&gt;&gt;
 <span class="boring">}</span></code></pre>
 <p>CoNLL-U ファイルを読み込み、Litsea コーパス形式に変換して出力ファイルに書き込みます。変換された文数を返します。</p>
-<h4 id="引数-5"><a class="header" href="#引数-5">引数</a></h4>
+<h4 id="引数"><a class="header" href="#引数">引数</a></h4>
 <ul>
 <li><code>input_path</code> - CoNLL-U ファイルのパス</li>
 <li><code>output_path</code> - 出力ファイルのパス</li>
@@ -2488,7 +2091,7 @@ assert_eq!(label_o.pos(), None);
 <li>UPOS が <code>_</code> のトークンはスキップ</li>
 <li>空行は文の区切りとして扱う</li>
 </ul>
-<h4 id="使用例-8"><a class="header" href="#使用例-8">使用例</a></h4>
+<h4 id="使用例-3"><a class="header" href="#使用例-3">使用例</a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -2585,6 +2188,441 @@ assert_eq!(patterns.get_type("@"), "O");
 </span>pub fn new(patterns: Vec&lt;(Regex, &amp;'static str)&gt;) -&gt; Self
 <span class="boring">}</span></code></pre>
 <p>正規表現と文字種コードのペアのリストからパターンを作成します。パターンは順番にチェックされ、最初に一致したものが使用されます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="cliリファレンス概要"><a class="header" href="#cliリファレンス概要">CLIリファレンス概要</a></h1>
+<p><code>litsea</code> CLIは、単語分割、モデル学習、テキスト処理のためのコマンドを提供します。</p>
+<h2 id="使い方"><a class="header" href="#使い方">使い方</a></h2>
+<pre><code class="language-sh">litsea &lt;COMMAND&gt; [OPTIONS] [ARGS]
+</code></pre>
+<h2 id="コマンド一覧"><a class="header" href="#コマンド一覧">コマンド一覧</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Command</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#extract-1"><code>extract</code></a></td><td>学習用にコーパスから特徴量を抽出</td></tr>
+<tr><td><a href="#train-3"><code>train</code></a></td><td>単語分割モデルを学習</td></tr>
+<tr><td><a href="#segment-1"><code>segment</code></a></td><td>学習済みモデルを使用してテキストを単語に分割</td></tr>
+<tr><td><a href="#split-sentences"><code>split-sentences</code></a></td><td>Unicode UAX #29を使用してテキストを文に分割</td></tr>
+<tr><td><a href="#convert-conllu"><code>convert-conllu</code></a></td><td>CoNLL-U（Universal Dependencies）形式をLitsea品詞コーパス形式に変換</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="グローバルオプション"><a class="header" href="#グローバルオプション">グローバルオプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-h</code>, <code>--help</code></td><td>ヘルプ情報を表示</td></tr>
+<tr><td><code>-V</code>, <code>--version</code></td><td>バージョン番号を表示</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="一般的なワークフロー"><a class="header" href="#一般的なワークフロー">一般的なワークフロー</a></h2>
+<h3 id="adaboost-ワークフロー単語分割のみ"><a class="header" href="#adaboost-ワークフロー単語分割のみ">AdaBoost ワークフロー（単語分割のみ）</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
+    B --&gt; C["3. litsea train"]
+    C --&gt; D["4. litsea segment"]
+</code></pre>
+<ol>
+<li>単語をスペースで区切ったコーパスを用意する</li>
+<li>特徴量を抽出する: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
+<li>モデルを学習する: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
+<li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
+</ol>
+<h3 id="pos-ワークフロー品詞推定付き単語分割"><a class="header" href="#pos-ワークフロー品詞推定付き単語分割">POS ワークフロー（品詞推定付き単語分割）</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. UD Treebank"] --&gt; B["2. litsea convert-conllu"]
+    B --&gt; C["3. litsea extract --pos"]
+    C --&gt; D["4. litsea train --pos"]
+    D --&gt; E["5. litsea segment --pos"]
+</code></pre>
+<ol>
+<li>Universal Dependencies Treebank（例: UD_Japanese-GSD）を取得する</li>
+<li>CoNLL-U 形式を変換する: <code>litsea convert-conllu input.conllu corpus_pos.txt</code></li>
+<li>品詞付き特徴量を抽出する: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
+<li>POS モデルを学習する: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
+<li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
+</ol>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="extract-1"><a class="header" href="#extract-1">extract</a></h1>
+<p>モデル学習用にコーパスファイルから特徴量を抽出します。</p>
+<h2 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h2>
+<pre><code class="language-sh">litsea extract [OPTIONS] &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
+</code></pre>
+<h2 id="引数-1"><a class="header" href="#引数-1">引数</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CORPUS_FILE</code></td><td>入力コーパスファイルのパス（単語をスペースで区切り、1行に1文）</td></tr>
+<tr><td><code>FEATURES_FILE</code></td><td>出力特徴量ファイルのパス</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="オプション"><a class="header" href="#オプション">オプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="コーパスの形式"><a class="header" href="#コーパスの形式">コーパスの形式</a></h2>
+<p>入力コーパスは、単語をスペースで区切り、1行に1文とする形式です。</p>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h2 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h2>
+<p>特徴量ファイルには、文字位置ごとに1行が含まれます。</p>
+<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
+-1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+</code></pre>
+<ul>
+<li><code>1</code> = 語境界</li>
+<li><code>-1</code> = 非境界</li>
+<li>特徴量はタブ区切り</li>
+</ul>
+<h2 id="使用例-4"><a class="header" href="#使用例-4">使用例</a></h2>
+<pre><code class="language-sh"># Japanese
+litsea extract -l japanese ./corpus.txt ./features.txt
+
+# Chinese
+litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
+
+# Korean
+litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+</code></pre>
+<p>成功時のstderr出力:</p>
+<pre><code class="language-text">Feature extraction completed successfully.
+</code></pre>
+<h2 id="品詞付き特徴量抽出--pos"><a class="header" href="#品詞付き特徴量抽出--pos">品詞付き特徴量抽出（<code>--pos</code>）</a></h2>
+<p><code>--pos</code> フラグを指定すると、品詞付きコーパスから Averaged Perceptron 用の特徴量を抽出します。</p>
+<h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>
+<p>品詞付きコーパスは、<code>単語/品詞</code> をスペースで区切り、1行に1文とする形式です。品詞タグは UPOS タグセット（ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X）を使用します。</p>
+<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
+私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT
+</code></pre>
+<blockquote>
+<p><strong>ヒント</strong>: <a href="#convert-conllu"><code>convert-conllu</code></a> コマンドで Universal Dependencies の CoNLL-U ファイルからこの形式に変換できます。</p>
+</blockquote>
+<h3 id="使い方-1-1"><a class="header" href="#使い方-1-1">使い方</a></h3>
+<pre><code class="language-sh">litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
+</code></pre>
+<h3 id="出力形式-1"><a class="header" href="#出力形式-1">出力形式</a></h3>
+<p>品詞付き特徴量ファイルでは、ラベルが <code>SegmentLabel</code>（<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>）の18クラスとなります。</p>
+<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:テ UW4:ス UC1:O UC2:O UC3:K UC4:K ...
+O	UW1:B1 UW2:テ UW3:ス UW4:ト UC1:O UC2:K UC3:K UC4:K ...
+B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="train-3"><a class="header" href="#train-3">train</a></h1>
+<p>AdaBoostを使用して単語分割モデルを学習します。</p>
+<h2 id="使い方-2"><a class="header" href="#使い方-2">使い方</a></h2>
+<pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h2 id="引数-2"><a class="header" href="#引数-2">引数</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FEATURES_FILE</code></td><td>入力特徴量ファイルのパス（<code>extract</code> の出力）</td></tr>
+<tr><td><code>MODEL_FILE</code></td><td>出力モデルファイルのパス</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="オプション-1"><a class="header" href="#オプション-1">オプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる</td></tr>
+<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
+<tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="出力"><a class="header" href="#出力">出力</a></h2>
+<p>学習メトリクスはstderrに出力されます。</p>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 94.15% ( 564133 / 599198 )
+  Precision: 95.57% ( 330454 / 345758 )
+  Recall: 94.36% ( 330454 / 350215 )
+  Confusion Matrix:
+    True Positives: 330454
+    False Positives: 15304
+    False Negatives: 19761
+    True Negatives: 233679
+</code></pre>
+<h2 id="ctrlc-のハンドリング"><a class="header" href="#ctrlc-のハンドリング">Ctrl+C のハンドリング</a></h2>
+<p>学習は優雅な中断をサポートしています。</p>
+<ul>
+<li><strong>1回目のCtrl+C</strong>: 学習を停止し、現在の状態でモデルを保存する</li>
+<li><strong>2回目のCtrl+C</strong>: 保存せずに即座に終了する</li>
+</ul>
+<p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
+<h2 id="使用例-5"><a class="header" href="#使用例-5">使用例</a></h2>
+<p>基本的な学習:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+</code></pre>
+<p>高精度な学習（低い閾値、多い反復回数）:</p>
+<pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
+</code></pre>
+<p>既存モデルからの再学習:</p>
+<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./resources/japanese.model \
+    ./new_features.txt ./resources/japanese_v2.model
+</code></pre>
+<h2 id="品詞モデルの学習--pos"><a class="header" href="#品詞モデルの学習--pos">品詞モデルの学習（<code>--pos</code>）</a></h2>
+<p><code>--pos</code> フラグを指定すると、Averaged Perceptron による品詞推定モデルを学習します。</p>
+<h3 id="使い方-1-2"><a class="header" href="#使い方-1-2">使い方</a></h3>
+<pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<h3 id="pos-学習固有のオプション"><a class="header" href="#pos-学習固有のオプション">POS 学習固有のオプション</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--pos</code></td><td>false</td><td>品詞推定モデル（Averaged Perceptron）を学習する</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="使用例-1-1"><a class="header" href="#使用例-1-1">使用例</a></h3>
+<pre><code class="language-sh"># 品詞モデルの学習（10エポック）
+litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+</code></pre>
+<h3 id="出力-1"><a class="header" href="#出力-1">出力</a></h3>
+<p>学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。</p>
+<pre><code class="language-text">Result Metrics:
+  Accuracy: 98.34%
+  Macro Precision: 97.87%
+  Macro Recall: 91.67%
+</code></pre>
+<h3 id="ctrlc-のハンドリング-1"><a class="header" href="#ctrlc-のハンドリング-1">Ctrl+C のハンドリング</a></h3>
+<p>AdaBoost と同様に、学習は優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。</p>
+<h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>値を小さくした場合の効果</th><th>値を大きくした場合の効果</th></tr>
+</thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>反復回数が増加、精度が向上する可能性あり、学習時間が長くなる</td><td>反復回数が減少、学習が高速化、アンダーフィットの可能性あり</td></tr>
+<tr><td><code>num_iterations</code></td><td>ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり</td><td>ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり</td></tr>
+</tbody>
+</table>
+</div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="segment-1"><a class="header" href="#segment-1">segment</a></h1>
+<p>学習済みモデルを使用してテキストを単語に分割します。</p>
+<h2 id="使い方-3"><a class="header" href="#使い方-3">使い方</a></h2>
+<pre><code class="language-sh">echo "text" | litsea segment [OPTIONS] &lt;MODEL_URI&gt;
+</code></pre>
+<h2 id="引数-3"><a class="header" href="#引数-3">引数</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>MODEL_URI</code></td><td>学習済みモデルファイルのパスまたはURL。サポート形式: ローカルファイルパス, <code>file://</code>, <code>http://</code>, <code>https://</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="オプション-2"><a class="header" href="#オプション-2">オプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="入力--出力"><a class="header" href="#入力--出力">入力 / 出力</a></h2>
+<ul>
+<li><strong>入力</strong>: stdinから読み取り、1行に1文。空行はスキップされます。</li>
+<li><strong>出力</strong>: stdoutに書き込み、スペース区切りのトークン、入力行ごとに1行。</li>
+</ul>
+<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
+<p><strong>日本語:</strong></p>
+<pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
+  | litsea segment -l japanese ./resources/japanese.model
+</code></pre>
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+</code></pre>
+<p><strong>中国語:</strong></p>
+<pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./resources/chinese.model
+</code></pre>
+<p><strong>韓国語:</strong></p>
+<pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
+  | litsea segment -l korean ./resources/korean.model
+</code></pre>
+<p><strong>ファイルの処理:</strong></p>
+<pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./resources/japanese.model &gt; output.txt
+</code></pre>
+<p><strong>URLからモデルを読み込み:</strong></p>
+<pre><code class="language-sh">echo "テスト文です。" \
+  | litsea segment -l japanese https://example.com/models/japanese.model
+</code></pre>
+<h2 id="品詞推定付き分割--pos"><a class="header" href="#品詞推定付き分割--pos">品詞推定付き分割（<code>--pos</code>）</a></h2>
+<p><code>--pos</code> フラグを指定すると、Averaged Perceptron モデルを使用して単語分割と品詞推定を同時に行います。</p>
+<h3 id="使い方-1-3"><a class="header" href="#使い方-1-3">使い方</a></h3>
+<pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
+</code></pre>
+<h3 id="出力形式-2"><a class="header" href="#出力形式-2">出力形式</a></h3>
+<p>各単語が <code>単語/品詞</code> の形式で出力されます。品詞は UPOS タグセットに準拠します。</p>
+<pre><code class="language-sh">echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./resources/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+</code></pre>
+<h3 id="ファイルの処理"><a class="header" href="#ファイルの処理">ファイルの処理</a></h3>
+<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./resources/japanese_pos.model &gt; output.txt
+</code></pre>
+<h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
+<ul>
+<li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
+<li>モデルの読み込みは非同期で行われ、TLS（rustls）を使用したHTTP/HTTPSをサポートしています</li>
+<li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="convert-conllu"><a class="header" href="#convert-conllu">convert-conllu</a></h1>
+<p>CoNLL-U（Universal Dependencies）形式のファイルを Litsea の品詞付きコーパス形式に変換します。</p>
+<h2 id="目的"><a class="header" href="#目的">目的</a></h2>
+<p><a href="https://universaldependencies.org/">Universal Dependencies</a> プロジェクトが提供する Treebank（CoNLL-U 形式）を、Litsea の品詞推定モデル学習に必要なコーパス形式に変換します。</p>
+<h2 id="使い方-4"><a class="header" href="#使い方-4">使い方</a></h2>
+<pre><code class="language-sh">litsea convert-conllu &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
+</code></pre>
+<h2 id="引数-4"><a class="header" href="#引数-4">引数</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>INPUT_FILE</code></td><td>入力 CoNLL-U ファイルのパス</td></tr>
+<tr><td><code>OUTPUT_FILE</code></td><td>出力 Litsea コーパスファイルのパス</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="入力形式conll-u"><a class="header" href="#入力形式conll-u">入力形式（CoNLL-U）</a></h2>
+<p>CoNLL-U はタブ区切りの10カラム形式です。本コマンドでは ID、FORM（表層形）、UPOS（品詞）の3カラムを使用します。</p>
+<pre><code class="language-text"># text = 太郎は花子が読んでいる本を次郎に渡した。
+1	太郎	太郎	PROPN	_	_	12	nsubj	_	SpaceAfter=No
+2	は	は	ADP	_	_	1	case	_	SpaceAfter=No
+3	花子	花子	PROPN	_	_	5	nsubj	_	SpaceAfter=No
+4	が	が	ADP	_	_	3	case	_	SpaceAfter=No
+5	読ん	読む	VERB	_	_	9	acl	_	SpaceAfter=No
+...
+</code></pre>
+<h2 id="出力形式litsea-コーパス"><a class="header" href="#出力形式litsea-コーパス">出力形式（Litsea コーパス）</a></h2>
+<p><code>単語/品詞</code> をスペースで区切り、1行に1文を出力します。</p>
+<pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 次郎/PROPN に/ADP 渡し/VERB た/AUX 。/PUNCT
+</code></pre>
+<h2 id="スキップされるデータ"><a class="header" href="#スキップされるデータ">スキップされるデータ</a></h2>
+<p>変換時に以下の行はスキップされます:</p>
+<ul>
+<li><strong>コメント行</strong>: <code>#</code> で始まる行</li>
+<li><strong>マルチワードトークン</strong>: ID が <code>1-2</code> のようにハイフンを含む行</li>
+<li><strong>空ノード</strong>: ID が <code>1.1</code> のようにピリオドを含む行</li>
+<li><strong>UPOS 未注釈</strong>: UPOS カラムが <code>_</code> のトークン</li>
+</ul>
+<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
+<h3 id="ud-japanese-gsd-での使用"><a class="header" href="#ud-japanese-gsd-での使用">UD Japanese-GSD での使用</a></h3>
+<pre><code class="language-sh"># UD Japanese-GSD リポジトリをクローン
+git clone https://github.com/UniversalDependencies/UD_Japanese-GSD.git
+
+# CoNLL-U を Litsea コーパス形式に変換
+litsea convert-conllu \
+    ./UD_Japanese-GSD/ja_gsd-ud-train.conllu \
+    ./corpus_pos.txt
+
+# 変換後のコーパスで品詞モデルを学習
+litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
+litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+</code></pre>
+<p>成功時のstderr出力:</p>
+<pre><code class="language-text">Converted 7050 sentences.
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="split-sentences"><a class="header" href="#split-sentences">split-sentences</a></h1>
+<p>Unicode UAX #29のルールを使用してテキストを文に分割します。</p>
+<h2 id="使い方-5"><a class="header" href="#使い方-5">使い方</a></h2>
+<pre><code class="language-sh">echo "text" | litsea split-sentences
+</code></pre>
+<h2 id="引数-5"><a class="header" href="#引数-5">引数</a></h2>
+<p>なし。</p>
+<h2 id="オプション-3"><a class="header" href="#オプション-3">オプション</a></h2>
+<p>なし（<code>--help</code> と <code>--version</code> を除く）。</p>
+<h2 id="入力--出力-1"><a class="header" href="#入力--出力-1">入力 / 出力</a></h2>
+<ul>
+<li><strong>入力</strong>: stdinから読み取り、1行に1段落。空行はスキップされます。</li>
+<li><strong>出力</strong>: stdoutに書き込み、1行に1文。</li>
+</ul>
+<h2 id="動作の仕組み"><a class="header" href="#動作の仕組み">動作の仕組み</a></h2>
+<p>このコマンドは、ICU4Xの <code>SentenceSegmenter</code> を使用しており、Unicode Standard Annex #29（UAX #29）の文区切りルールを実装しています。<strong>言語非依存</strong>のため、<code>--language</code> フラグは不要です。</p>
+<h2 id="使用例-8"><a class="header" href="#使用例-8">使用例</a></h2>
+<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">これはテストです。
+次の文です。
+</code></pre>
+<p>複数行の入力:</p>
+<pre><code class="language-sh">echo -e "First sentence. Second sentence.\nThird sentence! Fourth." \
+  | litsea split-sentences
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">First sentence.
+Second sentence.
+Third sentence!
+Fourth.
+</code></pre>
+<h2 id="ユースケース"><a class="header" href="#ユースケース">ユースケース</a></h2>
+<ul>
+<li>単語分割の前処理として、テキストを1行1文に変換</li>
+<li>大規模なドキュメントを分析用に個別の文に分割</li>
+<li>生テキストから学習コーパスを準備</li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
+<p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>
+<p>Litsea は 2 つの学習ワークフローをサポートしています:</p>
+<h2 id="単語分割adaboost"><a class="header" href="#単語分割adaboost">単語分割（AdaBoost）</a></h2>
+<ol>
+<li>スペース区切りの<a href="#コーパスの準備">コーパスを準備</a>する</li>
+<li>コーパスから<a href="#特徴量の抽出">特徴量を抽出</a>する</li>
+<li>AdaBoost で<a href="#モデルの学習">モデルを訓練</a>する</li>
+</ol>
+<h2 id="品詞推定averaged-perceptron"><a class="header" href="#品詞推定averaged-perceptron">品詞推定（Averaged Perceptron）</a></h2>
+<ol>
+<li><a href="https://universaldependencies.org/">Universal Dependencies</a> Treebank をダウンロード</li>
+<li>CoNLL-U 形式を変換: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
+<li><a href="#特徴量の抽出">品詞付き特徴量を抽出</a>: <code>litsea extract --pos -l japanese corpus.txt features.txt</code></li>
+<li><a href="#モデルの学習">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
+</ol>
+<h2 id="その他のトピック"><a class="header" href="#その他のトピック">その他のトピック</a></h2>
+<ul>
+<li><a href="#モデルの評価">モデルの評価</a> – モデル品質の評価</li>
+<li><a href="#モデルの再学習">モデルの再訓練</a> – 既存モデルの微調整</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="コーパスの準備"><a class="header" href="#コーパスの準備">コーパスの準備</a></h1>
 <p>良質な学習コーパスは、モデルの精度にとって不可欠です。このガイドでは、コーパスの準備方法を説明します。</p>

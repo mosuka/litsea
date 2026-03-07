@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04015350.js";
+            window.path_to_searchindex_js = "../searchindex-af5b1803.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-fe6f6d22.js"></script>
+        <script src="../toc-b7688c67.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -217,13 +217,20 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <h2 id="各位置での予測の仕組み"><a class="header" href="#各位置での予測の仕組み">各位置での予測の仕組み</a></h2>
 <p>各位置 <em>i</em> で、セグメンタは以下を実行します:</p>
 <ol>
-<li><strong>特徴量の抽出</strong> – <code>get_attributes(i, tags, chars, types)</code> を呼び出し、38-42 個の特徴量からなる <code>HashSet&lt;String&gt;</code> を構築</li>
-<li><strong>スコアの計算</strong> – AdaBoost 学習器がマッチするすべての特徴量のモデル重みとバイアスを合計:
+<li>
+<p><strong>特徴量の抽出</strong> – <code>get_attributes(i, tags, chars, types)</code> を呼び出し、38-42 個の特徴量からなる <code>HashSet&lt;String&gt;</code> を構築</p>
+</li>
+<li>
+<p><strong>スコアの計算</strong> – AdaBoost 学習器がマッチするすべての特徴量のモデル重みとバイアスを合計:</p>
 <pre><code class="language-text">score = bias + sum(model[feature] for feature in attributes)
 </code></pre>
 </li>
-<li><strong>判定</strong> – <code>score &gt;= 0</code> の場合、その文字は新しい単語を開始（境界）、そうでなければ現在の単語を継続</li>
-<li><strong>タグの更新</strong> – tags 配列に “B” または “O” をプッシュし、後続の位置での特徴量抽出に影響を与える</li>
+<li>
+<p><strong>判定</strong> – <code>score &gt;= 0</code> の場合、その文字は新しい単語を開始（境界）、そうでなければ現在の単語を継続</p>
+</li>
+<li>
+<p><strong>タグの更新</strong> – tags 配列に “B” または “O” をプッシュし、後続の位置での特徴量抽出に影響を与える</p>
+</li>
 </ol>
 <h2 id="学習と予測の比較"><a class="header" href="#学習と予測の比較">学習と予測の比較</a></h2>
 <div class="table-wrapper">

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9ce83e0f.js";
+            window.path_to_searchindex_js = "../searchindex-ad6c0be6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-3e5df682.js"></script>
+        <script src="../toc-b64cce5c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,25 +199,25 @@
 </ol>
 <h3 id="iterative-boosting"><a class="header" href="#iterative-boosting">Iterative Boosting</a></h3>
 <p>For each iteration <em>t</em> (up to <code>num_iterations</code>):</p>
-<p><strong>Step 1: Calculate weighted errors</strong></p>
+<h4 id="step-1-calculate-weighted-errors"><a class="header" href="#step-1-calculate-weighted-errors">Step 1: Calculate weighted errors</a></h4>
 <p>For each feature <em>h</em>, compute its weighted error over all instances:</p>
 <pre><code class="language-text">error[h] -= D[i] * y[i]   (for each instance i that has feature h)
 </code></pre>
 <p>where <em>D[i]</em> is the instance weight and <em>y[i]</em> is the true label.</p>
-<p><strong>Step 2: Select the best weak learner</strong></p>
+<h4 id="step-2-select-the-best-weak-learner"><a class="header" href="#step-2-select-the-best-weak-learner">Step 2: Select the best weak learner</a></h4>
 <p>Find the feature with the lowest weighted error rate:</p>
 <pre><code class="language-text">error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
 h_best = argmax_h |0.5 - error_rate(h)|
 </code></pre>
 <p>The baseline competitor is the “all-negative” classifier (always predicts -1), whose error rate equals the fraction of positive instances. Any real feature must beat this baseline.</p>
-<p><strong>Step 3: Check convergence</strong></p>
+<h4 id="step-3-check-convergence"><a class="header" href="#step-3-check-convergence">Step 3: Check convergence</a></h4>
 <p>If <code>|0.5 - best_error_rate| &lt; threshold</code>, stop early – no feature can significantly improve the model.</p>
-<p><strong>Step 4: Compute the weak learner weight</strong></p>
+<h4 id="step-4-compute-the-weak-learner-weight"><a class="header" href="#step-4-compute-the-weak-learner-weight">Step 4: Compute the weak learner weight</a></h4>
 <pre><code class="language-text">alpha = 0.5 * ln((1 - error_rate) / error_rate)
 model[h_best] += alpha
 </code></pre>
 <p>A lower error rate produces a higher alpha, giving more influence to better features.</p>
-<p><strong>Step 5: Update instance weights</strong></p>
+<h4 id="step-5-update-instance-weights"><a class="header" href="#step-5-update-instance-weights">Step 5: Update instance weights</a></h4>
 <pre><code class="language-text">For each instance i:
     prediction = +1 if h_best in features(i), else -1
 

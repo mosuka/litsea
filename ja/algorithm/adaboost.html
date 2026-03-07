@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-04015350.js";
+            window.path_to_searchindex_js = "../searchindex-af5b1803.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-fe6f6d22.js"></script>
+        <script src="../toc-b7688c67.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,25 +199,25 @@
 </ol>
 <h3 id="反復ブースティング"><a class="header" href="#反復ブースティング">反復ブースティング</a></h3>
 <p>各イテレーション <em>t</em>（最大 <code>num_iterations</code> 回）について:</p>
-<p><strong>ステップ 1: 重み付き誤差の計算</strong></p>
+<h4 id="ステップ-1-重み付き誤差の計算"><a class="header" href="#ステップ-1-重み付き誤差の計算">ステップ 1: 重み付き誤差の計算</a></h4>
 <p>各特徴量 <em>h</em> について、全インスタンスに対する重み付き誤差を計算します:</p>
 <pre><code class="language-text">error[h] -= D[i] * y[i]   (for each instance i that has feature h)
 </code></pre>
 <p>ここで <em>D[i]</em> はインスタンスの重み、<em>y[i]</em> は真のラベルです。</p>
-<p><strong>ステップ 2: 最良の弱学習器の選択</strong></p>
+<h4 id="ステップ-2-最良の弱学習器の選択"><a class="header" href="#ステップ-2-最良の弱学習器の選択">ステップ 2: 最良の弱学習器の選択</a></h4>
 <p>重み付き誤差率が最も低い特徴量を選択します:</p>
 <pre><code class="language-text">error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
 h_best = argmax_h |0.5 - error_rate(h)|
 </code></pre>
 <p>基準となる競合対象は「全て負」分類器（常に -1 を予測）であり、その誤差率は正のインスタンスの割合に等しくなります。実際の特徴量はこの基準を上回る必要があります。</p>
-<p><strong>ステップ 3: 収束判定</strong></p>
+<h4 id="ステップ-3-収束判定"><a class="header" href="#ステップ-3-収束判定">ステップ 3: 収束判定</a></h4>
 <p><code>|0.5 - best_error_rate| &lt; threshold</code> の場合、早期停止します – どの特徴量もモデルを大幅に改善できないためです。</p>
-<p><strong>ステップ 4: 弱学習器の重みの計算</strong></p>
+<h4 id="ステップ-4-弱学習器の重みの計算"><a class="header" href="#ステップ-4-弱学習器の重みの計算">ステップ 4: 弱学習器の重みの計算</a></h4>
 <pre><code class="language-text">alpha = 0.5 * ln((1 - error_rate) / error_rate)
 model[h_best] += alpha
 </code></pre>
 <p>誤差率が低いほど alpha が高くなり、より良い特徴量により大きな影響力を与えます。</p>
-<p><strong>ステップ 5: インスタンスの重みの更新</strong></p>
+<h4 id="ステップ-5-インスタンスの重みの更新"><a class="header" href="#ステップ-5-インスタンスの重みの更新">ステップ 5: インスタンスの重みの更新</a></h4>
 <pre><code class="language-text">For each instance i:
     prediction = +1 if h_best in features(i), else -1
 
