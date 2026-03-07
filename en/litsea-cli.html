@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ad6c0be6.js";
+            window.path_to_searchindex_js = "searchindex-4ac343d7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b64cce5c.js"></script>
@@ -195,7 +195,7 @@
 <tr><td><a href="litsea-cli/extract.html"><code>extract</code></a></td><td>Extract features from a corpus for training</td></tr>
 <tr><td><a href="litsea-cli/train.html"><code>train</code></a></td><td>Train a word segmentation model</td></tr>
 <tr><td><a href="litsea-cli/segment.html"><code>segment</code></a></td><td>Segment text into words using a trained model</td></tr>
-<tr><td><a href="litsea-cli/convert-conllu.html"><code>convert-conllu</code></a></td><td>Convert CoNLL-U (Universal Dependencies) files to Litsea POS corpus format</td></tr>
+<tr><td><a href="litsea-cli/convert-conllu.html"><code>convert-conllu</code></a></td><td>Convert CoNLL-U (Universal Dependencies) files to Litsea corpus format</td></tr>
 <tr><td><a href="litsea-cli/split-sentences.html"><code>split-sentences</code></a></td><td>Split text into sentences using Unicode UAX #29</td></tr>
 </tbody>
 </table>
@@ -219,7 +219,7 @@
     C --&gt; D["4. litsea segment"]
 </code></pre>
 <ol>
-<li>Prepare a corpus with words separated by spaces</li>
+<li>Prepare a corpus from a UD Treebank: <code>litsea convert-conllu ud_data.conllu corpus.txt</code></li>
 <li>Extract features: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
 <li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
@@ -233,7 +233,7 @@
 </code></pre>
 <ol>
 <li>Obtain a Universal Dependencies treebank in CoNLL-U format</li>
-<li>Convert to Litsea POS corpus: <code>litsea convert-conllu ud_data.conllu corpus_pos.txt</code></li>
+<li>Convert to Litsea POS corpus: <code>litsea convert-conllu --pos ud_data.conllu corpus_pos.txt</code></li>
 <li>Extract POS features: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
 <li>Train a POS model: <code>litsea train --pos -e 10 features_pos.txt model_pos.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>

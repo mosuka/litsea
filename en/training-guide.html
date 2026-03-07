@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ad6c0be6.js";
+            window.path_to_searchindex_js = "searchindex-4ac343d7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b64cce5c.js"></script>
@@ -182,17 +182,16 @@
                     <main>
                         <h1 id="training-guide"><a class="header" href="#training-guide">Training Guide</a></h1>
 <p>This guide walks you through training custom word segmentation and POS tagging models with Litsea.</p>
-<p>Litsea supports two training workflows:</p>
+<p>Both workflows use <a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> Treebanks as the data source.</p>
 <h2 id="word-segmentation-adaboost"><a class="header" href="#word-segmentation-adaboost">Word Segmentation (AdaBoost)</a></h2>
 <ol>
-<li><a href="training-guide/preparing-corpus.html">Prepare a corpus</a> with space-separated words</li>
+<li>Download a UD Treebank and <a href="training-guide/preparing-corpus.html">prepare a corpus</a>: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
 <li><a href="training-guide/extracting-features.html">Extract features</a> from the corpus</li>
 <li><a href="training-guide/training-models.html">Train a model</a> using AdaBoost</li>
 </ol>
 <h2 id="pos-tagging-averaged-perceptron"><a class="header" href="#pos-tagging-averaged-perceptron">POS Tagging (Averaged Perceptron)</a></h2>
 <ol>
-<li>Download a <a href="https://universaldependencies.org/">Universal Dependencies</a> treebank</li>
-<li>Convert CoNLL-U format: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
+<li>Download a UD Treebank and <a href="training-guide/preparing-corpus.html">prepare a POS corpus</a>: <code>litsea convert-conllu --pos input.conllu corpus.txt</code></li>
 <li><a href="training-guide/extracting-features.html">Extract POS features</a>: <code>litsea extract --pos -l japanese corpus.txt features.txt</code></li>
 <li><a href="training-guide/training-models.html">Train a POS model</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
 </ol>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-af5b1803.js";
+            window.path_to_searchindex_js = "searchindex-06cb1f2c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b7688c67.js"></script>
@@ -196,7 +196,7 @@
 <tr><td><a href="litsea-cli/train.html"><code>train</code></a></td><td>単語分割モデルを学習</td></tr>
 <tr><td><a href="litsea-cli/segment.html"><code>segment</code></a></td><td>学習済みモデルを使用してテキストを単語に分割</td></tr>
 <tr><td><a href="litsea-cli/split-sentences.html"><code>split-sentences</code></a></td><td>Unicode UAX #29を使用してテキストを文に分割</td></tr>
-<tr><td><a href="litsea-cli/convert-conllu.html"><code>convert-conllu</code></a></td><td>CoNLL-U（Universal Dependencies）形式をLitsea品詞コーパス形式に変換</td></tr>
+<tr><td><a href="litsea-cli/convert-conllu.html"><code>convert-conllu</code></a></td><td>CoNLL-U（Universal Dependencies）形式をLitseaコーパス形式に変換</td></tr>
 </tbody>
 </table>
 </div>
@@ -220,7 +220,7 @@
     C --&gt; D["4. litsea segment"]
 </code></pre>
 <ol>
-<li>単語をスペースで区切ったコーパスを用意する</li>
+<li>UD Treebank からコーパスを準備する: <code>litsea convert-conllu ud_data.conllu corpus.txt</code></li>
 <li>特徴量を抽出する: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
 <li>モデルを学習する: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
@@ -234,7 +234,7 @@
 </code></pre>
 <ol>
 <li>Universal Dependencies Treebank（例: UD_Japanese-GSD）を取得する</li>
-<li>CoNLL-U 形式を変換する: <code>litsea convert-conllu input.conllu corpus_pos.txt</code></li>
+<li>CoNLL-U 形式を変換する: <code>litsea convert-conllu --pos input.conllu corpus_pos.txt</code></li>
 <li>品詞付き特徴量を抽出する: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
 <li>POS モデルを学習する: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
 <li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad6c0be6.js";
+            window.path_to_searchindex_js = "../searchindex-4ac343d7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b64cce5c.js"></script>
@@ -181,9 +181,9 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="convert-conllu"><a class="header" href="#convert-conllu">convert-conllu</a></h1>
-<p>Convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> (Universal Dependencies) format files to Litsea POS corpus format.</p>
+<p>Convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> (Universal Dependencies) format files to Litsea corpus format.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
-<pre><code class="language-sh">litsea convert-conllu &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
+<pre><code class="language-sh">litsea convert-conllu [OPTIONS] &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
 </code></pre>
 <h2 id="arguments"><a class="header" href="#arguments">Arguments</a></h2>
 <div class="table-wrapper">
@@ -193,7 +193,18 @@
 </thead>
 <tbody>
 <tr><td><code>INPUT_FILE</code></td><td>Path to the input CoNLL-U file</td></tr>
-<tr><td><code>OUTPUT_FILE</code></td><td>Path to the output Litsea POS corpus file</td></tr>
+<tr><td><code>OUTPUT_FILE</code></td><td>Path to the output Litsea corpus file</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options"><a class="header" href="#options">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--pos</code></td><td>Include POS tags in output (<code>word/POS</code> format). Without this flag, outputs space-separated words only</td></tr>
 </tbody>
 </table>
 </div>
@@ -214,7 +225,12 @@
 <li>Column 2: <code>FORM</code> – word form (surface text)</li>
 <li>Column 4: <code>UPOS</code> – Universal POS tag</li>
 </ul>
-<h2 id="output-format-litsea-pos-corpus"><a class="header" href="#output-format-litsea-pos-corpus">Output Format (Litsea POS Corpus)</a></h2>
+<h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
+<h3 id="word-segmentation-mode-default"><a class="header" href="#word-segmentation-mode-default">Word segmentation mode (default)</a></h3>
+<p>Space-separated words, one sentence per line:</p>
+<pre><code class="language-text">太郎 は 花子 が 読ん で いる 本 を 次郎 に 渡し た 。
+</code></pre>
+<h3 id="pos-tagging-mode---pos"><a class="header" href="#pos-tagging-mode---pos">POS tagging mode (<code>--pos</code>)</a></h3>
 <p>Each sentence becomes one line with tokens in <code>word/POS</code> format:</p>
 <pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 次郎/PROPN に/ADP 渡し/VERB た/AUX 。/PUNCT
 </code></pre>
@@ -223,21 +239,34 @@
 <li><strong>Comment lines</strong> (<code># ...</code>): Skipped</li>
 <li><strong>Multiword tokens</strong> (range IDs like <code>1-2</code>): Skipped (individual tokens are used instead)</li>
 <li><strong>Empty nodes</strong> (decimal IDs like <code>1.1</code>): Skipped</li>
-<li><strong>Missing UPOS</strong> (<code>_</code> in column 4): Token is assigned the <code>X</code> tag</li>
+<li><strong>Missing UPOS</strong> (<code>_</code> in column 4): Token is skipped</li>
 </ul>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
-<p>Convert a UD Japanese-GSD treebank file:</p>
-<pre><code class="language-sh">litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+<h3 id="word-segmentation-corpus"><a class="header" href="#word-segmentation-corpus">Word segmentation corpus</a></h3>
+<pre><code class="language-sh">litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
 </code></pre>
-<p>Full POS training workflow starting from a UD treebank:</p>
-<pre><code class="language-sh"># 1. Convert CoNLL-U to Litsea POS corpus
-litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+<h3 id="pos-corpus"><a class="header" href="#pos-corpus">POS corpus</a></h3>
+<pre><code class="language-sh">litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+</code></pre>
+<h3 id="full-training-workflow"><a class="header" href="#full-training-workflow">Full training workflow</a></h3>
+<pre><code class="language-sh"># 1. Convert CoNLL-U to word segmentation corpus
+litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
+
+# 2. Extract features
+litsea extract -l japanese ./corpus.txt ./features.txt
+
+# 3. Train a model
+litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+</code></pre>
+<h3 id="full-pos-training-workflow"><a class="header" href="#full-pos-training-workflow">Full POS training workflow</a></h3>
+<pre><code class="language-sh"># 1. Convert CoNLL-U to POS corpus
+litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
 
 # 2. Extract POS features
 litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
 
 # 3. Train a POS model
-litsea train --pos -e 10 ./features_pos.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
 </code></pre>
 <h2 id="data-source"><a class="header" href="#data-source">Data Source</a></h2>
 <p>Universal Dependencies treebanks are available at <a href="https://universaldependencies.org/">universaldependencies.org</a>. For Japanese, the recommended treebank is <a href="https://github.com/UniversalDependencies/UD_Japanese-GSD">UD_Japanese-GSD</a> (7,050 sentences).</p>

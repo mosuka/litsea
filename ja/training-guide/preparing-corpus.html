@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-af5b1803.js";
+            window.path_to_searchindex_js = "../searchindex-06cb1f2c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b7688c67.js"></script>
@@ -181,63 +181,10 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="コーパスの準備"><a class="header" href="#コーパスの準備">コーパスの準備</a></h1>
-<p>良質な学習コーパスは、モデルの精度にとって不可欠です。このガイドでは、コーパスの準備方法を説明します。</p>
-<h2 id="コーパスの形式"><a class="header" href="#コーパスの形式">コーパスの形式</a></h2>
-<p>コーパスは以下の条件を満たすプレーンテキストファイルである必要があります:</p>
-<ul>
-<li><strong>1行1文</strong></li>
-<li><strong>単語をスペースで区切る</strong></li>
-</ul>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
-Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
-</code></pre>
-<h2 id="コーパスの自動作成"><a class="header" href="#コーパスの自動作成">コーパスの自動作成</a></h2>
-<p>Litsea には、Wikipedia からコーパスを構築するためのヘルパースクリプトが <code>scripts/</code> ディレクトリに用意されています。</p>
-<h3 id="ステップ-1-wikipedia-テキストのダウンロード"><a class="header" href="#ステップ-1-wikipedia-テキストのダウンロード">ステップ 1: Wikipedia テキストのダウンロード</a></h3>
-<pre><code class="language-sh">bash scripts/wikitexts.sh ja   # Japanese
-bash scripts/wikitexts.sh ko   # Korean
-bash scripts/wikitexts.sh zh   # Chinese
-</code></pre>
-<p>このスクリプトは以下の処理を行います:</p>
-<ol>
-<li>Wikipedia API から記事タイトルをダウンロード</li>
-<li>言語固有の基準でフィルタリング</li>
-<li>記事テキストを取得</li>
-<li><code>litsea split-sentences</code> を使用して文に分割</li>
-</ol>
-<h3 id="ステップ-2-lindera-によるトークン化"><a class="header" href="#ステップ-2-lindera-によるトークン化">ステップ 2: Lindera によるトークン化</a></h3>
-<pre><code class="language-sh">bash scripts/corpus.sh ja ./wikitexts_ja.txt ./corpus_ja.txt
-bash scripts/corpus.sh ko ./wikitexts_ko.txt ./corpus_ko.txt
-bash scripts/corpus.sh zh ./wikitexts_zh.txt ./corpus_zh.txt
-</code></pre>
-<p>このスクリプトは <a href="https://github.com/lindera/lindera">Lindera</a> を言語固有の辞書とともに使用します:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>言語</th><th>辞書</th><th>備考</th></tr>
-</thead>
-<tbody>
-<tr><td>日本語</td><td>UniDic</td><td>複合語フィルタ付き</td></tr>
-<tr><td>韓国語</td><td>ko-dic</td><td>韓国語辞書</td></tr>
-<tr><td>中国語</td><td>CC-CEDICT</td><td>中英辞書</td></tr>
-</tbody>
-</table>
-</div>
-<p>出力は <strong>wakati</strong> 形式（スペース区切りのトークン）で、特徴量抽出にそのまま使用できます。</p>
-<h2 id="品詞付きコーパスの準備"><a class="header" href="#品詞付きコーパスの準備">品詞付きコーパスの準備</a></h2>
-<p>品詞推定（POS Tagging）を行う場合、Litsea では各単語に品詞タグを付与した形式のコーパスを使用します。</p>
-<h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>
-<p>1行1文で、各単語を <code>単語/品詞</code> の形式でスペース区切りに記述します:</p>
-<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
-Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
-</code></pre>
-<p>品詞タグは <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットに準拠し、17カテゴリで構成されます: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X。</p>
-<h3 id="ud-treebanks-をデータソースとして使用"><a class="header" href="#ud-treebanks-をデータソースとして使用">UD Treebanks をデータソースとして使用</a></h3>
-<p><a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> は、多くの言語に対して CoNLL-U 形式の高品質なツリーバンクデータを提供しています。Litsea には CoNLL-U ファイルを品詞付きコーパス形式に変換するコンバーターが含まれています。</p>
-<h4 id="ステップ-1-ud-treebank-のダウンロード"><a class="header" href="#ステップ-1-ud-treebank-のダウンロード">ステップ 1: UD Treebank のダウンロード</a></h4>
-<pre><code class="language-sh">git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
-</code></pre>
-<p>サポート言語で利用可能な UD Treebanks:</p>
+<p>良質な学習コーパスは、モデルの精度にとって不可欠です。このガイドでは、<a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> Treebanks を使用したコーパスの準備方法を説明します。</p>
+<h2 id="データソース-ud-treebanks"><a class="header" href="#データソース-ud-treebanks">データソース: UD Treebanks</a></h2>
+<p>Litsea は単語分割と品詞推定の両方のデータソースとして UD Treebanks を使用します。UD Treebanks は、多くの言語に対して CoNLL-U 形式の高品質な手動アノテーション済みデータを提供しています。</p>
+<h3 id="利用可能な-treebanks"><a class="header" href="#利用可能な-treebanks">利用可能な Treebanks</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -250,10 +197,47 @@ Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 
 </tbody>
 </table>
 </div>
-<h4 id="ステップ-2-conll-u-から品詞付きコーパスに変換"><a class="header" href="#ステップ-2-conll-u-から品詞付きコーパスに変換">ステップ 2: CoNLL-U から品詞付きコーパスに変換</a></h4>
+<h3 id="ステップ-1-ud-treebank-のダウンロード"><a class="header" href="#ステップ-1-ud-treebank-のダウンロード">ステップ 1: UD Treebank のダウンロード</a></h3>
+<pre><code class="language-sh">git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+</code></pre>
+<h2 id="単語分割用コーパス"><a class="header" href="#単語分割用コーパス">単語分割用コーパス</a></h2>
+<p>単語分割（AdaBoost）用のコーパスは以下の条件を満たすプレーンテキストファイルである必要があります:</p>
+<ul>
+<li><strong>1行1文</strong></li>
+<li><strong>単語をスペースで区切る</strong></li>
+</ul>
+<pre><code class="language-text">太郎 は 走っ た 。
+Litsea は コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h3 id="conll-u-から単語分割用コーパスに変換"><a class="header" href="#conll-u-から単語分割用コーパスに変換">CoNLL-U から単語分割用コーパスに変換</a></h3>
+<p><code>litsea convert-conllu</code>（<code>--pos</code> なし）を使用して、CoNLL-U ファイルからスペース区切りの単語を抽出します:</p>
 <pre><code class="language-sh">litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
 </code></pre>
-<p>このコマンドは CoNLL-U 形式を Litsea が期待する <code>単語/品詞</code> 形式に変換します。複合語トークンや空ノードは変換時に自動的に処理されます。</p>
+<p>品詞タグを除去し、スペース区切りの単語のみを1行1文で出力します。</p>
+<h2 id="品詞推定用コーパス"><a class="header" href="#品詞推定用コーパス">品詞推定用コーパス</a></h2>
+<p>品詞推定（Averaged Perceptron）を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。</p>
+<h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>
+<p>1行1文で、各単語を <code>単語/品詞</code> の形式でスペース区切りに記述します:</p>
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+</code></pre>
+<p>品詞タグは <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットに準拠し、17カテゴリで構成されます: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X。</p>
+<h3 id="conll-u-から品詞付きコーパスに変換"><a class="header" href="#conll-u-から品詞付きコーパスに変換">CoNLL-U から品詞付きコーパスに変換</a></h3>
+<p><code>litsea convert-conllu --pos</code> を使用して、CoNLL-U ファイルを <code>単語/品詞</code> 形式に変換します:</p>
+<pre><code class="language-sh">litsea convert-conllu --pos UD_Japanese-GSD/ja_gsd-ud-train.conllu pos_corpus.txt
+</code></pre>
+<p>複合語トークンや空ノードは変換時に自動的に処理されます。</p>
+<h2 id="コーパスの自動作成"><a class="header" href="#コーパスの自動作成">コーパスの自動作成</a></h2>
+<p>Litsea には、UD Treebank のダウンロードと変換を自動化するヘルパースクリプトが <code>scripts/</code> ディレクトリに用意されています:</p>
+<pre><code class="language-sh">bash scripts/corpus.sh -l ja -c corpus.txt -p pos_corpus.txt
+</code></pre>
+<p>このスクリプトは以下の処理を行います:</p>
+<ol>
+<li>指定された言語に対応する UD Treebank リポジトリをクローン</li>
+<li>学習データを単語分割用コーパス形式に変換（<code>corpus.txt</code>）</li>
+<li>学習データを品詞付きコーパス形式に変換（<code>pos_corpus.txt</code>）</li>
+</ol>
+<p>サポート言語: <code>ja</code>（日本語）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。</p>
 <h2 id="コーパスの品質に関するヒント"><a class="header" href="#コーパスの品質に関するヒント">コーパスの品質に関するヒント</a></h2>
 <ul>
 <li><strong>多様性</strong> – さまざまな分野のテキストを含める（ニュース、文学、ウェブなど）</li>

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ad6c0be6.js";
+            window.path_to_searchindex_js = "searchindex-4ac343d7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b64cce5c.js"></script>
@@ -424,8 +424,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 │   ├── JEITA_Genpaku_ChaSen_IPAdic.model
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   ├── wikitexts.sh        # Download Wikipedia texts
-│   └── corpus.sh           # Create training corpus with Lindera
+│   └── corpus.sh           # Download UD Treebanks and create training corpora
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines
@@ -1121,8 +1120,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h2 id="pre-trained-models"><a class="header" href="#pre-trained-models">Pre-trained Models</a></h2>
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <ul>
-<li><strong>Training corpus</strong>: Japanese Wikipedia articles</li>
-<li><strong>Tokenizer</strong>: Lindera with UniDic dictionary</li>
+<li><strong>Training corpus</strong>: UD Japanese-GSD</li>
 <li><strong>Accuracy</strong>: 94.15%</li>
 <li><strong>Precision</strong>: 95.57%</li>
 <li><strong>Recall</strong>: 94.36%</li>
@@ -1188,8 +1186,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h2 id="pre-trained-model"><a class="header" href="#pre-trained-model">Pre-trained Model</a></h2>
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <ul>
-<li><strong>Training corpus</strong>: Chinese Wikipedia articles</li>
-<li><strong>Tokenizer</strong>: Lindera with CC-CEDICT dictionary</li>
+<li><strong>Training corpus</strong>: UD Chinese-GSD</li>
 <li><strong>Accuracy</strong>: 80.72%</li>
 </ul>
 <h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
@@ -1248,8 +1245,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h2 id="pre-trained-model-1"><a class="header" href="#pre-trained-model-1">Pre-trained Model</a></h2>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
-<li><strong>Training corpus</strong>: Korean Wikipedia articles</li>
-<li><strong>Tokenizer</strong>: Lindera with ko-dic dictionary</li>
+<li><strong>Training corpus</strong>: UD Korean-GSD</li>
 <li><strong>Accuracy</strong>: 85.08%</li>
 </ul>
 <h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
@@ -1971,25 +1967,47 @@ let label = learner.predict(attrs);
 <p>Returns a vector of all 18 segment label strings.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="conll-u-converter"><a class="header" href="#conll-u-converter">CoNLL-U Converter</a></h1>
-<p>The <code>conllu</code> module provides functionality to convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> format files (used by Universal Dependencies) to Litsea’s POS corpus format.</p>
+<p>The <code>conllu</code> module provides functionality to convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> format files (used by Universal Dependencies) to Litsea corpus format for both word segmentation and POS tagging.</p>
 <h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
-<p>Universal Dependencies treebanks are distributed in CoNLL-U format. The <code>conllu</code> module parses this format and produces Litsea-compatible POS corpus files where each sentence is represented as <code>word/POS word/POS ...</code> on a single line.</p>
+<p>Universal Dependencies treebanks are distributed in CoNLL-U format. The <code>conllu</code> module parses this format and produces Litsea-compatible corpus files in two modes:</p>
+<ul>
+<li><strong>Word segmentation mode</strong> (<code>with_pos: false</code>): space-separated words, one sentence per line</li>
+<li><strong>POS tagging mode</strong> (<code>with_pos: true</code>): <code>word/POS word/POS ...</code> format, one sentence per line</li>
+</ul>
 <h2 id="functions-1"><a class="header" href="#functions-1">Functions</a></h2>
 <h3 id="convert_conllu"><a class="header" href="#convert_conllu"><code>convert_conllu</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn convert_conllu(input: &amp;Path, output: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn convert_conllu(
+    input_path: &amp;Path,
+    output_path: &amp;Path,
+    with_pos: bool,
+) -&gt; Result&lt;usize, Box&lt;dyn Error&gt;&gt;
 <span class="boring">}</span></code></pre>
-<p>Reads a CoNLL-U file and writes a Litsea POS corpus file.</p>
+<p>Reads a CoNLL-U file and writes a Litsea corpus file. Returns the number of sentences converted.</p>
+<h4 id="word-segmentation-corpus"><a class="header" href="#word-segmentation-corpus">Word segmentation corpus</a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
 use litsea::conllu::convert_conllu;
 
-convert_conllu(
-    Path::new("./ja_gsd-ud-train.conllu"),
-    Path::new("./corpus_pos.txt"),
-)?;
+let input = Path::new("./ja_gsd-ud-train.conllu");
+let output = Path::new("./corpus.txt");
+
+// Output: space-separated words
+let count = convert_conllu(input, output, false)?;
+<span class="boring">}</span></code></pre>
+<h4 id="pos-corpus"><a class="header" href="#pos-corpus">POS corpus</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+use litsea::conllu::convert_conllu;
+
+let input = Path::new("./ja_gsd-ud-train.conllu");
+let output = Path::new("./pos_corpus.txt");
+
+// Output: word/POS format
+let count = convert_conllu(input, output, true)?;
 <span class="boring">}</span></code></pre>
 <h2 id="input-format"><a class="header" href="#input-format">Input Format</a></h2>
 <p>CoNLL-U is a tab-separated format with 10 columns per token:</p>
@@ -1998,6 +2016,10 @@ convert_conllu(
 </code></pre>
 <p>The converter uses columns 1 (ID), 2 (FORM), and 4 (UPOS).</p>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
+<h3 id="word-segmentation-mode-with_pos-false"><a class="header" href="#word-segmentation-mode-with_pos-false">Word segmentation mode (<code>with_pos: false</code>)</a></h3>
+<pre><code class="language-text">太郎 は 花子 が 読ん で いる 本 を 渡し た 。
+</code></pre>
+<h3 id="pos-tagging-mode-with_pos-true"><a class="header" href="#pos-tagging-mode-with_pos-true">POS tagging mode (<code>with_pos: true</code>)</a></h3>
 <pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 渡し/VERB た/AUX 。/PUNCT
 </code></pre>
 <h2 id="handling-special-cases"><a class="header" href="#handling-special-cases">Handling Special Cases</a></h2>
@@ -2010,7 +2032,7 @@ convert_conllu(
 <tr><td>Regular token</td><td><code>1</code>, <code>2</code>, …</td><td>Included in output</td></tr>
 <tr><td>Multiword token</td><td><code>1-2</code>, <code>3-4</code>, …</td><td>Skipped (component tokens are used)</td></tr>
 <tr><td>Empty node</td><td><code>1.1</code>, <code>2.1</code>, …</td><td>Skipped</td></tr>
-<tr><td>Missing UPOS</td><td><code>_</code> in column 4</td><td>Assigned the <code>X</code> tag</td></tr>
+<tr><td>Missing UPOS</td><td><code>_</code> in column 4</td><td>Skipped</td></tr>
 <tr><td>Comment line</td><td><code># ...</code></td><td>Skipped</td></tr>
 <tr><td>Blank line</td><td>(empty)</td><td>Marks end of sentence</td></tr>
 </tbody>
@@ -2105,7 +2127,7 @@ assert_eq!(patterns.get_type("@"), "O");
 <tr><td><a href="#extract-1"><code>extract</code></a></td><td>Extract features from a corpus for training</td></tr>
 <tr><td><a href="#train-3"><code>train</code></a></td><td>Train a word segmentation model</td></tr>
 <tr><td><a href="#segment-1"><code>segment</code></a></td><td>Segment text into words using a trained model</td></tr>
-<tr><td><a href="#convert-conllu"><code>convert-conllu</code></a></td><td>Convert CoNLL-U (Universal Dependencies) files to Litsea POS corpus format</td></tr>
+<tr><td><a href="#convert-conllu"><code>convert-conllu</code></a></td><td>Convert CoNLL-U (Universal Dependencies) files to Litsea corpus format</td></tr>
 <tr><td><a href="#split-sentences"><code>split-sentences</code></a></td><td>Split text into sentences using Unicode UAX #29</td></tr>
 </tbody>
 </table>
@@ -2129,7 +2151,7 @@ assert_eq!(patterns.get_type("@"), "O");
     C --&gt; D["4. litsea segment"]
 </code></pre>
 <ol>
-<li>Prepare a corpus with words separated by spaces</li>
+<li>Prepare a corpus from a UD Treebank: <code>litsea convert-conllu ud_data.conllu corpus.txt</code></li>
 <li>Extract features: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
 <li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
@@ -2143,7 +2165,7 @@ assert_eq!(patterns.get_type("@"), "O");
 </code></pre>
 <ol>
 <li>Obtain a Universal Dependencies treebank in CoNLL-U format</li>
-<li>Convert to Litsea POS corpus: <code>litsea convert-conllu ud_data.conllu corpus_pos.txt</code></li>
+<li>Convert to Litsea POS corpus: <code>litsea convert-conllu --pos ud_data.conllu corpus_pos.txt</code></li>
 <li>Extract POS features: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
 <li>Train a POS model: <code>litsea train --pos -e 10 features_pos.txt model_pos.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
@@ -2405,9 +2427,9 @@ litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="convert-conllu"><a class="header" href="#convert-conllu">convert-conllu</a></h1>
-<p>Convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> (Universal Dependencies) format files to Litsea POS corpus format.</p>
+<p>Convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> (Universal Dependencies) format files to Litsea corpus format.</p>
 <h2 id="usage-4"><a class="header" href="#usage-4">Usage</a></h2>
-<pre><code class="language-sh">litsea convert-conllu &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
+<pre><code class="language-sh">litsea convert-conllu [OPTIONS] &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
 </code></pre>
 <h2 id="arguments-3"><a class="header" href="#arguments-3">Arguments</a></h2>
 <div class="table-wrapper">
@@ -2417,7 +2439,18 @@ litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
 </thead>
 <tbody>
 <tr><td><code>INPUT_FILE</code></td><td>Path to the input CoNLL-U file</td></tr>
-<tr><td><code>OUTPUT_FILE</code></td><td>Path to the output Litsea POS corpus file</td></tr>
+<tr><td><code>OUTPUT_FILE</code></td><td>Path to the output Litsea corpus file</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options-3"><a class="header" href="#options-3">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>--pos</code></td><td>Include POS tags in output (<code>word/POS</code> format). Without this flag, outputs space-separated words only</td></tr>
 </tbody>
 </table>
 </div>
@@ -2438,7 +2471,12 @@ litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
 <li>Column 2: <code>FORM</code> – word form (surface text)</li>
 <li>Column 4: <code>UPOS</code> – Universal POS tag</li>
 </ul>
-<h2 id="output-format-litsea-pos-corpus"><a class="header" href="#output-format-litsea-pos-corpus">Output Format (Litsea POS Corpus)</a></h2>
+<h2 id="output-format-2"><a class="header" href="#output-format-2">Output Format</a></h2>
+<h3 id="word-segmentation-mode-default"><a class="header" href="#word-segmentation-mode-default">Word segmentation mode (default)</a></h3>
+<p>Space-separated words, one sentence per line:</p>
+<pre><code class="language-text">太郎 は 花子 が 読ん で いる 本 を 次郎 に 渡し た 。
+</code></pre>
+<h3 id="pos-tagging-mode---pos"><a class="header" href="#pos-tagging-mode---pos">POS tagging mode (<code>--pos</code>)</a></h3>
 <p>Each sentence becomes one line with tokens in <code>word/POS</code> format:</p>
 <pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 次郎/PROPN に/ADP 渡し/VERB た/AUX 。/PUNCT
 </code></pre>
@@ -2447,21 +2485,34 @@ litsea train --pos -e 10 ./pos_features.txt ./resources/japanese_pos.model
 <li><strong>Comment lines</strong> (<code># ...</code>): Skipped</li>
 <li><strong>Multiword tokens</strong> (range IDs like <code>1-2</code>): Skipped (individual tokens are used instead)</li>
 <li><strong>Empty nodes</strong> (decimal IDs like <code>1.1</code>): Skipped</li>
-<li><strong>Missing UPOS</strong> (<code>_</code> in column 4): Token is assigned the <code>X</code> tag</li>
+<li><strong>Missing UPOS</strong> (<code>_</code> in column 4): Token is skipped</li>
 </ul>
 <h2 id="examples-3"><a class="header" href="#examples-3">Examples</a></h2>
-<p>Convert a UD Japanese-GSD treebank file:</p>
-<pre><code class="language-sh">litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+<h3 id="word-segmentation-corpus-1"><a class="header" href="#word-segmentation-corpus-1">Word segmentation corpus</a></h3>
+<pre><code class="language-sh">litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
 </code></pre>
-<p>Full POS training workflow starting from a UD treebank:</p>
-<pre><code class="language-sh"># 1. Convert CoNLL-U to Litsea POS corpus
-litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+<h3 id="pos-corpus-1"><a class="header" href="#pos-corpus-1">POS corpus</a></h3>
+<pre><code class="language-sh">litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
+</code></pre>
+<h3 id="full-training-workflow"><a class="header" href="#full-training-workflow">Full training workflow</a></h3>
+<pre><code class="language-sh"># 1. Convert CoNLL-U to word segmentation corpus
+litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
+
+# 2. Extract features
+litsea extract -l japanese ./corpus.txt ./features.txt
+
+# 3. Train a model
+litsea train -t 0.005 -i 1000 ./features.txt ./resources/japanese.model
+</code></pre>
+<h3 id="full-pos-training-workflow"><a class="header" href="#full-pos-training-workflow">Full POS training workflow</a></h3>
+<pre><code class="language-sh"># 1. Convert CoNLL-U to POS corpus
+litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
 
 # 2. Extract POS features
 litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
 
 # 3. Train a POS model
-litsea train --pos -e 10 ./features_pos.txt ./resources/japanese_pos.model
+litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
 </code></pre>
 <h2 id="data-source"><a class="header" href="#data-source">Data Source</a></h2>
 <p>Universal Dependencies treebanks are available at <a href="https://universaldependencies.org/">universaldependencies.org</a>. For Japanese, the recommended treebank is <a href="https://github.com/UniversalDependencies/UD_Japanese-GSD">UD_Japanese-GSD</a> (7,050 sentences).</p>
@@ -2473,7 +2524,7 @@ litsea train --pos -e 10 ./features_pos.txt ./resources/japanese_pos.model
 </code></pre>
 <h2 id="arguments-4"><a class="header" href="#arguments-4">Arguments</a></h2>
 <p>None.</p>
-<h2 id="options-3"><a class="header" href="#options-3">Options</a></h2>
+<h2 id="options-4"><a class="header" href="#options-4">Options</a></h2>
 <p>None (besides <code>--help</code> and <code>--version</code>).</p>
 <h2 id="input--output-1"><a class="header" href="#input--output-1">Input / Output</a></h2>
 <ul>
@@ -2508,17 +2559,16 @@ Fourth.
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="training-guide"><a class="header" href="#training-guide">Training Guide</a></h1>
 <p>This guide walks you through training custom word segmentation and POS tagging models with Litsea.</p>
-<p>Litsea supports two training workflows:</p>
+<p>Both workflows use <a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> Treebanks as the data source.</p>
 <h2 id="word-segmentation-adaboost"><a class="header" href="#word-segmentation-adaboost">Word Segmentation (AdaBoost)</a></h2>
 <ol>
-<li><a href="#preparing-a-corpus">Prepare a corpus</a> with space-separated words</li>
+<li>Download a UD Treebank and <a href="#preparing-a-corpus">prepare a corpus</a>: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
 <li><a href="#extracting-features">Extract features</a> from the corpus</li>
 <li><a href="#training-models">Train a model</a> using AdaBoost</li>
 </ol>
 <h2 id="pos-tagging-averaged-perceptron"><a class="header" href="#pos-tagging-averaged-perceptron">POS Tagging (Averaged Perceptron)</a></h2>
 <ol>
-<li>Download a <a href="https://universaldependencies.org/">Universal Dependencies</a> treebank</li>
-<li>Convert CoNLL-U format: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
+<li>Download a UD Treebank and <a href="#preparing-a-corpus">prepare a POS corpus</a>: <code>litsea convert-conllu --pos input.conllu corpus.txt</code></li>
 <li><a href="#extracting-features">Extract POS features</a>: <code>litsea extract --pos -l japanese corpus.txt features.txt</code></li>
 <li><a href="#training-models">Train a POS model</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
 </ol>
@@ -2529,63 +2579,10 @@ Fourth.
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="preparing-a-corpus"><a class="header" href="#preparing-a-corpus">Preparing a Corpus</a></h1>
-<p>A good training corpus is essential for model accuracy. This guide explains how to prepare one.</p>
-<h2 id="corpus-format-1"><a class="header" href="#corpus-format-1">Corpus Format</a></h2>
-<p>The corpus must be a plain text file with:</p>
-<ul>
-<li><strong>One sentence per line</strong></li>
-<li><strong>Words separated by spaces</strong></li>
-</ul>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
-Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
-</code></pre>
-<h2 id="automated-corpus-preparation"><a class="header" href="#automated-corpus-preparation">Automated Corpus Preparation</a></h2>
-<p>Litsea includes helper scripts in the <code>scripts/</code> directory for building corpora from Wikipedia.</p>
-<h3 id="step-1-download-wikipedia-texts"><a class="header" href="#step-1-download-wikipedia-texts">Step 1: Download Wikipedia Texts</a></h3>
-<pre><code class="language-sh">bash scripts/wikitexts.sh ja   # Japanese
-bash scripts/wikitexts.sh ko   # Korean
-bash scripts/wikitexts.sh zh   # Chinese
-</code></pre>
-<p>This script:</p>
-<ol>
-<li>Downloads article titles from the Wikipedia API</li>
-<li>Filters by language-specific criteria</li>
-<li>Fetches article text</li>
-<li>Splits into sentences using <code>litsea split-sentences</code></li>
-</ol>
-<h3 id="step-2-tokenize-with-lindera"><a class="header" href="#step-2-tokenize-with-lindera">Step 2: Tokenize with Lindera</a></h3>
-<pre><code class="language-sh">bash scripts/corpus.sh ja ./wikitexts_ja.txt ./corpus_ja.txt
-bash scripts/corpus.sh ko ./wikitexts_ko.txt ./corpus_ko.txt
-bash scripts/corpus.sh zh ./wikitexts_zh.txt ./corpus_zh.txt
-</code></pre>
-<p>This script uses <a href="https://github.com/lindera/lindera">Lindera</a> with language-specific dictionaries:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Language</th><th>Dictionary</th><th>Notes</th></tr>
-</thead>
-<tbody>
-<tr><td>Japanese</td><td>UniDic</td><td>With compound word filters</td></tr>
-<tr><td>Korean</td><td>ko-dic</td><td>Korean dictionary</td></tr>
-<tr><td>Chinese</td><td>CC-CEDICT</td><td>Chinese-English dictionary</td></tr>
-</tbody>
-</table>
-</div>
-<p>The output is in <strong>wakati</strong> format (space-separated tokens), ready for feature extraction.</p>
-<h2 id="preparing-a-pos-corpus"><a class="header" href="#preparing-a-pos-corpus">Preparing a POS Corpus</a></h2>
-<p>For POS (Part-of-Speech) tagging, Litsea uses a different corpus format where each word is annotated with its POS tag.</p>
-<h3 id="pos-corpus-format-1"><a class="header" href="#pos-corpus-format-1">POS Corpus Format</a></h3>
-<p>Each line represents one sentence, with words annotated as <code>word/POS</code> pairs separated by spaces:</p>
-<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
-Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
-</code></pre>
-<p>The POS tags follow the <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tagset with 17 categories: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X.</p>
-<h3 id="using-ud-treebanks-as-data-source"><a class="header" href="#using-ud-treebanks-as-data-source">Using UD Treebanks as Data Source</a></h3>
-<p><a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> provides high-quality treebank data in CoNLL-U format for many languages. Litsea includes a converter to transform CoNLL-U files into the POS corpus format.</p>
-<h4 id="step-1-download-a-ud-treebank"><a class="header" href="#step-1-download-a-ud-treebank">Step 1: Download a UD Treebank</a></h4>
-<pre><code class="language-sh">git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
-</code></pre>
-<p>Available UD Treebanks for supported languages:</p>
+<p>A good training corpus is essential for model accuracy. This guide explains how to prepare one using <a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> Treebanks.</p>
+<h2 id="data-source-ud-treebanks"><a class="header" href="#data-source-ud-treebanks">Data Source: UD Treebanks</a></h2>
+<p>Litsea uses UD Treebanks as the data source for both word segmentation and POS tagging. UD Treebanks provide high-quality, manually annotated data in CoNLL-U format for many languages.</p>
+<h3 id="available-treebanks"><a class="header" href="#available-treebanks">Available Treebanks</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2598,10 +2595,47 @@ Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 
 </tbody>
 </table>
 </div>
-<h4 id="step-2-convert-conll-u-to-pos-corpus"><a class="header" href="#step-2-convert-conll-u-to-pos-corpus">Step 2: Convert CoNLL-U to POS Corpus</a></h4>
+<h3 id="step-1-download-a-ud-treebank"><a class="header" href="#step-1-download-a-ud-treebank">Step 1: Download a UD Treebank</a></h3>
+<pre><code class="language-sh">git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+</code></pre>
+<h2 id="corpus-for-word-segmentation"><a class="header" href="#corpus-for-word-segmentation">Corpus for Word Segmentation</a></h2>
+<p>For word segmentation (AdaBoost), the corpus must be a plain text file with:</p>
+<ul>
+<li><strong>One sentence per line</strong></li>
+<li><strong>Words separated by spaces</strong></li>
+</ul>
+<pre><code class="language-text">太郎 は 走っ た 。
+Litsea は コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h3 id="convert-conll-u-to-word-segmentation-corpus"><a class="header" href="#convert-conll-u-to-word-segmentation-corpus">Convert CoNLL-U to Word Segmentation Corpus</a></h3>
+<p>Use <code>litsea convert-conllu</code> (without <code>--pos</code>) to extract space-separated words from a CoNLL-U file:</p>
 <pre><code class="language-sh">litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
 </code></pre>
-<p>This converts the CoNLL-U format into the <code>word/POS</code> format that Litsea expects. Multi-word tokens and empty nodes are automatically handled during conversion.</p>
+<p>This strips POS tags and outputs only space-separated words, one sentence per line.</p>
+<h2 id="corpus-for-pos-tagging"><a class="header" href="#corpus-for-pos-tagging">Corpus for POS Tagging</a></h2>
+<p>For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.</p>
+<h3 id="pos-corpus-format-1"><a class="header" href="#pos-corpus-format-1">POS Corpus Format</a></h3>
+<p>Each line represents one sentence, with words annotated as <code>word/POS</code> pairs separated by spaces:</p>
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+</code></pre>
+<p>The POS tags follow the <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tagset with 17 categories: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X.</p>
+<h3 id="convert-conll-u-to-pos-corpus"><a class="header" href="#convert-conll-u-to-pos-corpus">Convert CoNLL-U to POS Corpus</a></h3>
+<p>Use <code>litsea convert-conllu --pos</code> to convert a CoNLL-U file to the <code>word/POS</code> format:</p>
+<pre><code class="language-sh">litsea convert-conllu --pos UD_Japanese-GSD/ja_gsd-ud-train.conllu pos_corpus.txt
+</code></pre>
+<p>Multi-word tokens and empty nodes are automatically handled during conversion.</p>
+<h2 id="automated-corpus-preparation"><a class="header" href="#automated-corpus-preparation">Automated Corpus Preparation</a></h2>
+<p>Litsea includes a helper script in the <code>scripts/</code> directory that automates the UD Treebank download and conversion:</p>
+<pre><code class="language-sh">bash scripts/corpus.sh -l ja -c corpus.txt -p pos_corpus.txt
+</code></pre>
+<p>This script:</p>
+<ol>
+<li>Clones the appropriate UD Treebank repository for the specified language</li>
+<li>Converts the training data to word segmentation corpus format (<code>corpus.txt</code>)</li>
+<li>Converts the training data to POS corpus format (<code>pos_corpus.txt</code>)</li>
+</ol>
+<p>Supported languages: <code>ja</code> (Japanese), <code>ko</code> (Korean), <code>zh</code> (Chinese).</p>
 <h2 id="corpus-quality-tips"><a class="header" href="#corpus-quality-tips">Corpus Quality Tips</a></h2>
 <ul>
 <li><strong>Diversity</strong> – Include text from various domains (news, literature, web, etc.)</li>
@@ -2811,9 +2845,9 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 <tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>Training Corpus</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>94.15%</td><td>95.57%</td><td>94.36%</td><td>Wikipedia (Lindera UniDic)</td></tr>
-<tr><td>korean.model</td><td>85.08%</td><td>–</td><td>–</td><td>Wikipedia (Lindera ko-dic)</td></tr>
-<tr><td>chinese.model</td><td>80.72%</td><td>–</td><td>–</td><td>Wikipedia (Lindera CC-CEDICT)</td></tr>
+<tr><td>japanese.model</td><td>94.15%</td><td>95.57%</td><td>94.36%</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>85.08%</td><td>–</td><td>–</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>80.72%</td><td>–</td><td>–</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
@@ -3023,8 +3057,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </thead>
 <tbody>
 <tr><td>Language</td><td>Japanese</td></tr>
-<tr><td>Training Corpus</td><td>Japanese Wikipedia articles</td></tr>
-<tr><td>Tokenizer</td><td>Lindera (UniDic)</td></tr>
+<tr><td>Training Corpus</td><td>UD Japanese-GSD</td></tr>
 <tr><td>Accuracy</td><td>94.15%</td></tr>
 <tr><td>Precision</td><td>95.57%</td></tr>
 <tr><td>Recall</td><td>94.36%</td></tr>
@@ -3040,8 +3073,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </thead>
 <tbody>
 <tr><td>Language</td><td>Korean</td></tr>
-<tr><td>Training Corpus</td><td>Korean Wikipedia articles</td></tr>
-<tr><td>Tokenizer</td><td>Lindera (ko-dic)</td></tr>
+<tr><td>Training Corpus</td><td>UD Korean-GSD</td></tr>
 <tr><td>Accuracy</td><td>85.08%</td></tr>
 <tr><td>File Size</td><td>~1.8 KB</td></tr>
 </tbody>
@@ -3055,8 +3087,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </thead>
 <tbody>
 <tr><td>Language</td><td>Chinese (Simplified &amp; Traditional)</td></tr>
-<tr><td>Training Corpus</td><td>Chinese Wikipedia articles</td></tr>
-<tr><td>Tokenizer</td><td>Lindera (CC-CEDICT)</td></tr>
+<tr><td>Training Corpus</td><td>UD Chinese-GSD</td></tr>
 <tr><td>Accuracy</td><td>80.72%</td></tr>
 <tr><td>File Size</td><td>~1.3 KB</td></tr>
 </tbody>

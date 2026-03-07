@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-af5b1803.js";
+            window.path_to_searchindex_js = "../searchindex-06cb1f2c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b7688c67.js"></script>
@@ -181,7 +181,13 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="conll-u-コンバーター"><a class="header" href="#conll-u-コンバーター">CoNLL-U コンバーター</a></h1>
-<p><code>conllu</code> モジュールは、CoNLL-U（Universal Dependencies）形式のファイルを Litsea の品詞付きコーパス形式に変換する機能を提供します。</p>
+<p><code>conllu</code> モジュールは、<a href="https://universaldependencies.org/format.html">CoNLL-U</a>（Universal Dependencies）形式のファイルを、単語分割用と品詞推定用の両方の Litsea コーパス形式に変換する機能を提供します。</p>
+<h2 id="概要"><a class="header" href="#概要">概要</a></h2>
+<p>Universal Dependencies の Treebanks は CoNLL-U 形式で配布されています。<code>conllu</code> モジュールはこの形式を解析し、2つのモードで Litsea 互換のコーパスファイルを生成します:</p>
+<ul>
+<li><strong>単語分割モード</strong> (<code>with_pos: false</code>): スペース区切りの単語、1行1文</li>
+<li><strong>品詞推定モード</strong> (<code>with_pos: true</code>): <code>単語/品詞 単語/品詞 ...</code> 形式、1行1文</li>
+</ul>
 <h2 id="関数"><a class="header" href="#関数">関数</a></h2>
 <h3 id="convert_conllu"><a class="header" href="#convert_conllu"><code>convert_conllu</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -189,6 +195,7 @@
 </span>pub fn convert_conllu(
     input_path: &amp;Path,
     output_path: &amp;Path,
+    with_pos: bool,
 ) -&gt; Result&lt;usize, Box&lt;dyn Error&gt;&gt;
 <span class="boring">}</span></code></pre>
 <p>CoNLL-U ファイルを読み込み、Litsea コーパス形式に変換して出力ファイルに書き込みます。変換された文数を返します。</p>
@@ -196,6 +203,7 @@
 <ul>
 <li><code>input_path</code> - CoNLL-U ファイルのパス</li>
 <li><code>output_path</code> - 出力ファイルのパス</li>
+<li><code>with_pos</code> - <code>true</code> の場合は <code>単語/品詞</code> 形式で出力、<code>false</code> の場合はスペース区切りの単語のみ</li>
 </ul>
 <h4 id="戻り値"><a class="header" href="#戻り値">戻り値</a></h4>
 <p>変換に成功した文の数。</p>
@@ -207,16 +215,30 @@
 <li>UPOS が <code>_</code> のトークンはスキップ</li>
 <li>空行は文の区切りとして扱う</li>
 </ul>
-<h4 id="使用例"><a class="header" href="#使用例">使用例</a></h4>
+<h4 id="使用例単語分割用"><a class="header" href="#使用例単語分割用">使用例（単語分割用）</a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
 use litsea::conllu::convert_conllu;
 
 let input = Path::new("./UD_Japanese-GSD/ja_gsd-ud-train.conllu");
-let output = Path::new("./corpus_pos.txt");
+let output = Path::new("./corpus.txt");
 
-let sentence_count = convert_conllu(input, output).unwrap();
+// スペース区切りの単語を出力
+let sentence_count = convert_conllu(input, output, false).unwrap();
+println!("Converted {} sentences.", sentence_count);
+<span class="boring">}</span></code></pre>
+<h4 id="使用例品詞推定用"><a class="header" href="#使用例品詞推定用">使用例（品詞推定用）</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+use litsea::conllu::convert_conllu;
+
+let input = Path::new("./UD_Japanese-GSD/ja_gsd-ud-train.conllu");
+let output = Path::new("./pos_corpus.txt");
+
+// 単語/品詞 形式で出力
+let sentence_count = convert_conllu(input, output, true).unwrap();
 println!("Converted {} sentences.", sentence_count);
 <span class="boring">}</span></code></pre>
 <h4 id="入力例conll-u"><a class="header" href="#入力例conll-u">入力例（CoNLL-U）</a></h4>
@@ -228,7 +250,10 @@ println!("Converted {} sentences.", sentence_count);
 5	。	。	PUNCT	_	_	3	punct	_	SpaceAfter=No
 
 </code></pre>
-<h4 id="出力例litsea-コーパス形式"><a class="header" href="#出力例litsea-コーパス形式">出力例（Litsea コーパス形式）</a></h4>
+<h4 id="出力例単語分割モード"><a class="header" href="#出力例単語分割モード">出力例（単語分割モード）</a></h4>
+<pre><code class="language-text">太郎 は 走っ た 。
+</code></pre>
+<h4 id="出力例品詞推定モード"><a class="header" href="#出力例品詞推定モード">出力例（品詞推定モード）</a></h4>
 <pre><code class="language-text">太郎/PROPN は/ADP 走っ/VERB た/AUX 。/PUNCT
 </code></pre>
 

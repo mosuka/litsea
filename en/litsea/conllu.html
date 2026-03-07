@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad6c0be6.js";
+            window.path_to_searchindex_js = "../searchindex-4ac343d7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b64cce5c.js"></script>
@@ -181,25 +181,47 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="conll-u-converter"><a class="header" href="#conll-u-converter">CoNLL-U Converter</a></h1>
-<p>The <code>conllu</code> module provides functionality to convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> format files (used by Universal Dependencies) to Litsea’s POS corpus format.</p>
+<p>The <code>conllu</code> module provides functionality to convert <a href="https://universaldependencies.org/format.html">CoNLL-U</a> format files (used by Universal Dependencies) to Litsea corpus format for both word segmentation and POS tagging.</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>Universal Dependencies treebanks are distributed in CoNLL-U format. The <code>conllu</code> module parses this format and produces Litsea-compatible POS corpus files where each sentence is represented as <code>word/POS word/POS ...</code> on a single line.</p>
+<p>Universal Dependencies treebanks are distributed in CoNLL-U format. The <code>conllu</code> module parses this format and produces Litsea-compatible corpus files in two modes:</p>
+<ul>
+<li><strong>Word segmentation mode</strong> (<code>with_pos: false</code>): space-separated words, one sentence per line</li>
+<li><strong>POS tagging mode</strong> (<code>with_pos: true</code>): <code>word/POS word/POS ...</code> format, one sentence per line</li>
+</ul>
 <h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
 <h3 id="convert_conllu"><a class="header" href="#convert_conllu"><code>convert_conllu</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn convert_conllu(input: &amp;Path, output: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn convert_conllu(
+    input_path: &amp;Path,
+    output_path: &amp;Path,
+    with_pos: bool,
+) -&gt; Result&lt;usize, Box&lt;dyn Error&gt;&gt;
 <span class="boring">}</span></code></pre>
-<p>Reads a CoNLL-U file and writes a Litsea POS corpus file.</p>
+<p>Reads a CoNLL-U file and writes a Litsea corpus file. Returns the number of sentences converted.</p>
+<h4 id="word-segmentation-corpus"><a class="header" href="#word-segmentation-corpus">Word segmentation corpus</a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
 use litsea::conllu::convert_conllu;
 
-convert_conllu(
-    Path::new("./ja_gsd-ud-train.conllu"),
-    Path::new("./corpus_pos.txt"),
-)?;
+let input = Path::new("./ja_gsd-ud-train.conllu");
+let output = Path::new("./corpus.txt");
+
+// Output: space-separated words
+let count = convert_conllu(input, output, false)?;
+<span class="boring">}</span></code></pre>
+<h4 id="pos-corpus"><a class="header" href="#pos-corpus">POS corpus</a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+use litsea::conllu::convert_conllu;
+
+let input = Path::new("./ja_gsd-ud-train.conllu");
+let output = Path::new("./pos_corpus.txt");
+
+// Output: word/POS format
+let count = convert_conllu(input, output, true)?;
 <span class="boring">}</span></code></pre>
 <h2 id="input-format"><a class="header" href="#input-format">Input Format</a></h2>
 <p>CoNLL-U is a tab-separated format with 10 columns per token:</p>
@@ -208,6 +230,10 @@ convert_conllu(
 </code></pre>
 <p>The converter uses columns 1 (ID), 2 (FORM), and 4 (UPOS).</p>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
+<h3 id="word-segmentation-mode-with_pos-false"><a class="header" href="#word-segmentation-mode-with_pos-false">Word segmentation mode (<code>with_pos: false</code>)</a></h3>
+<pre><code class="language-text">太郎 は 花子 が 読ん で いる 本 を 渡し た 。
+</code></pre>
+<h3 id="pos-tagging-mode-with_pos-true"><a class="header" href="#pos-tagging-mode-with_pos-true">POS tagging mode (<code>with_pos: true</code>)</a></h3>
 <pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 渡し/VERB た/AUX 。/PUNCT
 </code></pre>
 <h2 id="handling-special-cases"><a class="header" href="#handling-special-cases">Handling Special Cases</a></h2>
@@ -220,7 +246,7 @@ convert_conllu(
 <tr><td>Regular token</td><td><code>1</code>, <code>2</code>, …</td><td>Included in output</td></tr>
 <tr><td>Multiword token</td><td><code>1-2</code>, <code>3-4</code>, …</td><td>Skipped (component tokens are used)</td></tr>
 <tr><td>Empty node</td><td><code>1.1</code>, <code>2.1</code>, …</td><td>Skipped</td></tr>
-<tr><td>Missing UPOS</td><td><code>_</code> in column 4</td><td>Assigned the <code>X</code> tag</td></tr>
+<tr><td>Missing UPOS</td><td><code>_</code> in column 4</td><td>Skipped</td></tr>
 <tr><td>Comment line</td><td><code># ...</code></td><td>Skipped</td></tr>
 <tr><td>Blank line</td><td>(empty)</td><td>Marks end of sentence</td></tr>
 </tbody>

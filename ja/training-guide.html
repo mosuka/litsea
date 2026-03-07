@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-af5b1803.js";
+            window.path_to_searchindex_js = "searchindex-06cb1f2c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b7688c67.js"></script>
@@ -182,17 +182,16 @@
                     <main>
                         <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>
-<p>Litsea は 2 つの学習ワークフローをサポートしています:</p>
+<p>両方のワークフローとも、データソースとして <a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> Treebanks を使用します。</p>
 <h2 id="単語分割adaboost"><a class="header" href="#単語分割adaboost">単語分割（AdaBoost）</a></h2>
 <ol>
-<li>スペース区切りの<a href="training-guide/preparing-corpus.html">コーパスを準備</a>する</li>
+<li>UD Treebank をダウンロードして<a href="training-guide/preparing-corpus.html">コーパスを準備</a>: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
 <li>コーパスから<a href="training-guide/extracting-features.html">特徴量を抽出</a>する</li>
 <li>AdaBoost で<a href="training-guide/training-models.html">モデルを訓練</a>する</li>
 </ol>
 <h2 id="品詞推定averaged-perceptron"><a class="header" href="#品詞推定averaged-perceptron">品詞推定（Averaged Perceptron）</a></h2>
 <ol>
-<li><a href="https://universaldependencies.org/">Universal Dependencies</a> Treebank をダウンロード</li>
-<li>CoNLL-U 形式を変換: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
+<li>UD Treebank をダウンロードして<a href="training-guide/preparing-corpus.html">品詞付きコーパスを準備</a>: <code>litsea convert-conllu --pos input.conllu corpus.txt</code></li>
 <li><a href="training-guide/extracting-features.html">品詞付き特徴量を抽出</a>: <code>litsea extract --pos -l japanese corpus.txt features.txt</code></li>
 <li><a href="training-guide/training-models.html">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
 </ol>
