@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-948b2537.js";
+            window.path_to_searchindex_js = "../searchindex-715437d4.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b7688c67.js"></script>
+        <script src="../toc-feadcd78.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -215,7 +215,8 @@
 ├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   └── corpus.sh           # Download UD Treebanks and create training corpora
+│   ├── download_udtreebank.sh      # Download UD Treebanks and output CoNLL-U file path
+│   └── corpus_udtreebank.sh           # Convert CoNLL-U files to Litsea corpus format
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines
@@ -250,7 +251,6 @@
 <tbody>
 <tr><td><code>clap</code></td><td>4.5</td><td>コマンドライン引数の解析</td></tr>
 <tr><td><code>ctrlc</code></td><td>3.5</td><td>学習中の Ctrl+C のグレースフルハンドリング</td></tr>
-<tr><td><code>icu_segmenter</code></td><td>2.1</td><td>Unicode UAX #29 文分割</td></tr>
 <tr><td><code>tokio</code></td><td>1.49</td><td>非同期ランタイム</td></tr>
 <tr><td><code>litsea</code></td><td>0.4</td><td>コアライブラリ（ワークスペースメンバー）</td></tr>
 </tbody>

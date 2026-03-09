@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-775375b4.js";
+            window.path_to_searchindex_js = "../searchindex-1975e3b0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b64cce5c.js"></script>
+        <script src="../toc-ae7d976f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,8 +198,10 @@
 </table>
 </div>
 <h3 id="step-1-download-a-ud-treebank"><a class="header" href="#step-1-download-a-ud-treebank">Step 1: Download a UD Treebank</a></h3>
-<pre><code class="language-sh">git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+<p>Use <code>scripts/download_udtreebank.sh</code> to download a UD Treebank. It prints the path to the training CoNLL-U file to stdout:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 </code></pre>
+<p>Supported languages: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese). Use <code>-o</code> to specify the output directory (default: current directory).</p>
 <h2 id="corpus-for-word-segmentation"><a class="header" href="#corpus-for-word-segmentation">Corpus for Word Segmentation</a></h2>
 <p>For word segmentation (AdaBoost), the corpus must be a plain text file with:</p>
 <ul>
@@ -210,10 +212,11 @@
 Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <h3 id="convert-conll-u-to-word-segmentation-corpus"><a class="header" href="#convert-conll-u-to-word-segmentation-corpus">Convert CoNLL-U to Word Segmentation Corpus</a></h3>
-<p>Use <code>litsea convert-conllu</code> (without <code>--pos</code>) to extract space-separated words from a CoNLL-U file:</p>
-<pre><code class="language-sh">litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+<p>Use <code>scripts/corpus_udtreebank.sh</code> to convert a CoNLL-U file to corpus format:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
-<p>This strips POS tags and outputs only space-separated words, one sentence per line.</p>
+<p>This converts the CoNLL-U data into space-separated words (one sentence per line).</p>
 <h2 id="corpus-for-pos-tagging"><a class="header" href="#corpus-for-pos-tagging">Corpus for POS Tagging</a></h2>
 <p>For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.</p>
 <h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
@@ -223,21 +226,27 @@ Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 
 </code></pre>
 <p>The POS tags follow the <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tagset with 17 categories: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X.</p>
 <h3 id="convert-conll-u-to-pos-corpus"><a class="header" href="#convert-conll-u-to-pos-corpus">Convert CoNLL-U to POS Corpus</a></h3>
-<p>Use <code>litsea convert-conllu --pos</code> to convert a CoNLL-U file to the <code>word/POS</code> format:</p>
-<pre><code class="language-sh">litsea convert-conllu --pos UD_Japanese-GSD/ja_gsd-ud-train.conllu pos_corpus.txt
+<p>Use <code>scripts/corpus_udtreebank.sh</code> with the <code>-p</code> flag to produce a POS corpus:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
 <p>Multi-word tokens and empty nodes are automatically handled during conversion.</p>
 <h2 id="automated-corpus-preparation"><a class="header" href="#automated-corpus-preparation">Automated Corpus Preparation</a></h2>
-<p>Litsea includes a helper script in the <code>scripts/</code> directory that automates the UD Treebank download and conversion:</p>
-<pre><code class="language-sh">bash scripts/corpus.sh -l ja -c corpus.txt -p pos_corpus.txt
+<p>Litsea includes helper scripts in the <code>scripts/</code> directory that automate the UD Treebank download and conversion:</p>
+<ul>
+<li><strong><code>scripts/download_udtreebank.sh</code></strong> – Downloads a UD Treebank and prints the path to the training CoNLL-U file</li>
+<li><strong><code>scripts/corpus_udtreebank.sh</code></strong> – Converts a CoNLL-U file to Litsea corpus format</li>
+</ul>
+<pre><code class="language-sh"># Download UD Treebank and get CoNLL-U file path
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+
+# Generate word segmentation corpus
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
+
+# Generate POS corpus
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
-<p>This script:</p>
-<ol>
-<li>Clones the appropriate UD Treebank repository for the specified language</li>
-<li>Converts the training data to word segmentation corpus format (<code>corpus.txt</code>)</li>
-<li>Converts the training data to POS corpus format (<code>pos_corpus.txt</code>)</li>
-</ol>
-<p>Supported languages: <code>ja</code> (Japanese), <code>ko</code> (Korean), <code>zh</code> (Chinese).</p>
+<p>Supported languages for <code>download_udtreebank.sh</code>: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese).</p>
 <h2 id="corpus-quality-tips"><a class="header" href="#corpus-quality-tips">Corpus Quality Tips</a></h2>
 <ul>
 <li><strong>Diversity</strong> – Include text from various domains (news, literature, web, etc.)</li>

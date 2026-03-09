@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-948b2537.js";
+            window.path_to_searchindex_js = "../searchindex-715437d4.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b7688c67.js"></script>
+        <script src="../toc-feadcd78.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -244,7 +244,7 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT
 </code></pre>
 <blockquote>
-<p><strong>ヒント</strong>: <a href="convert-conllu.html"><code>convert-conllu</code></a> コマンドで Universal Dependencies の CoNLL-U ファイルからこの形式に変換できます。</p>
+<p><strong>ヒント</strong>: <code>scripts/download_udtreebank.sh</code> で UD Treebank をダウンロードし、<code>scripts/corpus_udtreebank.sh -p</code> で CoNLL-U ファイルからこの形式に自動変換できます。詳しくは<a href="../training-guide/preparing-corpus.html">コーパスの準備</a>を参照してください。</p>
 </blockquote>
 <h3 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h3>
 <pre><code class="language-sh">litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt

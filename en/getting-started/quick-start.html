@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-775375b4.js";
+            window.path_to_searchindex_js = "../searchindex-1975e3b0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b64cce5c.js"></script>
+        <script src="../toc-ae7d976f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -206,14 +206,6 @@
 <pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p>Each token is annotated with a <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tag.</p>
-<h3 id="splitting-sentences"><a class="header" href="#splitting-sentences">Splitting Sentences</a></h3>
-<p>Split text into sentences using Unicode UAX #29 rules:</p>
-<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
-</code></pre>
-<p>Output:</p>
-<pre><code class="language-text">これはテストです。
-次の文です。
-</code></pre>
 <h2 id="library-quick-start"><a class="header" href="#library-quick-start">Library Quick Start</a></h2>
 <p>Here is a minimal Rust program that loads a model and segments text:</p>
 <pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;

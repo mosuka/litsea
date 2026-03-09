@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-775375b4.js";
+            window.path_to_searchindex_js = "../searchindex-1975e3b0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-b64cce5c.js"></script>
+        <script src="../toc-ae7d976f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -215,7 +215,9 @@
 ├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   └── corpus.sh           # Download UD Treebanks and create training corpora
+│   ├── download_udtreebank.sh      # Download UD Treebanks (prints CoNLL-U file path)
+│   ├── corpus_udtreebank.sh           # Convert CoNLL-U to Litsea corpus format
+│   └── wikitexts.sh        # Download and prepare Wikipedia text data
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines
@@ -250,7 +252,6 @@
 <tbody>
 <tr><td><code>clap</code></td><td>4.5</td><td>Command-line argument parsing</td></tr>
 <tr><td><code>ctrlc</code></td><td>3.5</td><td>Graceful Ctrl+C handling during training</td></tr>
-<tr><td><code>icu_segmenter</code></td><td>2.1</td><td>Unicode UAX #29 sentence segmentation</td></tr>
 <tr><td><code>tokio</code></td><td>1.49</td><td>Async runtime</td></tr>
 <tr><td><code>litsea</code></td><td>0.4</td><td>Core library (workspace member)</td></tr>
 </tbody>

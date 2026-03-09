@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-948b2537.js";
+            window.path_to_searchindex_js = "searchindex-715437d4.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b7688c67.js"></script>
+        <script src="toc-feadcd78.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -299,14 +299,6 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 <p>出力:</p>
 <pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
-<h3 id="文分割"><a class="header" href="#文分割">文分割</a></h3>
-<p>Unicode UAX #29 規則を使用してテキストを文に分割します:</p>
-<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
-</code></pre>
-<p>出力:</p>
-<pre><code class="language-text">これはテストです。
-次の文です。
-</code></pre>
 <h2 id="ライブラリ-クイックスタート"><a class="header" href="#ライブラリ-クイックスタート">ライブラリ クイックスタート</a></h2>
 <p>モデルを読み込みテキストを分割する最小限の Rust プログラムです:</p>
 <pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
@@ -431,7 +423,8 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 ├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   └── corpus.sh           # Download UD Treebanks and create training corpora
+│   ├── download_udtreebank.sh      # Download UD Treebanks and output CoNLL-U file path
+│   └── corpus_udtreebank.sh           # Convert CoNLL-U files to Litsea corpus format
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines
@@ -466,7 +459,6 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <tbody>
 <tr><td><code>clap</code></td><td>4.5</td><td>コマンドライン引数の解析</td></tr>
 <tr><td><code>ctrlc</code></td><td>3.5</td><td>学習中の Ctrl+C のグレースフルハンドリング</td></tr>
-<tr><td><code>icu_segmenter</code></td><td>2.1</td><td>Unicode UAX #29 文分割</td></tr>
 <tr><td><code>tokio</code></td><td>1.49</td><td>非同期ランタイム</td></tr>
 <tr><td><code>litsea</code></td><td>0.4</td><td>コアライブラリ（ワークスペースメンバー）</td></tr>
 </tbody>
@@ -1426,7 +1418,6 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
     K["litsea::util"] --- L["ModelScheme"]
     M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
-    Q["litsea::conllu"] --- R["convert_conllu"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -1438,7 +1429,6 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 <tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code>, <code>Metrics</code></td><td>二値分類、モデルの入出力</td></tr>
 <tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code>, <code>Metrics</code></td><td>多クラス分類（品詞推定）、モデルの入出力</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS 品詞タグ、セグメントラベル</td></tr>
-<tr><td><code>litsea::conllu</code></td><td><code>convert_conllu</code></td><td>CoNLL-U 形式の変換</td></tr>
 <tr><td><code>litsea::language</code></td><td><code>Language</code>, <code>CharTypePatterns</code></td><td>言語定義、文字分類</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>コーパスからの特徴量抽出</td></tr>
 <tr><td><code>litsea::trainer</code></td><td><code>Trainer</code></td><td>学習パイプラインの制御</td></tr>
@@ -2061,83 +2051,6 @@ assert!(!label_o.is_boundary());
 assert_eq!(label_o.pos(), None);
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="conll-u-コンバーター"><a class="header" href="#conll-u-コンバーター">CoNLL-U コンバーター</a></h1>
-<p><code>conllu</code> モジュールは、<a href="https://universaldependencies.org/format.html">CoNLL-U</a>（Universal Dependencies）形式のファイルを、単語分割用と品詞推定用の両方の Litsea コーパス形式に変換する機能を提供します。</p>
-<h2 id="概要-2"><a class="header" href="#概要-2">概要</a></h2>
-<p>Universal Dependencies の Treebanks は CoNLL-U 形式で配布されています。<code>conllu</code> モジュールはこの形式を解析し、2つのモードで Litsea 互換のコーパスファイルを生成します:</p>
-<ul>
-<li><strong>単語分割モード</strong> (<code>with_pos: false</code>): スペース区切りの単語、1行1文</li>
-<li><strong>品詞推定モード</strong> (<code>with_pos: true</code>): <code>単語/品詞 単語/品詞 ...</code> 形式、1行1文</li>
-</ul>
-<h2 id="関数"><a class="header" href="#関数">関数</a></h2>
-<h3 id="convert_conllu"><a class="header" href="#convert_conllu"><code>convert_conllu</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn convert_conllu(
-    input_path: &amp;Path,
-    output_path: &amp;Path,
-    with_pos: bool,
-) -&gt; Result&lt;usize, Box&lt;dyn Error&gt;&gt;
-<span class="boring">}</span></code></pre>
-<p>CoNLL-U ファイルを読み込み、Litsea コーパス形式に変換して出力ファイルに書き込みます。変換された文数を返します。</p>
-<h4 id="引数"><a class="header" href="#引数">引数</a></h4>
-<ul>
-<li><code>input_path</code> - CoNLL-U ファイルのパス</li>
-<li><code>output_path</code> - 出力ファイルのパス</li>
-<li><code>with_pos</code> - <code>true</code> の場合は <code>単語/品詞</code> 形式で出力、<code>false</code> の場合はスペース区切りの単語のみ</li>
-</ul>
-<h4 id="戻り値"><a class="header" href="#戻り値">戻り値</a></h4>
-<p>変換に成功した文の数。</p>
-<h4 id="変換ルール"><a class="header" href="#変換ルール">変換ルール</a></h4>
-<ul>
-<li>コメント行（<code>#</code> で始まる行）はスキップ</li>
-<li>マルチワードトークン（ID にハイフンを含む行、例: <code>1-2</code>）はスキップ</li>
-<li>空ノード（ID にピリオドを含む行、例: <code>1.1</code>）はスキップ</li>
-<li>UPOS が <code>_</code> のトークンはスキップ</li>
-<li>空行は文の区切りとして扱う</li>
-</ul>
-<h4 id="使用例単語分割用"><a class="header" href="#使用例単語分割用">使用例（単語分割用）</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::path::Path;
-use litsea::conllu::convert_conllu;
-
-let input = Path::new("./UD_Japanese-GSD/ja_gsd-ud-train.conllu");
-let output = Path::new("./corpus.txt");
-
-// スペース区切りの単語を出力
-let sentence_count = convert_conllu(input, output, false).unwrap();
-println!("Converted {} sentences.", sentence_count);
-<span class="boring">}</span></code></pre>
-<h4 id="使用例品詞推定用"><a class="header" href="#使用例品詞推定用">使用例（品詞推定用）</a></h4>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::path::Path;
-use litsea::conllu::convert_conllu;
-
-let input = Path::new("./UD_Japanese-GSD/ja_gsd-ud-train.conllu");
-let output = Path::new("./pos_corpus.txt");
-
-// 単語/品詞 形式で出力
-let sentence_count = convert_conllu(input, output, true).unwrap();
-println!("Converted {} sentences.", sentence_count);
-<span class="boring">}</span></code></pre>
-<h4 id="入力例conll-u"><a class="header" href="#入力例conll-u">入力例（CoNLL-U）</a></h4>
-<pre><code class="language-text"># text = 太郎は走った。
-1	太郎	太郎	PROPN	_	_	3	nsubj	_	SpaceAfter=No
-2	は	は	ADP	_	_	1	case	_	SpaceAfter=No
-3	走っ	走る	VERB	_	_	0	root	_	SpaceAfter=No
-4	た	た	AUX	_	_	3	aux	_	SpaceAfter=No
-5	。	。	PUNCT	_	_	3	punct	_	SpaceAfter=No
-
-</code></pre>
-<h4 id="出力例単語分割モード"><a class="header" href="#出力例単語分割モード">出力例（単語分割モード）</a></h4>
-<pre><code class="language-text">太郎 は 走っ た 。
-</code></pre>
-<h4 id="出力例品詞推定モード"><a class="header" href="#出力例品詞推定モード">出力例（品詞推定モード）</a></h4>
-<pre><code class="language-text">太郎/PROPN は/ADP 走っ/VERB た/AUX 。/PUNCT
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language"><a class="header" href="#language">Language</a></h1>
 <p><code>Language</code> 列挙型と <code>CharTypePatterns</code> 構造体は、言語固有の動作を定義します。</p>
 <h2 id="language-列挙型-1"><a class="header" href="#language-列挙型-1">Language 列挙型</a></h2>
@@ -2226,8 +2139,6 @@ assert_eq!(patterns.get_type("@"), "O");
 <tr><td><a href="#extract-1"><code>extract</code></a></td><td>学習用にコーパスから特徴量を抽出</td></tr>
 <tr><td><a href="#train-3"><code>train</code></a></td><td>単語分割モデルを学習</td></tr>
 <tr><td><a href="#segment-1"><code>segment</code></a></td><td>学習済みモデルを使用してテキストを単語に分割</td></tr>
-<tr><td><a href="#split-sentences"><code>split-sentences</code></a></td><td>Unicode UAX #29を使用してテキストを文に分割</td></tr>
-<tr><td><a href="#convert-conllu"><code>convert-conllu</code></a></td><td>CoNLL-U（Universal Dependencies）形式をLitseaコーパス形式に変換</td></tr>
 </tbody>
 </table>
 </div>
@@ -2246,27 +2157,29 @@ assert_eq!(patterns.get_type("@"), "O");
 <h2 id="一般的なワークフロー"><a class="header" href="#一般的なワークフロー">一般的なワークフロー</a></h2>
 <h3 id="adaboost-ワークフロー単語分割のみ"><a class="header" href="#adaboost-ワークフロー単語分割のみ">AdaBoost ワークフロー（単語分割のみ）</a></h3>
 <pre><code class="language-mermaid">flowchart LR
-    A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
-    B --&gt; C["3. litsea train"]
-    C --&gt; D["4. litsea segment"]
+    A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh"]
+    B --&gt; C["3. litsea extract"]
+    C --&gt; D["4. litsea train"]
+    D --&gt; E["5. litsea segment"]
 </code></pre>
 <ol>
-<li>UD Treebank からコーパスを準備する: <code>litsea convert-conllu ud_data.conllu corpus.txt</code></li>
+<li>UD Treebank をダウンロードする: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
+<li>コーパスを準備する: <code>bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt</code></li>
 <li>特徴量を抽出する: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
 <li>モデルを学習する: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
 <h3 id="pos-ワークフロー品詞推定付き単語分割"><a class="header" href="#pos-ワークフロー品詞推定付き単語分割">POS ワークフロー（品詞推定付き単語分割）</a></h3>
 <pre><code class="language-mermaid">flowchart LR
-    A["1. UD Treebank"] --&gt; B["2. litsea convert-conllu"]
+    A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
     B --&gt; C["3. litsea extract --pos"]
     C --&gt; D["4. litsea train --pos"]
     D --&gt; E["5. litsea segment --pos"]
 </code></pre>
 <ol>
-<li>Universal Dependencies Treebank（例: UD_Japanese-GSD）を取得する</li>
-<li>CoNLL-U 形式を変換する: <code>litsea convert-conllu --pos input.conllu corpus_pos.txt</code></li>
-<li>品詞付き特徴量を抽出する: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
+<li>UD Treebank をダウンロードする: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
+<li>品詞付きコーパスを準備する: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
+<li>品詞付き特徴量を抽出する: <code>litsea extract --pos -l japanese pos_corpus.txt features_pos.txt</code></li>
 <li>POS モデルを学習する: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
 <li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
 </ol>
@@ -2276,7 +2189,7 @@ assert_eq!(patterns.get_type("@"), "O");
 <h2 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h2>
 <pre><code class="language-sh">litsea extract [OPTIONS] &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
 </code></pre>
-<h2 id="引数-1"><a class="header" href="#引数-1">引数</a></h2>
+<h2 id="引数"><a class="header" href="#引数">引数</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2335,7 +2248,7 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT
 </code></pre>
 <blockquote>
-<p><strong>ヒント</strong>: <a href="#convert-conllu"><code>convert-conllu</code></a> コマンドで Universal Dependencies の CoNLL-U ファイルからこの形式に変換できます。</p>
+<p><strong>ヒント</strong>: <code>scripts/download_udtreebank.sh</code> で UD Treebank をダウンロードし、<code>scripts/corpus_udtreebank.sh -p</code> で CoNLL-U ファイルからこの形式に自動変換できます。詳しくは<a href="#コーパスの準備">コーパスの準備</a>を参照してください。</p>
 </blockquote>
 <h3 id="使い方-1-1"><a class="header" href="#使い方-1-1">使い方</a></h3>
 <pre><code class="language-sh">litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
@@ -2352,7 +2265,7 @@ B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
 <h2 id="使い方-2"><a class="header" href="#使い方-2">使い方</a></h2>
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
-<h2 id="引数-2"><a class="header" href="#引数-2">引数</a></h2>
+<h2 id="引数-1"><a class="header" href="#引数-1">引数</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2455,7 +2368,7 @@ litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.mode
 <h2 id="使い方-3"><a class="header" href="#使い方-3">使い方</a></h2>
 <pre><code class="language-sh">echo "text" | litsea segment [OPTIONS] &lt;MODEL_URI&gt;
 </code></pre>
-<h2 id="引数-3"><a class="header" href="#引数-3">引数</a></h2>
+<h2 id="引数-2"><a class="header" href="#引数-2">引数</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -2525,146 +2438,18 @@ litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.mode
 <li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="convert-conllu"><a class="header" href="#convert-conllu">convert-conllu</a></h1>
-<p>CoNLL-U（Universal Dependencies）形式のファイルを Litsea のコーパス形式に変換します。</p>
-<h2 id="目的"><a class="header" href="#目的">目的</a></h2>
-<p><a href="https://universaldependencies.org/">Universal Dependencies</a> プロジェクトが提供する Treebank（CoNLL-U 形式）を、Litsea の単語分割モデルおよび品詞推定モデルの学習に必要なコーパス形式に変換します。</p>
-<h2 id="使い方-4"><a class="header" href="#使い方-4">使い方</a></h2>
-<pre><code class="language-sh">litsea convert-conllu [OPTIONS] &lt;INPUT_FILE&gt; &lt;OUTPUT_FILE&gt;
-</code></pre>
-<h2 id="引数-4"><a class="header" href="#引数-4">引数</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Argument</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>INPUT_FILE</code></td><td>入力 CoNLL-U ファイルのパス</td></tr>
-<tr><td><code>OUTPUT_FILE</code></td><td>出力 Litsea コーパスファイルのパス</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="オプション-3"><a class="header" href="#オプション-3">オプション</a></h2>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Option</th><th>Description</th></tr>
-</thead>
-<tbody>
-<tr><td><code>--pos</code></td><td>出力に品詞タグを含める（<code>単語/品詞</code> 形式）。このフラグがない場合、スペース区切りの単語のみを出力</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="入力形式conll-u"><a class="header" href="#入力形式conll-u">入力形式（CoNLL-U）</a></h2>
-<p>CoNLL-U はタブ区切りの10カラム形式です。本コマンドでは ID、FORM（表層形）、UPOS（品詞）の3カラムを使用します。</p>
-<pre><code class="language-text"># text = 太郎は花子が読んでいる本を次郎に渡した。
-1	太郎	太郎	PROPN	_	_	12	nsubj	_	SpaceAfter=No
-2	は	は	ADP	_	_	1	case	_	SpaceAfter=No
-3	花子	花子	PROPN	_	_	5	nsubj	_	SpaceAfter=No
-4	が	が	ADP	_	_	3	case	_	SpaceAfter=No
-5	読ん	読む	VERB	_	_	9	acl	_	SpaceAfter=No
-...
-</code></pre>
-<h2 id="出力形式-3"><a class="header" href="#出力形式-3">出力形式</a></h2>
-<h3 id="単語分割モードデフォルト"><a class="header" href="#単語分割モードデフォルト">単語分割モード（デフォルト）</a></h3>
-<p>スペース区切りの単語、1行1文:</p>
-<pre><code class="language-text">太郎 は 花子 が 読ん で いる 本 を 次郎 に 渡し た 。
-</code></pre>
-<h3 id="品詞推定モード--pos"><a class="header" href="#品詞推定モード--pos">品詞推定モード（<code>--pos</code>）</a></h3>
-<p><code>単語/品詞</code> をスペースで区切り、1行に1文を出力します:</p>
-<pre><code class="language-text">太郎/PROPN は/ADP 花子/PROPN が/ADP 読ん/VERB で/SCONJ いる/AUX 本/NOUN を/ADP 次郎/PROPN に/ADP 渡し/VERB た/AUX 。/PUNCT
-</code></pre>
-<h2 id="スキップされるデータ"><a class="header" href="#スキップされるデータ">スキップされるデータ</a></h2>
-<p>変換時に以下の行はスキップされます:</p>
-<ul>
-<li><strong>コメント行</strong>: <code>#</code> で始まる行</li>
-<li><strong>マルチワードトークン</strong>: ID が <code>1-2</code> のようにハイフンを含む行</li>
-<li><strong>空ノード</strong>: ID が <code>1.1</code> のようにピリオドを含む行</li>
-<li><strong>UPOS 未注釈</strong>: UPOS カラムが <code>_</code> のトークン</li>
-</ul>
-<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
-<h3 id="単語分割用コーパスの作成"><a class="header" href="#単語分割用コーパスの作成">単語分割用コーパスの作成</a></h3>
-<pre><code class="language-sh">litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
-</code></pre>
-<h3 id="品詞付きコーパスの作成"><a class="header" href="#品詞付きコーパスの作成">品詞付きコーパスの作成</a></h3>
-<pre><code class="language-sh">litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
-</code></pre>
-<h3 id="単語分割の完全なワークフロー"><a class="header" href="#単語分割の完全なワークフロー">単語分割の完全なワークフロー</a></h3>
-<pre><code class="language-sh"># 1. CoNLL-U を単語分割用コーパスに変換
-litsea convert-conllu ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus.txt
-
-# 2. 特徴量を抽出
-litsea extract -l japanese ./corpus.txt ./features.txt
-
-# 3. モデルを学習
-litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
-</code></pre>
-<h3 id="品詞推定の完全なワークフロー"><a class="header" href="#品詞推定の完全なワークフロー">品詞推定の完全なワークフロー</a></h3>
-<pre><code class="language-sh"># 1. CoNLL-U を品詞付きコーパスに変換
-litsea convert-conllu --pos ./UD_Japanese-GSD/ja_gsd-ud-train.conllu ./corpus_pos.txt
-
-# 2. 品詞付き特徴量を抽出
-litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
-
-# 3. POS モデルを学習
-litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
-</code></pre>
-<p>成功時のstderr出力:</p>
-<pre><code class="language-text">Converted 7050 sentences.
-</code></pre>
-<div style="break-before: page; page-break-before: always;"></div>
-<h1 id="split-sentences"><a class="header" href="#split-sentences">split-sentences</a></h1>
-<p>Unicode UAX #29のルールを使用してテキストを文に分割します。</p>
-<h2 id="使い方-5"><a class="header" href="#使い方-5">使い方</a></h2>
-<pre><code class="language-sh">echo "text" | litsea split-sentences
-</code></pre>
-<h2 id="引数-5"><a class="header" href="#引数-5">引数</a></h2>
-<p>なし。</p>
-<h2 id="オプション-4"><a class="header" href="#オプション-4">オプション</a></h2>
-<p>なし（<code>--help</code> と <code>--version</code> を除く）。</p>
-<h2 id="入力--出力-1"><a class="header" href="#入力--出力-1">入力 / 出力</a></h2>
-<ul>
-<li><strong>入力</strong>: stdinから読み取り、1行に1段落。空行はスキップされます。</li>
-<li><strong>出力</strong>: stdoutに書き込み、1行に1文。</li>
-</ul>
-<h2 id="動作の仕組み"><a class="header" href="#動作の仕組み">動作の仕組み</a></h2>
-<p>このコマンドは、ICU4Xの <code>SentenceSegmenter</code> を使用しており、Unicode Standard Annex #29（UAX #29）の文区切りルールを実装しています。<strong>言語非依存</strong>のため、<code>--language</code> フラグは不要です。</p>
-<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
-<pre><code class="language-sh">echo "これはテストです。次の文です。" | litsea split-sentences
-</code></pre>
-<p>出力:</p>
-<pre><code class="language-text">これはテストです。
-次の文です。
-</code></pre>
-<p>複数行の入力:</p>
-<pre><code class="language-sh">echo -e "First sentence. Second sentence.\nThird sentence! Fourth." \
-  | litsea split-sentences
-</code></pre>
-<p>出力:</p>
-<pre><code class="language-text">First sentence.
-Second sentence.
-Third sentence!
-Fourth.
-</code></pre>
-<h2 id="ユースケース"><a class="header" href="#ユースケース">ユースケース</a></h2>
-<ul>
-<li>単語分割の前処理として、テキストを1行1文に変換</li>
-<li>大規模なドキュメントを分析用に個別の文に分割</li>
-<li>生テキストから学習コーパスを準備</li>
-</ul>
-<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>
 <p>両方のワークフローとも、データソースとして <a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> Treebanks を使用します。</p>
 <h2 id="単語分割adaboost"><a class="header" href="#単語分割adaboost">単語分割（AdaBoost）</a></h2>
 <ol>
-<li>UD Treebank をダウンロードして<a href="#コーパスの準備">コーパスを準備</a>: <code>litsea convert-conllu input.conllu corpus.txt</code></li>
+<li>UD Treebank をダウンロードして<a href="#コーパスの準備">コーパスを準備</a>: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) &amp;&amp; bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt</code></li>
 <li>コーパスから<a href="#特徴量の抽出">特徴量を抽出</a>する</li>
 <li>AdaBoost で<a href="#モデルの学習">モデルを訓練</a>する</li>
 </ol>
 <h2 id="品詞推定averaged-perceptron"><a class="header" href="#品詞推定averaged-perceptron">品詞推定（Averaged Perceptron）</a></h2>
 <ol>
-<li>UD Treebank をダウンロードして<a href="#コーパスの準備">品詞付きコーパスを準備</a>: <code>litsea convert-conllu --pos input.conllu corpus.txt</code></li>
+<li>UD Treebank をダウンロードして<a href="#コーパスの準備">品詞付きコーパスを準備</a>: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) &amp;&amp; bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
 <li><a href="#特徴量の抽出">品詞付き特徴量を抽出</a>: <code>litsea extract --pos -l japanese corpus.txt features.txt</code></li>
 <li><a href="#モデルの学習">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
 </ol>
@@ -2692,6 +2477,15 @@ Fourth.
 </table>
 </div>
 <h3 id="ステップ-1-ud-treebank-のダウンロード"><a class="header" href="#ステップ-1-ud-treebank-のダウンロード">ステップ 1: UD Treebank のダウンロード</a></h3>
+<p><code>scripts/download_udtreebank.sh</code> を使用して UD Treebank をダウンロードします。スクリプトは学習用 CoNLL-U ファイルのパスを標準出力に出力します:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+</code></pre>
+<p>オプション:</p>
+<ul>
+<li><code>-l</code>: 言語コード（<code>ja</code>, <code>ko</code>, <code>zh</code>。デフォルト: <code>ja</code>）</li>
+<li><code>-o</code>: 出力ディレクトリ（デフォルト: カレントディレクトリ）</li>
+</ul>
+<p>手動でクローンする場合:</p>
 <pre><code class="language-sh">git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
 </code></pre>
 <h2 id="単語分割用コーパス"><a class="header" href="#単語分割用コーパス">単語分割用コーパス</a></h2>
@@ -2704,10 +2498,11 @@ Fourth.
 Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <h3 id="conll-u-から単語分割用コーパスに変換"><a class="header" href="#conll-u-から単語分割用コーパスに変換">CoNLL-U から単語分割用コーパスに変換</a></h3>
-<p><code>litsea convert-conllu</code>（<code>--pos</code> なし）を使用して、CoNLL-U ファイルからスペース区切りの単語を抽出します:</p>
-<pre><code class="language-sh">litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+<p><code>scripts/corpus_udtreebank.sh</code> を使用して、CoNLL-U ファイルからスペース区切りの単語を抽出します:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
-<p>品詞タグを除去し、スペース区切りの単語のみを1行1文で出力します。</p>
+<p><code>scripts/corpus_udtreebank.sh</code> は CoNLL-U ファイルから品詞タグを除去し、スペース区切りの単語のみを1行1文で出力します。</p>
 <h2 id="品詞推定用コーパス"><a class="header" href="#品詞推定用コーパス">品詞推定用コーパス</a></h2>
 <p>品詞推定（Averaged Perceptron）を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。</p>
 <h3 id="品詞付きコーパスの形式-1"><a class="header" href="#品詞付きコーパスの形式-1">品詞付きコーパスの形式</a></h3>
@@ -2717,19 +2512,31 @@ Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 
 </code></pre>
 <p>品詞タグは <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットに準拠し、17カテゴリで構成されます: ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X。</p>
 <h3 id="conll-u-から品詞付きコーパスに変換"><a class="header" href="#conll-u-から品詞付きコーパスに変換">CoNLL-U から品詞付きコーパスに変換</a></h3>
-<p><code>litsea convert-conllu --pos</code> を使用して、CoNLL-U ファイルを <code>単語/品詞</code> 形式に変換します:</p>
-<pre><code class="language-sh">litsea convert-conllu --pos UD_Japanese-GSD/ja_gsd-ud-train.conllu pos_corpus.txt
+<p><code>scripts/corpus_udtreebank.sh</code> に <code>-p</code> オプションを指定して、CoNLL-U ファイルを <code>単語/品詞</code> 形式に変換します:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
-<p>複合語トークンや空ノードは変換時に自動的に処理されます。</p>
+<p><code>-p</code> オプションにより品詞付き形式で出力されます。複合語トークンや空ノードは変換時に自動的に処理されます。</p>
 <h2 id="コーパスの自動作成"><a class="header" href="#コーパスの自動作成">コーパスの自動作成</a></h2>
 <p>Litsea には、UD Treebank のダウンロードと変換を自動化するヘルパースクリプトが <code>scripts/</code> ディレクトリに用意されています:</p>
-<pre><code class="language-sh">bash scripts/corpus.sh -l ja -c corpus.txt -p pos_corpus.txt
+<pre><code class="language-sh"># UD Treebank をダウンロードして CoNLL-U ファイルのパスを取得
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+
+# 単語分割用コーパスを生成
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
+
+# 品詞付きコーパスを生成
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
-<p>このスクリプトは以下の処理を行います:</p>
+<p><code>scripts/download_udtreebank.sh</code> は以下の処理を行います:</p>
 <ol>
 <li>指定された言語に対応する UD Treebank リポジトリをクローン</li>
-<li>学習データを単語分割用コーパス形式に変換（<code>corpus.txt</code>）</li>
-<li>学習データを品詞付きコーパス形式に変換（<code>pos_corpus.txt</code>）</li>
+<li>学習用 CoNLL-U ファイルのパスを標準出力に出力</li>
+</ol>
+<p><code>scripts/corpus_udtreebank.sh</code> は以下の処理を行います:</p>
+<ol>
+<li>CoNLL-U ファイルを単語分割用コーパス形式に変換（デフォルト）</li>
+<li><code>-p</code> オプション指定時は品詞付きコーパス形式に変換</li>
 </ol>
 <p>サポート言語: <code>ja</code>（日本語）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。</p>
 <h2 id="コーパスの品質に関するヒント"><a class="header" href="#コーパスの品質に関するヒント">コーパスの品質に関するヒント</a></h2>
@@ -2746,7 +2553,7 @@ Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 
 <h2 id="コマンド"><a class="header" href="#コマンド">コマンド</a></h2>
 <pre><code class="language-sh">litsea extract -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
 </code></pre>
-<h2 id="使用例-8"><a class="header" href="#使用例-8">使用例</a></h2>
+<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
 <pre><code class="language-sh">litsea extract -l japanese ./corpus.txt ./features.txt
 </code></pre>
 <p>出力:</p>
@@ -2962,7 +2769,7 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 <h2 id="コマンド-3"><a class="header" href="#コマンド-3">コマンド</a></h2>
 <pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
 </code></pre>
-<h2 id="使用例-9"><a class="header" href="#使用例-9">使用例</a></h2>
+<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
 <pre><code class="language-sh"># 新しいコーパスから特徴量を抽出
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
@@ -2984,7 +2791,7 @@ litsea train -t 0.005 -i 1000 \
 <li>読み込まれた重みを出発点として学習を継続する</li>
 <li>新しいモデルは、学習済みのパターンをすべて引き継ぎつつ、新しいデータで改良される</li>
 </ol>
-<h2 id="ユースケース-1"><a class="header" href="#ユースケース-1">ユースケース</a></h2>
+<h2 id="ユースケース"><a class="header" href="#ユースケース">ユースケース</a></h2>
 <ul>
 <li><strong>ドメイン適応</strong> – 汎用モデルをドメイン固有のテキスト（医療、法律など）でファインチューニングする</li>
 <li><strong>段階的な改善</strong> – ゼロから再学習せずに、より多くの学習データを追加する</li>

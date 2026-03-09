@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-775375b4.js";
+            window.path_to_searchindex_js = "searchindex-1975e3b0.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b64cce5c.js"></script>
+        <script src="toc-ae7d976f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,8 +195,6 @@
 <tr><td><a href="litsea-cli/extract.html"><code>extract</code></a></td><td>Extract features from a corpus for training</td></tr>
 <tr><td><a href="litsea-cli/train.html"><code>train</code></a></td><td>Train a word segmentation model</td></tr>
 <tr><td><a href="litsea-cli/segment.html"><code>segment</code></a></td><td>Segment text into words using a trained model</td></tr>
-<tr><td><a href="litsea-cli/convert-conllu.html"><code>convert-conllu</code></a></td><td>Convert CoNLL-U (Universal Dependencies) files to Litsea corpus format</td></tr>
-<tr><td><a href="litsea-cli/split-sentences.html"><code>split-sentences</code></a></td><td>Split text into sentences using Unicode UAX #29</td></tr>
 </tbody>
 </table>
 </div>
@@ -214,27 +212,29 @@
 </div>
 <h2 id="typical-workflow"><a class="header" href="#typical-workflow">Typical Workflow</a></h2>
 <pre><code class="language-mermaid">flowchart LR
-    A["1. Prepare corpus"] --&gt; B["2. litsea extract"]
-    B --&gt; C["3. litsea train"]
-    C --&gt; D["4. litsea segment"]
+    A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh"]
+    B --&gt; C["3. litsea extract"]
+    C --&gt; D["4. litsea train"]
+    D --&gt; E["5. litsea segment"]
 </code></pre>
 <ol>
-<li>Prepare a corpus from a UD Treebank: <code>litsea convert-conllu ud_data.conllu corpus.txt</code></li>
+<li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
+<li>Convert to corpus format: <code>bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt</code></li>
 <li>Extract features: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
 <li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
 <h3 id="pos-tagging-workflow"><a class="header" href="#pos-tagging-workflow">POS Tagging Workflow</a></h3>
 <pre><code class="language-mermaid">flowchart LR
-    A["1. UD Treebank\n(CoNLL-U)"] --&gt; B["2. litsea convert-conllu"]
+    A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
     B --&gt; C["3. litsea extract --pos"]
     C --&gt; D["4. litsea train --pos"]
     D --&gt; E["5. litsea segment --pos"]
 </code></pre>
 <ol>
-<li>Obtain a Universal Dependencies treebank in CoNLL-U format</li>
-<li>Convert to Litsea POS corpus: <code>litsea convert-conllu --pos ud_data.conllu corpus_pos.txt</code></li>
-<li>Extract POS features: <code>litsea extract --pos -l japanese corpus_pos.txt features_pos.txt</code></li>
+<li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
+<li>Convert to POS corpus format: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
+<li>Extract POS features: <code>litsea extract --pos -l japanese pos_corpus.txt features_pos.txt</code></li>
 <li>Train a POS model: <code>litsea train --pos -e 10 features_pos.txt model_pos.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
 </ol>
