@@ -16,9 +16,13 @@ Litsea uses UD Treebanks as the data source for both word segmentation and POS t
 
 ### Step 1: Download a UD Treebank
 
+Use `scripts/download_udtreebank.sh` to download a UD Treebank. It prints the path to the training CoNLL-U file to stdout:
+
 ```sh
-git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 ```
+
+Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese). Use `-o` to specify the output directory (default: current directory).
 
 ## Corpus for Word Segmentation
 
@@ -34,13 +38,14 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 
 ### Convert CoNLL-U to Word Segmentation Corpus
 
-Use `litsea convert-conllu` (without `--pos`) to extract space-separated words from a CoNLL-U file:
+Use `scripts/corpus_udtreebank.sh` to convert a CoNLL-U file to corpus format:
 
 ```sh
-litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 ```
 
-This strips POS tags and outputs only space-separated words, one sentence per line.
+This converts the CoNLL-U data into space-separated words (one sentence per line).
 
 ## Corpus for POS Tagging
 
@@ -59,29 +64,34 @@ The POS tags follow the [Universal POS (UPOS)](https://universaldependencies.org
 
 ### Convert CoNLL-U to POS Corpus
 
-Use `litsea convert-conllu --pos` to convert a CoNLL-U file to the `word/POS` format:
+Use `scripts/corpus_udtreebank.sh` with the `-p` flag to produce a POS corpus:
 
 ```sh
-litsea convert-conllu --pos UD_Japanese-GSD/ja_gsd-ud-train.conllu pos_corpus.txt
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
 Multi-word tokens and empty nodes are automatically handled during conversion.
 
 ## Automated Corpus Preparation
 
-Litsea includes a helper script in the `scripts/` directory that automates the UD Treebank download and conversion:
+Litsea includes helper scripts in the `scripts/` directory that automate the UD Treebank download and conversion:
+
+- **`scripts/download_udtreebank.sh`** -- Downloads a UD Treebank and prints the path to the training CoNLL-U file
+- **`scripts/corpus_udtreebank.sh`** -- Converts a CoNLL-U file to Litsea corpus format
 
 ```sh
-bash scripts/corpus.sh -l ja -c corpus.txt -p pos_corpus.txt
+# Download UD Treebank and get CoNLL-U file path
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+
+# Generate word segmentation corpus
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
+
+# Generate POS corpus
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-This script:
-
-1. Clones the appropriate UD Treebank repository for the specified language
-2. Converts the training data to word segmentation corpus format (`corpus.txt`)
-3. Converts the training data to POS corpus format (`pos_corpus.txt`)
-
-Supported languages: `ja` (Japanese), `ko` (Korean), `zh` (Chinese).
+Supported languages for `download_udtreebank.sh`: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese).
 
 ## Corpus Quality Tips
 

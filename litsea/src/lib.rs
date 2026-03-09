@@ -11,7 +11,6 @@
 //! - Korean
 
 pub mod adaboost;
-pub mod conllu;
 pub mod extractor;
 pub mod language;
 pub mod perceptron;

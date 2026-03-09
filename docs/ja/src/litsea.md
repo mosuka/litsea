@@ -22,7 +22,6 @@ graph LR
     K["litsea::util"] --- L["ModelScheme"]
     M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
-    Q["litsea::conllu"] --- R["convert_conllu"]
 ```
 
 | モジュール | 主要な型 | 用途 |
@@ -31,7 +30,6 @@ graph LR
 | `litsea::adaboost` | `AdaBoost`, `Metrics` | 二値分類、モデルの入出力 |
 | `litsea::perceptron` | `AveragedPerceptron`, `Metrics` | 多クラス分類（品詞推定）、モデルの入出力 |
 | `litsea::upos` | `Upos`, `SegmentLabel` | UPOS 品詞タグ、セグメントラベル |
-| `litsea::conllu` | `convert_conllu` | CoNLL-U 形式の変換 |
 | `litsea::language` | `Language`, `CharTypePatterns` | 言語定義、文字分類 |
 | `litsea::extractor` | `Extractor` | コーパスからの特徴量抽出 |
 | `litsea::trainer` | `Trainer` | 学習パイプラインの制御 |

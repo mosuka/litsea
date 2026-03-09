@@ -48,21 +48,6 @@ Output:
 
 Each token is annotated with a [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tag.
 
-### Splitting Sentences
-
-Split text into sentences using Unicode UAX #29 rules:
-
-```sh
-echo "これはテストです。次の文です。" | litsea split-sentences
-```
-
-Output:
-
-```text
-これはテストです。
-次の文です。
-```
-
 ## Library Quick Start
 
 Here is a minimal Rust program that loads a model and segments text:

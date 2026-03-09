@@ -37,7 +37,9 @@ litsea/
 ├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   └── corpus.sh           # Download UD Treebanks and create training corpora
+│   ├── download_udtreebank.sh      # Download UD Treebanks (prints CoNLL-U file path)
+│   ├── corpus_udtreebank.sh           # Convert CoNLL-U to Litsea corpus format
+│   └── wikitexts.sh        # Download and prepare Wikipedia text data
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines
@@ -68,7 +70,6 @@ The CLI provides a command-line interface to Litsea's functionality.
 |-----------|---------|---------|
 | `clap` | 4.5 | Command-line argument parsing |
 | `ctrlc` | 3.5 | Graceful Ctrl+C handling during training |
-| `icu_segmenter` | 2.1 | Unicode UAX #29 sentence segmentation |
 | `tokio` | 1.49 | Async runtime |
 | `litsea` | 0.4 | Core library (workspace member) |
 

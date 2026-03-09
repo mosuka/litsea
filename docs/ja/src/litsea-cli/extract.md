@@ -75,7 +75,7 @@ Feature extraction completed successfully.
 私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT
 ```
 
-> **ヒント**: [`convert-conllu`](convert-conllu.md) コマンドで Universal Dependencies の CoNLL-U ファイルからこの形式に変換できます。
+> **ヒント**: `scripts/download_udtreebank.sh` で UD Treebank をダウンロードし、`scripts/corpus_udtreebank.sh -p` で CoNLL-U ファイルからこの形式に自動変換できます。詳しくは[コーパスの準備](../training-guide/preparing-corpus.md)を参照してください。
 
 ### 使い方
 

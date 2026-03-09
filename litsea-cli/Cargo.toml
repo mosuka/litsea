@@ -15,7 +15,6 @@ license.workspace = true
 [dependencies]
 clap.workspace = true
 ctrlc.workspace = true
-icu_segmenter.workspace = true
 tokio.workspace = true
 
 litsea.workspace = true

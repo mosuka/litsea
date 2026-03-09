@@ -5,7 +5,7 @@ lang="${WIKI_LANG:-ja}"
 timestamp="${WIKI_TIMESTAMP:-latest}"
 title_count="${WIKI_TITLE_COUNT:-1000}"
 texts_file="${WIKI_TEXTS_FILE:-wiki_texts.txt}"
-litsea_cli="${LITSEA_CLI:-cargo run --bin litsea --}"
+script_dir="$(cd "$(dirname "$0")" && pwd)"
 
 ###############################################################################
 # usage function
@@ -268,8 +268,8 @@ shuf -n ${title_count} ${tmpfile} | while read -r title; do
     # Extract the longest line
     longest_line=$(echo "${text}" | awk 'length > max_length { max_length = length; longest = $0 } END { print longest }')
 
-    # Split text into sentences using ICU4X SentenceSegmenter (Unicode UAX #29)
-    readarray -t sentences < <(echo "${longest_line}" | ${litsea_cli} split-sentences)
+    # Split text into sentences using regex-based rules
+    readarray -t sentences < <(echo "${longest_line}" | bash "${script_dir}/split_sentences.sh" -l "${lang}")
 
     for sentence in "${sentences[@]}"; do
         ## Replace consecutive spaces with a single space

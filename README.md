@@ -136,21 +136,24 @@ Litsea/PROPN は/ADP TinySegmenter/PROPN を/ADP 参考/NOUN に/ADP 開発/VERB
 
 ## How to train POS models
 
-POS model training uses [Universal Dependencies](https://universaldependencies.org/) Treebanks as training data. The workflow consists of three steps: convert CoNLL-U data, extract features, and train.
+POS model training uses [Universal Dependencies](https://universaldependencies.org/) Treebanks as training data. The workflow consists of three steps: prepare corpus, extract features, and train.
 
-### Step 1: Convert CoNLL-U to Litsea corpus format
+### Step 1: Prepare corpus from UD Treebank
 
-Download a UD Treebank (e.g., [UD_Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD)) and convert the CoNLL-U file:
+Use `scripts/download_udtreebank.sh` to download a UD Treebank and `scripts/corpus_udtreebank.sh` to convert it to Litsea corpus format:
 
 ```sh
-./target/release/litsea convert-conllu ./ja_gsd-ud-train.conllu ./corpus_pos.txt
+# Download UD Treebank and get CoNLL-U file path
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+
+# Generate word segmentation corpus
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
+
+# Generate POS corpus
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-The output will look like:
-
-```text
-Converted 7125 sentences.
-```
+Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese).
 
 ### Step 2: Extract POS features
 
@@ -179,10 +182,10 @@ Result Metrics (POS):
 
 ## How to split text into sentences
 
-Use the `split-sentences` subcommand to split text into sentences using Unicode UAX #29 rules. Each input line is treated as a paragraph and split into individual sentences:
+Use the `scripts/split_sentences.sh` shell script to split text into sentences using regex-based rules. Each input line is treated as a paragraph and split into individual sentences:
 
 ```sh
-echo "これはテストです。次の文です。" | ./target/release/litsea split-sentences
+echo "これはテストです。次の文です。" | bash scripts/split_sentences.sh -l ja
 ```
 
 The output will look like:
