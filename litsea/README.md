@@ -9,7 +9,6 @@ The library provides the following key modules:
 - `adaboost` — AdaBoost binary classifier for word boundary detection
 - `perceptron` — Averaged Perceptron for POS tagging
 - `upos` — UPOS (Universal POS) tagset enum (17 tags from [Universal Dependencies](https://universaldependencies.org/u/pos/))
-- `conllu` — CoNLL-U file parser and converter for UD Treebank data
 - `language` — Language enum (Japanese, Korean, Chinese)
 
 There is a small plant called Litsea cubeba (Aomoji) in the same camphoraceae family as Lindera (Kuromoji). This is the origin of the name Litsea.

@@ -6,13 +6,13 @@
 
 ## 単語分割（AdaBoost）
 
-1. UD Treebank をダウンロードして[コーパスを準備](training-guide/preparing-corpus.md): `litsea convert-conllu input.conllu corpus.txt`
+1. UD Treebank をダウンロードして[コーパスを準備](training-guide/preparing-corpus.md): `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) && bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt`
 2. コーパスから[特徴量を抽出](training-guide/extracting-features.md)する
 3. AdaBoost で[モデルを訓練](training-guide/training-models.md)する
 
 ## 品詞推定（Averaged Perceptron）
 
-1. UD Treebank をダウンロードして[品詞付きコーパスを準備](training-guide/preparing-corpus.md): `litsea convert-conllu --pos input.conllu corpus.txt`
+1. UD Treebank をダウンロードして[品詞付きコーパスを準備](training-guide/preparing-corpus.md): `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) && bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt`
 2. [品詞付き特徴量を抽出](training-guide/extracting-features.md): `litsea extract --pos -l japanese corpus.txt features.txt`
 3. [POS モデルを訓練](training-guide/training-models.md): `litsea train --pos --num-epochs 10 features.txt model.txt`
 

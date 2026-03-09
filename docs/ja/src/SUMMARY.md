@@ -36,7 +36,6 @@
   - [AdaBoost](litsea/adaboost.md)
   - [Averaged Perceptron](litsea/averaged-perceptron.md)
   - [UPOS](litsea/upos.md)
-  - [CoNLL-U コンバーター](litsea/conllu.md)
   - [Language](litsea/language.md)
 
 # litsea-cli (CLI)
@@ -45,8 +44,6 @@
   - [extract](litsea-cli/extract.md)
   - [train](litsea-cli/train.md)
   - [segment](litsea-cli/segment.md)
-  - [convert-conllu](litsea-cli/convert-conllu.md)
-  - [split-sentences](litsea-cli/split-sentences.md)
 
 # トレーニングガイド
 

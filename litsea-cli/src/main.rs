@@ -78,41 +78,12 @@ struct SegmentArgs {
     model_uri: String,
 }
 
-/// Arguments for the convert-conllu command.
-#[derive(Debug, Args)]
-#[command(
-    author,
-    about = "Convert CoNLL-U file to Litsea corpus format",
-    version = version(),
-)]
-struct ConvertConlluArgs {
-    /// Include POS tags in output (word/POS format). Without this flag, outputs space-separated words only.
-    #[arg(long, default_value = "false")]
-    pos: bool,
-
-    /// Path to the CoNLL-U input file.
-    input_file: PathBuf,
-    /// Path to the output corpus file.
-    output_file: PathBuf,
-}
-
-/// Arguments for the split-sentences command.
-#[derive(Debug, Args)]
-#[command(
-    author,
-    about = "Split text into sentences using Unicode UAX #29 rules",
-    version = version(),
-)]
-struct SplitSentencesArgs {}
-
 /// Subcommands for litsea CLI.
 #[derive(Debug, Subcommand)]
 enum Commands {
     Extract(ExtractArgs),
     Train(TrainArgs),
     Segment(SegmentArgs),
-    ConvertConllu(ConvertConlluArgs),
-    SplitSentences(SplitSentencesArgs),
 }
 
 /// Arguments for the litsea command.
@@ -286,65 +257,6 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Converts a CoNLL-U file to Litsea corpus format.
-///
-/// Without `--pos`, outputs space-separated words (for word segmentation training).
-/// With `--pos`, outputs `word/POS` format (for POS tagging training).
-///
-/// # Arguments
-///
-/// * `args` - Arguments for the convert-conllu command [`ConvertConlluArgs`].
-fn convert_conllu_cmd(args: ConvertConlluArgs) -> Result<(), Box<dyn Error>> {
-    let count = litsea::conllu::convert_conllu(
-        args.input_file.as_path(),
-        args.output_file.as_path(),
-        args.pos,
-    )?;
-    eprintln!("Converted {} sentences.", count);
-    Ok(())
-}
-
-/// Split text into sentences using ICU4X SentenceSegmenter (Unicode UAX #29).
-/// This function reads text from standard input (one paragraph per line),
-/// splits each line into sentences, and writes one sentence per line to standard output.
-///
-/// # Arguments
-/// * `_args` - The arguments for the split-sentences command [`SplitSentencesArgs`].
-///
-/// # Returns
-/// Returns a Result indicating success or failure.
-fn split_sentences(_args: SplitSentencesArgs) -> Result<(), Box<dyn Error>> {
-    use icu_segmenter::SentenceSegmenter;
-    use icu_segmenter::options::SentenceBreakInvariantOptions;
-
-    let segmenter = SentenceSegmenter::new(SentenceBreakInvariantOptions::default());
-    let stdin = io::stdin();
-    let stdout = io::stdout();
-    let mut writer = io::BufWriter::new(stdout.lock());
-
-    for line in stdin.lock().lines() {
-        let line = line?;
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-
-        let mut breakpoints: Vec<usize> = segmenter.segment_str(line).collect();
-        // Ensure the first breakpoint is 0 so no leading text is lost.
-        if breakpoints.first() != Some(&0) {
-            breakpoints.insert(0, 0);
-        }
-        for window in breakpoints.windows(2) {
-            let sentence = line[window[0]..window[1]].trim();
-            if !sentence.is_empty() {
-                writeln!(writer, "{}", sentence)?;
-            }
-        }
-    }
-
-    Ok(())
-}
-
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = CommandArgs::parse();
 
@@ -352,8 +264,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Extract(args) => extract(args),
         Commands::Train(args) => train(args).await,
         Commands::Segment(args) => segment(args).await,
-        Commands::ConvertConllu(args) => convert_conllu_cmd(args),
-        Commands::SplitSentences(args) => split_sentences(args),
     }
 }
 

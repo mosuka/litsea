@@ -16,6 +16,19 @@ Litsea は単語分割と品詞推定の両方のデータソースとして UD 
 
 ### ステップ 1: UD Treebank のダウンロード
 
+`scripts/download_udtreebank.sh` を使用して UD Treebank をダウンロードします。スクリプトは学習用 CoNLL-U ファイルのパスを標準出力に出力します:
+
+```sh
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+```
+
+オプション:
+
+- `-l`: 言語コード（`ja`, `ko`, `zh`。デフォルト: `ja`）
+- `-o`: 出力ディレクトリ（デフォルト: カレントディレクトリ）
+
+手動でクローンする場合:
+
 ```sh
 git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
 ```
@@ -34,13 +47,14 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 
 ### CoNLL-U から単語分割用コーパスに変換
 
-`litsea convert-conllu`（`--pos` なし）を使用して、CoNLL-U ファイルからスペース区切りの単語を抽出します:
+`scripts/corpus_udtreebank.sh` を使用して、CoNLL-U ファイルからスペース区切りの単語を抽出します:
 
 ```sh
-litsea convert-conllu UD_Japanese-GSD/ja_gsd-ud-train.conllu corpus.txt
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 ```
 
-品詞タグを除去し、スペース区切りの単語のみを1行1文で出力します。
+`scripts/corpus_udtreebank.sh` は CoNLL-U ファイルから品詞タグを除去し、スペース区切りの単語のみを1行1文で出力します。
 
 ## 品詞推定用コーパス
 
@@ -59,27 +73,39 @@ Litsea/PROPN は/ADP 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 
 
 ### CoNLL-U から品詞付きコーパスに変換
 
-`litsea convert-conllu --pos` を使用して、CoNLL-U ファイルを `単語/品詞` 形式に変換します:
+`scripts/corpus_udtreebank.sh` に `-p` オプションを指定して、CoNLL-U ファイルを `単語/品詞` 形式に変換します:
 
 ```sh
-litsea convert-conllu --pos UD_Japanese-GSD/ja_gsd-ud-train.conllu pos_corpus.txt
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-複合語トークンや空ノードは変換時に自動的に処理されます。
+`-p` オプションにより品詞付き形式で出力されます。複合語トークンや空ノードは変換時に自動的に処理されます。
 
 ## コーパスの自動作成
 
 Litsea には、UD Treebank のダウンロードと変換を自動化するヘルパースクリプトが `scripts/` ディレクトリに用意されています:
 
 ```sh
-bash scripts/corpus.sh -l ja -c corpus.txt -p pos_corpus.txt
+# UD Treebank をダウンロードして CoNLL-U ファイルのパスを取得
+conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
+
+# 単語分割用コーパスを生成
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
+
+# 品詞付きコーパスを生成
+bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-このスクリプトは以下の処理を行います:
+`scripts/download_udtreebank.sh` は以下の処理を行います:
 
 1. 指定された言語に対応する UD Treebank リポジトリをクローン
-2. 学習データを単語分割用コーパス形式に変換（`corpus.txt`）
-3. 学習データを品詞付きコーパス形式に変換（`pos_corpus.txt`）
+2. 学習用 CoNLL-U ファイルのパスを標準出力に出力
+
+`scripts/corpus_udtreebank.sh` は以下の処理を行います:
+
+1. CoNLL-U ファイルを単語分割用コーパス形式に変換（デフォルト）
+2. `-p` オプション指定時は品詞付きコーパス形式に変換
 
 サポート言語: `ja`（日本語）、`ko`（韓国語）、`zh`（中国語）。
 

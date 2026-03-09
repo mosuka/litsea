@@ -121,20 +121,6 @@ The output will look like:
 Litsea/PROPN は/ADP TinySegmenter/PROPN を/ADP 参考/NOUN に/ADP 開発/VERB さ/AUX れ/AUX た/AUX 、/PUNCT Rust/PROPN で/ADP 実装/VERB さ/AUX れ/AUX た/AUX 極めて/ADV コンパクト/ADJ な/AUX 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
 ```
 
-## How to convert CoNLL-U files
-
-Use the `convert-conllu` command to convert [Universal Dependencies](https://universaldependencies.org/) CoNLL-U files to Litsea POS corpus format:
-
-```sh
-./target/release/litsea convert-conllu ./ja_gsd-ud-train.conllu ./corpus_pos.txt
-```
-
-The output will look like:
-
-```text
-Converted 7125 sentences.
-```
-
 ## How to train POS models
 
 ### Step 1: Extract POS features

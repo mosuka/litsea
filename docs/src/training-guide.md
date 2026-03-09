@@ -6,14 +6,14 @@ Both workflows use [Universal Dependencies (UD)](https://universaldependencies.o
 
 ## Word Segmentation (AdaBoost)
 
-1. Download a UD Treebank and [prepare a corpus](training-guide/preparing-corpus.md): `litsea convert-conllu input.conllu corpus.txt`
+1. [Prepare a corpus](training-guide/preparing-corpus.md) from a UD Treebank: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) && bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt`
 2. [Extract features](training-guide/extracting-features.md) from the corpus
 3. [Train a model](training-guide/training-models.md) using AdaBoost
 
 ## POS Tagging (Averaged Perceptron)
 
-1. Download a UD Treebank and [prepare a POS corpus](training-guide/preparing-corpus.md): `litsea convert-conllu --pos input.conllu corpus.txt`
-2. [Extract POS features](training-guide/extracting-features.md): `litsea extract --pos -l japanese corpus.txt features.txt`
+1. [Prepare a POS corpus](training-guide/preparing-corpus.md) from a UD Treebank: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) && bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt`
+2. [Extract POS features](training-guide/extracting-features.md): `litsea extract --pos -l japanese pos_corpus.txt features.txt`
 3. [Train a POS model](training-guide/training-models.md): `litsea train --pos --num-epochs 10 features.txt model.txt`
 
 ## Additional Topics
