@@ -26,7 +26,16 @@ Input:  "LitseaはRust製です"
 Output: ["Litsea", "は", "Rust製", "です"]
 ```
 
-With POS tagging enabled, Litsea performs **joint segmentation and POS tagging** as a multiclass classification problem. Instead of binary boundary/non-boundary labels, each boundary position is labeled with a UPOS tag (e.g., `B-NOUN`, `B-VERB`), producing both word boundaries and POS tags in a single pass:
+### POS Tagging
+
+Litsea also supports **POS (Part-of-Speech) tagging** in addition to word segmentation. Using the **Averaged Perceptron** multiclass classifier, it performs joint segmentation and POS tagging simultaneously.
+
+For each character position, the model predicts one of 18 **SegmentLabel** classes:
+
+- `B-NOUN`, `B-VERB`, ..., `B-X` (boundary labels for 17 POS tags)
+- `O` (non-boundary = continuation of the current word)
+
+The POS tags follow the [Universal Dependencies](https://universaldependencies.org/) **UPOS tagset** (17 POS tags).
 
 ```text
 Input:  "今日はいい天気ですね。"

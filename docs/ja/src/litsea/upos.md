@@ -1,6 +1,6 @@
 # UPOS
 
-`Upos` 列挙型と `SegmentLabel` 列挙型は、Universal Dependencies の品詞タグと分割ラベルを表現します。
+`upos` モジュールは、品詞タグ付けに使用する Universal POS (UPOS) タグセットと分割ラベル型を定義します。
 
 ## Upos
 
@@ -29,6 +29,28 @@ pub enum Upos {
 }
 ```
 
+Litsea は [Universal Dependencies](https://universaldependencies.org/u/pos/) プロジェクトの全 17 UPOS タグをサポートしています:
+
+| タグ | 説明 | 例（日本語） |
+|-----|------|-------------|
+| `ADJ` | 形容詞 | いい, 大きい |
+| `ADP` | 接置詞 | は, が, を, に |
+| `ADV` | 副詞 | とても, まだ |
+| `AUX` | 助動詞 | です, ます, た |
+| `CCONJ` | 等位接続詞 | と, や |
+| `DET` | 限定詞 | この, その |
+| `INTJ` | 間投詞 | ああ, はい |
+| `NOUN` | 名詞 | 天気, 本 |
+| `NUM` | 数詞 | 一, 二, 100 |
+| `PART` | 助詞・小辞 | ね, よ |
+| `PRON` | 代名詞 | これ, それ |
+| `PROPN` | 固有名詞 | 東京, 太郎 |
+| `PUNCT` | 句読点 | 。, 、 |
+| `SCONJ` | 従属接続詞 | ので, から |
+| `SYM` | 記号 | %, $ |
+| `VERB` | 動詞 | 読む, 書く |
+| `X` | その他 | （未分類トークン） |
+
 ### 定数
 
 #### `Upos::ALL`
@@ -55,12 +77,26 @@ assert_eq!(pos.to_string(), "NOUN");
 
 ### 定義
 
+`SegmentLabel` 型は単語境界検出と品詞タグ付けを組み合わせます。各文字位置に 18 ラベルのいずれかが割り当てられます:
+
+- **`B(Upos)`**（17 ラベル）: 指定された UPOS タグを持つ単語境界（例: `B-NOUN`, `B-VERB`）
+- **`O`**（1 ラベル）: 非境界（現在の単語の継続）
+
 ```rust
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SegmentLabel {
     B(Upos),  // 単語の先頭文字（境界）。品詞情報を持つ
     O,        // 単語の継続文字（非境界）
 }
+```
+
+```rust
+use litsea::upos::SegmentLabel;
+
+// "今日は" の分割ラベル
+// 今 → B-NOUN  （"今日" の先頭、NOUN としてタグ付け）
+// 日 → O       （"今日" の継続）
+// は → B-ADP   （"は" の先頭、ADP としてタグ付け）
 ```
 
 ### メソッド

@@ -22,6 +22,8 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-t`, `--threshold <THRESHOLD>` | `0.01` | 早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる |
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | ブースティング反復の最大回数 |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | 学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL） |
+| `--pos` | off | 品詞（POS）学習モードを有効にする（Averaged Perceptron を使用） |
+| `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（POS モードのみ） |
 
 ## 出力
 
@@ -69,9 +71,16 @@ litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
     ./new_features.txt ./models/japanese_v2.model
 ```
 
+## ハイパーパラメータの調整
+
+| Parameter | 値を小さくした場合の効果 | 値を大きくした場合の効果 |
+|-----------|---------------------|---------------------|
+| `threshold` | 反復回数が増加、精度が向上する可能性あり、学習時間が長くなる | 反復回数が減少、学習が高速化、アンダーフィットの可能性あり |
+| `num_iterations` | ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり | ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり |
+
 ## 品詞モデルの学習（`--pos`）
 
-`--pos` フラグを指定すると、Averaged Perceptron による品詞推定モデルを学習します。
+`--pos` フラグを指定すると、AdaBoost の代わりに **Averaged Perceptron** アルゴリズムを使用します。単語分割と品詞タグ付けを同時に行うマルチクラス分類器を学習します。
 
 ### 使い方
 
@@ -83,14 +92,14 @@ litsea train --pos [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `--pos` | false | 品詞推定モデル（Averaged Perceptron）を学習する |
-| `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数 |
+| `--pos` | off | 品詞推定モデル（Averaged Perceptron）を学習する |
+| `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数 |
 
 ### 使用例
 
 ```sh
 # 品詞モデルの学習（10エポック）
-litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
+litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 ```
 
 ### 出力
@@ -106,11 +115,10 @@ Result Metrics:
 
 ### Ctrl+C のハンドリング
 
-AdaBoost と同様に、学習は優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。
+AdaBoost と同様に、品詞モデルの学習も優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。
 
-## ハイパーパラメータの調整
+### POS ハイパーパラメータ
 
 | Parameter | 値を小さくした場合の効果 | 値を大きくした場合の効果 |
 |-----------|---------------------|---------------------|
-| `threshold` | 反復回数が増加、精度が向上する可能性あり、学習時間が長くなる | 反復回数が減少、学習が高速化、アンダーフィットの可能性あり |
-| `num_iterations` | ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり | ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり |
+| `num_epochs` | 学習が高速化、アンダーフィットの可能性あり | 精度が向上、学習時間が長くなる、オーバーフィットの可能性あり |

@@ -19,6 +19,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `--pos` | off | 品詞推定付き分割を有効にします。`train --pos` で学習したPOSモデルが必要です |
 
 ## 入力 / 出力
 
@@ -98,3 +99,4 @@ cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > o
 - `--language` フラグは、モデルが学習された言語と一致する必要があります
 - モデルの読み込みは非同期で行われ、TLS（rustls）を使用したHTTP/HTTPSをサポートしています
 - モデルURIはファイルパスに限定されません -- 有効なURLであれば使用可能です
+- `--pos` を使用する場合、モデルは `train --pos` で学習したPOSモデルである必要があります

@@ -25,6 +25,8 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 
 ## Typical Workflow
 
+### AdaBoost Workflow (Word Segmentation Only)
+
 ```mermaid
 flowchart LR
     A["1. scripts/download_udtreebank.sh"] --> B["2. scripts/corpus_udtreebank.sh"]
@@ -39,7 +41,7 @@ flowchart LR
 4. Train a model: `litsea train -t 0.005 -i 1000 features.txt model.model`
 5. Segment text: `echo "text" | litsea segment -l japanese model.model`
 
-### POS Tagging Workflow
+### POS Workflow (Word Segmentation with POS Tagging)
 
 ```mermaid
 flowchart LR
@@ -52,5 +54,5 @@ flowchart LR
 1. Download a UD Treebank: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)`
 2. Convert to POS corpus format: `bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt`
 3. Extract POS features: `litsea extract --pos -l japanese pos_corpus.txt features_pos.txt`
-4. Train a POS model: `litsea train --pos -e 10 features_pos.txt model_pos.model`
+4. Train a POS model: `litsea train --pos --num-epochs 10 features_pos.txt model_pos.model`
 5. Segment with POS tags: `echo "text" | litsea segment --pos -l japanese model_pos.model`

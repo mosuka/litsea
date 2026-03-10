@@ -93,10 +93,62 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 
 Supported languages for `download_udtreebank.sh`: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese).
 
+## Corpus from Wikipedia Dump
+
+For larger-scale training, you can build a corpus from a full Wikipedia dump using `scripts/corpus_wikidump.sh`. This extracts plain text with [wicket](https://github.com/mosuka/wicket), filters for actual sentences, and tokenizes with [lindera](https://github.com/lindera/lindera).
+
+### Usage
+
+```sh
+# Japanese (default)
+bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
+
+# Korean
+bash scripts/corpus_wikidump.sh -l ko kowiki-latest-pages-articles.xml.bz2 corpus_ko.txt
+
+# Chinese
+bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpus_zh.txt
+```
+
+### Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-l lang` | Language code: `ja`, `ko`, `zh` | `ja` |
+| `-n max_lines` | Maximum sentence lines to process (0 = unlimited) | `100000` |
+
+### Sentence Filtering
+
+The script applies two filters to keep only well-formed sentences:
+
+1. **Sentence-ending punctuation** -- Lines must end with `。`, `.`, `!`, or `?`. This excludes section headers (e.g., "参考文献"), list items, and metadata.
+2. **Minimum length** -- Lines must be at least 20 characters. This excludes short fragments and isolated labels.
+
+### Tokenizer Dictionaries
+
+| Language | Dictionary | Token Filter |
+|----------|------------|-------------|
+| Japanese (`ja`) | `embedded://unidic` | `japanese_compound_word` (numeral compound) |
+| Korean (`ko`) | `embedded://ko-dic` | None |
+| Chinese (`zh`) | `embedded://cc-cedict` | None |
+
+## Corpus Size Guidelines
+
+The recommended corpus size depends on your use case:
+
+| Size (sentence lines) | Use Case |
+|------------------------|----------|
+| ~10,000 | Minimum for prototyping and smoke tests |
+| 50,000 -- 100,000 | Practical range for model training |
+| 100,000 -- 500,000 | High-quality, robust models |
+| Unlimited | Use full dump for maximum accuracy |
+
+The default `max_lines=100000` in `corpus_wikidump.sh` targets the practical-to-high-quality range.
+
 ## Corpus Quality Tips
 
 - **Diversity** -- Include text from various domains (news, literature, web, etc.)
-- **Size** -- Larger corpora generally produce better models, but diminishing returns apply
+- **Size** -- See [Corpus Size Guidelines](#corpus-size-guidelines) above for recommended sizes
 - **Consistency** -- Ensure consistent tokenization throughout the corpus
 - **Deduplication** -- Remove duplicate sentences to avoid bias
 - **Cleaning** -- Remove HTML tags, special formatting, and non-text content

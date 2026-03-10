@@ -4,42 +4,38 @@ Litsea は、単語分割と品詞推定を同時に行うために **Averaged P
 
 ## 概要
 
-Averaged Perceptron は、**多クラス分類**を行う線形分類器です。AdaBoost が二値分類（境界 / 非境界）を行うのに対し、Averaged Perceptron は 18 クラスの **SegmentLabel** を直接予測します:
+[AdaBoost](adaboost.md) が**二値分類**（境界 / 非境界）を行うのに対し、Averaged Perceptron は 18 クラスの**多クラス分類**を行い、各文字位置に対してセグメントラベルを予測します:
 
-- `B-ADJ`, `B-ADP`, `B-ADV`, `B-AUX`, `B-CCONJ`, `B-DET`, `B-INTJ`, `B-NOUN`, `B-NUM`, `B-PART`, `B-PRON`, `B-PROPN`, `B-PUNCT`, `B-SCONJ`, `B-SYM`, `B-VERB`, `B-X`（17 品詞の境界ラベル）
-- `O`（非境界 = 単語の継続）
+- **17 個の境界ラベル**: `B-ADJ`, `B-ADP`, `B-ADV`, `B-AUX`, `B-CCONJ`, `B-DET`, `B-INTJ`, `B-NOUN`, `B-NUM`, `B-PART`, `B-PRON`, `B-PROPN`, `B-PUNCT`, `B-SCONJ`, `B-SYM`, `B-VERB`, `B-X`
+- **1 個の非境界ラベル**: `O`（単語の継続）
 
-これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。
+これらのラベルは Universal Dependencies プロジェクトの 17 個の [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) タグに対応し、`B-` プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。
 
-### AdaBoost との比較
+## アルゴリズム
 
-| 項目 | AdaBoost | Averaged Perceptron |
-|------|----------|---------------------|
-| 分類方式 | 二値分類（+1 / -1） | 多クラス分類（18クラス） |
-| 出力 | 境界 / 非境界 | 境界+品詞 / 非境界 |
-| 弱学習器 | 特徴量の決定株 | なし（線形分類器） |
-| 重みの管理 | 特徴量ごとに1つの重み | クラス×特徴量の重み行列 |
-| 汎化手法 | アンサンブル | 重みの平均化 |
+### 重み表現
 
-## 重みベクトル
-
-各クラスは独立した重みベクトルを持ちます。特徴量は疎（sparse）な二値表現で、存在する特徴量の重みのみを合算してスコアを計算します。
+各クラスは独立した重みベクトルを持ちます。重みは疎なマップとして格納されます:
 
 ```text
-weights["B-NOUN"]["UW4:猫"] = 2.5
-weights["B-NOUN"]["UC4:H"]  = 1.8
-weights["O"]["UW4:猫"]      = -0.3
+weights: HashMap<Feature, HashMap<Class, f64>>
+```
+
+例:
+
+```text
+weights["UW4:猫"]["B-NOUN"] = 2.5
+weights["UC4:H"]["B-NOUN"]  = 1.8
+weights["UW4:猫"]["O"]      = -0.3
 ...
 ```
 
-予測時には、すべてのクラスについてスコアを計算し、最大スコアのクラスを予測ラベルとします:
+特徴量の集合に対し、各クラスのスコアは特徴量の重みを合算して計算し、最大スコアのクラスを予測ラベルとします:
 
 ```text
-score(class) = sum(weights[class][feature] for feature in input_features)
-prediction = argmax_class score(class)
+score(class) = sum(weights[feature][class] for feature in input_features)
+prediction = argmax(score(class) for all classes)
 ```
-
-## 学習アルゴリズム
 
 ### 更新規則
 
@@ -51,29 +47,43 @@ For each training instance (features, truth):
 
     if guess != truth:
         For each feature f in features:
-            weights[truth][f] += 1.0   # 正解クラスの重みを増加
-            weights[guess][f] -= 1.0   # 誤予測クラスの重みを減少
+            weights[f][truth] += 1.0   # 正解クラスの重みを増加
+            weights[f][guess] -= 1.0   # 誤予測クラスの重みを減少
 ```
 
-この単純な更新規則により、正解クラスの特徴量が強化され、誤予測クラスの特徴量が弱められます。
+この単純な更新規則により、正解クラスの特徴量が強化され、誤予測クラスの特徴量が弱められます。これにより、将来の類似入力に対して正しい予測がより起こりやすくなります。
 
-### 平均化による汎化
+### 平均化
 
-学習の各ステップで重みが変動するため、最終的な重みは学習データの末尾に過適合する傾向があります。これを防ぐために、全ステップにわたる**累積平均重み**を最終モデルとして使用します。
+基本的なパーセプトロンに対する重要な改善点が**重みの平均化**です。最終的な重みは学習データの末尾に過適合する傾向があるため、学習中に観測されたすべての重みベクトルの平均を最終モデルとして使用します。これにより、未知データへの汎化性能が向上します。
+
+実装では効率のために**累積和**アプローチを使用します:
 
 ```text
 # 各ステップの重みを累積
-accumulated[class][feature] += weight[class][feature] * elapsed_steps
+cumulative[feature][class] += weights[feature][class] * elapsed_steps
 
 # 学習終了時に平均化
-final_weight[class][feature] = accumulated[class][feature] / total_steps
+averaged[feature][class] = cumulative[feature][class] / total_steps
 ```
 
-この平均化により、学習データの順序への依存が軽減され、汎化性能が向上します。
+これにより、すべての中間重みベクトルを保存することなく同じ結果が得られます。この平均化により、学習データの順序への依存が軽減され、汎化性能が向上します。
 
-### エポック数と早期停止
+### エポックによる学習
 
-学習は指定されたエポック数（`num_epochs`）だけ学習データを繰り返します。`AtomicBool` フラグにより、Ctrl+C などで学習を中断し、その時点でのモデルを保存することも可能です。
+学習は指定されたエポック数だけ学習データを繰り返します。各エポックでは、すべての学習インスタンスを順に処理します:
+
+```text
+For each epoch (1 to num_epochs):
+    For each instance in training data:
+        features = extract_features(instance)
+        predicted = argmax(score(class) for all classes)
+        if predicted != correct_label:
+            update weights
+        accumulate weights for averaging
+```
+
+`AtomicBool` フラグにより、Ctrl+C などで学習を中断し、その時点でのモデルを保存することも可能です。
 
 ```rust
 use std::sync::Arc;
@@ -103,12 +113,26 @@ UW4:猫	O	-0.3
 ...
 ```
 
-- 1行目: クラス数
-- 続くN行: クラス名（1行に1つ）
-- 残りの行: `特徴名\tクラス名\t重み`（タブ区切り、重みがゼロの特徴量は省略）
+- **1行目**: クラス数（18）
+- **続くN行**: クラス名（1行に1つ）
+- **残りの行**: 特徴量の重み、タブ区切り `特徴名\tクラス名\t重み`
+- 重みがゼロの特徴量は省略
+
+## AdaBoost との比較
+
+| 項目 | AdaBoost | Averaged Perceptron |
+|------|----------|---------------------|
+| 分類方式 | 二値分類（+1 / -1） | 多クラス分類（18クラス） |
+| 出力 | 単語境界のみ | 単語境界 + 品詞タグ |
+| 弱学習器 | 特徴量の決定株 | なし（線形分類器） |
+| 重みの管理 | 特徴量ごとに1つの重み | クラス×特徴量の重み行列 |
+| 汎化手法 | アンサンブル | 重みの平均化 |
+| 学習方式 | サンプル再重み付けによる反復ブースティング | 重み平均化によるオンライン学習 |
+| モデルサイズ | 数 KB | 約 11 MB（品詞特徴量含む） |
+| ハイパーパラメータ | `threshold`, `num_iterations` | `num_epochs` |
 
 ## ハイパーパラメータ
 
-| Parameter | Default | 説明 |
-|-----------|---------|------|
-| `num_epochs` | 10 | 学習エポック数。高い値は精度を向上させる可能性があるが、学習時間が増加する |
+| パラメータ | デフォルト値 | 説明 |
+|-----------|------------|------|
+| `num_epochs` | 10 | 学習エポック数。高い値は精度を向上させる可能性があるが、過学習のリスクがある |
