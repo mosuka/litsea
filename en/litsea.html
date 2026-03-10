@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ae7d976f.js"></script>
@@ -229,6 +229,26 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let tokens = segmenter.segment("これはテストです。");
 
     assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
+    Ok(())
+}</code></pre>
+<h2 id="quick-example-pos-tagging"><a class="header" href="#quick-example-pos-tagging">Quick Example (POS Tagging)</a></h2>
+<pre class="playground"><code class="language-rust">use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut pos_learner = AveragedPerceptron::new();
+    pos_learner.load_model("./models/japanese_pos.model").await?;
+
+    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let tokens = segmenter.segment_with_pos("これはテストです。");
+
+    for (word, pos) in &amp;tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
+
     Ok(())
 }</code></pre>
 <h2 id="api-documentation"><a class="header" href="#api-documentation">API Documentation</a></h2>

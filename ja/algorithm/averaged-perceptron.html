@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-715437d4.js";
+            window.path_to_searchindex_js = "../searchindex-95c94099.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-feadcd78.js"></script>
@@ -183,39 +183,27 @@
                         <h1 id="averaged-perceptron"><a class="header" href="#averaged-perceptron">Averaged Perceptron</a></h1>
 <p>Litsea は、単語分割と品詞推定を同時に行うために <strong>Averaged Perceptron</strong> アルゴリズムによる多クラス分類を使用します。本章では、Litsea に実装されているアルゴリズムについて説明します。</p>
 <h2 id="概要"><a class="header" href="#概要">概要</a></h2>
-<p>Averaged Perceptron は、<strong>多クラス分類</strong>を行う線形分類器です。AdaBoost が二値分類（境界 / 非境界）を行うのに対し、Averaged Perceptron は 18 クラスの <strong>SegmentLabel</strong> を直接予測します:</p>
+<p><a href="adaboost.html">AdaBoost</a> が<strong>二値分類</strong>（境界 / 非境界）を行うのに対し、Averaged Perceptron は 18 クラスの<strong>多クラス分類</strong>を行い、各文字位置に対してセグメントラベルを予測します:</p>
 <ul>
-<li><code>B-ADJ</code>, <code>B-ADP</code>, <code>B-ADV</code>, <code>B-AUX</code>, <code>B-CCONJ</code>, <code>B-DET</code>, <code>B-INTJ</code>, <code>B-NOUN</code>, <code>B-NUM</code>, <code>B-PART</code>, <code>B-PRON</code>, <code>B-PROPN</code>, <code>B-PUNCT</code>, <code>B-SCONJ</code>, <code>B-SYM</code>, <code>B-VERB</code>, <code>B-X</code>（17 品詞の境界ラベル）</li>
-<li><code>O</code>（非境界 = 単語の継続）</li>
+<li><strong>17 個の境界ラベル</strong>: <code>B-ADJ</code>, <code>B-ADP</code>, <code>B-ADV</code>, <code>B-AUX</code>, <code>B-CCONJ</code>, <code>B-DET</code>, <code>B-INTJ</code>, <code>B-NOUN</code>, <code>B-NUM</code>, <code>B-PART</code>, <code>B-PRON</code>, <code>B-PROPN</code>, <code>B-PUNCT</code>, <code>B-SCONJ</code>, <code>B-SYM</code>, <code>B-VERB</code>, <code>B-X</code></li>
+<li><strong>1 個の非境界ラベル</strong>: <code>O</code>（単語の継続）</li>
 </ul>
-<p>これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。</p>
-<h3 id="adaboost-との比較"><a class="header" href="#adaboost-との比較">AdaBoost との比較</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>項目</th><th>AdaBoost</th><th>Averaged Perceptron</th></tr>
-</thead>
-<tbody>
-<tr><td>分類方式</td><td>二値分類（+1 / -1）</td><td>多クラス分類（18クラス）</td></tr>
-<tr><td>出力</td><td>境界 / 非境界</td><td>境界+品詞 / 非境界</td></tr>
-<tr><td>弱学習器</td><td>特徴量の決定株</td><td>なし（線形分類器）</td></tr>
-<tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
-<tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="重みベクトル"><a class="header" href="#重みベクトル">重みベクトル</a></h2>
-<p>各クラスは独立した重みベクトルを持ちます。特徴量は疎（sparse）な二値表現で、存在する特徴量の重みのみを合算してスコアを計算します。</p>
-<pre><code class="language-text">weights["B-NOUN"]["UW4:猫"] = 2.5
-weights["B-NOUN"]["UC4:H"]  = 1.8
-weights["O"]["UW4:猫"]      = -0.3
+<p>これらのラベルは Universal Dependencies プロジェクトの 17 個の <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグに対応し、<code>B-</code> プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。</p>
+<h2 id="アルゴリズム"><a class="header" href="#アルゴリズム">アルゴリズム</a></h2>
+<h3 id="重み表現"><a class="header" href="#重み表現">重み表現</a></h3>
+<p>各クラスは独立した重みベクトルを持ちます。重みは疎なマップとして格納されます:</p>
+<pre><code class="language-text">weights: HashMap&lt;Feature, HashMap&lt;Class, f64&gt;&gt;
+</code></pre>
+<p>例:</p>
+<pre><code class="language-text">weights["UW4:猫"]["B-NOUN"] = 2.5
+weights["UC4:H"]["B-NOUN"]  = 1.8
+weights["UW4:猫"]["O"]      = -0.3
 ...
 </code></pre>
-<p>予測時には、すべてのクラスについてスコアを計算し、最大スコアのクラスを予測ラベルとします:</p>
-<pre><code class="language-text">score(class) = sum(weights[class][feature] for feature in input_features)
-prediction = argmax_class score(class)
+<p>特徴量の集合に対し、各クラスのスコアは特徴量の重みを合算して計算し、最大スコアのクラスを予測ラベルとします:</p>
+<pre><code class="language-text">score(class) = sum(weights[feature][class] for feature in input_features)
+prediction = argmax(score(class) for all classes)
 </code></pre>
-<h2 id="学習アルゴリズム"><a class="header" href="#学習アルゴリズム">学習アルゴリズム</a></h2>
 <h3 id="更新規則"><a class="header" href="#更新規則">更新規則</a></h3>
 <p>各学習インスタンスについて、予測が正解と異なる場合に重みを更新します:</p>
 <pre><code class="language-text">For each training instance (features, truth):
@@ -223,21 +211,31 @@ prediction = argmax_class score(class)
 
     if guess != truth:
         For each feature f in features:
-            weights[truth][f] += 1.0   # 正解クラスの重みを増加
-            weights[guess][f] -= 1.0   # 誤予測クラスの重みを減少
+            weights[f][truth] += 1.0   # 正解クラスの重みを増加
+            weights[f][guess] -= 1.0   # 誤予測クラスの重みを減少
 </code></pre>
-<p>この単純な更新規則により、正解クラスの特徴量が強化され、誤予測クラスの特徴量が弱められます。</p>
-<h3 id="平均化による汎化"><a class="header" href="#平均化による汎化">平均化による汎化</a></h3>
-<p>学習の各ステップで重みが変動するため、最終的な重みは学習データの末尾に過適合する傾向があります。これを防ぐために、全ステップにわたる<strong>累積平均重み</strong>を最終モデルとして使用します。</p>
+<p>この単純な更新規則により、正解クラスの特徴量が強化され、誤予測クラスの特徴量が弱められます。これにより、将来の類似入力に対して正しい予測がより起こりやすくなります。</p>
+<h3 id="平均化"><a class="header" href="#平均化">平均化</a></h3>
+<p>基本的なパーセプトロンに対する重要な改善点が<strong>重みの平均化</strong>です。最終的な重みは学習データの末尾に過適合する傾向があるため、学習中に観測されたすべての重みベクトルの平均を最終モデルとして使用します。これにより、未知データへの汎化性能が向上します。</p>
+<p>実装では効率のために<strong>累積和</strong>アプローチを使用します:</p>
 <pre><code class="language-text"># 各ステップの重みを累積
-accumulated[class][feature] += weight[class][feature] * elapsed_steps
+cumulative[feature][class] += weights[feature][class] * elapsed_steps
 
 # 学習終了時に平均化
-final_weight[class][feature] = accumulated[class][feature] / total_steps
+averaged[feature][class] = cumulative[feature][class] / total_steps
 </code></pre>
-<p>この平均化により、学習データの順序への依存が軽減され、汎化性能が向上します。</p>
-<h3 id="エポック数と早期停止"><a class="header" href="#エポック数と早期停止">エポック数と早期停止</a></h3>
-<p>学習は指定されたエポック数（<code>num_epochs</code>）だけ学習データを繰り返します。<code>AtomicBool</code> フラグにより、Ctrl+C などで学習を中断し、その時点でのモデルを保存することも可能です。</p>
+<p>これにより、すべての中間重みベクトルを保存することなく同じ結果が得られます。この平均化により、学習データの順序への依存が軽減され、汎化性能が向上します。</p>
+<h3 id="エポックによる学習"><a class="header" href="#エポックによる学習">エポックによる学習</a></h3>
+<p>学習は指定されたエポック数だけ学習データを繰り返します。各エポックでは、すべての学習インスタンスを順に処理します:</p>
+<pre><code class="language-text">For each epoch (1 to num_epochs):
+    For each instance in training data:
+        features = extract_features(instance)
+        predicted = argmax(score(class) for all classes)
+        if predicted != correct_label:
+            update weights
+        accumulate weights for averaging
+</code></pre>
+<p><code>AtomicBool</code> フラグにより、Ctrl+C などで学習を中断し、その時点でのモデルを保存することも可能です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
@@ -263,18 +261,37 @@ UW4:猫	O	-0.3
 ...
 </code></pre>
 <ul>
-<li>1行目: クラス数</li>
-<li>続くN行: クラス名（1行に1つ）</li>
-<li>残りの行: <code>特徴名\tクラス名\t重み</code>（タブ区切り、重みがゼロの特徴量は省略）</li>
+<li><strong>1行目</strong>: クラス数（18）</li>
+<li><strong>続くN行</strong>: クラス名（1行に1つ）</li>
+<li><strong>残りの行</strong>: 特徴量の重み、タブ区切り <code>特徴名\tクラス名\t重み</code></li>
+<li>重みがゼロの特徴量は省略</li>
 </ul>
+<h2 id="adaboost-との比較"><a class="header" href="#adaboost-との比較">AdaBoost との比較</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>項目</th><th>AdaBoost</th><th>Averaged Perceptron</th></tr>
+</thead>
+<tbody>
+<tr><td>分類方式</td><td>二値分類（+1 / -1）</td><td>多クラス分類（18クラス）</td></tr>
+<tr><td>出力</td><td>単語境界のみ</td><td>単語境界 + 品詞タグ</td></tr>
+<tr><td>弱学習器</td><td>特徴量の決定株</td><td>なし（線形分類器）</td></tr>
+<tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
+<tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
+<tr><td>学習方式</td><td>サンプル再重み付けによる反復ブースティング</td><td>重み平均化によるオンライン学習</td></tr>
+<tr><td>モデルサイズ</td><td>数 KB</td><td>約 11 MB（品詞特徴量含む）</td></tr>
+<tr><td>ハイパーパラメータ</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="ハイパーパラメータ"><a class="header" href="#ハイパーパラメータ">ハイパーパラメータ</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Parameter</th><th>Default</th><th>説明</th></tr>
+<tr><th>パラメータ</th><th>デフォルト値</th><th>説明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>num_epochs</code></td><td>10</td><td>学習エポック数。高い値は精度を向上させる可能性があるが、学習時間が増加する</td></tr>
+<tr><td><code>num_epochs</code></td><td>10</td><td>学習エポック数。高い値は精度を向上させる可能性があるが、過学習のリスクがある</td></tr>
 </tbody>
 </table>
 </div>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ae7d976f.js"></script>
@@ -201,7 +201,14 @@
          O O O O B O B O B   ← boundary predictions
 Output: ["Litsea", "は", "Rust製", "です"]
 </code></pre>
-<p>With POS tagging enabled, Litsea performs <strong>joint segmentation and POS tagging</strong> as a multiclass classification problem. Instead of binary boundary/non-boundary labels, each boundary position is labeled with a UPOS tag (e.g., <code>B-NOUN</code>, <code>B-VERB</code>), producing both word boundaries and POS tags in a single pass:</p>
+<h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
+<p>Litsea also supports <strong>POS (Part-of-Speech) tagging</strong> in addition to word segmentation. Using the <strong>Averaged Perceptron</strong> multiclass classifier, it performs joint segmentation and POS tagging simultaneously.</p>
+<p>For each character position, the model predicts one of 18 <strong>SegmentLabel</strong> classes:</p>
+<ul>
+<li><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code> (boundary labels for 17 POS tags)</li>
+<li><code>O</code> (non-boundary = continuation of the current word)</li>
+</ul>
+<p>The POS tags follow the <a href="https://universaldependencies.org/">Universal Dependencies</a> <strong>UPOS tagset</strong> (17 POS tags).</p>
 <pre><code class="language-text">Input:  "今日はいい天気ですね。"
 Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>

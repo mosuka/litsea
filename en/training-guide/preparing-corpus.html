@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ae7d976f.js"></script>
@@ -247,10 +247,69 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
 <p>Supported languages for <code>download_udtreebank.sh</code>: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese).</p>
+<h2 id="corpus-from-wikipedia-dump"><a class="header" href="#corpus-from-wikipedia-dump">Corpus from Wikipedia Dump</a></h2>
+<p>For larger-scale training, you can build a corpus from a full Wikipedia dump using <code>scripts/corpus_wikidump.sh</code>. This extracts plain text with <a href="https://github.com/mosuka/wicket">wicket</a>, filters for actual sentences, and tokenizes with <a href="https://github.com/lindera/lindera">lindera</a>.</p>
+<h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
+<pre><code class="language-sh"># Japanese (default)
+bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
+
+# Korean
+bash scripts/corpus_wikidump.sh -l ko kowiki-latest-pages-articles.xml.bz2 corpus_ko.txt
+
+# Chinese
+bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpus_zh.txt
+</code></pre>
+<h3 id="options"><a class="header" href="#options">Options</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l lang</code></td><td>Language code: <code>ja</code>, <code>ko</code>, <code>zh</code></td><td><code>ja</code></td></tr>
+<tr><td><code>-n max_lines</code></td><td>Maximum sentence lines to process (0 = unlimited)</td><td><code>100000</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="sentence-filtering"><a class="header" href="#sentence-filtering">Sentence Filtering</a></h3>
+<p>The script applies two filters to keep only well-formed sentences:</p>
+<ol>
+<li><strong>Sentence-ending punctuation</strong> – Lines must end with <code>。</code>, <code>.</code>, <code>!</code>, or <code>?</code>. This excludes section headers (e.g., “参考文献”), list items, and metadata.</li>
+<li><strong>Minimum length</strong> – Lines must be at least 20 characters. This excludes short fragments and isolated labels.</li>
+</ol>
+<h3 id="tokenizer-dictionaries"><a class="header" href="#tokenizer-dictionaries">Tokenizer Dictionaries</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Dictionary</th><th>Token Filter</th></tr>
+</thead>
+<tbody>
+<tr><td>Japanese (<code>ja</code>)</td><td><code>embedded://unidic</code></td><td><code>japanese_compound_word</code> (numeral compound)</td></tr>
+<tr><td>Korean (<code>ko</code>)</td><td><code>embedded://ko-dic</code></td><td>None</td></tr>
+<tr><td>Chinese (<code>zh</code>)</td><td><code>embedded://cc-cedict</code></td><td>None</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="corpus-size-guidelines"><a class="header" href="#corpus-size-guidelines">Corpus Size Guidelines</a></h2>
+<p>The recommended corpus size depends on your use case:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Size (sentence lines)</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td>~10,000</td><td>Minimum for prototyping and smoke tests</td></tr>
+<tr><td>50,000 – 100,000</td><td>Practical range for model training</td></tr>
+<tr><td>100,000 – 500,000</td><td>High-quality, robust models</td></tr>
+<tr><td>Unlimited</td><td>Use full dump for maximum accuracy</td></tr>
+</tbody>
+</table>
+</div>
+<p>The default <code>max_lines=100000</code> in <code>corpus_wikidump.sh</code> targets the practical-to-high-quality range.</p>
 <h2 id="corpus-quality-tips"><a class="header" href="#corpus-quality-tips">Corpus Quality Tips</a></h2>
 <ul>
 <li><strong>Diversity</strong> – Include text from various domains (news, literature, web, etc.)</li>
-<li><strong>Size</strong> – Larger corpora generally produce better models, but diminishing returns apply</li>
+<li><strong>Size</strong> – See <a href="#corpus-size-guidelines">Corpus Size Guidelines</a> above for recommended sizes</li>
 <li><strong>Consistency</strong> – Ensure consistent tokenization throughout the corpus</li>
 <li><strong>Deduplication</strong> – Remove duplicate sentences to avoid bias</li>
 <li><strong>Cleaning</strong> – Remove HTML tags, special formatting, and non-text content</li>

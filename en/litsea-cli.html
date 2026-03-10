@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ae7d976f.js"></script>
@@ -211,6 +211,7 @@
 </table>
 </div>
 <h2 id="typical-workflow"><a class="header" href="#typical-workflow">Typical Workflow</a></h2>
+<h3 id="adaboost-workflow-word-segmentation-only"><a class="header" href="#adaboost-workflow-word-segmentation-only">AdaBoost Workflow (Word Segmentation Only)</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh"]
     B --&gt; C["3. litsea extract"]
@@ -224,7 +225,7 @@
 <li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
-<h3 id="pos-tagging-workflow"><a class="header" href="#pos-tagging-workflow">POS Tagging Workflow</a></h3>
+<h3 id="pos-workflow-word-segmentation-with-pos-tagging"><a class="header" href="#pos-workflow-word-segmentation-with-pos-tagging">POS Workflow (Word Segmentation with POS Tagging)</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
     B --&gt; C["3. litsea extract --pos"]
@@ -235,7 +236,7 @@
 <li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
 <li>Convert to POS corpus format: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
 <li>Extract POS features: <code>litsea extract --pos -l japanese pos_corpus.txt features_pos.txt</code></li>
-<li>Train a POS model: <code>litsea train --pos -e 10 features_pos.txt model_pos.model</code></li>
+<li>Train a POS model: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
 </ol>
 

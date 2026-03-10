@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-715437d4.js";
+            window.path_to_searchindex_js = "../searchindex-95c94099.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-feadcd78.js"></script>
@@ -204,6 +204,7 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<code>train --pos</code> で学習したPOSモデルが必要です</td></tr>
 </tbody>
 </table>
 </div>
@@ -253,6 +254,7 @@
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
 <li>モデルの読み込みは非同期で行われ、TLS（rustls）を使用したHTTP/HTTPSをサポートしています</li>
 <li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
+<li><code>--pos</code> を使用する場合、モデルは <code>train --pos</code> で学習したPOSモデルである必要があります</li>
 </ul>
 
                     </main>

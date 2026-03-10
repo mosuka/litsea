@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ae7d976f.js"></script>
@@ -234,15 +234,19 @@
 <pre><code class="language-sh">echo "テスト文です。" \
   | litsea segment -l japanese https://example.com/models/japanese.model
 </code></pre>
-<h2 id="pos-tagged-segmentation"><a class="header" href="#pos-tagged-segmentation">POS-Tagged Segmentation</a></h2>
-<p>When the <code>--pos</code> flag is specified, <code>segment</code> outputs each token annotated with its UPOS tag in <code>word/POS</code> format. This requires a POS model trained with <code>train --pos</code>.</p>
-<p><strong>Example:</strong></p>
+<h2 id="pos-tagged-segmentation---pos"><a class="header" href="#pos-tagged-segmentation---pos">POS-Tagged Segmentation (<code>--pos</code>)</a></h2>
+<p>When the <code>--pos</code> flag is specified, segmentation and POS tagging are performed simultaneously using an Averaged Perceptron model.</p>
+<h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
+<pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
+</code></pre>
+<h3 id="output-format"><a class="header" href="#output-format">Output Format</a></h3>
+<p>Each token is output in <code>word/POS</code> format. POS tags conform to the UPOS tag set.</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
   | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
-<p><strong>Processing a file with POS tags:</strong></p>
+<h3 id="processing-a-file"><a class="header" href="#processing-a-file">Processing a File</a></h3>
 <pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
 </code></pre>
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>

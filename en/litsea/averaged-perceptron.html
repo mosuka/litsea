@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ae7d976f.js"></script>
@@ -186,7 +186,7 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AveragedPerceptron {
-    // internal fields: weight vectors, class names, cumulative weights, etc.
+    // internal fields: weights, accumulated, timestamps, step, classes, instances
 }
 <span class="boring">}</span></code></pre>
 <h2 id="constructor"><a class="header" href="#constructor">Constructor</a></h2>
@@ -202,54 +202,46 @@
 
 let mut learner = AveragedPerceptron::new();
 <span class="boring">}</span></code></pre>
-<h2 id="model-loading"><a class="header" href="#model-loading">Model Loading</a></h2>
-<h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
+<h2 id="adding-instances"><a class="header" href="#adding-instances">Adding Instances</a></h2>
+<h3 id="add_instance"><a class="header" href="#add_instance"><code>add_instance</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub fn add_instance(&amp;mut self, features: HashSet&lt;String&gt;, label: String)
 <span class="boring">}</span></code></pre>
-<p>Loads model weights from a URI. Supports the same URI schemes as <code>AdaBoost::load_model</code>:</p>
-<ul>
-<li>Local file path: <code>./models/japanese_pos.model</code></li>
-<li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP/HTTPS: <code>https://example.com/model</code></li>
-</ul>
+<p>Adds a training instance with a feature set and a label. Unknown classes are automatically registered.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./models/japanese_pos.model").await?;
+</span>use std::collections::HashSet;
+use litsea::perceptron::AveragedPerceptron;
+
+let mut learner = AveragedPerceptron::new();
+let mut feats = HashSet::new();
+feats.insert("UW4:猫".to_string());
+feats.insert("UC4:H".to_string());
+learner.add_instance(feats, "B-NOUN".to_string());
 <span class="boring">}</span></code></pre>
-<h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>Saves model weights to a file. The format includes class names followed by feature-class-weight triples.</p>
-<h2 id="training-methods"><a class="header" href="#training-methods">Training Methods</a></h2>
-<h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>Reads a POS features file and builds the feature and class indices. Must be called before <code>initialize_instances</code>.</p>
-<h3 id="initialize_instances"><a class="header" href="#initialize_instances"><code>initialize_instances</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>Reads the same features file and initializes labeled instances.</p>
+<h2 id="training"><a class="header" href="#training">Training</a></h2>
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(&amp;mut self, num_epochs: usize, running: Arc&lt;AtomicBool&gt;)
 <span class="boring">}</span></code></pre>
-<p>Runs the Averaged Perceptron training loop for the given number of epochs. Set <code>running</code> to <code>false</code> to stop early.</p>
+<p>Runs the Averaged Perceptron training loop for the given number of epochs. Set <code>running</code> to <code>false</code> to stop early. Weights are automatically averaged at the end of training.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+
+let running = Arc::new(AtomicBool::new(true));
+learner.train(10, running);
+<span class="boring">}</span></code></pre>
 <h2 id="prediction"><a class="header" href="#prediction">Prediction</a></h2>
 <h3 id="predict"><a class="header" href="#predict"><code>predict</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn predict(&amp;self, attributes: HashSet&lt;String&gt;) -&gt; String
+</span>pub fn predict(&amp;self, features: &amp;HashSet&lt;String&gt;) -&gt; String
 <span class="boring">}</span></code></pre>
-<p>Predicts the class label for a given feature set. Returns one of 18 segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code>).</p>
+<p>Predicts the class label for a given feature set. Computes a score for each class and returns the class name with the highest score. Returns an empty string if no classes are registered.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::HashSet;
@@ -259,24 +251,50 @@ attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
 // ... more features
 
-let label = learner.predict(attrs);
+let label = learner.predict(&amp;attrs);
 // label == "B-ADP", "O", etc.
+<span class="boring">}</span></code></pre>
+<h2 id="model-io"><a class="header" href="#model-io">Model I/O</a></h2>
+<h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Saves model weights to a file. Returns an error if the model is empty.</p>
+<h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from a URI. Supports the following URI schemes:</p>
+<ul>
+<li>Local file path: <code>./models/japanese_pos.model</code></li>
+<li>File URI: <code>file:///path/to/model</code></li>
+<li>HTTP: <code>http://example.com/model</code></li>
+<li>HTTPS: <code>https://example.com/model</code></li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>learner.load_model("./models/japanese_pos.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="evaluation"><a class="header" href="#evaluation">Evaluation</a></h2>
 <h3 id="get_metrics"><a class="header" href="#get_metrics"><code>get_metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_metrics(&amp;self) -&gt; PosMetrics
+</span>pub fn get_metrics(&amp;self) -&gt; Metrics
 <span class="boring">}</span></code></pre>
 <p>Calculates evaluation metrics on the training data.</p>
-<h2 id="posmetrics"><a class="header" href="#posmetrics">PosMetrics</a></h2>
+<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct PosMetrics {
-    pub accuracy: f64,          // Overall accuracy in percentage
-    pub macro_precision: f64,   // Macro-averaged precision in percentage
-    pub macro_recall: f64,      // Macro-averaged recall in percentage
-    pub num_instances: usize,
+</span>pub struct Metrics {
+    pub accuracy: f64,                            // Overall accuracy in percentage
+    pub macro_precision: f64,                     // Macro-averaged precision in percentage
+    pub macro_recall: f64,                        // Macro-averaged recall in percentage
+    pub num_instances: usize,                     // Number of instances
+    pub correct_per_class: HashMap&lt;String, usize&gt;,   // Correct count per class
+    pub predicted_per_class: HashMap&lt;String, usize&gt;,  // Predicted count per class
+    pub gold_per_class: HashMap&lt;String, usize&gt;,       // Gold label count per class
 }
 <span class="boring">}</span></code></pre>
 

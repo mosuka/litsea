@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ae7d976f.js"></script>
@@ -188,11 +188,17 @@
 <li><strong>17 boundary labels</strong>: <code>B-ADJ</code>, <code>B-ADP</code>, <code>B-ADV</code>, <code>B-AUX</code>, <code>B-CCONJ</code>, <code>B-DET</code>, <code>B-INTJ</code>, <code>B-NOUN</code>, <code>B-NUM</code>, <code>B-PART</code>, <code>B-PRON</code>, <code>B-PROPN</code>, <code>B-PUNCT</code>, <code>B-SCONJ</code>, <code>B-SYM</code>, <code>B-VERB</code>, <code>B-X</code></li>
 <li><strong>1 non-boundary label</strong>: <code>O</code> (continuation of the current word)</li>
 </ul>
-<p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary.</p>
+<p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.</p>
 <h2 id="algorithm"><a class="header" href="#algorithm">Algorithm</a></h2>
 <h3 id="weight-representation"><a class="header" href="#weight-representation">Weight Representation</a></h3>
 <p>The perceptron maintains a <strong>weight vector per class</strong>. Weights are stored as a sparse map:</p>
 <pre><code class="language-text">weights: HashMap&lt;Feature, HashMap&lt;Class, f64&gt;&gt;
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-text">weights["UW4:猫"]["B-NOUN"] = 2.5
+weights["UC4:H"]["B-NOUN"]  = 1.8
+weights["UW4:猫"]["O"]      = -0.3
+...
 </code></pre>
 <p>For a given feature set, the score for each class is the sum of its feature weights:</p>
 <pre><code class="language-text">score(class) = sum(weights[feature][class] for each feature in input)
@@ -200,20 +206,24 @@ prediction = argmax(score(class) for all classes)
 </code></pre>
 <h3 id="update-rule"><a class="header" href="#update-rule">Update Rule</a></h3>
 <p>When the perceptron makes a misclassification:</p>
-<pre><code class="language-text">For each feature in the input:
-    weights[feature][correct_class] += 1.0
-    weights[feature][predicted_class] -= 1.0
+<pre><code class="language-text">For each training instance (features, truth):
+    guess = predict(features)
+
+    if guess != truth:
+        For each feature f in features:
+            weights[f][truth] += 1.0   # increase weight for correct class
+            weights[f][guess] -= 1.0   # decrease weight for predicted class
 </code></pre>
 <p>This increases the weights for the correct class and decreases them for the incorrectly predicted class, making the correct prediction more likely for similar inputs in the future.</p>
 <h3 id="averaging"><a class="header" href="#averaging">Averaging</a></h3>
-<p>A key improvement over the basic perceptron is <strong>weight averaging</strong>. Rather than using the final weights (which can be unstable), the model averages all weight vectors seen during training. This improves generalization to unseen data.</p>
+<p>A key improvement over the basic perceptron is <strong>weight averaging</strong>. Rather than using the final weights (which can be unstable and tend to overfit to the tail of the training data), the model averages all weight vectors seen during training. This improves generalization to unseen data.</p>
 <p>The implementation uses a <strong>cumulative sum</strong> approach for efficiency:</p>
-<pre><code class="language-text">cumulative[feature][class] += weights[feature][class]  (after each update)
+<pre><code class="language-text">cumulative[feature][class] += weights[feature][class] * elapsed_steps
 
 At the end of training:
-    averaged[feature][class] = cumulative[feature][class] / total_updates
+    averaged[feature][class] = cumulative[feature][class] / total_steps
 </code></pre>
-<p>This avoids storing all intermediate weight vectors while producing the same result.</p>
+<p>This avoids storing all intermediate weight vectors while producing the same result. The averaging reduces dependence on the order of training data and improves generalization performance.</p>
 <h3 id="training-with-epochs"><a class="header" href="#training-with-epochs">Training with Epochs</a></h3>
 <p>Training iterates over the data multiple times (epochs). Each epoch processes all training instances in order:</p>
 <pre><code class="language-text">For each epoch (1 to num_epochs):
@@ -225,6 +235,17 @@ At the end of training:
         accumulate weights for averaging
 </code></pre>
 <p>Training supports graceful interruption via <code>AtomicBool</code> – a Ctrl+C signal stops training and saves the model at its current state.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use litsea::perceptron::AveragedPerceptron;
+
+let mut perceptron = AveragedPerceptron::new();
+// ... add instances ...
+let running = Arc::new(AtomicBool::new(true));
+perceptron.train(10, running);  // 10 epochs
+<span class="boring">}</span></code></pre>
 <h2 id="model-file-format"><a class="header" href="#model-file-format">Model File Format</a></h2>
 <p>The Averaged Perceptron model is saved as a text file with the following structure:</p>
 <pre><code class="language-text">18
@@ -252,6 +273,9 @@ feature2\tclass2\tweight2
 <tbody>
 <tr><td>Classification</td><td>Binary (+1/-1)</td><td>Multiclass (18 classes)</td></tr>
 <tr><td>Output</td><td>Word boundaries only</td><td>Word boundaries + POS tags</td></tr>
+<tr><td>Weak learner</td><td>Decision stumps per feature</td><td>None (linear classifier)</td></tr>
+<tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
+<tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>
 <tr><td>Training</td><td>Iterative boosting with sample reweighting</td><td>Online learning with weight averaging</td></tr>
 <tr><td>Model size</td><td>A few KB</td><td>~11 MB (with POS features)</td></tr>
 <tr><td>Hyperparameters</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>

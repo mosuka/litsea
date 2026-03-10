@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-715437d4.js";
+            window.path_to_searchindex_js = "searchindex-95c94099.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-feadcd78.js"></script>
@@ -180,15 +180,15 @@
                     <main>
                         <h1 id="はじめに"><a class="header" href="#はじめに">はじめに</a></h1>
 <p><strong>Litsea</strong> は、<a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> および <a href="https://github.com/shogo82148/TinySegmenterMaker">TinySegmenterMaker</a> に触発されて開発された、Rust で実装された極めてコンパクトな単語分割ライブラリです。</p>
-<p><a href="https://taku910.github.io/mecab/">MeCab</a> や <a href="https://github.com/lindera/lindera">Lindera</a> などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、<strong>AdaBoost 二値分類</strong>アルゴリズムに基づくコンパクトな学習済みモデルを使用して単語分割を行います。</p>
+<p><a href="https://taku910.github.io/mecab/">MeCab</a> や <a href="https://github.com/lindera/lindera">Lindera</a> などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、<strong>AdaBoost 二値分類</strong>アルゴリズムに基づくコンパクトな学習済みモデルを使用して単語分割を行います。また、<strong>Averaged Perceptron</strong> 多クラス分類器と <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットを用いた<strong>単語分割と品詞推定の同時実行</strong>もサポートしています。</p>
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
 <li><strong>コンパクトな学習済みモデル</strong> – モデルファイルはわずか数キロバイト</li>
 <li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
-<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
-<li><strong>モデル学習機能</strong> – AdaBoost を使用して独自のコーパスからカスタムモデルを学習可能</li>
 <li><strong>品詞推定（POS Tagging）</strong> – Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定</li>
+<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
+<li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
 <li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL またはローカルファイルからモデルを読み込み</li>
 <li><strong>シンプルで拡張性の高い API</strong> – Rust プロジェクトへのライブラリとしての統合が容易</li>
 </ul>
@@ -673,39 +673,27 @@ bias_value
 <h1 id="averaged-perceptron"><a class="header" href="#averaged-perceptron">Averaged Perceptron</a></h1>
 <p>Litsea は、単語分割と品詞推定を同時に行うために <strong>Averaged Perceptron</strong> アルゴリズムによる多クラス分類を使用します。本章では、Litsea に実装されているアルゴリズムについて説明します。</p>
 <h2 id="概要-1"><a class="header" href="#概要-1">概要</a></h2>
-<p>Averaged Perceptron は、<strong>多クラス分類</strong>を行う線形分類器です。AdaBoost が二値分類（境界 / 非境界）を行うのに対し、Averaged Perceptron は 18 クラスの <strong>SegmentLabel</strong> を直接予測します:</p>
+<p><a href="#adaboost-二値分類">AdaBoost</a> が<strong>二値分類</strong>（境界 / 非境界）を行うのに対し、Averaged Perceptron は 18 クラスの<strong>多クラス分類</strong>を行い、各文字位置に対してセグメントラベルを予測します:</p>
 <ul>
-<li><code>B-ADJ</code>, <code>B-ADP</code>, <code>B-ADV</code>, <code>B-AUX</code>, <code>B-CCONJ</code>, <code>B-DET</code>, <code>B-INTJ</code>, <code>B-NOUN</code>, <code>B-NUM</code>, <code>B-PART</code>, <code>B-PRON</code>, <code>B-PROPN</code>, <code>B-PUNCT</code>, <code>B-SCONJ</code>, <code>B-SYM</code>, <code>B-VERB</code>, <code>B-X</code>（17 品詞の境界ラベル）</li>
-<li><code>O</code>（非境界 = 単語の継続）</li>
+<li><strong>17 個の境界ラベル</strong>: <code>B-ADJ</code>, <code>B-ADP</code>, <code>B-ADV</code>, <code>B-AUX</code>, <code>B-CCONJ</code>, <code>B-DET</code>, <code>B-INTJ</code>, <code>B-NOUN</code>, <code>B-NUM</code>, <code>B-PART</code>, <code>B-PRON</code>, <code>B-PROPN</code>, <code>B-PUNCT</code>, <code>B-SCONJ</code>, <code>B-SYM</code>, <code>B-VERB</code>, <code>B-X</code></li>
+<li><strong>1 個の非境界ラベル</strong>: <code>O</code>（単語の継続）</li>
 </ul>
-<p>これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。</p>
-<h3 id="adaboost-との比較"><a class="header" href="#adaboost-との比較">AdaBoost との比較</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>項目</th><th>AdaBoost</th><th>Averaged Perceptron</th></tr>
-</thead>
-<tbody>
-<tr><td>分類方式</td><td>二値分類（+1 / -1）</td><td>多クラス分類（18クラス）</td></tr>
-<tr><td>出力</td><td>境界 / 非境界</td><td>境界+品詞 / 非境界</td></tr>
-<tr><td>弱学習器</td><td>特徴量の決定株</td><td>なし（線形分類器）</td></tr>
-<tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
-<tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="重みベクトル"><a class="header" href="#重みベクトル">重みベクトル</a></h2>
-<p>各クラスは独立した重みベクトルを持ちます。特徴量は疎（sparse）な二値表現で、存在する特徴量の重みのみを合算してスコアを計算します。</p>
-<pre><code class="language-text">weights["B-NOUN"]["UW4:猫"] = 2.5
-weights["B-NOUN"]["UC4:H"]  = 1.8
-weights["O"]["UW4:猫"]      = -0.3
+<p>これらのラベルは Universal Dependencies プロジェクトの 17 個の <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグに対応し、<code>B-</code> プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。</p>
+<h2 id="アルゴリズム"><a class="header" href="#アルゴリズム">アルゴリズム</a></h2>
+<h3 id="重み表現"><a class="header" href="#重み表現">重み表現</a></h3>
+<p>各クラスは独立した重みベクトルを持ちます。重みは疎なマップとして格納されます:</p>
+<pre><code class="language-text">weights: HashMap&lt;Feature, HashMap&lt;Class, f64&gt;&gt;
+</code></pre>
+<p>例:</p>
+<pre><code class="language-text">weights["UW4:猫"]["B-NOUN"] = 2.5
+weights["UC4:H"]["B-NOUN"]  = 1.8
+weights["UW4:猫"]["O"]      = -0.3
 ...
 </code></pre>
-<p>予測時には、すべてのクラスについてスコアを計算し、最大スコアのクラスを予測ラベルとします:</p>
-<pre><code class="language-text">score(class) = sum(weights[class][feature] for feature in input_features)
-prediction = argmax_class score(class)
+<p>特徴量の集合に対し、各クラスのスコアは特徴量の重みを合算して計算し、最大スコアのクラスを予測ラベルとします:</p>
+<pre><code class="language-text">score(class) = sum(weights[feature][class] for feature in input_features)
+prediction = argmax(score(class) for all classes)
 </code></pre>
-<h2 id="学習アルゴリズム-1"><a class="header" href="#学習アルゴリズム-1">学習アルゴリズム</a></h2>
 <h3 id="更新規則"><a class="header" href="#更新規則">更新規則</a></h3>
 <p>各学習インスタンスについて、予測が正解と異なる場合に重みを更新します:</p>
 <pre><code class="language-text">For each training instance (features, truth):
@@ -713,21 +701,31 @@ prediction = argmax_class score(class)
 
     if guess != truth:
         For each feature f in features:
-            weights[truth][f] += 1.0   # 正解クラスの重みを増加
-            weights[guess][f] -= 1.0   # 誤予測クラスの重みを減少
+            weights[f][truth] += 1.0   # 正解クラスの重みを増加
+            weights[f][guess] -= 1.0   # 誤予測クラスの重みを減少
 </code></pre>
-<p>この単純な更新規則により、正解クラスの特徴量が強化され、誤予測クラスの特徴量が弱められます。</p>
-<h3 id="平均化による汎化"><a class="header" href="#平均化による汎化">平均化による汎化</a></h3>
-<p>学習の各ステップで重みが変動するため、最終的な重みは学習データの末尾に過適合する傾向があります。これを防ぐために、全ステップにわたる<strong>累積平均重み</strong>を最終モデルとして使用します。</p>
+<p>この単純な更新規則により、正解クラスの特徴量が強化され、誤予測クラスの特徴量が弱められます。これにより、将来の類似入力に対して正しい予測がより起こりやすくなります。</p>
+<h3 id="平均化"><a class="header" href="#平均化">平均化</a></h3>
+<p>基本的なパーセプトロンに対する重要な改善点が<strong>重みの平均化</strong>です。最終的な重みは学習データの末尾に過適合する傾向があるため、学習中に観測されたすべての重みベクトルの平均を最終モデルとして使用します。これにより、未知データへの汎化性能が向上します。</p>
+<p>実装では効率のために<strong>累積和</strong>アプローチを使用します:</p>
 <pre><code class="language-text"># 各ステップの重みを累積
-accumulated[class][feature] += weight[class][feature] * elapsed_steps
+cumulative[feature][class] += weights[feature][class] * elapsed_steps
 
 # 学習終了時に平均化
-final_weight[class][feature] = accumulated[class][feature] / total_steps
+averaged[feature][class] = cumulative[feature][class] / total_steps
 </code></pre>
-<p>この平均化により、学習データの順序への依存が軽減され、汎化性能が向上します。</p>
-<h3 id="エポック数と早期停止"><a class="header" href="#エポック数と早期停止">エポック数と早期停止</a></h3>
-<p>学習は指定されたエポック数（<code>num_epochs</code>）だけ学習データを繰り返します。<code>AtomicBool</code> フラグにより、Ctrl+C などで学習を中断し、その時点でのモデルを保存することも可能です。</p>
+<p>これにより、すべての中間重みベクトルを保存することなく同じ結果が得られます。この平均化により、学習データの順序への依存が軽減され、汎化性能が向上します。</p>
+<h3 id="エポックによる学習"><a class="header" href="#エポックによる学習">エポックによる学習</a></h3>
+<p>学習は指定されたエポック数だけ学習データを繰り返します。各エポックでは、すべての学習インスタンスを順に処理します:</p>
+<pre><code class="language-text">For each epoch (1 to num_epochs):
+    For each instance in training data:
+        features = extract_features(instance)
+        predicted = argmax(score(class) for all classes)
+        if predicted != correct_label:
+            update weights
+        accumulate weights for averaging
+</code></pre>
+<p><code>AtomicBool</code> フラグにより、Ctrl+C などで学習を中断し、その時点でのモデルを保存することも可能です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
@@ -753,18 +751,37 @@ UW4:猫	O	-0.3
 ...
 </code></pre>
 <ul>
-<li>1行目: クラス数</li>
-<li>続くN行: クラス名（1行に1つ）</li>
-<li>残りの行: <code>特徴名\tクラス名\t重み</code>（タブ区切り、重みがゼロの特徴量は省略）</li>
+<li><strong>1行目</strong>: クラス数（18）</li>
+<li><strong>続くN行</strong>: クラス名（1行に1つ）</li>
+<li><strong>残りの行</strong>: 特徴量の重み、タブ区切り <code>特徴名\tクラス名\t重み</code></li>
+<li>重みがゼロの特徴量は省略</li>
 </ul>
+<h2 id="adaboost-との比較"><a class="header" href="#adaboost-との比較">AdaBoost との比較</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>項目</th><th>AdaBoost</th><th>Averaged Perceptron</th></tr>
+</thead>
+<tbody>
+<tr><td>分類方式</td><td>二値分類（+1 / -1）</td><td>多クラス分類（18クラス）</td></tr>
+<tr><td>出力</td><td>単語境界のみ</td><td>単語境界 + 品詞タグ</td></tr>
+<tr><td>弱学習器</td><td>特徴量の決定株</td><td>なし（線形分類器）</td></tr>
+<tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
+<tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
+<tr><td>学習方式</td><td>サンプル再重み付けによる反復ブースティング</td><td>重み平均化によるオンライン学習</td></tr>
+<tr><td>モデルサイズ</td><td>数 KB</td><td>約 11 MB（品詞特徴量含む）</td></tr>
+<tr><td>ハイパーパラメータ</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="ハイパーパラメータ-1"><a class="header" href="#ハイパーパラメータ-1">ハイパーパラメータ</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Parameter</th><th>Default</th><th>説明</th></tr>
+<tr><th>パラメータ</th><th>デフォルト値</th><th>説明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>num_epochs</code></td><td>10</td><td>学習エポック数。高い値は精度を向上させる可能性があるが、学習時間が増加する</td></tr>
+<tr><td><code>num_epochs</code></td><td>10</td><td>学習エポック数。高い値は精度を向上させる可能性があるが、過学習のリスクがある</td></tr>
 </tbody>
 </table>
 </div>
@@ -1959,7 +1976,7 @@ let label = learner.predict(&amp;attrs);
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="upos"><a class="header" href="#upos">UPOS</a></h1>
-<p><code>Upos</code> 列挙型と <code>SegmentLabel</code> 列挙型は、Universal Dependencies の品詞タグと分割ラベルを表現します。</p>
+<p><code>upos</code> モジュールは、品詞タグ付けに使用する Universal POS (UPOS) タグセットと分割ラベル型を定義します。</p>
 <h2 id="upos-1"><a class="header" href="#upos-1">Upos</a></h2>
 <h3 id="定義-5"><a class="header" href="#定義-5">定義</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1985,6 +2002,33 @@ pub enum Upos {
     X,      // その他 (Other)
 }
 <span class="boring">}</span></code></pre>
+<p>Litsea は <a href="https://universaldependencies.org/u/pos/">Universal Dependencies</a> プロジェクトの全 17 UPOS タグをサポートしています:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>タグ</th><th>説明</th><th>例（日本語）</th></tr>
+</thead>
+<tbody>
+<tr><td><code>ADJ</code></td><td>形容詞</td><td>いい, 大きい</td></tr>
+<tr><td><code>ADP</code></td><td>接置詞</td><td>は, が, を, に</td></tr>
+<tr><td><code>ADV</code></td><td>副詞</td><td>とても, まだ</td></tr>
+<tr><td><code>AUX</code></td><td>助動詞</td><td>です, ます, た</td></tr>
+<tr><td><code>CCONJ</code></td><td>等位接続詞</td><td>と, や</td></tr>
+<tr><td><code>DET</code></td><td>限定詞</td><td>この, その</td></tr>
+<tr><td><code>INTJ</code></td><td>間投詞</td><td>ああ, はい</td></tr>
+<tr><td><code>NOUN</code></td><td>名詞</td><td>天気, 本</td></tr>
+<tr><td><code>NUM</code></td><td>数詞</td><td>一, 二, 100</td></tr>
+<tr><td><code>PART</code></td><td>助詞・小辞</td><td>ね, よ</td></tr>
+<tr><td><code>PRON</code></td><td>代名詞</td><td>これ, それ</td></tr>
+<tr><td><code>PROPN</code></td><td>固有名詞</td><td>東京, 太郎</td></tr>
+<tr><td><code>PUNCT</code></td><td>句読点</td><td>。, 、</td></tr>
+<tr><td><code>SCONJ</code></td><td>従属接続詞</td><td>ので, から</td></tr>
+<tr><td><code>SYM</code></td><td>記号</td><td>%, $</td></tr>
+<tr><td><code>VERB</code></td><td>動詞</td><td>読む, 書く</td></tr>
+<tr><td><code>X</code></td><td>その他</td><td>（未分類トークン）</td></tr>
+</tbody>
+</table>
+</div>
 <h3 id="定数"><a class="header" href="#定数">定数</a></h3>
 <h4 id="uposall"><a class="header" href="#uposall"><code>Upos::ALL</code></a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2006,6 +2050,11 @@ assert_eq!(pos.to_string(), "NOUN");
 <span class="boring">}</span></code></pre>
 <h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
 <h3 id="定義-1-1"><a class="header" href="#定義-1-1">定義</a></h3>
+<p><code>SegmentLabel</code> 型は単語境界検出と品詞タグ付けを組み合わせます。各文字位置に 18 ラベルのいずれかが割り当てられます:</p>
+<ul>
+<li><strong><code>B(Upos)</code></strong>（17 ラベル）: 指定された UPOS タグを持つ単語境界（例: <code>B-NOUN</code>, <code>B-VERB</code>）</li>
+<li><strong><code>O</code></strong>（1 ラベル）: 非境界（現在の単語の継続）</li>
+</ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -2013,6 +2062,15 @@ pub enum SegmentLabel {
     B(Upos),  // 単語の先頭文字（境界）。品詞情報を持つ
     O,        // 単語の継続文字（非境界）
 }
+<span class="boring">}</span></code></pre>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::upos::SegmentLabel;
+
+// "今日は" の分割ラベル
+// 今 → B-NOUN  （"今日" の先頭、NOUN としてタグ付け）
+// 日 → O       （"今日" の継続）
+// は → B-ADP   （"は" の先頭、ADP としてタグ付け）
 <span class="boring">}</span></code></pre>
 <h3 id="メソッド-3"><a class="header" href="#メソッド-3">メソッド</a></h3>
 <h4 id="all_labels"><a class="header" href="#all_labels"><code>all_labels</code></a></h4>
@@ -2287,6 +2345,8 @@ B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
 <tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる</td></tr>
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）学習モードを有効にする（Averaged Perceptron を使用）</td></tr>
+<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（POS モードのみ）</td></tr>
 </tbody>
 </table>
 </div>
@@ -2320,8 +2380,20 @@ B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
 <pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
     ./new_features.txt ./models/japanese_v2.model
 </code></pre>
+<h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>値を小さくした場合の効果</th><th>値を大きくした場合の効果</th></tr>
+</thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>反復回数が増加、精度が向上する可能性あり、学習時間が長くなる</td><td>反復回数が減少、学習が高速化、アンダーフィットの可能性あり</td></tr>
+<tr><td><code>num_iterations</code></td><td>ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり</td><td>ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="品詞モデルの学習--pos"><a class="header" href="#品詞モデルの学習--pos">品詞モデルの学習（<code>--pos</code>）</a></h2>
-<p><code>--pos</code> フラグを指定すると、Averaged Perceptron による品詞推定モデルを学習します。</p>
+<p><code>--pos</code> フラグを指定すると、AdaBoost の代わりに <strong>Averaged Perceptron</strong> アルゴリズムを使用します。単語分割と品詞タグ付けを同時に行うマルチクラス分類器を学習します。</p>
 <h3 id="使い方-1-2"><a class="header" href="#使い方-1-2">使い方</a></h3>
 <pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
@@ -2332,14 +2404,14 @@ B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>--pos</code></td><td>false</td><td>品詞推定モデル（Averaged Perceptron）を学習する</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞推定モデル（Averaged Perceptron）を学習する</td></tr>
+<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="使用例-1-1"><a class="header" href="#使用例-1-1">使用例</a></h3>
 <pre><code class="language-sh"># 品詞モデルの学習（10エポック）
-litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
+litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="出力-1"><a class="header" href="#出力-1">出力</a></h3>
 <p>学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。</p>
@@ -2349,16 +2421,15 @@ litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.mode
   Macro Recall: 91.67%
 </code></pre>
 <h3 id="ctrlc-のハンドリング-1"><a class="header" href="#ctrlc-のハンドリング-1">Ctrl+C のハンドリング</a></h3>
-<p>AdaBoost と同様に、学習は優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。</p>
-<h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
+<p>AdaBoost と同様に、品詞モデルの学習も優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。</p>
+<h3 id="pos-ハイパーパラメータ"><a class="header" href="#pos-ハイパーパラメータ">POS ハイパーパラメータ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Parameter</th><th>値を小さくした場合の効果</th><th>値を大きくした場合の効果</th></tr>
 </thead>
 <tbody>
-<tr><td><code>threshold</code></td><td>反復回数が増加、精度が向上する可能性あり、学習時間が長くなる</td><td>反復回数が減少、学習が高速化、アンダーフィットの可能性あり</td></tr>
-<tr><td><code>num_iterations</code></td><td>ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり</td><td>ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり</td></tr>
+<tr><td><code>num_epochs</code></td><td>学習が高速化、アンダーフィットの可能性あり</td><td>精度が向上、学習時間が長くなる、オーバーフィットの可能性あり</td></tr>
 </tbody>
 </table>
 </div>
@@ -2387,6 +2458,7 @@ litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.mode
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<code>train --pos</code> で学習したPOSモデルが必要です</td></tr>
 </tbody>
 </table>
 </div>
@@ -2436,6 +2508,7 @@ litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.mode
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
 <li>モデルの読み込みは非同期で行われ、TLS（rustls）を使用したHTTP/HTTPSをサポートしています</li>
 <li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
+<li><code>--pos</code> を使用する場合、モデルは <code>train --pos</code> で学習したPOSモデルである必要があります</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
@@ -2539,10 +2612,69 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 <li><code>-p</code> オプション指定時は品詞付きコーパス形式に変換</li>
 </ol>
 <p>サポート言語: <code>ja</code>（日本語）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。</p>
+<h2 id="wikipedia-ダンプからのコーパス作成"><a class="header" href="#wikipedia-ダンプからのコーパス作成">Wikipedia ダンプからのコーパス作成</a></h2>
+<p>大規模な学習データが必要な場合、Wikipedia の全文ダンプから <code>scripts/corpus_wikidump.sh</code> を使ってコーパスを作成できます。このスクリプトは <a href="https://github.com/mosuka/wicket">wicket</a> でプレーンテキストを抽出し、文章のみをフィルタリングした後、<a href="https://github.com/lindera/lindera">lindera</a> でトークナイズします。</p>
+<h3 id="使い方-4"><a class="header" href="#使い方-4">使い方</a></h3>
+<pre><code class="language-sh"># 日本語（デフォルト）
+bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
+
+# 韓国語
+bash scripts/corpus_wikidump.sh -l ko kowiki-latest-pages-articles.xml.bz2 corpus_ko.txt
+
+# 中国語
+bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpus_zh.txt
+</code></pre>
+<h3 id="オプション-3"><a class="header" href="#オプション-3">オプション</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>オプション</th><th>説明</th><th>デフォルト</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l lang</code></td><td>言語コード: <code>ja</code>, <code>ko</code>, <code>zh</code></td><td><code>ja</code></td></tr>
+<tr><td><code>-n max_lines</code></td><td>処理する最大文数（0 = 無制限）</td><td><code>100000</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="文章フィルタリング"><a class="header" href="#文章フィルタリング">文章フィルタリング</a></h3>
+<p>スクリプトは以下の2つのフィルタを適用し、整形された文章のみを抽出します:</p>
+<ol>
+<li><strong>文末記号</strong> – 行が <code>。</code>、<code>.</code>、<code>!</code>、<code>?</code> で終わる必要があります。これにより、セクション見出し（例: 「参考文献」）、箇条書き項目、メタデータが除外されます。</li>
+<li><strong>最小文字数</strong> – 行は20文字以上である必要があります。これにより、短い断片や孤立したラベルが除外されます。</li>
+</ol>
+<h3 id="トークナイザー辞書"><a class="header" href="#トークナイザー辞書">トークナイザー辞書</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>言語</th><th>辞書</th><th>トークンフィルタ</th></tr>
+</thead>
+<tbody>
+<tr><td>日本語 (<code>ja</code>)</td><td><code>embedded://unidic</code></td><td><code>japanese_compound_word</code>（数詞複合語）</td></tr>
+<tr><td>韓国語 (<code>ko</code>)</td><td><code>embedded://ko-dic</code></td><td>なし</td></tr>
+<tr><td>中国語 (<code>zh</code>)</td><td><code>embedded://cc-cedict</code></td><td>なし</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="コーパスサイズのガイドライン"><a class="header" href="#コーパスサイズのガイドライン">コーパスサイズのガイドライン</a></h2>
+<p>推奨されるコーパスサイズは用途によって異なります:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>サイズ（文数）</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>~10,000</td><td>プロトタイピングや動作確認の最小限</td></tr>
+<tr><td>50,000 – 100,000</td><td>モデル学習の実用的な範囲</td></tr>
+<tr><td>100,000 – 500,000</td><td>高品質でロバストなモデル</td></tr>
+<tr><td>無制限</td><td>最大精度を目指す場合は全量使用</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>corpus_wikidump.sh</code> のデフォルト <code>max_lines=100000</code> は、実用〜高品質の範囲を想定しています。</p>
 <h2 id="コーパスの品質に関するヒント"><a class="header" href="#コーパスの品質に関するヒント">コーパスの品質に関するヒント</a></h2>
 <ul>
 <li><strong>多様性</strong> – さまざまな分野のテキストを含める（ニュース、文学、ウェブなど）</li>
-<li><strong>データ量</strong> – 大きなコーパスほど一般的に良いモデルを生成するが、収穫逓減がある</li>
+<li><strong>データ量</strong> – 推奨サイズは<a href="#コーパスサイズのガイドライン">コーパスサイズのガイドライン</a>を参照</li>
 <li><strong>一貫性</strong> – コーパス全体で一貫したトークン化を確保する</li>
 <li><strong>重複排除</strong> – 偏りを避けるために重複文を除去する</li>
 <li><strong>クリーニング</strong> – HTML タグ、特殊なフォーマット、非テキストコンテンツを除去する</li>

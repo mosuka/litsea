@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-715437d4.js";
+            window.path_to_searchindex_js = "searchindex-95c94099.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-feadcd78.js"></script>
@@ -182,15 +182,15 @@
                     <main>
                         <h1 id="はじめに"><a class="header" href="#はじめに">はじめに</a></h1>
 <p><strong>Litsea</strong> は、<a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> および <a href="https://github.com/shogo82148/TinySegmenterMaker">TinySegmenterMaker</a> に触発されて開発された、Rust で実装された極めてコンパクトな単語分割ライブラリです。</p>
-<p><a href="https://taku910.github.io/mecab/">MeCab</a> や <a href="https://github.com/lindera/lindera">Lindera</a> などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、<strong>AdaBoost 二値分類</strong>アルゴリズムに基づくコンパクトな学習済みモデルを使用して単語分割を行います。</p>
+<p><a href="https://taku910.github.io/mecab/">MeCab</a> や <a href="https://github.com/lindera/lindera">Lindera</a> などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、<strong>AdaBoost 二値分類</strong>アルゴリズムに基づくコンパクトな学習済みモデルを使用して単語分割を行います。また、<strong>Averaged Perceptron</strong> 多クラス分類器と <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットを用いた<strong>単語分割と品詞推定の同時実行</strong>もサポートしています。</p>
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
 <li><strong>コンパクトな学習済みモデル</strong> – モデルファイルはわずか数キロバイト</li>
 <li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
-<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
-<li><strong>モデル学習機能</strong> – AdaBoost を使用して独自のコーパスからカスタムモデルを学習可能</li>
 <li><strong>品詞推定（POS Tagging）</strong> – Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定</li>
+<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
+<li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
 <li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL またはローカルファイルからモデルを読み込み</li>
 <li><strong>シンプルで拡張性の高い API</strong> – Rust プロジェクトへのライブラリとしての統合が容易</li>
 </ul>

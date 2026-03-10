@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-715437d4.js";
+            window.path_to_searchindex_js = "../searchindex-95c94099.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-feadcd78.js"></script>
@@ -207,6 +207,8 @@
 <tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる</td></tr>
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）学習モードを有効にする（Averaged Perceptron を使用）</td></tr>
+<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（POS モードのみ）</td></tr>
 </tbody>
 </table>
 </div>
@@ -240,8 +242,20 @@
 <pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
     ./new_features.txt ./models/japanese_v2.model
 </code></pre>
+<h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>値を小さくした場合の効果</th><th>値を大きくした場合の効果</th></tr>
+</thead>
+<tbody>
+<tr><td><code>threshold</code></td><td>反復回数が増加、精度が向上する可能性あり、学習時間が長くなる</td><td>反復回数が減少、学習が高速化、アンダーフィットの可能性あり</td></tr>
+<tr><td><code>num_iterations</code></td><td>ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり</td><td>ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="品詞モデルの学習--pos"><a class="header" href="#品詞モデルの学習--pos">品詞モデルの学習（<code>--pos</code>）</a></h2>
-<p><code>--pos</code> フラグを指定すると、Averaged Perceptron による品詞推定モデルを学習します。</p>
+<p><code>--pos</code> フラグを指定すると、AdaBoost の代わりに <strong>Averaged Perceptron</strong> アルゴリズムを使用します。単語分割と品詞タグ付けを同時に行うマルチクラス分類器を学習します。</p>
 <h3 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h3>
 <pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
@@ -252,14 +266,14 @@
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>--pos</code></td><td>false</td><td>品詞推定モデル（Averaged Perceptron）を学習する</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞推定モデル（Averaged Perceptron）を学習する</td></tr>
+<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h3>
 <pre><code class="language-sh"># 品詞モデルの学習（10エポック）
-litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.model
+litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="出力-1"><a class="header" href="#出力-1">出力</a></h3>
 <p>学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。</p>
@@ -269,16 +283,15 @@ litsea train --pos --num-epochs 10 ./features_pos.txt ./models/japanese_pos.mode
   Macro Recall: 91.67%
 </code></pre>
 <h3 id="ctrlc-のハンドリング-1"><a class="header" href="#ctrlc-のハンドリング-1">Ctrl+C のハンドリング</a></h3>
-<p>AdaBoost と同様に、学習は優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。</p>
-<h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
+<p>AdaBoost と同様に、品詞モデルの学習も優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。</p>
+<h3 id="pos-ハイパーパラメータ"><a class="header" href="#pos-ハイパーパラメータ">POS ハイパーパラメータ</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Parameter</th><th>値を小さくした場合の効果</th><th>値を大きくした場合の効果</th></tr>
 </thead>
 <tbody>
-<tr><td><code>threshold</code></td><td>反復回数が増加、精度が向上する可能性あり、学習時間が長くなる</td><td>反復回数が減少、学習が高速化、アンダーフィットの可能性あり</td></tr>
-<tr><td><code>num_iterations</code></td><td>ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり</td><td>ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり</td></tr>
+<tr><td><code>num_epochs</code></td><td>学習が高速化、アンダーフィットの可能性あり</td><td>精度が向上、学習時間が長くなる、オーバーフィットの可能性あり</td></tr>
 </tbody>
 </table>
 </div>

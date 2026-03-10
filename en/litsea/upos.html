@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ae7d976f.js"></script>
@@ -182,7 +182,31 @@
                     <main>
                         <h1 id="upos"><a class="header" href="#upos">UPOS</a></h1>
 <p>The <code>upos</code> module defines the Universal POS (UPOS) tagset and segment label types used for POS tagging.</p>
-<h2 id="upos-tags"><a class="header" href="#upos-tags">UPOS Tags</a></h2>
+<h2 id="upos-1"><a class="header" href="#upos-1">Upos</a></h2>
+<h3 id="definition"><a class="header" href="#definition">Definition</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Upos {
+    ADJ,    // Adjective
+    ADP,    // Adposition
+    ADV,    // Adverb
+    AUX,    // Auxiliary
+    CCONJ,  // Coordinating conjunction
+    DET,    // Determiner
+    INTJ,   // Interjection
+    NOUN,   // Noun
+    NUM,    // Numeral
+    PART,   // Particle
+    PRON,   // Pronoun
+    PROPN,  // Proper noun
+    PUNCT,  // Punctuation
+    SCONJ,  // Subordinating conjunction
+    SYM,    // Symbol
+    VERB,   // Verb
+    X,      // Other
+}
+<span class="boring">}</span></code></pre>
 <p>Litsea supports all 17 UPOS tags from the <a href="https://universaldependencies.org/u/pos/">Universal Dependencies</a> project:</p>
 <div class="table-wrapper">
 <table>
@@ -210,12 +234,40 @@
 </tbody>
 </table>
 </div>
-<h2 id="segment-labels"><a class="header" href="#segment-labels">Segment Labels</a></h2>
+<h3 id="constant"><a class="header" href="#constant">Constant</a></h3>
+<h4 id="uposall"><a class="header" href="#uposall"><code>Upos::ALL</code></a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub const ALL: [Upos; 17]
+<span class="boring">}</span></code></pre>
+<p>Returns an array of all 17 UPOS tags.</p>
+<h3 id="trait-implementations"><a class="header" href="#trait-implementations">Trait Implementations</a></h3>
+<ul>
+<li><code>Display</code>: Converts to a string such as <code>"NOUN"</code>, <code>"VERB"</code>, etc.</li>
+<li><code>FromStr</code>: Parses a string into <code>Upos</code>. Returns an error for invalid strings.</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::upos::Upos;
+
+let pos: Upos = "NOUN".parse().unwrap();
+assert_eq!(pos.to_string(), "NOUN");
+<span class="boring">}</span></code></pre>
+<h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
+<h3 id="definition-1"><a class="header" href="#definition-1">Definition</a></h3>
 <p>The <code>SegmentLabel</code> type combines word boundary detection with POS tagging. Each character position is assigned one of 18 labels:</p>
 <ul>
-<li><strong><code>B-{TAG}</code></strong> (17 labels): Word boundary with the given UPOS tag (e.g., <code>B-NOUN</code>, <code>B-VERB</code>)</li>
+<li><strong><code>B(Upos)</code></strong> (17 labels): Word boundary with the given UPOS tag (e.g., <code>B-NOUN</code>, <code>B-VERB</code>)</li>
 <li><strong><code>O</code></strong> (1 label): Non-boundary (continuation of the current word)</li>
 </ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum SegmentLabel {
+    B(Upos),  // Start of a word (boundary). Carries POS information.
+    O,        // Continuation of a word (non-boundary).
+}
+<span class="boring">}</span></code></pre>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::upos::SegmentLabel;
@@ -225,11 +277,42 @@
 // 日 → O       (continuation of "今日")
 // は → B-ADP   (start of "は", tagged as ADP)
 <span class="boring">}</span></code></pre>
-<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
-<h3 id="segment_label_to_upos"><a class="header" href="#segment_label_to_upos"><code>segment_label_to_upos</code></a></h3>
-<p>Converts a segment label string (e.g., <code>"B-NOUN"</code>) to its UPOS tag (e.g., <code>"NOUN"</code>). Returns <code>None</code> for the <code>"O"</code> label.</p>
-<h3 id="all_segment_labels"><a class="header" href="#all_segment_labels"><code>all_segment_labels</code></a></h3>
+<h3 id="methods"><a class="header" href="#methods">Methods</a></h3>
+<h4 id="all_labels"><a class="header" href="#all_labels"><code>all_labels</code></a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn all_labels() -&gt; Vec&lt;SegmentLabel&gt;
+<span class="boring">}</span></code></pre>
 <p>Returns a vector of all 18 segment label strings.</p>
+<h4 id="is_boundary"><a class="header" href="#is_boundary"><code>is_boundary</code></a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn is_boundary(&amp;self) -&gt; bool
+<span class="boring">}</span></code></pre>
+<p>Returns whether this is a boundary label (<code>B-*</code>).</p>
+<h4 id="pos"><a class="header" href="#pos"><code>pos</code></a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn pos(&amp;self) -&gt; Option&lt;Upos&gt;
+<span class="boring">}</span></code></pre>
+<p>Returns the UPOS tag. Returns <code>None</code> for the non-boundary label (<code>O</code>).</p>
+<h3 id="trait-implementations-1"><a class="header" href="#trait-implementations-1">Trait Implementations</a></h3>
+<ul>
+<li><code>Display</code>: Converts to a string such as <code>"B-NOUN"</code>, <code>"O"</code>, etc.</li>
+<li><code>FromStr</code>: Parses a string into <code>SegmentLabel</code>.</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::upos::{SegmentLabel, Upos};
+
+let label: SegmentLabel = "B-NOUN".parse().unwrap();
+assert!(label.is_boundary());
+assert_eq!(label.pos(), Some(Upos::NOUN));
+
+let label_o: SegmentLabel = "O".parse().unwrap();
+assert!(!label_o.is_boundary());
+assert_eq!(label_o.pos(), None);
+<span class="boring">}</span></code></pre>
 
                     </main>
 

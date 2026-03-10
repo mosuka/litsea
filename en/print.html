@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1975e3b0.js";
+            window.path_to_searchindex_js = "searchindex-cc69bee1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ae7d976f.js"></script>
@@ -199,7 +199,14 @@
          O O O O B O B O B   ← boundary predictions
 Output: ["Litsea", "は", "Rust製", "です"]
 </code></pre>
-<p>With POS tagging enabled, Litsea performs <strong>joint segmentation and POS tagging</strong> as a multiclass classification problem. Instead of binary boundary/non-boundary labels, each boundary position is labeled with a UPOS tag (e.g., <code>B-NOUN</code>, <code>B-VERB</code>), producing both word boundaries and POS tags in a single pass:</p>
+<h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
+<p>Litsea also supports <strong>POS (Part-of-Speech) tagging</strong> in addition to word segmentation. Using the <strong>Averaged Perceptron</strong> multiclass classifier, it performs joint segmentation and POS tagging simultaneously.</p>
+<p>For each character position, the model predicts one of 18 <strong>SegmentLabel</strong> classes:</p>
+<ul>
+<li><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code> (boundary labels for 17 POS tags)</li>
+<li><code>O</code> (non-boundary = continuation of the current word)</li>
+</ul>
+<p>The POS tags follow the <a href="https://universaldependencies.org/">Universal Dependencies</a> <strong>UPOS tagset</strong> (17 POS tags).</p>
 <pre><code class="language-text">Input:  "今日はいい天気ですね。"
 Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
@@ -284,7 +291,7 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 <p><strong>Korean:</strong></p>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
-<h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
+<h3 id="pos-tagging-1"><a class="header" href="#pos-tagging-1">POS Tagging</a></h3>
 <p>Litsea can perform joint word segmentation and POS tagging using a POS model. Add the <code>--pos</code> flag to the <code>segment</code> command:</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
   | litsea segment --pos -l japanese ./models/japanese_pos.model
@@ -673,11 +680,17 @@ bias_value
 <li><strong>17 boundary labels</strong>: <code>B-ADJ</code>, <code>B-ADP</code>, <code>B-ADV</code>, <code>B-AUX</code>, <code>B-CCONJ</code>, <code>B-DET</code>, <code>B-INTJ</code>, <code>B-NOUN</code>, <code>B-NUM</code>, <code>B-PART</code>, <code>B-PRON</code>, <code>B-PROPN</code>, <code>B-PUNCT</code>, <code>B-SCONJ</code>, <code>B-SYM</code>, <code>B-VERB</code>, <code>B-X</code></li>
 <li><strong>1 non-boundary label</strong>: <code>O</code> (continuation of the current word)</li>
 </ul>
-<p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary.</p>
+<p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.</p>
 <h2 id="algorithm"><a class="header" href="#algorithm">Algorithm</a></h2>
 <h3 id="weight-representation"><a class="header" href="#weight-representation">Weight Representation</a></h3>
 <p>The perceptron maintains a <strong>weight vector per class</strong>. Weights are stored as a sparse map:</p>
 <pre><code class="language-text">weights: HashMap&lt;Feature, HashMap&lt;Class, f64&gt;&gt;
+</code></pre>
+<p>For example:</p>
+<pre><code class="language-text">weights["UW4:猫"]["B-NOUN"] = 2.5
+weights["UC4:H"]["B-NOUN"]  = 1.8
+weights["UW4:猫"]["O"]      = -0.3
+...
 </code></pre>
 <p>For a given feature set, the score for each class is the sum of its feature weights:</p>
 <pre><code class="language-text">score(class) = sum(weights[feature][class] for each feature in input)
@@ -685,20 +698,24 @@ prediction = argmax(score(class) for all classes)
 </code></pre>
 <h3 id="update-rule"><a class="header" href="#update-rule">Update Rule</a></h3>
 <p>When the perceptron makes a misclassification:</p>
-<pre><code class="language-text">For each feature in the input:
-    weights[feature][correct_class] += 1.0
-    weights[feature][predicted_class] -= 1.0
+<pre><code class="language-text">For each training instance (features, truth):
+    guess = predict(features)
+
+    if guess != truth:
+        For each feature f in features:
+            weights[f][truth] += 1.0   # increase weight for correct class
+            weights[f][guess] -= 1.0   # decrease weight for predicted class
 </code></pre>
 <p>This increases the weights for the correct class and decreases them for the incorrectly predicted class, making the correct prediction more likely for similar inputs in the future.</p>
 <h3 id="averaging"><a class="header" href="#averaging">Averaging</a></h3>
-<p>A key improvement over the basic perceptron is <strong>weight averaging</strong>. Rather than using the final weights (which can be unstable), the model averages all weight vectors seen during training. This improves generalization to unseen data.</p>
+<p>A key improvement over the basic perceptron is <strong>weight averaging</strong>. Rather than using the final weights (which can be unstable and tend to overfit to the tail of the training data), the model averages all weight vectors seen during training. This improves generalization to unseen data.</p>
 <p>The implementation uses a <strong>cumulative sum</strong> approach for efficiency:</p>
-<pre><code class="language-text">cumulative[feature][class] += weights[feature][class]  (after each update)
+<pre><code class="language-text">cumulative[feature][class] += weights[feature][class] * elapsed_steps
 
 At the end of training:
-    averaged[feature][class] = cumulative[feature][class] / total_updates
+    averaged[feature][class] = cumulative[feature][class] / total_steps
 </code></pre>
-<p>This avoids storing all intermediate weight vectors while producing the same result.</p>
+<p>This avoids storing all intermediate weight vectors while producing the same result. The averaging reduces dependence on the order of training data and improves generalization performance.</p>
 <h3 id="training-with-epochs"><a class="header" href="#training-with-epochs">Training with Epochs</a></h3>
 <p>Training iterates over the data multiple times (epochs). Each epoch processes all training instances in order:</p>
 <pre><code class="language-text">For each epoch (1 to num_epochs):
@@ -710,6 +727,17 @@ At the end of training:
         accumulate weights for averaging
 </code></pre>
 <p>Training supports graceful interruption via <code>AtomicBool</code> – a Ctrl+C signal stops training and saves the model at its current state.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use litsea::perceptron::AveragedPerceptron;
+
+let mut perceptron = AveragedPerceptron::new();
+// ... add instances ...
+let running = Arc::new(AtomicBool::new(true));
+perceptron.train(10, running);  // 10 epochs
+<span class="boring">}</span></code></pre>
 <h2 id="model-file-format-1"><a class="header" href="#model-file-format-1">Model File Format</a></h2>
 <p>The Averaged Perceptron model is saved as a text file with the following structure:</p>
 <pre><code class="language-text">18
@@ -737,6 +765,9 @@ feature2\tclass2\tweight2
 <tbody>
 <tr><td>Classification</td><td>Binary (+1/-1)</td><td>Multiclass (18 classes)</td></tr>
 <tr><td>Output</td><td>Word boundaries only</td><td>Word boundaries + POS tags</td></tr>
+<tr><td>Weak learner</td><td>Decision stumps per feature</td><td>None (linear classifier)</td></tr>
+<tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
+<tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>
 <tr><td>Training</td><td>Iterative boosting with sample reweighting</td><td>Online learning with weight averaging</td></tr>
 <tr><td>Model size</td><td>A few KB</td><td>~11 MB (with POS features)</td></tr>
 <tr><td>Hyperparameters</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
@@ -1438,6 +1469,26 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
     Ok(())
 }</code></pre>
+<h2 id="quick-example-pos-tagging"><a class="header" href="#quick-example-pos-tagging">Quick Example (POS Tagging)</a></h2>
+<pre class="playground"><code class="language-rust">use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    let mut pos_learner = AveragedPerceptron::new();
+    pos_learner.load_model("./models/japanese_pos.model").await?;
+
+    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let tokens = segmenter.segment_with_pos("これはテストです。");
+
+    for (word, pos) in &amp;tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
+
+    Ok(())
+}</code></pre>
 <h2 id="api-documentation"><a class="header" href="#api-documentation">API Documentation</a></h2>
 <p>Full API documentation is available on <a href="https://docs.rs/litsea">docs.rs/litsea</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1813,7 +1864,7 @@ let label = learner.predict(attrs);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AveragedPerceptron {
-    // internal fields: weight vectors, class names, cumulative weights, etc.
+    // internal fields: weights, accumulated, timestamps, step, classes, instances
 }
 <span class="boring">}</span></code></pre>
 <h2 id="constructor-4"><a class="header" href="#constructor-4">Constructor</a></h2>
@@ -1829,54 +1880,46 @@ let label = learner.predict(attrs);
 
 let mut learner = AveragedPerceptron::new();
 <span class="boring">}</span></code></pre>
-<h2 id="model-loading-1"><a class="header" href="#model-loading-1">Model Loading</a></h2>
-<h3 id="load_model-2"><a class="header" href="#load_model-2"><code>load_model</code></a></h3>
+<h2 id="adding-instances"><a class="header" href="#adding-instances">Adding Instances</a></h2>
+<h3 id="add_instance-1"><a class="header" href="#add_instance-1"><code>add_instance</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub fn add_instance(&amp;mut self, features: HashSet&lt;String&gt;, label: String)
 <span class="boring">}</span></code></pre>
-<p>Loads model weights from a URI. Supports the same URI schemes as <code>AdaBoost::load_model</code>:</p>
-<ul>
-<li>Local file path: <code>./models/japanese_pos.model</code></li>
-<li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP/HTTPS: <code>https://example.com/model</code></li>
-</ul>
+<p>Adds a training instance with a feature set and a label. Unknown classes are automatically registered.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./models/japanese_pos.model").await?;
+</span>use std::collections::HashSet;
+use litsea::perceptron::AveragedPerceptron;
+
+let mut learner = AveragedPerceptron::new();
+let mut feats = HashSet::new();
+feats.insert("UW4:猫".to_string());
+feats.insert("UC4:H".to_string());
+learner.add_instance(feats, "B-NOUN".to_string());
 <span class="boring">}</span></code></pre>
-<h3 id="save_model-1"><a class="header" href="#save_model-1"><code>save_model</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>Saves model weights to a file. The format includes class names followed by feature-class-weight triples.</p>
-<h2 id="training-methods-1"><a class="header" href="#training-methods-1">Training Methods</a></h2>
-<h3 id="initialize_features-1"><a class="header" href="#initialize_features-1"><code>initialize_features</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>Reads a POS features file and builds the feature and class indices. Must be called before <code>initialize_instances</code>.</p>
-<h3 id="initialize_instances-1"><a class="header" href="#initialize_instances-1"><code>initialize_instances</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>Reads the same features file and initializes labeled instances.</p>
+<h2 id="training"><a class="header" href="#training">Training</a></h2>
 <h3 id="train-2"><a class="header" href="#train-2"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(&amp;mut self, num_epochs: usize, running: Arc&lt;AtomicBool&gt;)
 <span class="boring">}</span></code></pre>
-<p>Runs the Averaged Perceptron training loop for the given number of epochs. Set <code>running</code> to <code>false</code> to stop early.</p>
+<p>Runs the Averaged Perceptron training loop for the given number of epochs. Set <code>running</code> to <code>false</code> to stop early. Weights are automatically averaged at the end of training.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+
+let running = Arc::new(AtomicBool::new(true));
+learner.train(10, running);
+<span class="boring">}</span></code></pre>
 <h2 id="prediction-2"><a class="header" href="#prediction-2">Prediction</a></h2>
 <h3 id="predict-1"><a class="header" href="#predict-1"><code>predict</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn predict(&amp;self, attributes: HashSet&lt;String&gt;) -&gt; String
+</span>pub fn predict(&amp;self, features: &amp;HashSet&lt;String&gt;) -&gt; String
 <span class="boring">}</span></code></pre>
-<p>Predicts the class label for a given feature set. Returns one of 18 segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code>).</p>
+<p>Predicts the class label for a given feature set. Computes a score for each class and returns the class name with the highest score. Returns an empty string if no classes are registered.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::HashSet;
@@ -1886,30 +1929,80 @@ attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
 // ... more features
 
-let label = learner.predict(attrs);
+let label = learner.predict(&amp;attrs);
 // label == "B-ADP", "O", etc.
+<span class="boring">}</span></code></pre>
+<h2 id="model-io"><a class="header" href="#model-io">Model I/O</a></h2>
+<h3 id="save_model-1"><a class="header" href="#save_model-1"><code>save_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Saves model weights to a file. Returns an error if the model is empty.</p>
+<h3 id="load_model-2"><a class="header" href="#load_model-2"><code>load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from a URI. Supports the following URI schemes:</p>
+<ul>
+<li>Local file path: <code>./models/japanese_pos.model</code></li>
+<li>File URI: <code>file:///path/to/model</code></li>
+<li>HTTP: <code>http://example.com/model</code></li>
+<li>HTTPS: <code>https://example.com/model</code></li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>learner.load_model("./models/japanese_pos.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="evaluation-1"><a class="header" href="#evaluation-1">Evaluation</a></h2>
 <h3 id="get_metrics-1"><a class="header" href="#get_metrics-1"><code>get_metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_metrics(&amp;self) -&gt; PosMetrics
+</span>pub fn get_metrics(&amp;self) -&gt; Metrics
 <span class="boring">}</span></code></pre>
 <p>Calculates evaluation metrics on the training data.</p>
-<h2 id="posmetrics"><a class="header" href="#posmetrics">PosMetrics</a></h2>
+<h2 id="metrics-1"><a class="header" href="#metrics-1">Metrics</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct PosMetrics {
-    pub accuracy: f64,          // Overall accuracy in percentage
-    pub macro_precision: f64,   // Macro-averaged precision in percentage
-    pub macro_recall: f64,      // Macro-averaged recall in percentage
-    pub num_instances: usize,
+</span>pub struct Metrics {
+    pub accuracy: f64,                            // Overall accuracy in percentage
+    pub macro_precision: f64,                     // Macro-averaged precision in percentage
+    pub macro_recall: f64,                        // Macro-averaged recall in percentage
+    pub num_instances: usize,                     // Number of instances
+    pub correct_per_class: HashMap&lt;String, usize&gt;,   // Correct count per class
+    pub predicted_per_class: HashMap&lt;String, usize&gt;,  // Predicted count per class
+    pub gold_per_class: HashMap&lt;String, usize&gt;,       // Gold label count per class
 }
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="upos"><a class="header" href="#upos">UPOS</a></h1>
 <p>The <code>upos</code> module defines the Universal POS (UPOS) tagset and segment label types used for POS tagging.</p>
-<h2 id="upos-tags"><a class="header" href="#upos-tags">UPOS Tags</a></h2>
+<h2 id="upos-1"><a class="header" href="#upos-1">Upos</a></h2>
+<h3 id="definition-5"><a class="header" href="#definition-5">Definition</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Upos {
+    ADJ,    // Adjective
+    ADP,    // Adposition
+    ADV,    // Adverb
+    AUX,    // Auxiliary
+    CCONJ,  // Coordinating conjunction
+    DET,    // Determiner
+    INTJ,   // Interjection
+    NOUN,   // Noun
+    NUM,    // Numeral
+    PART,   // Particle
+    PRON,   // Pronoun
+    PROPN,  // Proper noun
+    PUNCT,  // Punctuation
+    SCONJ,  // Subordinating conjunction
+    SYM,    // Symbol
+    VERB,   // Verb
+    X,      // Other
+}
+<span class="boring">}</span></code></pre>
 <p>Litsea supports all 17 UPOS tags from the <a href="https://universaldependencies.org/u/pos/">Universal Dependencies</a> project:</p>
 <div class="table-wrapper">
 <table>
@@ -1937,12 +2030,40 @@ let label = learner.predict(attrs);
 </tbody>
 </table>
 </div>
-<h2 id="segment-labels"><a class="header" href="#segment-labels">Segment Labels</a></h2>
+<h3 id="constant"><a class="header" href="#constant">Constant</a></h3>
+<h4 id="uposall"><a class="header" href="#uposall"><code>Upos::ALL</code></a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub const ALL: [Upos; 17]
+<span class="boring">}</span></code></pre>
+<p>Returns an array of all 17 UPOS tags.</p>
+<h3 id="trait-implementations"><a class="header" href="#trait-implementations">Trait Implementations</a></h3>
+<ul>
+<li><code>Display</code>: Converts to a string such as <code>"NOUN"</code>, <code>"VERB"</code>, etc.</li>
+<li><code>FromStr</code>: Parses a string into <code>Upos</code>. Returns an error for invalid strings.</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::upos::Upos;
+
+let pos: Upos = "NOUN".parse().unwrap();
+assert_eq!(pos.to_string(), "NOUN");
+<span class="boring">}</span></code></pre>
+<h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
+<h3 id="definition-1-1"><a class="header" href="#definition-1-1">Definition</a></h3>
 <p>The <code>SegmentLabel</code> type combines word boundary detection with POS tagging. Each character position is assigned one of 18 labels:</p>
 <ul>
-<li><strong><code>B-{TAG}</code></strong> (17 labels): Word boundary with the given UPOS tag (e.g., <code>B-NOUN</code>, <code>B-VERB</code>)</li>
+<li><strong><code>B(Upos)</code></strong> (17 labels): Word boundary with the given UPOS tag (e.g., <code>B-NOUN</code>, <code>B-VERB</code>)</li>
 <li><strong><code>O</code></strong> (1 label): Non-boundary (continuation of the current word)</li>
 </ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum SegmentLabel {
+    B(Upos),  // Start of a word (boundary). Carries POS information.
+    O,        // Continuation of a word (non-boundary).
+}
+<span class="boring">}</span></code></pre>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::upos::SegmentLabel;
@@ -1952,11 +2073,42 @@ let label = learner.predict(attrs);
 // 日 → O       (continuation of "今日")
 // は → B-ADP   (start of "は", tagged as ADP)
 <span class="boring">}</span></code></pre>
-<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
-<h3 id="segment_label_to_upos"><a class="header" href="#segment_label_to_upos"><code>segment_label_to_upos</code></a></h3>
-<p>Converts a segment label string (e.g., <code>"B-NOUN"</code>) to its UPOS tag (e.g., <code>"NOUN"</code>). Returns <code>None</code> for the <code>"O"</code> label.</p>
-<h3 id="all_segment_labels"><a class="header" href="#all_segment_labels"><code>all_segment_labels</code></a></h3>
+<h3 id="methods-3"><a class="header" href="#methods-3">Methods</a></h3>
+<h4 id="all_labels"><a class="header" href="#all_labels"><code>all_labels</code></a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn all_labels() -&gt; Vec&lt;SegmentLabel&gt;
+<span class="boring">}</span></code></pre>
 <p>Returns a vector of all 18 segment label strings.</p>
+<h4 id="is_boundary"><a class="header" href="#is_boundary"><code>is_boundary</code></a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn is_boundary(&amp;self) -&gt; bool
+<span class="boring">}</span></code></pre>
+<p>Returns whether this is a boundary label (<code>B-*</code>).</p>
+<h4 id="pos"><a class="header" href="#pos"><code>pos</code></a></h4>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn pos(&amp;self) -&gt; Option&lt;Upos&gt;
+<span class="boring">}</span></code></pre>
+<p>Returns the UPOS tag. Returns <code>None</code> for the non-boundary label (<code>O</code>).</p>
+<h3 id="trait-implementations-1"><a class="header" href="#trait-implementations-1">Trait Implementations</a></h3>
+<ul>
+<li><code>Display</code>: Converts to a string such as <code>"B-NOUN"</code>, <code>"O"</code>, etc.</li>
+<li><code>FromStr</code>: Parses a string into <code>SegmentLabel</code>.</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::upos::{SegmentLabel, Upos};
+
+let label: SegmentLabel = "B-NOUN".parse().unwrap();
+assert!(label.is_boundary());
+assert_eq!(label.pos(), Some(Upos::NOUN));
+
+let label_o: SegmentLabel = "O".parse().unwrap();
+assert!(!label_o.is_boundary());
+assert_eq!(label_o.pos(), None);
+<span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language"><a class="header" href="#language">Language</a></h1>
 <p>The <code>Language</code> enum and <code>CharTypePatterns</code> struct define language-specific behavior.</p>
@@ -2062,6 +2214,7 @@ assert_eq!(patterns.get_type("@"), "O");
 </table>
 </div>
 <h2 id="typical-workflow"><a class="header" href="#typical-workflow">Typical Workflow</a></h2>
+<h3 id="adaboost-workflow-word-segmentation-only"><a class="header" href="#adaboost-workflow-word-segmentation-only">AdaBoost Workflow (Word Segmentation Only)</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh"]
     B --&gt; C["3. litsea extract"]
@@ -2075,7 +2228,7 @@ assert_eq!(patterns.get_type("@"), "O");
 <li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
 <li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
-<h3 id="pos-tagging-workflow"><a class="header" href="#pos-tagging-workflow">POS Tagging Workflow</a></h3>
+<h3 id="pos-workflow-word-segmentation-with-pos-tagging"><a class="header" href="#pos-workflow-word-segmentation-with-pos-tagging">POS Workflow (Word Segmentation with POS Tagging)</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
     B --&gt; C["3. litsea extract --pos"]
@@ -2086,7 +2239,7 @@ assert_eq!(patterns.get_type("@"), "O");
 <li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
 <li>Convert to POS corpus format: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
 <li>Extract POS features: <code>litsea extract --pos -l japanese pos_corpus.txt features_pos.txt</code></li>
-<li>Train a POS model: <code>litsea train --pos -e 10 features_pos.txt model_pos.model</code></li>
+<li>Train a POS model: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -2238,6 +2391,9 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 </div>
 <h2 id="pos-model-training"><a class="header" href="#pos-model-training">POS Model Training</a></h2>
 <p>When the <code>--pos</code> flag is specified, <code>train</code> uses the <strong>Averaged Perceptron</strong> algorithm instead of AdaBoost. This trains a multiclass classifier for joint word segmentation and POS tagging.</p>
+<h3 id="usage-1-1"><a class="header" href="#usage-1-1">Usage</a></h3>
+<pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+</code></pre>
 <h3 id="pos-training-options"><a class="header" href="#pos-training-options">POS Training Options</a></h3>
 <div class="table-wrapper">
 <table>
@@ -2250,16 +2406,19 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 </tbody>
 </table>
 </div>
-<h3 id="pos-training-output"><a class="header" href="#pos-training-output">POS Training Output</a></h3>
+<h3 id="examples-1-1"><a class="header" href="#examples-1-1">Examples</a></h3>
+<pre><code class="language-sh"># Train a POS model from POS features
+litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
+</code></pre>
+<h3 id="output-1"><a class="header" href="#output-1">Output</a></h3>
+<p>POS training metrics are printed to stderr (macro-averaged precision and recall):</p>
 <pre><code class="language-text">Result Metrics:
   Accuracy: 98.34%
   Macro Precision: 97.87%
   Macro Recall: 91.67%
 </code></pre>
-<h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
-<pre><code class="language-sh"># Train a POS model from POS features
-litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
-</code></pre>
+<h3 id="ctrlc-handling-1"><a class="header" href="#ctrlc-handling-1">Ctrl+C Handling</a></h3>
+<p>Same as AdaBoost training, POS training supports graceful interruption. The first Ctrl+C stops training and saves the model at its current state.</p>
 <h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
 <div class="table-wrapper">
 <table>
@@ -2326,15 +2485,19 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 <pre><code class="language-sh">echo "テスト文です。" \
   | litsea segment -l japanese https://example.com/models/japanese.model
 </code></pre>
-<h2 id="pos-tagged-segmentation"><a class="header" href="#pos-tagged-segmentation">POS-Tagged Segmentation</a></h2>
-<p>When the <code>--pos</code> flag is specified, <code>segment</code> outputs each token annotated with its UPOS tag in <code>word/POS</code> format. This requires a POS model trained with <code>train --pos</code>.</p>
-<p><strong>Example:</strong></p>
+<h2 id="pos-tagged-segmentation---pos"><a class="header" href="#pos-tagged-segmentation---pos">POS-Tagged Segmentation (<code>--pos</code>)</a></h2>
+<p>When the <code>--pos</code> flag is specified, segmentation and POS tagging are performed simultaneously using an Averaged Perceptron model.</p>
+<h3 id="usage-1-2"><a class="header" href="#usage-1-2">Usage</a></h3>
+<pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
+</code></pre>
+<h3 id="output-format-1"><a class="header" href="#output-format-1">Output Format</a></h3>
+<p>Each token is output in <code>word/POS</code> format. POS tags conform to the UPOS tag set.</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
   | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
-<p><strong>Processing a file with POS tags:</strong></p>
+<h3 id="processing-a-file"><a class="header" href="#processing-a-file">Processing a File</a></h3>
 <pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
 </code></pre>
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
@@ -2433,10 +2596,69 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
 <p>Supported languages for <code>download_udtreebank.sh</code>: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese).</p>
+<h2 id="corpus-from-wikipedia-dump"><a class="header" href="#corpus-from-wikipedia-dump">Corpus from Wikipedia Dump</a></h2>
+<p>For larger-scale training, you can build a corpus from a full Wikipedia dump using <code>scripts/corpus_wikidump.sh</code>. This extracts plain text with <a href="https://github.com/mosuka/wicket">wicket</a>, filters for actual sentences, and tokenizes with <a href="https://github.com/lindera/lindera">lindera</a>.</p>
+<h3 id="usage-4"><a class="header" href="#usage-4">Usage</a></h3>
+<pre><code class="language-sh"># Japanese (default)
+bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
+
+# Korean
+bash scripts/corpus_wikidump.sh -l ko kowiki-latest-pages-articles.xml.bz2 corpus_ko.txt
+
+# Chinese
+bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpus_zh.txt
+</code></pre>
+<h3 id="options-3"><a class="header" href="#options-3">Options</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Description</th><th>Default</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l lang</code></td><td>Language code: <code>ja</code>, <code>ko</code>, <code>zh</code></td><td><code>ja</code></td></tr>
+<tr><td><code>-n max_lines</code></td><td>Maximum sentence lines to process (0 = unlimited)</td><td><code>100000</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="sentence-filtering"><a class="header" href="#sentence-filtering">Sentence Filtering</a></h3>
+<p>The script applies two filters to keep only well-formed sentences:</p>
+<ol>
+<li><strong>Sentence-ending punctuation</strong> – Lines must end with <code>。</code>, <code>.</code>, <code>!</code>, or <code>?</code>. This excludes section headers (e.g., “参考文献”), list items, and metadata.</li>
+<li><strong>Minimum length</strong> – Lines must be at least 20 characters. This excludes short fragments and isolated labels.</li>
+</ol>
+<h3 id="tokenizer-dictionaries"><a class="header" href="#tokenizer-dictionaries">Tokenizer Dictionaries</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Dictionary</th><th>Token Filter</th></tr>
+</thead>
+<tbody>
+<tr><td>Japanese (<code>ja</code>)</td><td><code>embedded://unidic</code></td><td><code>japanese_compound_word</code> (numeral compound)</td></tr>
+<tr><td>Korean (<code>ko</code>)</td><td><code>embedded://ko-dic</code></td><td>None</td></tr>
+<tr><td>Chinese (<code>zh</code>)</td><td><code>embedded://cc-cedict</code></td><td>None</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="corpus-size-guidelines"><a class="header" href="#corpus-size-guidelines">Corpus Size Guidelines</a></h2>
+<p>The recommended corpus size depends on your use case:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Size (sentence lines)</th><th>Use Case</th></tr>
+</thead>
+<tbody>
+<tr><td>~10,000</td><td>Minimum for prototyping and smoke tests</td></tr>
+<tr><td>50,000 – 100,000</td><td>Practical range for model training</td></tr>
+<tr><td>100,000 – 500,000</td><td>High-quality, robust models</td></tr>
+<tr><td>Unlimited</td><td>Use full dump for maximum accuracy</td></tr>
+</tbody>
+</table>
+</div>
+<p>The default <code>max_lines=100000</code> in <code>corpus_wikidump.sh</code> targets the practical-to-high-quality range.</p>
 <h2 id="corpus-quality-tips"><a class="header" href="#corpus-quality-tips">Corpus Quality Tips</a></h2>
 <ul>
 <li><strong>Diversity</strong> – Include text from various domains (news, literature, web, etc.)</li>
-<li><strong>Size</strong> – Larger corpora generally produce better models, but diminishing returns apply</li>
+<li><strong>Size</strong> – See <a href="#corpus-size-guidelines">Corpus Size Guidelines</a> above for recommended sizes</li>
 <li><strong>Consistency</strong> – Ensure consistent tokenization throughout the corpus</li>
 <li><strong>Deduplication</strong> – Remove duplicate sentences to avoid bias</li>
 <li><strong>Cleaning</strong> – Remove HTML tags, special formatting, and non-text content</li>
@@ -2565,7 +2787,7 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 <h3 id="pos-training-command"><a class="header" href="#pos-training-command">POS Training Command</a></h3>
 <pre><code class="language-sh">litsea train --pos --num-epochs 10 &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
-<h3 id="pos-training-example-1"><a class="header" href="#pos-training-example-1">POS Training Example</a></h3>
+<h3 id="pos-training-example"><a class="header" href="#pos-training-example">POS Training Example</a></h3>
 <pre><code class="language-sh">litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="averaged-perceptron-vs-adaboost"><a class="header" href="#averaged-perceptron-vs-adaboost">Averaged Perceptron vs AdaBoost</a></h3>
@@ -2593,7 +2815,7 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 </tbody>
 </table>
 </div>
-<h3 id="pos-training-output-1"><a class="header" href="#pos-training-output-1">POS Training Output</a></h3>
+<h3 id="pos-training-output"><a class="header" href="#pos-training-output">POS Training Output</a></h3>
 <pre><code class="language-text">Result Metrics:
   Accuracy: 98.34%
   Macro Precision: 97.87%
@@ -2609,7 +2831,7 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="evaluating-models"><a class="header" href="#evaluating-models">Evaluating Models</a></h1>
 <p>Understanding model quality is essential for producing good segmentation results.</p>
-<h2 id="metrics-1"><a class="header" href="#metrics-1">Metrics</a></h2>
+<h2 id="metrics-2"><a class="header" href="#metrics-2">Metrics</a></h2>
 <p>The <code>train</code> command outputs three key metrics after training:</p>
 <h3 id="accuracy"><a class="header" href="#accuracy">Accuracy</a></h3>
 <pre><code class="language-text">Accuracy = (TP + TN) / Total Instances
@@ -2973,7 +3195,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </tbody>
 </table>
 </div>
-<h4 id="usage-4"><a class="header" href="#usage-4">Usage</a></h4>
+<h4 id="usage-5"><a class="header" href="#usage-5">Usage</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
 <p>Output:</p>

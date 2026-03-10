@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-715437d4.js";
+            window.path_to_searchindex_js = "../searchindex-95c94099.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-feadcd78.js"></script>
@@ -260,10 +260,69 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 <li><code>-p</code> オプション指定時は品詞付きコーパス形式に変換</li>
 </ol>
 <p>サポート言語: <code>ja</code>（日本語）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。</p>
+<h2 id="wikipedia-ダンプからのコーパス作成"><a class="header" href="#wikipedia-ダンプからのコーパス作成">Wikipedia ダンプからのコーパス作成</a></h2>
+<p>大規模な学習データが必要な場合、Wikipedia の全文ダンプから <code>scripts/corpus_wikidump.sh</code> を使ってコーパスを作成できます。このスクリプトは <a href="https://github.com/mosuka/wicket">wicket</a> でプレーンテキストを抽出し、文章のみをフィルタリングした後、<a href="https://github.com/lindera/lindera">lindera</a> でトークナイズします。</p>
+<h3 id="使い方"><a class="header" href="#使い方">使い方</a></h3>
+<pre><code class="language-sh"># 日本語（デフォルト）
+bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
+
+# 韓国語
+bash scripts/corpus_wikidump.sh -l ko kowiki-latest-pages-articles.xml.bz2 corpus_ko.txt
+
+# 中国語
+bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpus_zh.txt
+</code></pre>
+<h3 id="オプション"><a class="header" href="#オプション">オプション</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>オプション</th><th>説明</th><th>デフォルト</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l lang</code></td><td>言語コード: <code>ja</code>, <code>ko</code>, <code>zh</code></td><td><code>ja</code></td></tr>
+<tr><td><code>-n max_lines</code></td><td>処理する最大文数（0 = 無制限）</td><td><code>100000</code></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="文章フィルタリング"><a class="header" href="#文章フィルタリング">文章フィルタリング</a></h3>
+<p>スクリプトは以下の2つのフィルタを適用し、整形された文章のみを抽出します:</p>
+<ol>
+<li><strong>文末記号</strong> – 行が <code>。</code>、<code>.</code>、<code>!</code>、<code>?</code> で終わる必要があります。これにより、セクション見出し（例: 「参考文献」）、箇条書き項目、メタデータが除外されます。</li>
+<li><strong>最小文字数</strong> – 行は20文字以上である必要があります。これにより、短い断片や孤立したラベルが除外されます。</li>
+</ol>
+<h3 id="トークナイザー辞書"><a class="header" href="#トークナイザー辞書">トークナイザー辞書</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>言語</th><th>辞書</th><th>トークンフィルタ</th></tr>
+</thead>
+<tbody>
+<tr><td>日本語 (<code>ja</code>)</td><td><code>embedded://unidic</code></td><td><code>japanese_compound_word</code>（数詞複合語）</td></tr>
+<tr><td>韓国語 (<code>ko</code>)</td><td><code>embedded://ko-dic</code></td><td>なし</td></tr>
+<tr><td>中国語 (<code>zh</code>)</td><td><code>embedded://cc-cedict</code></td><td>なし</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="コーパスサイズのガイドライン"><a class="header" href="#コーパスサイズのガイドライン">コーパスサイズのガイドライン</a></h2>
+<p>推奨されるコーパスサイズは用途によって異なります:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>サイズ（文数）</th><th>用途</th></tr>
+</thead>
+<tbody>
+<tr><td>~10,000</td><td>プロトタイピングや動作確認の最小限</td></tr>
+<tr><td>50,000 – 100,000</td><td>モデル学習の実用的な範囲</td></tr>
+<tr><td>100,000 – 500,000</td><td>高品質でロバストなモデル</td></tr>
+<tr><td>無制限</td><td>最大精度を目指す場合は全量使用</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>corpus_wikidump.sh</code> のデフォルト <code>max_lines=100000</code> は、実用〜高品質の範囲を想定しています。</p>
 <h2 id="コーパスの品質に関するヒント"><a class="header" href="#コーパスの品質に関するヒント">コーパスの品質に関するヒント</a></h2>
 <ul>
 <li><strong>多様性</strong> – さまざまな分野のテキストを含める（ニュース、文学、ウェブなど）</li>
-<li><strong>データ量</strong> – 大きなコーパスほど一般的に良いモデルを生成するが、収穫逓減がある</li>
+<li><strong>データ量</strong> – 推奨サイズは<a href="#コーパスサイズのガイドライン">コーパスサイズのガイドライン</a>を参照</li>
 <li><strong>一貫性</strong> – コーパス全体で一貫したトークン化を確保する</li>
 <li><strong>重複排除</strong> – 偏りを避けるために重複文を除去する</li>
 <li><strong>クリーニング</strong> – HTML タグ、特殊なフォーマット、非テキストコンテンツを除去する</li>
