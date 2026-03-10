@@ -55,6 +55,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+## Quick Example (POS Tagging)
+
+```rust
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut pos_learner = AveragedPerceptron::new();
+    pos_learner.load_model("./models/japanese_pos.model").await?;
+
+    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let tokens = segmenter.segment_with_pos("これはテストです。");
+
+    for (word, pos) in &tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
+
+    Ok(())
+}
+```
+
 ## API Documentation
 
 Full API documentation is available on [docs.rs/litsea](https://docs.rs/litsea).

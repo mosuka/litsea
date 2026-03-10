@@ -6,7 +6,7 @@ The `AveragedPerceptron` struct implements multiclass classification for joint w
 
 ```rust
 pub struct AveragedPerceptron {
-    // internal fields: weight vectors, class names, cumulative weights, etc.
+    // internal fields: weights, accumulated, timestamps, step, classes, instances
 }
 ```
 
@@ -26,49 +26,28 @@ use litsea::perceptron::AveragedPerceptron;
 let mut learner = AveragedPerceptron::new();
 ```
 
-## Model Loading
+## Adding Instances
 
-### `load_model`
-
-```rust
-pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
-```
-
-Loads model weights from a URI. Supports the same URI schemes as `AdaBoost::load_model`:
-
-- Local file path: `./models/japanese_pos.model`
-- File URI: `file:///path/to/model`
-- HTTP/HTTPS: `https://example.com/model`
+### `add_instance`
 
 ```rust
-learner.load_model("./models/japanese_pos.model").await?;
+pub fn add_instance(&mut self, features: HashSet<String>, label: String)
 ```
 
-### `save_model`
+Adds a training instance with a feature set and a label. Unknown classes are automatically registered.
 
 ```rust
-pub fn save_model(&self, filename: &Path) -> io::Result<()>
+use std::collections::HashSet;
+use litsea::perceptron::AveragedPerceptron;
+
+let mut learner = AveragedPerceptron::new();
+let mut feats = HashSet::new();
+feats.insert("UW4:猫".to_string());
+feats.insert("UC4:H".to_string());
+learner.add_instance(feats, "B-NOUN".to_string());
 ```
 
-Saves model weights to a file. The format includes class names followed by feature-class-weight triples.
-
-## Training Methods
-
-### `initialize_features`
-
-```rust
-pub fn initialize_features(&mut self, filename: &Path) -> io::Result<()>
-```
-
-Reads a POS features file and builds the feature and class indices. Must be called before `initialize_instances`.
-
-### `initialize_instances`
-
-```rust
-pub fn initialize_instances(&mut self, filename: &Path) -> io::Result<()>
-```
-
-Reads the same features file and initializes labeled instances.
+## Training
 
 ### `train`
 
@@ -76,17 +55,25 @@ Reads the same features file and initializes labeled instances.
 pub fn train(&mut self, num_epochs: usize, running: Arc<AtomicBool>)
 ```
 
-Runs the Averaged Perceptron training loop for the given number of epochs. Set `running` to `false` to stop early.
+Runs the Averaged Perceptron training loop for the given number of epochs. Set `running` to `false` to stop early. Weights are automatically averaged at the end of training.
+
+```rust
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+
+let running = Arc::new(AtomicBool::new(true));
+learner.train(10, running);
+```
 
 ## Prediction
 
 ### `predict`
 
 ```rust
-pub fn predict(&self, attributes: HashSet<String>) -> String
+pub fn predict(&self, features: &HashSet<String>) -> String
 ```
 
-Predicts the class label for a given feature set. Returns one of 18 segment labels (`B-NOUN`, `B-VERB`, ..., `O`).
+Predicts the class label for a given feature set. Computes a score for each class and returns the class name with the highest score. Returns an empty string if no classes are registered.
 
 ```rust
 use std::collections::HashSet;
@@ -96,8 +83,35 @@ attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
 // ... more features
 
-let label = learner.predict(attrs);
+let label = learner.predict(&attrs);
 // label == "B-ADP", "O", etc.
+```
+
+## Model I/O
+
+### `save_model`
+
+```rust
+pub fn save_model(&self, path: &Path) -> io::Result<()>
+```
+
+Saves model weights to a file. Returns an error if the model is empty.
+
+### `load_model`
+
+```rust
+pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
+```
+
+Loads model weights from a URI. Supports the following URI schemes:
+
+- Local file path: `./models/japanese_pos.model`
+- File URI: `file:///path/to/model`
+- HTTP: `http://example.com/model`
+- HTTPS: `https://example.com/model`
+
+```rust
+learner.load_model("./models/japanese_pos.model").await?;
 ```
 
 ## Evaluation
@@ -105,18 +119,21 @@ let label = learner.predict(attrs);
 ### `get_metrics`
 
 ```rust
-pub fn get_metrics(&self) -> PosMetrics
+pub fn get_metrics(&self) -> Metrics
 ```
 
 Calculates evaluation metrics on the training data.
 
-## PosMetrics
+## Metrics
 
 ```rust
-pub struct PosMetrics {
-    pub accuracy: f64,          // Overall accuracy in percentage
-    pub macro_precision: f64,   // Macro-averaged precision in percentage
-    pub macro_recall: f64,      // Macro-averaged recall in percentage
-    pub num_instances: usize,
+pub struct Metrics {
+    pub accuracy: f64,                            // Overall accuracy in percentage
+    pub macro_precision: f64,                     // Macro-averaged precision in percentage
+    pub macro_recall: f64,                        // Macro-averaged recall in percentage
+    pub num_instances: usize,                     // Number of instances
+    pub correct_per_class: HashMap<String, usize>,   // Correct count per class
+    pub predicted_per_class: HashMap<String, usize>,  // Predicted count per class
+    pub gold_per_class: HashMap<String, usize>,       // Gold label count per class
 }
 ```

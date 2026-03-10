@@ -65,11 +65,19 @@ echo "テスト文です。" \
   | litsea segment -l japanese https://example.com/models/japanese.model
 ```
 
-## POS-Tagged Segmentation
+## POS-Tagged Segmentation (`--pos`)
 
-When the `--pos` flag is specified, `segment` outputs each token annotated with its UPOS tag in `word/POS` format. This requires a POS model trained with `train --pos`.
+When the `--pos` flag is specified, segmentation and POS tagging are performed simultaneously using an Averaged Perceptron model.
 
-**Example:**
+### Usage
+
+```sh
+echo "text" | litsea segment --pos [OPTIONS] <MODEL_URI>
+```
+
+### Output Format
+
+Each token is output in `word/POS` format. POS tags conform to the UPOS tag set.
 
 ```sh
 echo "今日はいい天気ですね。" \
@@ -80,7 +88,7 @@ echo "今日はいい天気ですね。" \
 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
-**Processing a file with POS tags:**
+### Processing a File
 
 ```sh
 cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > output.txt

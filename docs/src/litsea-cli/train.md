@@ -82,6 +82,12 @@ litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
 
 When the `--pos` flag is specified, `train` uses the **Averaged Perceptron** algorithm instead of AdaBoost. This trains a multiclass classifier for joint word segmentation and POS tagging.
 
+### Usage
+
+```sh
+litsea train --pos [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
+```
+
 ### POS Training Options
 
 | Option | Default | Description |
@@ -89,7 +95,16 @@ When the `--pos` flag is specified, `train` uses the **Averaged Perceptron** alg
 | `--pos` | off | Enable POS training mode |
 | `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs |
 
-### POS Training Output
+### Examples
+
+```sh
+# Train a POS model from POS features
+litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
+```
+
+### Output
+
+POS training metrics are printed to stderr (macro-averaged precision and recall):
 
 ```text
 Result Metrics:
@@ -98,12 +113,9 @@ Result Metrics:
   Macro Recall: 91.67%
 ```
 
-### POS Training Example
+### Ctrl+C Handling
 
-```sh
-# Train a POS model from POS features
-litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
-```
+Same as AdaBoost training, POS training supports graceful interruption. The first Ctrl+C stops training and saves the model at its current state.
 
 ### POS Hyperparameters
 
