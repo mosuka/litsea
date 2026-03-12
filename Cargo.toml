@@ -16,7 +16,7 @@ categories = ["text-processing"]
 license = "MIT"
 
 [workspace.dependencies]
-clap = { version = "4.5.60", features = ["derive"] }
+clap = { version = "4.6.0", features = ["derive"] }
 ctrlc = "3.5.2"
 regex = "1.12.3"
 reqwest = { version = "0.13.2", features = [
