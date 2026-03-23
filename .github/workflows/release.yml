@@ -165,7 +165,7 @@ jobs:
 
       - name: Add msbuild to PATH
         if: matrix.platform.runner == 'windows-latest'
-        uses: microsoft/setup-msbuild@v2
+        uses: microsoft/setup-msbuild@v3
 
       - name: Compile
         run: cargo build --release --target=${{ matrix.platform.target }}
