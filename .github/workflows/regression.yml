@@ -82,3 +82,36 @@ jobs:
           else
             cargo test --target "${{ matrix.platform.target }}" --all-features
           fi
+
+  feature-check:
+    name: Feature check
+    needs: [format]
+    runs-on: ubuntu-latest
+    # TODO(refactoring Phase 1): currently fails because perceptron.rs uses
+    # reqwest without a `remote_model` feature gate. Make this job required
+    # (remove continue-on-error) once that bug is fixed.
+    continue-on-error: true
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v6
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-unknown
+
+      - name: Cache Cargo
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-feature-check-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Check without default features
+        run: cargo check -p litsea --no-default-features
+
+      - name: Check wasm32 target
+        run: cargo check -p litsea --target wasm32-unknown-unknown --no-default-features

@@ -70,9 +70,21 @@
 
 ## 3. フェーズ計画
 
-### フェーズ 0: 安全網の整備(挙動不変・追加のみ)
+### フェーズ 0: 安全網の整備(挙動不変・追加のみ) — ✅ 実施済み
 
 **目的**: 以降のすべてのリファクタリングの回帰を機械的に検出できる状態を作る。
+
+**実施結果**(2026-06-12):
+- `litsea/tests/golden.rs` を追加(全 8 モデルのスナップショット 10 テスト、すべて green)。
+- round-trip テスト(AdaBoost / Perceptron)を同ファイルに追加。
+- regression.yml に `feature-check` ジョブを追加(`--no-default-features` と wasm32。B1 未修正のため `continue-on-error: true`。Phase 1 で必須化する)。
+- criterion ベースライン(`--save-baseline pre-refactor`、短縮計測の参考値、median):
+  `segment_short/adaboost` ja 56.8µs / zh 37.1µs / ko 51.3µs、
+  `segment_short/averaged_perceptron` ja 293µs / zh 211µs / ko 286µs、
+  `segment_long_japanese` adaboost 611ms / perceptron **4.48s**、
+  `add_corpus` 161µs、`predict_adaboost` 2.9µs、`get_type_hiragana` 61ns、
+  `char_type_patterns_japanese`(パターン構築)205µs。
+  ※ コンテナ環境は使い捨てのため、Phase 4 では比較対象の数値を都度取り直すこと。
 
 **作業項目**:
 1. **ゴールデンテストの追加**(`litsea/tests/golden.rs`):
