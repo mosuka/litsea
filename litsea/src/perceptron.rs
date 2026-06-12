@@ -1,9 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{BufRead, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+
+use crate::error::{LitseaError, Result};
+use crate::metrics::MulticlassMetrics;
 
 /// 多クラスAveraged Perceptron分類器。
 ///
@@ -23,25 +26,6 @@ pub struct AveragedPerceptron {
     classes: Vec<String>,
     /// 学習インスタンス: (特徴量セット, 正解ラベル)
     instances: Vec<(Vec<String>, String)>,
-}
-
-/// 評価指標（多クラス分類のマクロ平均）。
-#[derive(Debug, Clone)]
-pub struct Metrics {
-    /// 正解率 (%)
-    pub accuracy: f64,
-    /// マクロ平均適合率 (%)
-    pub macro_precision: f64,
-    /// マクロ平均再現率 (%)
-    pub macro_recall: f64,
-    /// インスタンス数
-    pub num_instances: usize,
-    /// クラスごとの正解数
-    pub correct_per_class: HashMap<String, usize>,
-    /// クラスごとの予測数
-    pub predicted_per_class: HashMap<String, usize>,
-    /// クラスごとの正解ラベル数
-    pub gold_per_class: HashMap<String, usize>,
 }
 
 impl Default for AveragedPerceptron {
@@ -223,7 +207,7 @@ impl AveragedPerceptron {
         self.average_weights();
     }
 
-    /// モデルをテキスト形式(クラスヘッダ + TSV)でファイルに保存する。
+    /// モデルをテキスト形式（クラスヘッダ + TSV）でファイルに保存する。
     ///
     /// フォーマット:
     /// ```text
@@ -235,12 +219,9 @@ impl AveragedPerceptron {
     /// 特徴名\tクラス名\t重み
     /// ...
     /// ```
-    pub fn save_model(&self, path: &Path) -> std::io::Result<()> {
+    pub fn save_model(&self, path: &Path) -> Result<()> {
         if self.classes.is_empty() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Cannot save an empty model",
-            ));
+            return Err(LitseaError::InvalidInput("Cannot save an empty model".to_string()));
         }
 
         let mut file = File::create(path)?;
@@ -266,53 +247,54 @@ impl AveragedPerceptron {
     /// モデルをURIから読み込む。
     ///
     /// URIにはファイルパス、`file://`パス、`http(s)://` URL
-    /// (`remote_model`フィーチャー有効時のみ)を指定できる。
-    pub async fn load_model(&mut self, uri: &str) -> std::io::Result<()> {
+    /// （`remote_model`フィーチャー有効時のみ）を指定できる。
+    /// ローカルファイルには同期APIの
+    /// [`load_model_from_path`](Self::load_model_from_path)を推奨。
+    pub async fn load_model(&mut self, uri: &str) -> Result<()> {
         let bytes = crate::model_io::read_model_bytes(uri).await?;
-        self.parse_model_content(bytes.as_slice())
+        self.load_model_from_reader(bytes.as_slice())
     }
 
-    /// モデルの内容をパースする。
-    pub(crate) fn parse_model_content<R: BufRead>(&mut self, reader: R) -> std::io::Result<()> {
+    /// ローカルファイルパスからモデルを読み込む（同期）。
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load_model_from_path(&mut self, path: &Path) -> Result<()> {
+        let file = File::open(path)?;
+        self.load_model_from_reader(BufReader::new(file))
+    }
+
+    /// リーダーからモデルを読み込む（同期）。
+    ///
+    /// 既に学習インスタンスからクラスが登録されている場合、モデルファイルの
+    /// クラスは既存のクラス一覧にマージされる（増分学習で正解ラベルの
+    /// クラスが失われないようにするため）。
+    pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()> {
         let mut lines = reader.lines();
 
         // クラス数を読む
         let num_classes: usize = lines
             .next()
-            .ok_or_else(|| {
-                std::io::Error::new(std::io::ErrorKind::InvalidData, "Empty model file")
-            })?
-            .map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::InvalidData, format!("Read error: {}", e))
-            })?
+            .ok_or_else(|| LitseaError::InvalidData("Empty model file".to_string()))?
+            .map_err(|e| LitseaError::InvalidData(format!("Read error: {}", e)))?
             .trim()
             .parse()
-            .map_err(|e| {
-                std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    format!("Invalid class count: {}", e),
-                )
-            })?;
+            .map_err(|e| LitseaError::InvalidData(format!("Invalid class count: {}", e)))?;
 
-        // クラス名を読む
-        self.classes.clear();
+        // クラス名を読む（既存のクラスとマージ）
         for _ in 0..num_classes {
             let class = lines
                 .next()
                 .ok_or_else(|| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Unexpected end of model file while reading classes",
+                    LitseaError::InvalidData(
+                        "Unexpected end of model file while reading classes".to_string(),
                     )
                 })?
-                .map_err(|e| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        format!("Read error: {}", e),
-                    )
-                })?;
-            self.classes.push(class.trim().to_string());
+                .map_err(|e| LitseaError::InvalidData(format!("Read error: {}", e)))?;
+            let class = class.trim().to_string();
+            if !self.classes.contains(&class) {
+                self.classes.push(class);
+            }
         }
+        self.classes.sort();
 
         // 重みを読む
         self.weights.clear();
@@ -324,19 +306,13 @@ impl AveragedPerceptron {
             }
             let parts: Vec<&str> = line.split('\t').collect();
             if parts.len() != 3 {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    format!("Invalid weight line: '{}'", line),
-                ));
+                return Err(LitseaError::InvalidData(format!("Invalid weight line: '{}'", line)));
             }
             let feat = parts[0];
             let class = parts[1];
-            let weight: f64 = parts[2].parse().map_err(|e| {
-                std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    format!("Invalid weight value: {}", e),
-                )
-            })?;
+            let weight: f64 = parts[2]
+                .parse()
+                .map_err(|e| LitseaError::InvalidData(format!("Invalid weight value: {}", e)))?;
             self.weights
                 .entry(class.to_string())
                 .or_default()
@@ -348,7 +324,7 @@ impl AveragedPerceptron {
 
     /// 学習データに対する評価指標を計算する。
     #[must_use]
-    pub fn get_metrics(&self) -> Metrics {
+    pub fn metrics(&self) -> MulticlassMetrics {
         let mut correct_per_class: HashMap<String, usize> = HashMap::new();
         let mut predicted_per_class: HashMap<String, usize> = HashMap::new();
         let mut gold_per_class: HashMap<String, usize> = HashMap::new();
@@ -388,7 +364,7 @@ impl AveragedPerceptron {
             }
         }
 
-        Metrics {
+        MulticlassMetrics {
             accuracy,
             macro_precision: sum_precision / num_classes as f64 * 100.0,
             macro_recall: sum_recall / num_classes as f64 * 100.0,
@@ -404,7 +380,6 @@ impl AveragedPerceptron {
 mod tests {
     use super::*;
 
-    use std::io::BufReader;
     use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
 
@@ -510,8 +485,8 @@ mod tests {
         assert_eq!(p.predict(&test_b), "CLASS_B");
     }
 
-    #[tokio::test]
-    async fn test_save_and_load_model() -> std::io::Result<()> {
+    #[test]
+    fn test_save_and_load_model() -> Result<()> {
         let mut p = AveragedPerceptron::new();
         let mut feats_a = HashSet::new();
         feats_a.insert("f1".to_string());
@@ -528,9 +503,9 @@ mod tests {
         let temp = NamedTempFile::new()?;
         p.save_model(temp.path())?;
 
-        // 読み込み
+        // 読み込み（同期パスAPI）
         let mut p2 = AveragedPerceptron::new();
-        p2.load_model(temp.path().to_str().unwrap()).await?;
+        p2.load_model_from_path(temp.path())?;
 
         // 同じクラスが復元される
         assert_eq!(p2.classes.len(), p.classes.len());
@@ -542,16 +517,51 @@ mod tests {
         Ok(())
     }
 
+    #[tokio::test]
+    async fn test_load_model_uri() -> Result<()> {
+        let mut p = AveragedPerceptron::new();
+        let mut feats = HashSet::new();
+        feats.insert("f1".to_string());
+        p.add_instance(feats, "A".to_string());
+        let running = Arc::new(AtomicBool::new(true));
+        p.train(5, running);
+
+        let temp = NamedTempFile::new()?;
+        p.save_model(temp.path())?;
+
+        let mut p2 = AveragedPerceptron::new();
+        p2.load_model(temp.path().to_str().unwrap()).await?;
+        assert_eq!(p2.classes.len(), p.classes.len());
+        Ok(())
+    }
+
+    #[test]
+    fn test_load_model_merges_classes() -> Result<()> {
+        // 増分学習: 学習データに既に存在するクラスはモデル読み込みで失われない。
+        let mut p = AveragedPerceptron::new();
+        let mut feats = HashSet::new();
+        feats.insert("f1".to_string());
+        p.add_instance(feats, "NEW_CLASS".to_string());
+
+        // クラスAのみを含むモデルを読み込む
+        let model_content = "1\nA\nf1\tA\t0.5\n";
+        p.load_model_from_reader(model_content.as_bytes())?;
+
+        assert!(p.classes.contains(&"A".to_string()));
+        assert!(p.classes.contains(&"NEW_CLASS".to_string()));
+        Ok(())
+    }
+
     #[test]
     fn test_save_model_empty() {
         let p = AveragedPerceptron::new();
         let temp = NamedTempFile::new().unwrap();
         let result = p.save_model(temp.path());
-        assert!(result.is_err());
+        assert!(matches!(result, Err(LitseaError::InvalidInput(_))));
     }
 
     #[test]
-    fn test_get_metrics() {
+    fn test_metrics() {
         let mut p = AveragedPerceptron::new();
 
         let mut feats_a = HashSet::new();
@@ -565,31 +575,31 @@ mod tests {
         let running = Arc::new(AtomicBool::new(true));
         p.train(10, running);
 
-        let metrics = p.get_metrics();
+        let metrics = p.metrics();
         assert_eq!(metrics.num_instances, 2);
         assert!(metrics.accuracy > 0.0);
     }
 
     #[test]
-    fn test_get_metrics_empty() {
+    fn test_metrics_empty() {
         let p = AveragedPerceptron::new();
-        let metrics = p.get_metrics();
+        let metrics = p.metrics();
         assert_eq!(metrics.num_instances, 0);
         assert!((metrics.accuracy - 0.0).abs() < f64::EPSILON);
     }
 
     #[test]
-    fn test_parse_model_content_invalid() {
+    fn test_load_model_from_reader_invalid() {
         let mut p = AveragedPerceptron::new();
         // 不正なクラス数
-        let result = p.parse_model_content(BufReader::new("not_a_number".as_bytes()));
-        assert!(result.is_err());
+        let result = p.load_model_from_reader("not_a_number".as_bytes());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
     }
 
     #[test]
-    fn test_parse_model_content_empty() {
+    fn test_load_model_from_reader_empty() {
         let mut p = AveragedPerceptron::new();
-        let result = p.parse_model_content(BufReader::new("".as_bytes()));
-        assert!(result.is_err());
+        let result = p.load_model_from_reader("".as_bytes());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
     }
 }

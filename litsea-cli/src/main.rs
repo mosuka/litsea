@@ -1,18 +1,14 @@
 use std::error::Error;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::{Args, Parser, Subcommand};
 
-use litsea::adaboost::AdaBoost;
-use litsea::extractor::Extractor;
-use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
-use litsea::segmenter::Segmenter;
-use litsea::trainer::{PosTrainer, Trainer};
 use litsea::version;
+use litsea::{AdaBoost, AveragedPerceptron, Extractor, Language, PosTrainer, Segmenter, Trainer};
 
 /// Arguments for the extract command.
 #[derive(Debug, Args)]
@@ -22,8 +18,8 @@ use litsea::version;
     version = version(),
 )]
 struct ExtractArgs {
-    #[arg(short, long, default_value = "japanese")]
-    language: String,
+    #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
+    language: Language,
 
     /// 品詞付きコーパスから特徴量を抽出する（コーパスフォーマット: "単語/品詞 単語/品詞 ..."）
     #[arg(long, default_value = "false")]
@@ -68,8 +64,8 @@ struct TrainArgs {
     version = version(),
 )]
 struct SegmentArgs {
-    #[arg(short, long, default_value = "japanese")]
-    language: String,
+    #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
+    language: Language,
 
     /// 品詞推定付きで分割する（Averaged Perceptronモデルを使用）
     #[arg(long, default_value = "false")]
@@ -109,9 +105,7 @@ struct CommandArgs {
 /// # Returns
 /// Returns a Result indicating success or failure.
 fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
-    let language: Language =
-        args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
-    let mut extractor = Extractor::new(language);
+    let mut extractor = Extractor::new(args.language);
 
     if args.pos {
         extractor.extract_with_pos(args.corpus_file.as_path(), args.features_file.as_path())?;
@@ -211,8 +205,7 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
 /// # Returns
 /// Returns a Result indicating success or failure.
 async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
-    let language: Language =
-        args.language.parse().map_err(|e: String| Box::<dyn Error>::from(e))?;
+    let language = args.language;
 
     let stdin = io::stdin();
     let stdout = io::stdout();

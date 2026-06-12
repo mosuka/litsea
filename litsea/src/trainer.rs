@@ -5,8 +5,10 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use crate::adaboost::{AdaBoost, Metrics};
-use crate::perceptron::{self, AveragedPerceptron};
+use crate::adaboost::AdaBoost;
+use crate::error::{LitseaError, Result};
+use crate::metrics::{BinaryMetrics, MulticlassMetrics};
+use crate::perceptron::AveragedPerceptron;
 
 /// Trainer struct for managing the AdaBoost training process.
 /// It initializes the AdaBoost learner with the specified parameters,
@@ -36,11 +38,7 @@ impl Trainer {
     ///
     /// # Errors
     /// Returns an error if the features or instances cannot be initialized.
-    pub fn new(
-        threshold: f64,
-        num_iterations: usize,
-        features_path: &Path,
-    ) -> std::io::Result<Self> {
+    pub fn new(threshold: f64, num_iterations: usize, features_path: &Path) -> Result<Self> {
         let mut learner = AdaBoost::new(threshold, num_iterations);
 
         learner.initialize_features(features_path)?;
@@ -59,7 +57,7 @@ impl Trainer {
     ///
     /// # Errors
     /// Returns an error if the model cannot be loaded.
-    pub async fn load_model(&mut self, model_uri: &str) -> std::io::Result<()> {
+    pub async fn load_model(&mut self, model_uri: &str) -> Result<()> {
         self.learner.load_model(model_uri).await
     }
 
@@ -74,17 +72,13 @@ impl Trainer {
     ///
     /// # Errors
     /// Returns an error if the training fails or if the model cannot be saved.
-    pub fn train(
-        &mut self,
-        running: Arc<AtomicBool>,
-        model_path: &Path,
-    ) -> Result<Metrics, Box<dyn std::error::Error>> {
+    pub fn train(&mut self, running: Arc<AtomicBool>, model_path: &Path) -> Result<BinaryMetrics> {
         self.learner.train(running);
 
         // Save the trained model to the specified file
         self.learner.save_model(model_path)?;
 
-        Ok(self.learner.get_metrics())
+        Ok(self.learner.metrics())
     }
 }
 
@@ -97,7 +91,7 @@ impl PosTrainer {
     /// # Arguments
     /// * `num_epochs` - 学習エポック数
     /// * `features_path` - 特徴量ファイルのパス
-    pub fn new(num_epochs: usize, features_path: &Path) -> io::Result<Self> {
+    pub fn new(num_epochs: usize, features_path: &Path) -> Result<Self> {
         let mut learner = AveragedPerceptron::new();
 
         let file = File::open(features_path)?;
@@ -111,7 +105,7 @@ impl PosTrainer {
             }
             let mut parts = line.split('\t');
             let label = parts.next().ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidData, "Missing label in feature line")
+                LitseaError::InvalidData("Missing label in feature line".to_string())
             })?;
             let features: HashSet<String> = parts.map(|s| s.to_string()).collect();
             if features.is_empty() {
@@ -127,7 +121,7 @@ impl PosTrainer {
     }
 
     /// 既存モデルをURIから読み込む。
-    pub async fn load_model(&mut self, model_uri: &str) -> io::Result<()> {
+    pub async fn load_model(&mut self, model_uri: &str) -> Result<()> {
         self.learner.load_model(model_uri).await
     }
 
@@ -140,10 +134,10 @@ impl PosTrainer {
         &mut self,
         running: Arc<AtomicBool>,
         model_path: &Path,
-    ) -> Result<perceptron::Metrics, Box<dyn std::error::Error>> {
+    ) -> Result<MulticlassMetrics> {
         self.learner.train(self.num_epochs, running);
         self.learner.save_model(model_path)?;
-        Ok(self.learner.get_metrics())
+        Ok(self.learner.metrics())
     }
 }
 
@@ -157,7 +151,7 @@ mod tests {
 
     use tempfile::NamedTempFile;
 
-    use crate::adaboost::Metrics;
+    use crate::metrics::BinaryMetrics;
 
     // Helper: create a dummy features file.
     // This file should contain at least one line for initialize_features and initialize_instances.
@@ -182,7 +176,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_load_model() -> Result<(), Box<dyn std::error::Error>> {
+    async fn test_load_model() -> Result<()> {
         // Prepare a dummy features file
         let features_file = create_dummy_features_file();
 
@@ -212,7 +206,7 @@ mod tests {
     }
 
     #[test]
-    fn test_train_immediate_stop() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_train_immediate_stop() -> Result<()> {
         // Prepare a dummy features file
         let features_file = create_dummy_features_file();
 
@@ -226,7 +220,7 @@ mod tests {
         let running = Arc::new(AtomicBool::new(false));
 
         // Execute the train method.
-        let metrics: Metrics = trainer.train(running, model_out.path())?;
+        let metrics: BinaryMetrics = trainer.train(running, model_out.path())?;
 
         // Check if the metrics are valid.
         // Since metrics are dummy data, we will consider anything 0 or above to be OK here.
@@ -249,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pos_trainer_new() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_pos_trainer_new() -> Result<()> {
         let features_file = create_dummy_pos_features_file();
         let trainer = PosTrainer::new(5, features_file.path())?;
         assert_eq!(trainer.num_epochs, 5);
@@ -257,7 +251,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pos_trainer_train() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_pos_trainer_train() -> Result<()> {
         let features_file = create_dummy_pos_features_file();
         let mut trainer = PosTrainer::new(5, features_file.path())?;
 
@@ -271,7 +265,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pos_trainer_train_immediate_stop() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_pos_trainer_train_immediate_stop() -> Result<()> {
         let features_file = create_dummy_pos_features_file();
         let mut trainer = PosTrainer::new(5, features_file.path())?;
 
