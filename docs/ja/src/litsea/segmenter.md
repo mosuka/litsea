@@ -6,11 +6,13 @@
 
 ```rust
 pub struct Segmenter {
-    pub language: Language,
-    pub learner: AdaBoost,
-    // internal: char_types: CharTypePatterns
+    // private: language: Language,
+    // private: learner: AdaBoost,
+    // private: pos_learner: Option<AveragedPerceptron>,
 }
 ```
+
+フィールドは非公開です。アクセサメソッド `language()`、`learner()`、`learner_mut()`、`pos_learner()`、`pos_learner_mut()` を使ってアクセスしてください。
 
 ## コンストラクタ
 
@@ -51,19 +53,19 @@ let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
 ```
 
-### `get_type`
+### `char_type`
 
 ```rust
-pub fn get_type(&self, ch: &str) -> &str
+pub fn char_type(&self, ch: &str) -> &str
 ```
 
-言語固有のパターンを使用して、1文字をその文字種コードに分類します。
+言語固有のルールを使用して、1文字をその文字種コードに分類します。`&str` の先頭の文字が分類対象になります。空文字列の場合は `"O"` を返します。
 
 ```rust
 let segmenter = Segmenter::new(Language::Japanese, None);
-assert_eq!(segmenter.get_type("あ"), "I");  // ひらがな
-assert_eq!(segmenter.get_type("漢"), "H");  // 漢字
-assert_eq!(segmenter.get_type("A"), "A");   // ASCII
+assert_eq!(segmenter.char_type("あ"), "I");  // ひらがな
+assert_eq!(segmenter.char_type("漢"), "H");  // 漢字
+assert_eq!(segmenter.char_type("A"), "A");   // ASCII
 ```
 
 ### `add_corpus`
@@ -95,18 +97,16 @@ segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
 });
 ```
 
-### `get_attributes`
+### アクセサ
 
 ```rust
-pub fn get_attributes(
-    &self,
-    i: usize,
-    tags: &[String],
-    chars: &[String],
-    types: &[String],
-) -> HashSet<String>
+pub fn language(&self) -> Language
+pub fn learner(&self) -> &AdaBoost
+pub fn learner_mut(&mut self) -> &mut AdaBoost
+pub fn pos_learner(&self) -> Option<&AveragedPerceptron>
+pub fn pos_learner_mut(&mut self) -> Option<&mut AveragedPerceptron>
 ```
 
-特定の文字位置における特徴量セットを抽出します。韓国語では38個、日本語・中国語では42個の特徴量を返します。
+Segmenter の言語と内部の学習器へのアクセスを提供します。
 
-> これは主に `segment()` と `process_corpus()` の内部で使用されます。
+> 文字位置ごとの特徴量抽出（韓国語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の `get_attributes` メソッドは非公開になりました。

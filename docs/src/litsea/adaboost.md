@@ -30,28 +30,49 @@ let mut learner = AdaBoost::new(0.01, 100);
 
 ## Model Loading
 
+### `load_model_from_path`
+
+```rust
+pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
+```
+
+Loads model weights from a local file, synchronously. This is the preferred method for local files -- no async runtime is needed.
+
+```rust
+use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+```
+
+### `load_model_from_reader`
+
+```rust
+pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> litsea::Result<()>
+```
+
+Loads model weights from any `BufRead` source, such as an in-memory buffer or an already-open file.
+
 ### `load_model`
 
 ```rust
-pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
+pub async fn load_model(&mut self, uri: &str) -> litsea::Result<()>
 ```
 
 Loads model weights from a URI. Supports:
 
 - Local file path: `./models/japanese.model`
 - File URI: `file:///path/to/model`
-- HTTP: `http://example.com/model`
-- HTTPS: `https://example.com/model`
+- HTTP: `http://example.com/model` (requires the `remote_model` feature)
+- HTTPS: `https://example.com/model` (requires the `remote_model` feature)
 
 ```rust
-learner.load_model("./models/japanese.model").await?;
 learner.load_model("https://example.com/model").await?;
 ```
 
 ### `save_model`
 
 ```rust
-pub fn save_model(&self, filename: &Path) -> io::Result<()>
+pub fn save_model(&self, filename: &Path) -> litsea::Result<()>
 ```
 
 Saves model weights to a file. Returns an error if the model is empty.
@@ -61,7 +82,7 @@ Saves model weights to a file. Returns an error if the model is empty.
 ### `initialize_features`
 
 ```rust
-pub fn initialize_features(&mut self, filename: &Path) -> io::Result<()>
+pub fn initialize_features(&mut self, filename: &Path) -> litsea::Result<()>
 ```
 
 Reads a features file and builds the feature index. Must be called before `initialize_instances`.
@@ -69,7 +90,7 @@ Reads a features file and builds the feature index. Must be called before `initi
 ### `initialize_instances`
 
 ```rust
-pub fn initialize_instances(&mut self, filename: &Path) -> io::Result<()>
+pub fn initialize_instances(&mut self, filename: &Path) -> litsea::Result<()>
 ```
 
 Reads the same features file and initializes labeled instances with their weights.
@@ -95,7 +116,7 @@ Adds a single training instance with its feature set and label.
 ### `predict`
 
 ```rust
-pub fn predict(&self, attributes: HashSet<String>) -> i8
+pub fn predict(&self, attributes: &HashSet<String>) -> i8
 ```
 
 Predicts the label for a given feature set. Returns `+1` (boundary) or `-1` (non-boundary).
@@ -108,32 +129,34 @@ attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
 // ... more features
 
-let label = learner.predict(attrs);
+let label = learner.predict(&attrs);
 // label == 1 (boundary) or -1 (non-boundary)
 ```
 
-### `get_bias`
+### `bias`
 
 ```rust
-pub fn get_bias(&self) -> f64
+pub fn bias(&self) -> f64
 ```
 
 Returns the bias term: `-sum(all model weights) / 2.0`.
 
 ## Evaluation
 
-### `get_metrics`
+### `metrics`
 
 ```rust
-pub fn get_metrics(&self) -> Metrics
+pub fn metrics(&self) -> BinaryMetrics
 ```
 
 Calculates evaluation metrics on the training data.
 
-## Metrics
+## BinaryMetrics
+
+Defined in `litsea::metrics` (also re-exported as `litsea::BinaryMetrics`):
 
 ```rust
-pub struct Metrics {
+pub struct BinaryMetrics {
     pub accuracy: f64,          // Accuracy in percentage
     pub precision: f64,         // Precision in percentage
     pub recall: f64,            // Recall in percentage

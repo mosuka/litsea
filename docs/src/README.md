@@ -48,7 +48,7 @@ There is a small plant called *Litsea cubeba* (Aomoji) in the same Lauraceae fam
 
 ## Current Version
 
-Litsea v0.4.0 -- Rust Edition 2024, minimum Rust version 1.87.
+Litsea v0.5.0 -- Rust Edition 2024, minimum Rust version 1.87.
 
 ## Links
 

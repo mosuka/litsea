@@ -91,42 +91,66 @@ let label = learner.predict(&attrs);
 ### `save_model`
 
 ```rust
-pub fn save_model(&self, path: &Path) -> io::Result<()>
+pub fn save_model(&self, path: &Path) -> litsea::Result<()>
 ```
 
 モデルをファイルに保存します。モデルが空の場合はエラーを返します。
 
+### `load_model_from_path`
+
+```rust
+pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
+```
+
+ローカルファイルからモデルの重みを同期的に読み込みます。ローカルファイルにはこのメソッドが推奨されます -- 非同期ランタイムは不要です。
+
+```rust
+use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+```
+
+### `load_model_from_reader`
+
+```rust
+pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> litsea::Result<()>
+```
+
+メモリ上のバッファや既に開いているファイルなど、任意の `BufRead` ソースからモデルの重みを読み込みます。
+
 ### `load_model`
 
 ```rust
-pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
+pub async fn load_model(&mut self, uri: &str) -> litsea::Result<()>
 ```
 
 URI からモデルを読み込みます。以下の形式に対応しています:
 
 - ローカルファイルパス: `./models/japanese_pos.model`
 - File URI: `file:///path/to/model`
-- HTTP: `http://example.com/model`
-- HTTPS: `https://example.com/model`
+- HTTP: `http://example.com/model`（`remote_model` フィーチャーが必要）
+- HTTPS: `https://example.com/model`（`remote_model` フィーチャーが必要）
 
 ```rust
-learner.load_model("./models/japanese_pos.model").await?;
+learner.load_model("https://example.com/models/japanese_pos.model").await?;
 ```
 
 ## 評価
 
-### `get_metrics`
+### `metrics`
 
 ```rust
-pub fn get_metrics(&self) -> Metrics
+pub fn metrics(&self) -> MulticlassMetrics
 ```
 
 学習データに対する評価メトリクスを算出します。
 
-## Metrics
+## MulticlassMetrics
+
+`litsea::metrics` で定義されています（`litsea::MulticlassMetrics` としても再エクスポートされます）:
 
 ```rust
-pub struct Metrics {
+pub struct MulticlassMetrics {
     pub accuracy: f64,                            // 正解率（パーセント）
     pub macro_precision: f64,                     // マクロ平均適合率（パーセント）
     pub macro_recall: f64,                        // マクロ平均再現率（パーセント）

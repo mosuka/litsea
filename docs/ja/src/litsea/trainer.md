@@ -19,7 +19,7 @@ pub fn new(
     threshold: f64,
     num_iterations: usize,
     features_path: &Path,
-) -> io::Result<Self>
+) -> litsea::Result<Self>
 ```
 
 Trainer を作成し、特徴量ファイルから初期化します。内部で `AdaBoost::initialize_features()` と `AdaBoost::initialize_instances()` を呼び出します。
@@ -40,10 +40,12 @@ let mut trainer = Trainer::new(
 ### `load_model`
 
 ```rust
-pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
+pub async fn load_model(&mut self, uri: &str) -> litsea::Result<()>
 ```
 
-再学習用に既存のモデルを読み込みます。ファイルパス、`file://`、`http://`、`https://` URI に対応しています。
+再学習用に既存のモデルを読み込みます。ファイルパス、`file://`、および（`remote_model` フィーチャー有効時）`http://`、`https://` URI に対応しています。
+
+`Trainer::new` の後に呼び出すと、読み込んだ重みは特徴名をキーとして、初期化済みの学習データにマージされます。そのため、特徴量インデックスを壊すことなく、既存モデルから増分学習を開始できます。
 
 ```rust
 trainer.load_model("./models/japanese.model").await?;
@@ -56,7 +58,7 @@ pub fn train(
     &mut self,
     running: Arc<AtomicBool>,
     model_path: &Path,
-) -> Result<Metrics, Box<dyn std::error::Error>>
+) -> litsea::Result<BinaryMetrics>
 ```
 
 モデルを学習し、指定したパスに保存します。評価メトリクスを返します。
@@ -84,7 +86,7 @@ use std::path::Path;
 use litsea::trainer::Trainer;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> litsea::Result<()> {
     let mut trainer = Trainer::new(
         0.005,
         1000,

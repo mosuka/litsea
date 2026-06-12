@@ -1,6 +1,6 @@
 # Language
 
-`Language` 列挙型と `CharTypePatterns` 構造体は、言語固有の動作を定義します。
+`Language` 列挙型は、文字種分類を含む言語固有の動作を定義します。
 
 ## Language 列挙型
 
@@ -42,41 +42,23 @@ let ko: Language = "KOREAN".parse().unwrap();
 assert!("french".parse::<Language>().is_err());
 ```
 
-### `char_type_patterns`
+### `char_type`
 
 ```rust
-pub fn char_type_patterns(&self) -> CharTypePatterns
+pub fn char_type(&self, c: char) -> &'static str
 ```
 
-この言語に対応する文字種パターンを作成します。呼び出しのたびに正規表現パターンをコンパイルするため、パフォーマンスのために結果をキャッシュすることを推奨します（`Segmenter::new` は自動的にキャッシュします）。
+文字をその言語固有の文字種コードに分類します。どのクラスにも属さない文字には `"O"`（その他）を返します。
 
-## CharTypePatterns
+分類は文字範囲に対する直接の `match` で行われます -- アロケーション不要、O(1) で、正規表現は使用しません。
 
 ```rust
-pub struct CharTypePatterns {
-    // internal: Vec<(CharMatcher, &'static str)>
-}
+use litsea::language::Language;
+
+let lang = Language::Japanese;
+assert_eq!(lang.char_type('あ'), "I");
+assert_eq!(lang.char_type('漢'), "H");
+assert_eq!(lang.char_type('@'), "O");
 ```
 
-### `get_type`
-
-```rust
-pub fn get_type(&self, ch: &str) -> &str
-```
-
-文字をその文字種コードに分類します。一致するパターンがない場合は `"O"`（その他）を返します。
-
-```rust
-let patterns = Language::Japanese.char_type_patterns();
-assert_eq!(patterns.get_type("あ"), "I");
-assert_eq!(patterns.get_type("漢"), "H");
-assert_eq!(patterns.get_type("@"), "O");
-```
-
-### `new`
-
-```rust
-pub fn new(patterns: Vec<(Regex, &'static str)>) -> Self
-```
-
-正規表現と文字種コードのペアのリストからパターンを作成します。パターンは順番にチェックされ、最初に一致したものが使用されます。
+内部的には、`char_type` は言語ごとの非公開関数（`japanese_char_type`、`chinese_char_type`、`korean_char_type`）にディスパッチします。全言語に共通のクラス -- `"P"`（句読点）、`"A"`（ラテン文字）、`"N"`（数字） -- は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。

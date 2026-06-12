@@ -18,8 +18,8 @@ pub struct Trainer {
     learner: AdaBoost,
 }
 
-/// 品詞推定モデル用のトレーナー。
-/// Averaged Perceptronによる多クラス分類の学習を管理する。
+/// Trainer for the POS tagging model.
+/// Manages multiclass classification training with the Averaged Perceptron.
 pub struct PosTrainer {
     learner: AveragedPerceptron,
     num_epochs: usize,
@@ -83,14 +83,14 @@ impl Trainer {
 }
 
 impl PosTrainer {
-    /// 品詞付き特徴量ファイルからPosTrainerを作成する。
+    /// Creates a PosTrainer from a POS-tagged features file.
     ///
-    /// 特徴量ファイルのフォーマット: 各行が "ラベル\t特徴1\t特徴2\t..." 形式。
-    /// ラベルは "B-NOUN", "O" 等のSegmentLabel文字列。
+    /// Features file format: each line is "label\tfeature1\tfeature2\t...".
+    /// Labels are SegmentLabel strings such as "B-NOUN" or "O".
     ///
     /// # Arguments
-    /// * `num_epochs` - 学習エポック数
-    /// * `features_path` - 特徴量ファイルのパス
+    /// * `num_epochs` - The number of training epochs
+    /// * `features_path` - The path to the features file
     pub fn new(num_epochs: usize, features_path: &Path) -> Result<Self> {
         let mut learner = AveragedPerceptron::new();
 
@@ -120,16 +120,16 @@ impl PosTrainer {
         })
     }
 
-    /// 既存モデルをURIから読み込む。
+    /// Loads an existing model from a URI.
     pub async fn load_model(&mut self, model_uri: &str) -> Result<()> {
         self.learner.load_model(model_uri).await
     }
 
-    /// モデルを学習して保存する。
+    /// Trains the model and saves it.
     ///
     /// # Arguments
-    /// * `running` - 学習中断フラグ
-    /// * `model_path` - モデルの保存先パス
+    /// * `running` - A flag for interrupting the training
+    /// * `model_path` - The path to save the model to
     pub fn train(
         &mut self,
         running: Arc<AtomicBool>,
@@ -230,11 +230,11 @@ mod tests {
         Ok(())
     }
 
-    // --- PosTrainer テスト ---
+    // --- PosTrainer tests ---
 
     fn create_dummy_pos_features_file() -> NamedTempFile {
         let mut file = NamedTempFile::new().expect("Failed to create temp file");
-        // 品詞付き特徴量ファイル（SegmentLabel形式のラベル）
+        // POS-tagged features file (SegmentLabel-style labels)
         writeln!(file, "B-NOUN\tUW4:猫\tUC4:H").expect("write");
         writeln!(file, "O\tUW4:は\tUC4:I").expect("write");
         writeln!(file, "B-VERB\tUW4:食\tUC4:H").expect("write");

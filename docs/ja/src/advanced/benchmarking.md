@@ -20,14 +20,14 @@ make bench
 
 | ベンチマーク | 説明 |
 |-----------|------------|
-| `segment_japanese_short` | 短い日本語文の分割 |
-| `segment_japanese_long` | 坊っちゃんの全文の分割（約 300 KB） |
-| `segment_chinese_short` | 短い中国語文の分割 |
-| `segment_korean_short` | 短い韓国語文の分割 |
+| `segment_short/adaboost/{ja,zh,ko}` | 短い文の分割（AdaBoost） |
+| `segment_short/averaged_perceptron/{ja,zh,ko}` | 短い文の分割+品詞付与 |
+| `segment_long_japanese/{adaboost,averaged_perceptron}` | 坊っちゃん全文の処理（約 300 KB） |
 | `get_type_hiragana` | 文字種分類 |
 | `add_corpus` | 学習用コーパスの取り込み |
-| `char_type_patterns_japanese` | パターンコンパイルのコスト |
-| `predict` | 単一の AdaBoost 予測 |
+| `predict_adaboost` | 単一の AdaBoost 予測 |
+
+モデルは `load_model_from_path` で同期的に読み込まれます。ベンチマークに非同期ランタイムは関与しません。
 
 ## HTML レポート
 
@@ -48,6 +48,6 @@ target/criterion/report/index.html
 パフォーマンスに影響する主な要因:
 
 - **分割処理**は入力長に対して線形（O(n)）
-- **パターンコンパイル**（正規表現）は最もコストが高い初回処理 -- `Segmenter::new()` がパターンをキャッシュする
+- **文字種分類**は文字範囲に対する `match` で直接行われる（数ナノ秒、セットアップコストなし）
 - 各位置での**予測**は特徴量の数に依存（38-42個、定数）
 - **モデル読み込み**時間はモデルファイルサイズに比例

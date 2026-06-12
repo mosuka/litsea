@@ -16,7 +16,9 @@ type Label = i8;
 /// It is not optimized for performance or large datasets.
 #[derive(Debug)]
 pub struct AdaBoost {
+    /// The threshold for stopping the training.
     pub threshold: f64,
+    /// The maximum number of iterations for training.
     pub num_iterations: usize,
     instance_weights: Vec<f64>,
     model: Vec<f64>,
@@ -37,7 +39,8 @@ impl AdaBoost {
     /// * `threshold`: The threshold for stopping the training.
     /// * `num_iterations`: The maximum number of iterations for training.
     ///
-    /// # Returns: A new instance of [`AdaBoost`].
+    /// # Returns
+    /// A new instance of [`AdaBoost`].
     pub fn new(threshold: f64, num_iterations: usize) -> Self {
         AdaBoost {
             threshold,
@@ -59,15 +62,18 @@ impl AdaBoost {
     /// # Arguments
     /// * `filename`: The path to the file containing the features.
     ///
-    /// # Returns: A result indicating success or failure.
+    /// # Returns
+    /// A result indicating success or failure.
     ///
-    /// # Errors: Returns an error if the file cannot be opened or read.
+    /// # Errors
+    /// Returns an error if the file cannot be opened or read.
     ///
     /// This method reads the file line by line, extracts features,
     /// and initializes the model with the features and their corresponding weights.
     /// It also counts the number of instances and reserves space in the vectors for efficient memory usage.
     ///
-    /// # Note: The features are stored in a `BTreeMap` to preserve the order of insertion.
+    /// # Note
+    /// The features are stored in a `BTreeMap` to preserve the order of insertion.
     /// The last feature is an empty string, which is used as a bias term.
     /// The model is initialized with zeros for each feature.
     /// The number of instances is counted to ensure that the model can handle the data efficiently.
@@ -127,9 +133,11 @@ impl AdaBoost {
     /// # Arguments
     /// * `filename`: The path to the file containing the instances.
     ///
-    /// # Returns: A result indicating success or failure.
+    /// # Returns
+    /// A result indicating success or failure.
     ///
-    /// # Errors: Returns an error if the file cannot be opened or read.
+    /// # Errors
+    /// Returns an error if the file cannot be opened or read.
     ///
     /// This method reads the file line by line, extracts the label and features,
     /// and initializes the instances with their corresponding weights.
@@ -178,9 +186,11 @@ impl AdaBoost {
     /// # Arguments
     /// * `running`: An `Arc<AtomicBool>` to control the running state of the training process.
     ///
-    /// # Returns: This method does not return a value.
+    /// # Returns
+    /// This method does not return a value.
     ///
-    /// # Errors: This method does not return an error, but it will stop training if `running` is set to false.
+    /// # Errors
+    /// This method does not return an error, but it will stop training if `running` is set to false.
     ///
     /// This method performs the following steps:
     /// 1. Initializes the error vector and sums of weights.
@@ -275,9 +285,11 @@ impl AdaBoost {
     /// # Arguments
     /// * `filename`: The path to the file where the model will be saved.
     ///
-    /// # Returns: A result indicating success or failure.
+    /// # Returns
+    /// A result indicating success or failure.
     ///
-    /// # Errors: Returns an error if the file cannot be created or written to.
+    /// # Errors
+    /// Returns an error if the file cannot be created or written to.
     ///
     /// This method writes the model to a file in a tab-separated format,
     /// where each line contains a feature and its corresponding weight.
@@ -310,7 +322,8 @@ impl AdaBoost {
     /// # Arguments
     /// * `uri`: The URI of the file containing the model.
     ///
-    /// # Errors: Returns an error if the URI is invalid or the model cannot be read.
+    /// # Errors
+    /// Returns an error if the URI is invalid or the model cannot be read.
     pub async fn load_model(&mut self, uri: &str) -> Result<()> {
         let bytes = crate::model_io::read_model_bytes(uri).await?;
         self.load_model_from_reader(bytes.as_slice())
@@ -321,7 +334,8 @@ impl AdaBoost {
     /// # Arguments
     /// * `path`: The path to the file containing the model.
     ///
-    /// # Errors: Returns an error if the file cannot be read or parsed.
+    /// # Errors
+    /// Returns an error if the file cannot be read or parsed.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load_model_from_path(&mut self, path: &Path) -> Result<()> {
         let file = File::open(path)?;
@@ -340,7 +354,8 @@ impl AdaBoost {
     /// # Arguments
     /// * `reader`: A buffered reader containing the model data.
     ///
-    /// # Errors: Returns an error if the content cannot be parsed.
+    /// # Errors
+    /// Returns an error if the content cannot be parsed.
     pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()> {
         let mut m: HashMap<String, f64> = HashMap::new();
         let mut bias = 0.0;
@@ -435,7 +450,8 @@ impl AdaBoost {
     /// # Arguments
     /// * `attributes`: A `HashSet<String>` containing the attributes to predict.
     ///
-    /// # Returns: The predicted label as an `i8`, where 1 indicates a positive prediction and -1 indicates a negative prediction.
+    /// # Returns
+    /// The predicted label as an `i8`, where 1 indicates a positive prediction and -1 indicates a negative prediction.
     #[must_use]
     pub fn predict(&self, attributes: &HashSet<String>) -> i8 {
         let mut score = self.bias();
@@ -457,7 +473,8 @@ impl AdaBoost {
     /// Gets the bias term of the model.
     /// The bias is calculated as the negative sum of the model weights divided by 2.
     ///
-    /// # Returns: The bias term as a `f64`.
+    /// # Returns
+    /// The bias term as a `f64`.
     #[must_use]
     pub fn bias(&self) -> f64 {
         -self.model.iter().sum::<f64>() / 2.0

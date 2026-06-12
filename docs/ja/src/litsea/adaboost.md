@@ -30,28 +30,49 @@ let mut learner = AdaBoost::new(0.01, 100);
 
 ## モデルの読み込み
 
+### `load_model_from_path`
+
+```rust
+pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
+```
+
+ローカルファイルからモデルの重みを同期的に読み込みます。ローカルファイルにはこのメソッドが推奨されます -- 非同期ランタイムは不要です。
+
+```rust
+use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+```
+
+### `load_model_from_reader`
+
+```rust
+pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> litsea::Result<()>
+```
+
+メモリ上のバッファや既に開いているファイルなど、任意の `BufRead` ソースからモデルの重みを読み込みます。
+
 ### `load_model`
 
 ```rust
-pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
+pub async fn load_model(&mut self, uri: &str) -> litsea::Result<()>
 ```
 
 URI からモデルの重みを読み込みます。以下の形式に対応しています:
 
 - ローカルファイルパス: `./models/japanese.model`
 - File URI: `file:///path/to/model`
-- HTTP: `http://example.com/model`
-- HTTPS: `https://example.com/model`
+- HTTP: `http://example.com/model`（`remote_model` フィーチャーが必要）
+- HTTPS: `https://example.com/model`（`remote_model` フィーチャーが必要）
 
 ```rust
-learner.load_model("./models/japanese.model").await?;
 learner.load_model("https://example.com/model").await?;
 ```
 
 ### `save_model`
 
 ```rust
-pub fn save_model(&self, filename: &Path) -> io::Result<()>
+pub fn save_model(&self, filename: &Path) -> litsea::Result<()>
 ```
 
 モデルの重みをファイルに保存します。モデルが空の場合はエラーを返します。
@@ -61,7 +82,7 @@ pub fn save_model(&self, filename: &Path) -> io::Result<()>
 ### `initialize_features`
 
 ```rust
-pub fn initialize_features(&mut self, filename: &Path) -> io::Result<()>
+pub fn initialize_features(&mut self, filename: &Path) -> litsea::Result<()>
 ```
 
 特徴量ファイルを読み込み、特徴量インデックスを構築します。`initialize_instances` の前に呼び出す必要があります。
@@ -69,7 +90,7 @@ pub fn initialize_features(&mut self, filename: &Path) -> io::Result<()>
 ### `initialize_instances`
 
 ```rust
-pub fn initialize_instances(&mut self, filename: &Path) -> io::Result<()>
+pub fn initialize_instances(&mut self, filename: &Path) -> litsea::Result<()>
 ```
 
 同じ特徴量ファイルを読み込み、ラベル付きインスタンスとその重みを初期化します。
@@ -95,7 +116,7 @@ pub fn add_instance(&mut self, attributes: HashSet<String>, label: i8)
 ### `predict`
 
 ```rust
-pub fn predict(&self, attributes: HashSet<String>) -> i8
+pub fn predict(&self, attributes: &HashSet<String>) -> i8
 ```
 
 与えられた特徴量セットに対してラベルを予測します。`+1`（境界）または `-1`（非境界）を返します。
@@ -108,32 +129,34 @@ attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
 // ... その他の特徴量
 
-let label = learner.predict(attrs);
+let label = learner.predict(&attrs);
 // label == 1 (境界) or -1 (非境界)
 ```
 
-### `get_bias`
+### `bias`
 
 ```rust
-pub fn get_bias(&self) -> f64
+pub fn bias(&self) -> f64
 ```
 
 バイアス項を返します: `-sum(all model weights) / 2.0`
 
 ## 評価
 
-### `get_metrics`
+### `metrics`
 
 ```rust
-pub fn get_metrics(&self) -> Metrics
+pub fn metrics(&self) -> BinaryMetrics
 ```
 
 学習データに対する評価メトリクスを算出します。
 
-## Metrics
+## BinaryMetrics
+
+`litsea::metrics` で定義されています（`litsea::BinaryMetrics` としても再エクスポートされます）:
 
 ```rust
-pub struct Metrics {
+pub struct BinaryMetrics {
     pub accuracy: f64,          // 正解率（パーセント）
     pub precision: f64,         // 適合率（パーセント）
     pub recall: f64,            // 再現率（パーセント）

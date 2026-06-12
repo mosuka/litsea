@@ -36,7 +36,7 @@ pub fn extract(
     &mut self,
     corpus_path: &Path,
     features_path: &Path,
-) -> Result<(), Box<dyn Error>>
+) -> litsea::Result<()>
 ```
 
 コーパスファイル（スペース区切りの単語、1行1文）を読み込み、抽出した特徴量を出力ファイルに書き込みます。

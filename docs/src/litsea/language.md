@@ -1,6 +1,6 @@
 # Language
 
-The `Language` enum and `CharTypePatterns` struct define language-specific behavior.
+The `Language` enum defines language-specific behavior, including character type classification.
 
 ## Language Enum
 
@@ -42,41 +42,23 @@ let ko: Language = "KOREAN".parse().unwrap();
 assert!("french".parse::<Language>().is_err());
 ```
 
-### `char_type_patterns`
+### `char_type`
 
 ```rust
-pub fn char_type_patterns(&self) -> CharTypePatterns
+pub fn char_type(&self, c: char) -> &'static str
 ```
 
-Creates the character type patterns for this language. Compiles regex patterns on each call -- for performance, cache the result (as `Segmenter::new` does automatically).
+Classifies a character into its language-specific type code. Returns `"O"` (Other) if the character does not belong to any class.
 
-## CharTypePatterns
+Classification is a direct `match` on character ranges -- allocation-free, O(1), and with no regex involved.
 
 ```rust
-pub struct CharTypePatterns {
-    // internal: Vec<(CharMatcher, &'static str)>
-}
+use litsea::language::Language;
+
+let lang = Language::Japanese;
+assert_eq!(lang.char_type('あ'), "I");
+assert_eq!(lang.char_type('漢'), "H");
+assert_eq!(lang.char_type('@'), "O");
 ```
 
-### `get_type`
-
-```rust
-pub fn get_type(&self, ch: &str) -> &str
-```
-
-Classifies a character into its type code. Returns `"O"` (Other) if no pattern matches.
-
-```rust
-let patterns = Language::Japanese.char_type_patterns();
-assert_eq!(patterns.get_type("あ"), "I");
-assert_eq!(patterns.get_type("漢"), "H");
-assert_eq!(patterns.get_type("@"), "O");
-```
-
-### `new`
-
-```rust
-pub fn new(patterns: Vec<(Regex, &'static str)>) -> Self
-```
-
-Creates patterns from a list of regex + type code pairs. Patterns are checked in order; first match wins.
+Internally, `char_type` dispatches to a private per-language function (`japanese_char_type`, `chinese_char_type`, `korean_char_type`). The classes common to all languages -- `"P"` (punctuation), `"A"` (Latin), and `"N"` (digits) -- are handled by a shared helper that is checked after the language-specific classes.

@@ -19,7 +19,7 @@ pub fn new(
     threshold: f64,
     num_iterations: usize,
     features_path: &Path,
-) -> io::Result<Self>
+) -> litsea::Result<Self>
 ```
 
 Creates a trainer and initializes it from a features file. This calls `AdaBoost::initialize_features()` and `AdaBoost::initialize_instances()`.
@@ -40,10 +40,12 @@ let mut trainer = Trainer::new(
 ### `load_model`
 
 ```rust
-pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
+pub async fn load_model(&mut self, uri: &str) -> litsea::Result<()>
 ```
 
-Loads an existing model for retraining. Supports file paths, `file://`, `http://`, and `https://` URIs.
+Loads an existing model for retraining. Supports file paths, `file://`, and (with the `remote_model` feature) `http://` and `https://` URIs.
+
+When called after `Trainer::new`, the loaded weights are merged into the freshly initialized training data by feature name, so incremental training starts from the existing model without corrupting the feature index.
 
 ```rust
 trainer.load_model("./models/japanese.model").await?;
@@ -56,7 +58,7 @@ pub fn train(
     &mut self,
     running: Arc<AtomicBool>,
     model_path: &Path,
-) -> Result<Metrics, Box<dyn std::error::Error>>
+) -> litsea::Result<BinaryMetrics>
 ```
 
 Trains the model and saves it to the specified path. Returns evaluation metrics.
@@ -84,7 +86,7 @@ use std::path::Path;
 use litsea::trainer::Trainer;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> litsea::Result<()> {
     let mut trainer = Trainer::new(
         0.005,
         1000,

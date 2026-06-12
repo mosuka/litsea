@@ -8,27 +8,28 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::error::{LitseaError, Result};
 use crate::metrics::MulticlassMetrics;
 
-/// 多クラスAveraged Perceptron分類器。
+/// Multiclass Averaged Perceptron classifier.
 ///
-/// スパースな二値特徴に対する多クラス分類を行う。
-/// 学習時に重みの累積平均を保持し、過学習を抑制する。
+/// Performs multiclass classification over sparse binary features.
+/// During training it keeps a running average of the weights to reduce
+/// overfitting.
 ///
-/// 重みは「特徴 → クラス別ベクトル」のレイアウトで保持する。
-/// 予測時の参照回数が特徴数×クラス数から特徴数に減り、
-/// 推論のホットパスが大幅に速くなる。
+/// Weights are stored in a feature -> per-class vector layout. This reduces
+/// the number of hash lookups per prediction from features x classes to
+/// features, which makes the inference hot path significantly faster.
 #[derive(Debug)]
 pub struct AveragedPerceptron {
-    /// 特徴ごとの重みベクトル: weights\[feature\]\[class_index\] = weight
+    /// Per-feature weight vectors: weights\[feature\]\[class_index\] = weight
     weights: HashMap<String, Vec<f64>>,
-    /// 平均化用の累積重み
+    /// Accumulated weights used for averaging
     accumulated: HashMap<String, Vec<f64>>,
-    /// 各重みの最終更新タイムスタンプ
+    /// Last-updated timestamp of each weight
     timestamps: HashMap<String, Vec<usize>>,
-    /// 現在のステップ数（全インスタンスの累計）
+    /// Current step count (total across all instances)
     step: usize,
-    /// 既知のクラス一覧（常にソート済み）
+    /// Known classes (always kept sorted)
     classes: Vec<String>,
-    /// 学習インスタンス: (特徴量セット, 正解ラベル)
+    /// Training instances: (feature set, gold label)
     instances: Vec<(Vec<String>, String)>,
 }
 
@@ -39,7 +40,7 @@ impl Default for AveragedPerceptron {
 }
 
 impl AveragedPerceptron {
-    /// 新しいAveraged Perceptronインスタンスを作成する。
+    /// Creates a new Averaged Perceptron instance.
     pub fn new() -> Self {
         AveragedPerceptron {
             weights: HashMap::new(),
@@ -51,9 +52,9 @@ impl AveragedPerceptron {
         }
     }
 
-    /// クラスを登録し、そのインデックスを返す。
-    /// 新しいクラスはソート順を保って挿入し、既存の重みベクトルにも
-    /// 対応する列を挿入する。
+    /// Registers a class and returns its index.
+    /// New classes are inserted in sorted order, and a matching column is
+    /// inserted into every existing weight vector.
     fn ensure_class(&mut self, label: &str) -> usize {
         match self.classes.binary_search_by(|c| c.as_str().cmp(label)) {
             Ok(i) => i,
@@ -73,19 +74,19 @@ impl AveragedPerceptron {
         }
     }
 
-    /// インスタンスを追加する。
+    /// Adds a training instance.
     ///
     /// # Arguments
-    /// * `features` - 特徴量の集合
-    /// * `label` - 正解ラベル
+    /// * `features` - The feature set
+    /// * `label` - The gold label
     pub fn add_instance(&mut self, features: HashSet<String>, label: String) {
         self.ensure_class(&label);
         let feats: Vec<String> = features.into_iter().collect();
         self.instances.push((feats, label));
     }
 
-    /// 特徴量集合から最大スコアのクラスのインデックスを返す。
-    /// クラスが未登録の場合はNoneを返す。
+    /// Returns the index of the highest-scoring class for the features.
+    /// Returns None if no classes are registered.
     fn predict_idx<I>(&self, features: I) -> Option<usize>
     where
         I: IntoIterator,
@@ -113,10 +114,10 @@ impl AveragedPerceptron {
         Some(best)
     }
 
-    /// 特徴量セットからラベルを予測する。
+    /// Predicts the label for a feature set.
     ///
-    /// 各クラスのスコアを計算し、最大スコアのクラスを返す。
-    /// クラスが未登録の場合は空文字列を返す。
+    /// Computes the score of each class and returns the one with the highest
+    /// score. Returns an empty string if no classes are registered.
     #[must_use]
     pub fn predict(&self, features: &HashSet<String>) -> String {
         match self.predict_idx(features.iter()) {
@@ -125,7 +126,7 @@ impl AveragedPerceptron {
         }
     }
 
-    /// スライスからラベルを予測する（アロケーション回避用の内部API）。
+    /// Predicts the label from a slice (internal allocation-avoiding API).
     pub(crate) fn predict_slice(&self, features: &[String]) -> &str {
         match self.predict_idx(features.iter()) {
             Some(i) => &self.classes[i],
@@ -133,8 +134,9 @@ impl AveragedPerceptron {
         }
     }
 
-    /// 1つの (特徴, クラス) の重みを更新する。
-    /// 累積重みを現在のステップまで追いつかせてから `delta` を加算する。
+    /// Updates the weight of a single (feature, class) pair.
+    /// Catches the accumulated weight up to the current step before adding
+    /// `delta`.
     fn update_single(&mut self, feat: &str, class_idx: usize, delta: f64) {
         let n = self.classes.len();
         let ws = self.weights.entry(feat.to_string()).or_insert_with(|| vec![0.0; n]);
@@ -149,11 +151,11 @@ impl AveragedPerceptron {
         ws[class_idx] += delta;
     }
 
-    /// 重みを更新する（1インスタンス分）。
+    /// Updates the weights for one instance.
     ///
-    /// 予測が正解と異なる場合:
-    /// - 正解クラスの重みを +1
-    /// - 予測クラスの重みを -1
+    /// When the prediction differs from the gold label:
+    /// - the gold class weights are incremented by 1
+    /// - the predicted class weights are decremented by 1
     fn update(&mut self, truth_idx: usize, guess_idx: usize, features: &[String]) {
         for feat in features {
             self.update_single(feat, truth_idx, 1.0);
@@ -161,14 +163,15 @@ impl AveragedPerceptron {
         }
     }
 
-    /// 平均化した重みを最終モデルに反映する。
+    /// Writes the averaged weights into the final model.
     fn average_weights(&mut self) {
         let n = self.classes.len();
         let step = self.step.max(1) as f64;
         let feats: Vec<String> = self.weights.keys().cloned().collect();
         for feat in feats {
             for class_idx in 0..n {
-                // delta 0 の更新で累積重みを現在のステップまで追いつかせる
+                // An update with delta 0 catches the accumulated weight up to
+                // the current step
                 self.update_single(&feat, class_idx, 0.0);
                 let acc = self.accumulated[&feat][class_idx];
                 if let Some(ws) = self.weights.get_mut(&feat) {
@@ -178,18 +181,18 @@ impl AveragedPerceptron {
         }
     }
 
-    /// モデルを学習する。
+    /// Trains the model.
     ///
     /// # Arguments
-    /// * `num_epochs` - エポック数
-    /// * `running` - 学習を中断するためのフラグ
+    /// * `num_epochs` - The number of epochs
+    /// * `running` - A flag for interrupting the training
     pub fn train(&mut self, num_epochs: usize, running: Arc<AtomicBool>) {
         if self.instances.is_empty() {
             return;
         }
 
-        // インスタンスを一時的に取り出して学習中の二重借用を避ける
-        // （以前はエポックを跨いで全インスタンスを複製していた）。
+        // Temporarily move the instances out to avoid double borrows during
+        // training (previously every instance was cloned).
         let instances = std::mem::take(&mut self.instances);
 
         for _epoch in 0..num_epochs {
@@ -216,20 +219,20 @@ impl AveragedPerceptron {
 
         self.instances = instances;
 
-        // 平均化した重みを最終モデルに反映
+        // Write the averaged weights into the final model
         self.average_weights();
     }
 
-    /// モデルをテキスト形式（クラスヘッダ + TSV）でファイルに保存する。
+    /// Saves the model to a file as text (class header + TSV).
     ///
-    /// フォーマット:
+    /// Format:
     /// ```text
-    /// クラス数
-    /// クラス名1
-    /// クラス名2
+    /// <number of classes>
+    /// <class name 1>
+    /// <class name 2>
     /// ...
-    /// 特徴名\tクラス名\t重み
-    /// 特徴名\tクラス名\t重み
+    /// <feature>\t<class>\t<weight>
+    /// <feature>\t<class>\t<weight>
     /// ...
     /// ```
     pub fn save_model(&self, path: &Path) -> Result<()> {
@@ -239,13 +242,13 @@ impl AveragedPerceptron {
 
         let mut file = File::create(path)?;
 
-        // ヘッダー: クラス数とクラス名
+        // Header: the number of classes and the class names
         writeln!(file, "{}", self.classes.len())?;
         for class in &self.classes {
             writeln!(file, "{}", class)?;
         }
 
-        // 重み: 非ゼロの重みのみ保存
+        // Weights: only non-zero weights are saved
         for (feat, ws) in &self.weights {
             for (class_idx, &w) in ws.iter().enumerate() {
                 if w != 0.0 {
@@ -257,33 +260,33 @@ impl AveragedPerceptron {
         Ok(())
     }
 
-    /// モデルをURIから読み込む。
+    /// Loads a model from a URI.
     ///
-    /// URIにはファイルパス、`file://`パス、`http(s)://` URL
-    /// （`remote_model`フィーチャー有効時のみ）を指定できる。
-    /// ローカルファイルには同期APIの
-    /// [`load_model_from_path`](Self::load_model_from_path)を推奨。
+    /// The URI can be a file path, a `file://` path, or an `http(s)://` URL
+    /// (the latter requires the `remote_model` feature).
+    /// For local files, prefer the synchronous
+    /// [`load_model_from_path`](Self::load_model_from_path).
     pub async fn load_model(&mut self, uri: &str) -> Result<()> {
         let bytes = crate::model_io::read_model_bytes(uri).await?;
         self.load_model_from_reader(bytes.as_slice())
     }
 
-    /// ローカルファイルパスからモデルを読み込む（同期）。
+    /// Loads a model from a local file path (synchronous).
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load_model_from_path(&mut self, path: &Path) -> Result<()> {
         let file = File::open(path)?;
         self.load_model_from_reader(BufReader::new(file))
     }
 
-    /// リーダーからモデルを読み込む（同期）。
+    /// Loads a model from a buffered reader (synchronous).
     ///
-    /// 既に学習インスタンスからクラスが登録されている場合、モデルファイルの
-    /// クラスは既存のクラス一覧にマージされる（増分学習で正解ラベルの
-    /// クラスが失われないようにするため）。
+    /// If classes are already registered from training instances, the classes
+    /// in the model file are merged into the existing class list so that gold
+    /// label classes are not lost during incremental training.
     pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()> {
         let mut lines = reader.lines();
 
-        // クラス数を読む
+        // Read the number of classes
         let num_classes: usize = lines
             .next()
             .ok_or_else(|| LitseaError::InvalidData("Empty model file".to_string()))?
@@ -292,7 +295,7 @@ impl AveragedPerceptron {
             .parse()
             .map_err(|e| LitseaError::InvalidData(format!("Invalid class count: {}", e)))?;
 
-        // クラス名を読む（既存のクラスとマージ）
+        // Read the class names (merging with existing classes)
         for _ in 0..num_classes {
             let class = lines
                 .next()
@@ -305,7 +308,7 @@ impl AveragedPerceptron {
             self.ensure_class(class.trim());
         }
 
-        // 重みを読む
+        // Read the weights
         self.weights.clear();
         let n = self.classes.len();
         for line in lines {
@@ -333,7 +336,7 @@ impl AveragedPerceptron {
         Ok(())
     }
 
-    /// 学習データに対する評価指標を計算する。
+    /// Computes evaluation metrics on the training data.
     #[must_use]
     pub fn metrics(&self) -> MulticlassMetrics {
         let mut correct_per_class: HashMap<String, usize> = HashMap::new();
@@ -359,7 +362,7 @@ impl AveragedPerceptron {
         let num_instances = self.instances.len();
         let accuracy = total_correct as f64 / num_instances.max(1) as f64 * 100.0;
 
-        // マクロ平均適合率・再現率
+        // Macro-averaged precision and recall
         let mut sum_precision = 0.0;
         let mut sum_recall = 0.0;
         let num_classes = self.classes.len().max(1);
@@ -438,13 +441,13 @@ mod tests {
     fn test_train_simple() {
         let mut p = AveragedPerceptron::new();
 
-        // クラスAの特徴: f1, f2
+        // Class A features: f1, f2
         let mut feats_a = HashSet::new();
         feats_a.insert("f1".to_string());
         feats_a.insert("f2".to_string());
         p.add_instance(feats_a.clone(), "A".to_string());
 
-        // クラスBの特徴: f3, f4
+        // Class B features: f3, f4
         let mut feats_b = HashSet::new();
         feats_b.insert("f3".to_string());
         feats_b.insert("f4".to_string());
@@ -453,7 +456,7 @@ mod tests {
         let running = Arc::new(AtomicBool::new(true));
         p.train(10, running);
 
-        // 学習後、正しく分類できるか
+        // After training, instances are classified correctly
         assert_eq!(p.predict(&feats_a), "A");
         assert_eq!(p.predict(&feats_b), "B");
     }
@@ -468,9 +471,9 @@ mod tests {
         let running = Arc::new(AtomicBool::new(false));
         p.train(10, running);
 
-        // 学習が即座に停止しても panic しない
+        // Stopping immediately must not panic
         assert_eq!(p.step, 0);
-        // インスタンスは失われない
+        // Instances are not lost
         assert_eq!(p.instances.len(), 1);
     }
 
@@ -478,7 +481,7 @@ mod tests {
     fn test_train_multiclass() {
         let mut p = AveragedPerceptron::new();
 
-        // 3クラスの学習データ
+        // Training data for three classes
         for _ in 0..5 {
             let mut fa = HashSet::new();
             fa.insert("feat_a".to_string());
@@ -499,7 +502,7 @@ mod tests {
         let running = Arc::new(AtomicBool::new(true));
         p.train(20, running);
 
-        // 固有特徴で正しく分類できる
+        // Distinctive features classify correctly
         let mut test_a = HashSet::new();
         test_a.insert("feat_a".to_string());
         test_a.insert("shared".to_string());
@@ -544,18 +547,18 @@ mod tests {
         let running = Arc::new(AtomicBool::new(true));
         p.train(5, running);
 
-        // 保存
+        // Save
         let temp = NamedTempFile::new()?;
         p.save_model(temp.path())?;
 
-        // 読み込み（同期パスAPI）
+        // Load (synchronous path API)
         let mut p2 = AveragedPerceptron::new();
         p2.load_model_from_path(temp.path())?;
 
-        // 同じクラスが復元される
+        // The same classes are restored
         assert_eq!(p2.classes.len(), p.classes.len());
 
-        // 同じ予測結果が得られる
+        // The same predictions are produced
         assert_eq!(p.predict(&feats_a), p2.predict(&feats_a));
         assert_eq!(p.predict(&feats_b), p2.predict(&feats_b));
 
@@ -582,13 +585,14 @@ mod tests {
 
     #[test]
     fn test_load_model_merges_classes() -> Result<()> {
-        // 増分学習: 学習データに既に存在するクラスはモデル読み込みで失われない。
+        // Incremental training: classes already present in the training data
+        // must survive a model load.
         let mut p = AveragedPerceptron::new();
         let mut feats = HashSet::new();
         feats.insert("f1".to_string());
         p.add_instance(feats, "NEW_CLASS".to_string());
 
-        // クラスAのみを含むモデルを読み込む
+        // Load a model that only contains class A
         let model_content = "1\nA\nf1\tA\t0.5\n";
         p.load_model_from_reader(model_content.as_bytes())?;
 
@@ -636,7 +640,7 @@ mod tests {
     #[test]
     fn test_load_model_from_reader_invalid() {
         let mut p = AveragedPerceptron::new();
-        // 不正なクラス数
+        // Invalid class count
         let result = p.load_model_from_reader("not_a_number".as_bytes());
         assert!(matches!(result, Err(LitseaError::InvalidData(_))));
     }
