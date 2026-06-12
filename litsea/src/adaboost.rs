@@ -2,11 +2,8 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-
-use crate::util::ModelScheme;
 
 type Label = i8;
 
@@ -332,7 +329,8 @@ impl AdaBoost {
     }
 
     /// Loads a model from a URI.
-    /// The URI can be a file path or a URL (http, https or file).
+    /// The URI can be a file path, a `file://` path, or an `http(s)://` URL
+    /// (the latter requires the `remote_model` feature).
     /// The model should contain lines with a feature and its weight,
     /// with the last line containing the bias term.
     ///
@@ -343,107 +341,8 @@ impl AdaBoost {
     ///
     /// # Errors: Returns an error if the URI is invalid or the file cannot be read.
     pub async fn load_model(&mut self, uri: &str) -> std::io::Result<()> {
-        if uri.contains("://") {
-            let parts: Vec<&str> = uri.splitn(2, "://").collect();
-            if parts.len() != 2 {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    format!("Invalid URI: {}", uri),
-                ));
-            }
-            let scheme = ModelScheme::from_str(parts[0]).map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::InvalidInput, e.to_string())
-            })?;
-            match scheme {
-                ModelScheme::Http | ModelScheme::Https => {
-                    #[cfg(not(feature = "remote_model"))]
-                    {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::Unsupported,
-                            "http:// and https:// scheme is not supported in this build. Use file:// URLs.",
-                        ));
-                    }
-                    #[cfg(feature = "remote_model")]
-                    {
-                        self.load_model_from_url(uri).await.map_err(|e| {
-                            std::io::Error::other(format!("Failed to load model from URL: {}", e))
-                        })
-                    }
-                }
-                ModelScheme::File => {
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::Unsupported,
-                            "file:// scheme is not supported in WASM environment. Use http:// or https:// URLs.",
-                        ));
-                    }
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        let path = Path::new(parts[1]);
-                        self.load_model_from_file(path)
-                    }
-                }
-            }
-        } else {
-            #[cfg(target_arch = "wasm32")]
-            {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Unsupported,
-                    "Local file paths are not supported in WASM environment. Use http:// or https:// URLs.",
-                ));
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let path = Path::new(uri);
-                self.load_model_from_file(path)
-            }
-        }
-    }
-
-    /// Loads a model from a URL.
-    /// The URL should point to a file containing lines with a feature and its weight,
-    /// with the last line containing the bias term.
-    ///
-    /// # Arguments
-    /// * `url`: The URL of the file containing the model.
-    ///
-    /// # Returns: A result indicating success or failure.
-    ///
-    /// # Errors: Returns an error if the URL cannot be accessed or the file cannot be read.
-    #[cfg(feature = "remote_model")]
-    async fn load_model_from_url(&mut self, url: &str) -> std::io::Result<()> {
-        use reqwest::Client;
-
-        // Create HTTP client with a custom user agent
-        let client = Client::builder()
-            .user_agent(format!("Litsea/{}", env!("CARGO_PKG_VERSION")))
-            .build()
-            .map_err(|e| std::io::Error::other(format!("Failed to create HTTP client: {}", e)))?;
-
-        // Send GET request to the URL
-        let resp = client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| std::io::Error::other(format!("Failed to download model: {}", e)))?;
-
-        // Check if the response status is successful
-        if !resp.status().is_success() {
-            return Err(std::io::Error::other(format!(
-                "Failed to download model: HTTP {}",
-                resp.status()
-            )));
-        }
-
-        // Read the response body
-        let content = resp
-            .bytes()
-            .await
-            .map_err(|e| std::io::Error::other(format!("Failed to read model content: {}", e)))?;
-
-        let reader = BufReader::new(content.as_ref());
-        self.parse_model_content(reader)
+        let bytes = crate::model_io::read_model_bytes(uri).await?;
+        self.parse_model_content(bytes.as_slice())
     }
 
     /// Parses model content from a buffered reader.
@@ -496,31 +395,6 @@ impl AdaBoost {
         self.feature_index =
             self.features.iter().enumerate().map(|(i, f)| (f.clone(), i)).collect();
         Ok(())
-    }
-
-    /// Loads a model from a file.
-    /// The file should contain lines with a feature and its weight,
-    /// with the last line containing the bias term.
-    ///
-    /// # Arguments
-    /// * `filename`: The path to the file containing the model.
-    ///
-    /// # Returns: A result indicating success or failure.
-    ///
-    /// # Errors: Returns an error if the file cannot be read.
-    #[cfg(not(target_arch = "wasm32"))]
-    fn load_model_from_file(&mut self, filename: &Path) -> std::io::Result<()> {
-        let file = File::open(filename)?;
-        let reader = BufReader::new(file);
-        self.parse_model_content(reader)
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn load_model_from_file(&mut self, _filename: &Path) -> std::io::Result<()> {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "File system access is not supported in WASM environment",
-        ))
     }
 
     /// Adds a new instance to the model.
