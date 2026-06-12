@@ -16,8 +16,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cc69bee1.js";
+            window.path_to_searchindex_js = "searchindex-05f73a17.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ae7d976f.js"></script>
+        <script src="toc-dc1e276c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -213,7 +213,7 @@ Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>
 <h2 id="current-version"><a class="header" href="#current-version">Current Version</a></h2>
-<p>Litsea v0.4.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
+<p>Litsea v0.5.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
 <h2 id="links"><a class="header" href="#links">Links</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub Repository</a></li>
@@ -253,11 +253,10 @@ cargo build --release
 <h2 id="using-as-a-library"><a class="header" href="#using-as-a-library">Using as a Library</a></h2>
 <p>Add Litsea to your project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.4.0"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+litsea = "0.5.0"
 </code></pre>
 <blockquote>
-<p><strong>Note:</strong> <code>tokio</code> is required because model loading (<code>load_model</code>) is an async operation that supports HTTP/HTTPS URLs.</p>
+<p><strong>Note:</strong> Loading models from local files (<code>load_model_from_path</code>) is synchronous, so no async runtime is needed. An async runtime such as <code>tokio</code> is only required if you load models over HTTP/HTTPS with the async <code>load_model</code> method (enabled by the <code>remote_model</code> feature, which is on by default).</p>
 </blockquote>
 <h2 id="supported-platforms"><a class="header" href="#supported-platforms">Supported Platforms</a></h2>
 <p>Litsea is tested on the following platforms:</p>
@@ -302,15 +301,16 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 <p>Each token is annotated with a <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tag.</p>
 <h2 id="library-quick-start"><a class="header" href="#library-quick-start">Library Quick Start</a></h2>
 <p>Here is a minimal Rust program that loads a model and segments text:</p>
-<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -324,15 +324,16 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre>
 <h3 id="pos-tagging-with-the-library"><a class="header" href="#pos-tagging-with-the-library">POS Tagging with the Library</a></h3>
 <p>Here is a minimal Rust program that loads a POS model and segments text with POS tags:</p>
-<pre class="playground"><code class="language-rust">use litsea::language::Language;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     // Load the pre-trained POS model
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     // Create a segmenter with POS support
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
@@ -443,7 +444,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
 </thead>
 <tbody>
-<tr><td><code>regex</code></td><td>1.12</td><td>Character type pattern matching</td></tr>
+<tr><td><code>thiserror</code></td><td>2.0</td><td>Error type derivation</td></tr>
 <tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls)</td></tr>
 <tr><td><code>tokio</code></td><td>1.49</td><td>Async runtime for remote model loading</td></tr>
 <tr><td><code>criterion</code></td><td>0.8</td><td>Benchmarking (dev dependency)</td></tr>
@@ -480,67 +481,95 @@ rust-version = "1.87"
 <p>Shared dependencies are defined at the workspace level in <code>[workspace.dependencies]</code> and referenced by each crate with <code>{ workspace = true }</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="module-design"><a class="header" href="#module-design">Module Design</a></h1>
-<p>The <code>litsea</code> library crate is organized into six modules, each with a clear responsibility.</p>
+<p>The <code>litsea</code> library crate is organized into focused modules, each with a clear responsibility.</p>
 <h2 id="module-dependency-graph"><a class="header" href="#module-dependency-graph">Module Dependency Graph</a></h2>
 <pre><code class="language-mermaid">graph TD
-    language["language.rs&lt;br/&gt;Character type patterns"]
-    segmenter["segmenter.rs&lt;br/&gt;Word segmentation"]
-    adaboost["adaboost.rs&lt;br/&gt;Core ML algorithm"]
+    language["language.rs&lt;br/&gt;Character classification"]
+    segmenter["segmenter.rs&lt;br/&gt;Segmentation + POS tagging"]
+    adaboost["adaboost.rs&lt;br/&gt;AdaBoost (boundaries)"]
+    perceptron["perceptron.rs&lt;br/&gt;Averaged Perceptron (POS)"]
+    upos["upos.rs&lt;br/&gt;UPOS tags and labels"]
     extractor["extractor.rs&lt;br/&gt;Feature extraction"]
     trainer["trainer.rs&lt;br/&gt;Training orchestration"]
-    util["util.rs&lt;br/&gt;URI scheme parsing"]
+    model_io["model_io.rs (private)&lt;br/&gt;Model URI loading"]
+    error["error.rs&lt;br/&gt;LitseaError / Result"]
+    metrics["metrics.rs&lt;br/&gt;Evaluation metrics"]
 
     language --&gt; segmenter
-    segmenter --&gt; adaboost
+    upos --&gt; segmenter
+    adaboost --&gt; segmenter
+    perceptron --&gt; segmenter
     segmenter --&gt; extractor
     adaboost --&gt; trainer
-    adaboost --&gt; util
+    perceptron --&gt; trainer
+    model_io --&gt; adaboost
+    model_io --&gt; perceptron
+    error --&gt; adaboost
+    error --&gt; perceptron
+    metrics --&gt; trainer
 </code></pre>
 <h2 id="module-details"><a class="header" href="#module-details">Module Details</a></h2>
 <h3 id="languagers--language-definitions"><a class="header" href="#languagers--language-definitions"><code>language.rs</code> – Language Definitions</a></h3>
-<p>Defines the <code>Language</code> enum and character type classification system.</p>
+<p>Defines the <code>Language</code> enum and character type classification.</p>
 <ul>
 <li><strong><code>Language</code></strong> – Enum with variants <code>Japanese</code>, <code>Chinese</code>, <code>Korean</code>
 <ul>
 <li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>)</li>
 <li>Implements <code>Display</code> (outputs lowercase name)</li>
-<li>Factory method <code>char_type_patterns()</code> returns language-specific patterns</li>
+<li><code>char_type(c: char) -&gt; &amp;'static str</code> – Classifies a character with a direct <code>match</code> on character ranges (allocation-free; no regex). Language-specific functions (<code>japanese_char_type</code>, etc.) share a <code>punct_latin_digit()</code> helper for the common <code>"P"</code>/<code>"A"</code>/<code>"N"</code> classes.</li>
 </ul>
 </li>
-<li><strong><code>CharTypePatterns</code></strong> – Maps characters to type codes (e.g., <code>"I"</code> for Hiragana, <code>"K"</code> for Katakana)</li>
-<li><strong><code>CharMatcher</code></strong> – Internal enum supporting both regex-based and closure-based character matching</li>
 </ul>
-<h3 id="segmenterrs--word-segmentation"><a class="header" href="#segmenterrs--word-segmentation"><code>segmenter.rs</code> – Word Segmentation</a></h3>
-<p>The main user-facing module for text segmentation.</p>
+<h3 id="segmenterrs--word-segmentation-and-pos-tagging"><a class="header" href="#segmenterrs--word-segmentation-and-pos-tagging"><code>segmenter.rs</code> – Word Segmentation and POS Tagging</a></h3>
+<p>The main user-facing module.</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, <code>CharTypePatterns</code>, and <code>AdaBoost</code> instance
+<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, an <code>AdaBoost</code> learner, and an optional <code>AveragedPerceptron</code> POS learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, <code>pos_learner_mut()</code>)
 <ul>
 <li><code>new(language, learner)</code> – Create a segmenter with an optional pre-trained model</li>
+<li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
-<li><code>get_type(ch)</code> – Classify a single character into its type code</li>
-<li><code>get_attributes(i, tags, chars, types)</code> – Extract feature set for a character position</li>
-<li><code>add_corpus(corpus)</code> – Add training data from a space-separated corpus</li>
-<li><code>add_corpus_with_writer(corpus, callback)</code> – Process corpus with a custom callback</li>
+<li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Vec&lt;(String, Upos)&gt;</code></li>
+<li><code>char_type(ch)</code> – Classify a single character into its type code</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – Add training data</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – Process a corpus with a custom callback</li>
 </ul>
 </li>
 </ul>
 <h3 id="adaboostrs--adaboost-algorithm"><a class="header" href="#adaboostrs--adaboost-algorithm"><code>adaboost.rs</code> – AdaBoost Algorithm</a></h3>
-<p>The core machine learning engine for binary classification.</p>
+<p>The binary classifier used for word boundary decisions.</p>
 <ul>
-<li><strong><code>AdaBoost</code></strong> – The binary classifier
+<li><strong><code>AdaBoost</code></strong>
 <ul>
 <li><code>new(threshold, num_iterations)</code> – Create with training parameters</li>
-<li><code>initialize_features(path)</code> – Load feature names from a training file</li>
-<li><code>initialize_instances(path)</code> – Load labeled instances from a training file</li>
+<li><code>initialize_features(path)</code> / <code>initialize_instances(path)</code> – Load training data</li>
 <li><code>train(running)</code> – Run the AdaBoost training loop</li>
-<li><code>predict(attributes)</code> – Predict boundary (+1) or non-boundary (-1)</li>
-<li><code>load_model(uri)</code> – Load model weights from file or URL (async)</li>
+<li><code>predict(&amp;attributes)</code> – Predict boundary (+1) or non-boundary (-1)</li>
+<li><code>load_model(uri)</code> (async) / <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – Load model weights</li>
 <li><code>save_model(path)</code> – Save model weights to a file</li>
-<li><code>get_metrics()</code> – Calculate accuracy, precision, and recall</li>
-<li><code>get_bias()</code> – Get the model’s bias term</li>
+<li><code>metrics()</code> – Calculate accuracy, precision, and recall (<code>BinaryMetrics</code>)</li>
+<li><code>bias()</code> – Get the model’s bias term</li>
 </ul>
 </li>
-<li><strong><code>Metrics</code></strong> – Evaluation metrics (accuracy, precision, recall, confusion matrix)</li>
+</ul>
+<h3 id="perceptronrs--averaged-perceptron"><a class="header" href="#perceptronrs--averaged-perceptron"><code>perceptron.rs</code> – Averaged Perceptron</a></h3>
+<p>The multiclass classifier used for joint segmentation + POS tagging.</p>
+<ul>
+<li><strong><code>AveragedPerceptron</code></strong>
+<ul>
+<li><code>add_instance(features, label)</code> – Add a training instance</li>
+<li><code>train(num_epochs, running)</code> – Train with weight averaging</li>
+<li><code>predict(&amp;features)</code> – Predict the best class label</li>
+<li><code>load_model(uri)</code> (async) / <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – Load model weights</li>
+<li><code>save_model(path)</code> – Save model weights</li>
+<li><code>metrics()</code> – Macro-averaged evaluation (<code>MulticlassMetrics</code>)</li>
+</ul>
+</li>
+<li>Weights are stored in a feature → per-class vector layout for fast inference.</li>
+</ul>
+<h3 id="uposrs--universal-pos-tags"><a class="header" href="#uposrs--universal-pos-tags"><code>upos.rs</code> – Universal POS Tags</a></h3>
+<ul>
+<li><strong><code>Upos</code></strong> – The 17 Universal Dependencies POS tags (<code>NOUN</code>, <code>VERB</code>, …)</li>
+<li><strong><code>SegmentLabel</code></strong> – Combined segmentation + POS label per character position (<code>B(Upos)</code> or <code>O</code>), with <code>Display</code>/<code>FromStr</code> for the <code>"B-NOUN"</code> / <code>"O"</code> string form</li>
 </ul>
 <h3 id="extractorrs--feature-extraction"><a class="header" href="#extractorrs--feature-extraction"><code>extractor.rs</code> – Feature Extraction</a></h3>
 <p>Extracts features from a corpus for model training.</p>
@@ -548,43 +577,65 @@ rust-version = "1.87"
 <li><strong><code>Extractor</code></strong> – Wraps a <code>Segmenter</code> to process corpus files
 <ul>
 <li><code>new(language)</code> – Create an extractor for a specific language</li>
-<li><code>extract(corpus_path, features_path)</code> – Read corpus, write feature file</li>
+<li><code>extract(corpus_path, features_path)</code> – Read a corpus, write a features file</li>
+<li><code>extract_with_pos(corpus_path, features_path)</code> – Same for POS-tagged corpora</li>
 </ul>
 </li>
 </ul>
 <h3 id="trainerrs--training-orchestration"><a class="header" href="#trainerrs--training-orchestration"><code>trainer.rs</code> – Training Orchestration</a></h3>
-<p>High-level training workflow that ties everything together.</p>
+<p>High-level training workflows.</p>
 <ul>
-<li><strong><code>Trainer</code></strong> – Orchestrates the full training pipeline
+<li><strong><code>Trainer</code></strong> – Segmentation model training (AdaBoost)
 <ul>
 <li><code>new(threshold, num_iterations, features_path)</code> – Initialize from a features file</li>
-<li><code>load_model(uri)</code> – Optionally load an existing model for retraining (async)</li>
-<li><code>train(running, model_path)</code> – Train and save the model, returns <code>Metrics</code></li>
+<li><code>load_model(uri)</code> – Optionally load an existing model for incremental training (async)</li>
+<li><code>train(running, model_path)</code> – Train and save, returns <code>BinaryMetrics</code></li>
+</ul>
+</li>
+<li><strong><code>PosTrainer</code></strong> – POS model training (Averaged Perceptron)
+<ul>
+<li><code>new(num_epochs, features_path)</code> / <code>load_model(uri)</code> / <code>train(running, model_path)</code> returning <code>MulticlassMetrics</code></li>
 </ul>
 </li>
 </ul>
-<h3 id="utilrs--utilities"><a class="header" href="#utilrs--utilities"><code>util.rs</code> – Utilities</a></h3>
-<p>URI scheme parsing for model loading.</p>
+<h3 id="errorrs--error-handling"><a class="header" href="#errorrs--error-handling"><code>error.rs</code> – Error Handling</a></h3>
 <ul>
-<li><strong><code>ModelScheme</code></strong> – Enum with variants <code>Http</code>, <code>Https</code>, <code>File</code>
+<li><strong><code>LitseaError</code></strong> – Error enum (<code>Io</code>, <code>InvalidData</code>, <code>InvalidInput</code>, <code>Unsupported</code>, and <code>Download</code> with the <code>remote_model</code> feature)</li>
+<li><strong><code>Result&lt;T&gt;</code></strong> – Alias used by every fallible API</li>
+</ul>
+<h3 id="metricsrs--evaluation-metrics"><a class="header" href="#metricsrs--evaluation-metrics"><code>metrics.rs</code> – Evaluation Metrics</a></h3>
 <ul>
-<li>Used to determine how to load a model based on its URI prefix</li>
+<li><strong><code>BinaryMetrics</code></strong> – Accuracy, precision, recall, confusion matrix (AdaBoost)</li>
+<li><strong><code>MulticlassMetrics</code></strong> – Accuracy and macro-averaged precision/recall (Averaged Perceptron)</li>
 </ul>
-</li>
-</ul>
+<h3 id="model_iors--model-loading-io-private"><a class="header" href="#model_iors--model-loading-io-private"><code>model_io.rs</code> – Model Loading I/O (private)</a></h3>
+<p>Internal module that resolves a model URI (plain path, <code>file://</code>, or <code>http(s)://</code> with the <code>remote_model</code> feature) and returns the raw model bytes. Not part of the public API.</p>
 <h2 id="public-exports"><a class="header" href="#public-exports">Public Exports</a></h2>
-<p>The library’s <code>lib.rs</code> re-exports all modules and provides:</p>
+<p>The library’s <code>lib.rs</code> exposes the public modules and re-exports the main types:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub mod adaboost;
+pub mod error;
 pub mod extractor;
 pub mod language;
+pub mod metrics;
+mod model_io;
+pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
-pub mod util;
+pub mod upos;
 
-pub const VERSION: &amp;str = env!("CARGO_PKG_VERSION");
-pub fn version() -&gt; &amp;'static str { VERSION }
+pub use adaboost::AdaBoost;
+pub use error::{LitseaError, Result};
+pub use extractor::Extractor;
+pub use language::Language;
+pub use metrics::{BinaryMetrics, MulticlassMetrics};
+pub use perceptron::AveragedPerceptron;
+pub use segmenter::Segmenter;
+pub use trainer::{PosTrainer, Trainer};
+pub use upos::{SegmentLabel, Upos};
+
+pub fn version() -&gt; &amp;'static str { ... }
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="adaboost-binary-classification"><a class="header" href="#adaboost-binary-classification">AdaBoost Binary Classification</a></h1>
@@ -882,12 +933,8 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <h1 id="character-type-classification"><a class="header" href="#character-type-classification">Character Type Classification</a></h1>
 <p>Each language in Litsea defines a set of <strong>character type patterns</strong> that classify individual characters into linguistically meaningful categories. These type codes are used as features for the AdaBoost classifier.</p>
 <h2 id="how-it-works-1"><a class="header" href="#how-it-works-1">How It Works</a></h2>
-<p>The <code>CharTypePatterns</code> struct holds an ordered list of <code>(CharMatcher, type_code)</code> pairs. For each character, the <strong>first matching pattern</strong> determines the type code. If no pattern matches, the character is classified as <code>"O"</code> (Other).</p>
-<p><code>CharMatcher</code> supports two matching strategies:</p>
-<ul>
-<li><strong>Regex</strong> – Compiled regex patterns for Unicode range matching</li>
-<li><strong>Closure</strong> – Custom functions for complex logic (e.g., Korean Hangul syllable structure)</li>
-</ul>
+<p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> classifies a character with a direct <code>match</code> expression on Unicode character ranges — no regex, no allocation. Match arms are tried top to bottom, so the <strong>first matching arm</strong> determines the type code. If no arm matches, the character is classified as <code>"O"</code> (Other).</p>
+<p>Each language has its own classification function (<code>japanese_char_type</code>, <code>chinese_char_type</code>, <code>korean_char_type</code>); the classes shared by all languages — <code>"P"</code> (punctuation), <code>"A"</code> (Latin), <code>"N"</code> (digits) — live in a common <code>punct_latin_digit()</code> helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with match guards (e.g., Korean Hangul syllable structure).</p>
 <h2 id="japanese-character-types"><a class="header" href="#japanese-character-types">Japanese Character Types</a></h2>
 <div class="table-wrapper">
 <table>
@@ -957,7 +1004,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 </table>
 </div>
 <h3 id="korean-hangul-syllable-detection"><a class="header" href="#korean-hangul-syllable-detection">Korean Hangul Syllable Detection</a></h3>
-<p>Korean uses <strong>closure-based matching</strong> for SN and SF types. This leverages Unicode’s systematic Hangul encoding:</p>
+<p>Korean uses a <strong>match guard</strong> for the SN and SF types. This leverages Unicode’s systematic Hangul encoding:</p>
 <ul>
 <li>Hangul Syllables occupy U+AC00–U+D7AF</li>
 <li>Each syllable is encoded as: <code>(initial * 21 + medial) * 28 + final + 0xAC00</code></li>
@@ -975,7 +1022,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <tr><td>Total types</td><td>8</td><td>9</td><td>10</td></tr>
 <tr><td>Unique types</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
 <tr><td>Shared types</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O (H shared with JP)</td></tr>
-<tr><td>Matching method</td><td>Regex only</td><td>Regex only</td><td>Regex + Closure</td></tr>
+<tr><td>Matching method</td><td>Range match</td><td>Range match</td><td>Range match + guard</td></tr>
 <tr><td>WC features used</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 </tbody>
 </table>
@@ -1283,8 +1330,8 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <ol>
 <li>Add a variant to the <code>Language</code> enum</li>
 <li>Implement <code>Display</code> and <code>FromStr</code> match arms</li>
-<li>Create a character type pattern function</li>
-<li>Register the pattern function</li>
+<li>Create a character classification function</li>
+<li>Register the classification function</li>
 <li>Decide on WC feature inclusion</li>
 <li>Prepare a training corpus and train a model</li>
 <li>Add tests</li>
@@ -1311,66 +1358,55 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
-<h2 id="step-3-create-character-type-patterns"><a class="header" href="#step-3-create-character-type-patterns">Step 3: Create Character Type Patterns</a></h2>
-<p>Define a function that returns <code>CharTypePatterns</code> for the new language:</p>
+<h2 id="step-3-create-a-character-classification-function"><a class="header" href="#step-3-create-a-character-classification-function">Step 3: Create a Character Classification Function</a></h2>
+<p>Define a function that classifies a <code>char</code> into a type code for the new language. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn thai_patterns() -&gt; CharTypePatterns {
-    CharTypePatterns::from_matchers(vec![
-        // Thai characters (U+0E01-U+0E3A)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E01}-\u{0E3A}]").unwrap()
-        ), "T"),
-        // Thai vowels (U+0E40-U+0E4E)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E40}-\u{0E4E}]").unwrap()
-        ), "V"),
+</span>fn thai_char_type(c: char) -&gt; &amp;'static str {
+    match c {
+        // Thai consonants and sequential vowels (U+0E01-U+0E3A)
+        '\u{0E01}'..='\u{0E3A}' =&gt; "T",
+        // Thai vowels and tone marks (U+0E40-U+0E4E)
+        '\u{0E40}'..='\u{0E4E}' =&gt; "V",
         // Thai digits (U+0E50-U+0E59)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E50}-\u{0E59}]").unwrap()
-        ), "N"),
-        // ASCII + Full-width Latin
-        (CharMatcher::Regex(
-            Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()
-        ), "A"),
-        // Digits
-        (CharMatcher::Regex(
-            Regex::new(r"[0-9０-９]").unwrap()
-        ), "N"),
-    ])
+        '\u{0E50}'..='\u{0E59}' =&gt; "N",
+        // Shared classes: "P" (punctuation), "A" (Latin), "N" (digits)
+        _ =&gt; punct_latin_digit(c).unwrap_or("O"),
+    }
 }
 <span class="boring">}</span></code></pre>
 <h3 id="design-tips-for-character-types"><a class="header" href="#design-tips-for-character-types">Design Tips for Character Types</a></h3>
 <ul>
 <li><strong>Identify linguistically distinct categories</strong> that correlate with word boundary patterns</li>
-<li><strong>Order matters</strong> – first match wins, so put more specific patterns before general ones</li>
+<li><strong>Order matters</strong> – match arms are tried top to bottom, so put more specific classes before general ones</li>
 <li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
-<li><strong>Use closures</strong> for complex logic that cannot be expressed as a single regex</li>
+<li><strong>Use match guards</strong> for logic beyond plain ranges (as Korean does to split syllables with/without 받침)</li>
+<li>Reuse the shared <code>punct_latin_digit()</code> helper for the common “P”/“A”/“N” classes</li>
 </ul>
-<h2 id="step-4-register-the-pattern-function"><a class="header" href="#step-4-register-the-pattern-function">Step 4: Register the Pattern Function</a></h2>
-<p>Add a match arm in <code>Language::char_type_patterns()</code>:</p>
+<h2 id="step-4-register-the-classification-function"><a class="header" href="#step-4-register-the-classification-function">Step 4: Register the Classification Function</a></h2>
+<p>Add a match arm in <code>Language::char_type()</code>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns {
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str {
     match self {
-        Language::Japanese =&gt; japanese_patterns(),
-        Language::Chinese =&gt; chinese_patterns(),
-        Language::Korean =&gt; korean_patterns(),
-        Language::Thai =&gt; thai_patterns(),    // ← new
+        Language::Japanese =&gt; japanese_char_type(c),
+        Language::Chinese =&gt; chinese_char_type(c),
+        Language::Korean =&gt; korean_char_type(c),
+        Language::Thai =&gt; thai_char_type(c),    // ← new
     }
 }
 <span class="boring">}</span></code></pre>
 <h2 id="step-5-decide-on-wc-feature-inclusion"><a class="header" href="#step-5-decide-on-wc-feature-inclusion">Step 5: Decide on WC Feature Inclusion</a></h2>
-<p>In <code>segmenter.rs</code>, <code>get_attributes()</code> has a <code>match</code> on the language to decide whether to include WC features:</p>
+<p>In <code>segmenter.rs</code>, the internal attribute builder (<code>write_attributes()</code>) has a <code>match</code> on the language to decide whether to include WC features:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match self.language {
     Language::Japanese | Language::Chinese =&gt; {
         // Include WC features
-        attrs.insert(format!("WC1:{}{}", w3, c4));
-        attrs.insert(format!("WC2:{}{}", c3, w4));
-        attrs.insert(format!("WC3:{}{}", w3, c3));
-        attrs.insert(format!("WC4:{}{}", w4, c4));
+        attr!("WC1:{}{}", w3, c4);
+        attr!("WC2:{}{}", c3, w4);
+        attr!("WC3:{}{}", w3, c3);
+        attr!("WC4:{}{}", w4, c4);
     }
     _ =&gt; {}
 }
@@ -1400,18 +1436,18 @@ Language::Thai =&gt; write!(f, "thai"),
 </span><span class="boring">fn main() {
 </span>// In language.rs tests
 #[test]
-fn test_thai_patterns() {
-    let p = Language::Thai.char_type_patterns();
-    assert_eq!(p.get_type("ก"), "T");   // Thai consonant
-    assert_eq!(p.get_type("A"), "A");   // ASCII
-    assert_eq!(p.get_type("@"), "O");   // Other
+fn test_thai_char_types() {
+    let lang = Language::Thai;
+    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
+    assert_eq!(lang.char_type('A'), "A");   // ASCII
+    assert_eq!(lang.char_type('@'), "O");   // Other
 }
 
 // In segmenter.rs tests
 #[test]
-fn test_get_type_thai() {
+fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai, None);
-    assert_eq!(segmenter.get_type("ก"), "T");
+    assert_eq!(segmenter.char_type("ก"), "T");
 }
 <span class="boring">}</span></code></pre>
 <p>Run all tests to verify:</p>
@@ -1422,19 +1458,20 @@ fn test_get_type_thai() {
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.4.0"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+litsea = "0.5.0"
 </code></pre>
+<p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method.</p>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
-    C["litsea::adaboost"] --- D["AdaBoost, Metrics"]
-    E["litsea::language"] --- F["Language, CharTypePatterns"]
+    C["litsea::adaboost"] --- D["AdaBoost"]
+    E["litsea::language"] --- F["Language"]
     G["litsea::extractor"] --- H["Extractor"]
-    I["litsea::trainer"] --- J["Trainer"]
-    K["litsea::util"] --- L["ModelScheme"]
-    M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
+    I["litsea::trainer"] --- J["Trainer, PosTrainer"]
+    K["litsea::error"] --- L["LitseaError, Result"]
+    M["litsea::perceptron"] --- N["AveragedPerceptron"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
+    Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -1443,25 +1480,28 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 </thead>
 <tbody>
 <tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>Word segmentation, joint segmentation with POS tagging</td></tr>
-<tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code>, <code>Metrics</code></td><td>Binary classification, model I/O</td></tr>
-<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code>, <code>Metrics</code></td><td>Multiclass classification (POS tagging), model I/O</td></tr>
+<tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code></td><td>Binary classification, model I/O</td></tr>
+<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>Multiclass classification (POS tagging), model I/O</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS POS tags, segment labels</td></tr>
-<tr><td><code>litsea::language</code></td><td><code>Language</code>, <code>CharTypePatterns</code></td><td>Language definitions, character classification</td></tr>
+<tr><td><code>litsea::language</code></td><td><code>Language</code></td><td>Language definitions, character classification</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>Feature extraction from corpus</td></tr>
-<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code></td><td>Training orchestration</td></tr>
-<tr><td><code>litsea::util</code></td><td><code>ModelScheme</code></td><td>URI scheme parsing</td></tr>
+<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PosTrainer</code></td><td>Training orchestration</td></tr>
+<tr><td><code>litsea::error</code></td><td><code>LitseaError</code>, <code>Result</code></td><td>Error type and result alias</td></tr>
+<tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>Evaluation metrics</td></tr>
 </tbody>
 </table>
 </div>
+<p>All primary types are also re-exported at the crate root, so <code>use litsea::Segmenter;</code> works as a shorthand for <code>use litsea::segmenter::Segmenter;</code>.</p>
 <h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
-<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");
@@ -1470,14 +1510,15 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre>
 <h2 id="quick-example-pos-tagging"><a class="header" href="#quick-example-pos-tagging">Quick Example (POS Tagging)</a></h2>
-<pre class="playground"><code class="language-rust">use litsea::language::Language;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
     let tokens = segmenter.segment_with_pos("これはテストです。");
@@ -1498,11 +1539,12 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct Segmenter {
-    pub language: Language,
-    pub learner: AdaBoost,
-    // internal: char_types: CharTypePatterns
+    // private: language: Language,
+    // private: learner: AdaBoost,
+    // private: pos_learner: Option&lt;AveragedPerceptron&gt;,
 }
 <span class="boring">}</span></code></pre>
+<p>The fields are private; use the accessor methods <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, and <code>pos_learner_mut()</code> to reach them.</p>
 <h2 id="constructor"><a class="header" href="#constructor">Constructor</a></h2>
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1537,18 +1579,18 @@ let segmenter = Segmenter::new(Language::Japanese, None);
 </span>let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
 <span class="boring">}</span></code></pre>
-<h3 id="get_type"><a class="header" href="#get_type"><code>get_type</code></a></h3>
+<h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+</span>pub fn char_type(&amp;self, ch: &amp;str) -&gt; &amp;str
 <span class="boring">}</span></code></pre>
-<p>Classifies a single character into its type code using language-specific patterns.</p>
+<p>Classifies a single character into its type code using language-specific rules. The first character of the <code>&amp;str</code> is classified; an empty string returns <code>"O"</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let segmenter = Segmenter::new(Language::Japanese, None);
-assert_eq!(segmenter.get_type("あ"), "I");  // Hiragana
-assert_eq!(segmenter.get_type("漢"), "H");  // Kanji
-assert_eq!(segmenter.get_type("A"), "A");   // ASCII
+assert_eq!(segmenter.char_type("あ"), "I");  // Hiragana
+assert_eq!(segmenter.char_type("漢"), "H");  // Kanji
+assert_eq!(segmenter.char_type("A"), "A");   // ASCII
 <span class="boring">}</span></code></pre>
 <h3 id="add_corpus"><a class="header" href="#add_corpus"><code>add_corpus</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1575,20 +1617,18 @@ where
     println!("Features: {:?}, Label: {}", attrs, label);
 });
 <span class="boring">}</span></code></pre>
-<h3 id="get_attributes"><a class="header" href="#get_attributes"><code>get_attributes</code></a></h3>
+<h3 id="accessors"><a class="header" href="#accessors">Accessors</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_attributes(
-    &amp;self,
-    i: usize,
-    tags: &amp;[String],
-    chars: &amp;[String],
-    types: &amp;[String],
-) -&gt; HashSet&lt;String&gt;
+</span>pub fn language(&amp;self) -&gt; Language
+pub fn learner(&amp;self) -&gt; &amp;AdaBoost
+pub fn learner_mut(&amp;mut self) -&gt; &amp;mut AdaBoost
+pub fn pos_learner(&amp;self) -&gt; Option&lt;&amp;AveragedPerceptron&gt;
+pub fn pos_learner_mut(&amp;mut self) -&gt; Option&lt;&amp;mut AveragedPerceptron&gt;
 <span class="boring">}</span></code></pre>
-<p>Extracts the feature set for a specific character position. Returns 38 features (Korean) or 42 features (Japanese/Chinese).</p>
+<p>Provide access to the segmenter’s language and its internal learners.</p>
 <blockquote>
-<p>This is primarily used internally by <code>segment()</code> and <code>process_corpus()</code>.</p>
+<p>Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former <code>get_attributes</code> method is now private.</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
@@ -1622,7 +1662,7 @@ let mut extractor = Extractor::new(Language::Japanese);
     &amp;mut self,
     corpus_path: &amp;Path,
     features_path: &amp;Path,
-) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;
+) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Reads a corpus file (space-separated words, one sentence per line) and writes the extracted features to the output file.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1663,7 +1703,7 @@ extractor.extract(
     threshold: f64,
     num_iterations: usize,
     features_path: &amp;Path,
-) -&gt; io::Result&lt;Self&gt;
+) -&gt; litsea::Result&lt;Self&gt;
 <span class="boring">}</span></code></pre>
 <p>Creates a trainer and initializes it from a features file. This calls <code>AdaBoost::initialize_features()</code> and <code>AdaBoost::initialize_instances()</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1681,9 +1721,10 @@ let mut trainer = Trainer::new(
 <h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>Loads an existing model for retraining. Supports file paths, <code>file://</code>, <code>http://</code>, and <code>https://</code> URIs.</p>
+<p>Loads an existing model for retraining. Supports file paths, <code>file://</code>, and (with the <code>remote_model</code> feature) <code>http://</code> and <code>https://</code> URIs.</p>
+<p>When called after <code>Trainer::new</code>, the loaded weights are merged into the freshly initialized training data by feature name, so incremental training starts from the existing model without corrupting the feature index.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>trainer.load_model("./models/japanese.model").await?;
@@ -1695,7 +1736,7 @@ let mut trainer = Trainer::new(
     &amp;mut self,
     running: Arc&lt;AtomicBool&gt;,
     model_path: &amp;Path,
-) -&gt; Result&lt;Metrics, Box&lt;dyn std::error::Error&gt;&gt;
+) -&gt; litsea::Result&lt;BinaryMetrics&gt;
 <span class="boring">}</span></code></pre>
 <p>Trains the model and saves it to the specified path. Returns evaluation metrics.</p>
 <p>The <code>running</code> flag enables graceful interruption – set it to <code>false</code> to stop training early.</p>
@@ -1718,7 +1759,7 @@ use std::path::Path;
 use litsea::trainer::Trainer;
 
 #[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+async fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut trainer = Trainer::new(
         0.005,
         1000,
@@ -1763,40 +1804,57 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 let mut learner = AdaBoost::new(0.01, 100);
 <span class="boring">}</span></code></pre>
 <h2 id="model-loading"><a class="header" href="#model-loading">Model Loading</a></h2>
+<h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from a local file, synchronously. This is the preferred method for local files – no async runtime is needed.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+<span class="boring">}</span></code></pre>
+<h3 id="load_model_from_reader"><a class="header" href="#load_model_from_reader"><code>load_model_from_reader</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from any <code>BufRead</code> source, such as an in-memory buffer or an already-open file.</p>
 <h3 id="load_model-1"><a class="header" href="#load_model-1"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Loads model weights from a URI. Supports:</p>
 <ul>
 <li>Local file path: <code>./models/japanese.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP: <code>http://example.com/model</code></li>
-<li>HTTPS: <code>https://example.com/model</code></li>
+<li>HTTP: <code>http://example.com/model</code> (requires the <code>remote_model</code> feature)</li>
+<li>HTTPS: <code>https://example.com/model</code> (requires the <code>remote_model</code> feature)</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./models/japanese.model").await?;
-learner.load_model("https://example.com/model").await?;
+</span>learner.load_model("https://example.com/model").await?;
 <span class="boring">}</span></code></pre>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Saves model weights to a file. Returns an error if the model is empty.</p>
 <h2 id="training-methods"><a class="header" href="#training-methods">Training Methods</a></h2>
 <h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Reads a features file and builds the feature index. Must be called before <code>initialize_instances</code>.</p>
 <h3 id="initialize_instances"><a class="header" href="#initialize_instances"><code>initialize_instances</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Reads the same features file and initializes labeled instances with their weights.</p>
 <h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
@@ -1815,7 +1873,7 @@ learner.load_model("https://example.com/model").await?;
 <h3 id="predict"><a class="header" href="#predict"><code>predict</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn predict(&amp;self, attributes: HashSet&lt;String&gt;) -&gt; i8
+</span>pub fn predict(&amp;self, attributes: &amp;HashSet&lt;String&gt;) -&gt; i8
 <span class="boring">}</span></code></pre>
 <p>Predicts the label for a given feature set. Returns <code>+1</code> (boundary) or <code>-1</code> (non-boundary).</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1827,26 +1885,27 @@ attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
 // ... more features
 
-let label = learner.predict(attrs);
+let label = learner.predict(&amp;attrs);
 // label == 1 (boundary) or -1 (non-boundary)
 <span class="boring">}</span></code></pre>
-<h3 id="get_bias"><a class="header" href="#get_bias"><code>get_bias</code></a></h3>
+<h3 id="bias"><a class="header" href="#bias"><code>bias</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_bias(&amp;self) -&gt; f64
+</span>pub fn bias(&amp;self) -&gt; f64
 <span class="boring">}</span></code></pre>
 <p>Returns the bias term: <code>-sum(all model weights) / 2.0</code>.</p>
 <h2 id="evaluation"><a class="header" href="#evaluation">Evaluation</a></h2>
-<h3 id="get_metrics"><a class="header" href="#get_metrics"><code>get_metrics</code></a></h3>
+<h3 id="metrics"><a class="header" href="#metrics"><code>metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_metrics(&amp;self) -&gt; Metrics
+</span>pub fn metrics(&amp;self) -&gt; BinaryMetrics
 <span class="boring">}</span></code></pre>
 <p>Calculates evaluation metrics on the training data.</p>
-<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<h2 id="binarymetrics"><a class="header" href="#binarymetrics">BinaryMetrics</a></h2>
+<p>Defined in <code>litsea::metrics</code> (also re-exported as <code>litsea::BinaryMetrics</code>):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct Metrics {
+</span>pub struct BinaryMetrics {
     pub accuracy: f64,          // Accuracy in percentage
     pub precision: f64,         // Precision in percentage
     pub recall: f64,            // Recall in percentage
@@ -1936,36 +1995,55 @@ let label = learner.predict(&amp;attrs);
 <h3 id="save_model-1"><a class="header" href="#save_model-1"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Saves model weights to a file. Returns an error if the model is empty.</p>
+<h3 id="load_model_from_path-1"><a class="header" href="#load_model_from_path-1"><code>load_model_from_path</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from a local file, synchronously. This is the preferred method for local files – no async runtime is needed.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+<span class="boring">}</span></code></pre>
+<h3 id="load_model_from_reader-1"><a class="header" href="#load_model_from_reader-1"><code>load_model_from_reader</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from any <code>BufRead</code> source, such as an in-memory buffer or an already-open file.</p>
 <h3 id="load_model-2"><a class="header" href="#load_model-2"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Loads model weights from a URI. Supports the following URI schemes:</p>
 <ul>
 <li>Local file path: <code>./models/japanese_pos.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP: <code>http://example.com/model</code></li>
-<li>HTTPS: <code>https://example.com/model</code></li>
+<li>HTTP: <code>http://example.com/model</code> (requires the <code>remote_model</code> feature)</li>
+<li>HTTPS: <code>https://example.com/model</code> (requires the <code>remote_model</code> feature)</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./models/japanese_pos.model").await?;
+</span>learner.load_model("https://example.com/models/japanese_pos.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="evaluation-1"><a class="header" href="#evaluation-1">Evaluation</a></h2>
-<h3 id="get_metrics-1"><a class="header" href="#get_metrics-1"><code>get_metrics</code></a></h3>
+<h3 id="metrics-1"><a class="header" href="#metrics-1"><code>metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_metrics(&amp;self) -&gt; Metrics
+</span>pub fn metrics(&amp;self) -&gt; MulticlassMetrics
 <span class="boring">}</span></code></pre>
 <p>Calculates evaluation metrics on the training data.</p>
-<h2 id="metrics-1"><a class="header" href="#metrics-1">Metrics</a></h2>
+<h2 id="multiclassmetrics"><a class="header" href="#multiclassmetrics">MulticlassMetrics</a></h2>
+<p>Defined in <code>litsea::metrics</code> (also re-exported as <code>litsea::MulticlassMetrics</code>):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct Metrics {
+</span>pub struct MulticlassMetrics {
     pub accuracy: f64,                            // Overall accuracy in percentage
     pub macro_precision: f64,                     // Macro-averaged precision in percentage
     pub macro_recall: f64,                        // Macro-averaged recall in percentage
@@ -2111,7 +2189,7 @@ assert_eq!(label_o.pos(), None);
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language"><a class="header" href="#language">Language</a></h1>
-<p>The <code>Language</code> enum and <code>CharTypePatterns</code> struct define language-specific behavior.</p>
+<p>The <code>Language</code> enum defines language-specific behavior, including character type classification.</p>
 <h2 id="language-enum"><a class="header" href="#language-enum">Language Enum</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2150,38 +2228,23 @@ let ko: Language = "KOREAN".parse().unwrap();
 // Invalid
 assert!("french".parse::&lt;Language&gt;().is_err());
 <span class="boring">}</span></code></pre>
-<h3 id="char_type_patterns"><a class="header" href="#char_type_patterns"><code>char_type_patterns</code></a></h3>
+<h3 id="char_type-1"><a class="header" href="#char_type-1"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str
 <span class="boring">}</span></code></pre>
-<p>Creates the character type patterns for this language. Compiles regex patterns on each call – for performance, cache the result (as <code>Segmenter::new</code> does automatically).</p>
-<h2 id="chartypepatterns"><a class="header" href="#chartypepatterns">CharTypePatterns</a></h2>
+<p>Classifies a character into its language-specific type code. Returns <code>"O"</code> (Other) if the character does not belong to any class.</p>
+<p>Classification is a direct <code>match</code> on character ranges – allocation-free, O(1), and with no regex involved.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct CharTypePatterns {
-    // internal: Vec&lt;(CharMatcher, &amp;'static str)&gt;
-}
+</span>use litsea::language::Language;
+
+let lang = Language::Japanese;
+assert_eq!(lang.char_type('あ'), "I");
+assert_eq!(lang.char_type('漢'), "H");
+assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<h3 id="get_type-1"><a class="header" href="#get_type-1"><code>get_type</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
-<span class="boring">}</span></code></pre>
-<p>Classifies a character into its type code. Returns <code>"O"</code> (Other) if no pattern matches.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let patterns = Language::Japanese.char_type_patterns();
-assert_eq!(patterns.get_type("あ"), "I");
-assert_eq!(patterns.get_type("漢"), "H");
-assert_eq!(patterns.get_type("@"), "O");
-<span class="boring">}</span></code></pre>
-<h3 id="new"><a class="header" href="#new"><code>new</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn new(patterns: Vec&lt;(Regex, &amp;'static str)&gt;) -&gt; Self
-<span class="boring">}</span></code></pre>
-<p>Creates patterns from a list of regex + type code pairs. Patterns are checked in order; first match wins.</p>
+<p>Internally, <code>char_type</code> dispatches to a private per-language function (<code>japanese_char_type</code>, <code>chinese_char_type</code>, <code>korean_char_type</code>). The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cli-reference-overview"><a class="header" href="#cli-reference-overview">CLI Reference Overview</a></h1>
 <p>The <code>litsea</code> CLI provides commands for word segmentation, model training, and text processing.</p>
@@ -2998,7 +3061,7 @@ score = bias + sum(model[feature] for feature in input_attributes)
 </span>let mut learner = AdaBoost::new(0.01, 100);
 
 // Local file
-learner.load_model("./models/japanese.model").await?;
+learner.load_model_from_path(Path::new("./models/japanese.model"))?; // local, synchronous
 
 // HTTP URL
 learner.load_model("https://example.com/models/japanese.model").await?;
@@ -3035,17 +3098,16 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tr><th>Benchmark</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_japanese_short</code></td><td>Segment a short Japanese sentence</td></tr>
-<tr><td><code>segment_japanese_long</code></td><td>Segment the full Bocchan novel (~300 KB)</td></tr>
-<tr><td><code>segment_chinese_short</code></td><td>Segment a short Chinese sentence</td></tr>
-<tr><td><code>segment_korean_short</code></td><td>Segment a short Korean sentence</td></tr>
+<tr><td><code>segment_short/adaboost/{ja,zh,ko}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{ja,zh,ko}</code></td><td>Segment + POS tag a short sentence</td></tr>
+<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~300 KB)</td></tr>
 <tr><td><code>get_type_hiragana</code></td><td>Character type classification</td></tr>
 <tr><td><code>add_corpus</code></td><td>Corpus ingestion for training</td></tr>
-<tr><td><code>char_type_patterns_japanese</code></td><td>Pattern compilation cost</td></tr>
-<tr><td><code>predict</code></td><td>Single AdaBoost prediction</td></tr>
+<tr><td><code>predict_adaboost</code></td><td>Single AdaBoost prediction</td></tr>
 </tbody>
 </table>
 </div>
+<p>Models are loaded synchronously with <code>load_model_from_path</code> — no async runtime is involved in the benchmarks.</p>
 <h2 id="html-reports"><a class="header" href="#html-reports">HTML Reports</a></h2>
 <p>Criterion generates detailed HTML reports with statistics and comparison graphs at:</p>
 <pre><code class="language-text">target/criterion/report/index.html
@@ -3060,7 +3122,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <p>Key performance factors:</p>
 <ul>
 <li><strong>Segmentation</strong> is linear in input length (O(n))</li>
-<li><strong>Pattern compilation</strong> (regex) is the most expensive one-time cost – <code>Segmenter::new()</code> caches patterns</li>
+<li><strong>Character classification</strong> is a direct <code>match</code> on character ranges (a few nanoseconds; no setup cost)</li>
 <li><strong>Prediction</strong> at each position depends on the number of features (38-42, constant)</li>
 <li><strong>Model loading</strong> time is proportional to the model file size</li>
 </ul>
@@ -3264,11 +3326,11 @@ All rights reserved.
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>

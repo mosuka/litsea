@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
+            window.path_to_searchindex_js = "../searchindex-05f73a17.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ae7d976f.js"></script>
+        <script src="../toc-dc1e276c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,17 +196,16 @@
 <tr><th>Benchmark</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_japanese_short</code></td><td>Segment a short Japanese sentence</td></tr>
-<tr><td><code>segment_japanese_long</code></td><td>Segment the full Bocchan novel (~300 KB)</td></tr>
-<tr><td><code>segment_chinese_short</code></td><td>Segment a short Chinese sentence</td></tr>
-<tr><td><code>segment_korean_short</code></td><td>Segment a short Korean sentence</td></tr>
+<tr><td><code>segment_short/adaboost/{ja,zh,ko}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{ja,zh,ko}</code></td><td>Segment + POS tag a short sentence</td></tr>
+<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~300 KB)</td></tr>
 <tr><td><code>get_type_hiragana</code></td><td>Character type classification</td></tr>
 <tr><td><code>add_corpus</code></td><td>Corpus ingestion for training</td></tr>
-<tr><td><code>char_type_patterns_japanese</code></td><td>Pattern compilation cost</td></tr>
-<tr><td><code>predict</code></td><td>Single AdaBoost prediction</td></tr>
+<tr><td><code>predict_adaboost</code></td><td>Single AdaBoost prediction</td></tr>
 </tbody>
 </table>
 </div>
+<p>Models are loaded synchronously with <code>load_model_from_path</code> — no async runtime is involved in the benchmarks.</p>
 <h2 id="html-reports"><a class="header" href="#html-reports">HTML Reports</a></h2>
 <p>Criterion generates detailed HTML reports with statistics and comparison graphs at:</p>
 <pre><code class="language-text">target/criterion/report/index.html
@@ -221,7 +220,7 @@
 <p>Key performance factors:</p>
 <ul>
 <li><strong>Segmentation</strong> is linear in input length (O(n))</li>
-<li><strong>Pattern compilation</strong> (regex) is the most expensive one-time cost – <code>Segmenter::new()</code> caches patterns</li>
+<li><strong>Character classification</strong> is a direct <code>match</code> on character ranges (a few nanoseconds; no setup cost)</li>
 <li><strong>Prediction</strong> at each position depends on the number of features (38-42, constant)</li>
 <li><strong>Model loading</strong> time is proportional to the model file size</li>
 </ul>
@@ -270,11 +269,11 @@
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

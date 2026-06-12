@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
+            window.path_to_searchindex_js = "../searchindex-05f73a17.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ae7d976f.js"></script>
+        <script src="../toc-dc1e276c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,67 +181,95 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="module-design"><a class="header" href="#module-design">Module Design</a></h1>
-<p>The <code>litsea</code> library crate is organized into six modules, each with a clear responsibility.</p>
+<p>The <code>litsea</code> library crate is organized into focused modules, each with a clear responsibility.</p>
 <h2 id="module-dependency-graph"><a class="header" href="#module-dependency-graph">Module Dependency Graph</a></h2>
 <pre><code class="language-mermaid">graph TD
-    language["language.rs&lt;br/&gt;Character type patterns"]
-    segmenter["segmenter.rs&lt;br/&gt;Word segmentation"]
-    adaboost["adaboost.rs&lt;br/&gt;Core ML algorithm"]
+    language["language.rs&lt;br/&gt;Character classification"]
+    segmenter["segmenter.rs&lt;br/&gt;Segmentation + POS tagging"]
+    adaboost["adaboost.rs&lt;br/&gt;AdaBoost (boundaries)"]
+    perceptron["perceptron.rs&lt;br/&gt;Averaged Perceptron (POS)"]
+    upos["upos.rs&lt;br/&gt;UPOS tags and labels"]
     extractor["extractor.rs&lt;br/&gt;Feature extraction"]
     trainer["trainer.rs&lt;br/&gt;Training orchestration"]
-    util["util.rs&lt;br/&gt;URI scheme parsing"]
+    model_io["model_io.rs (private)&lt;br/&gt;Model URI loading"]
+    error["error.rs&lt;br/&gt;LitseaError / Result"]
+    metrics["metrics.rs&lt;br/&gt;Evaluation metrics"]
 
     language --&gt; segmenter
-    segmenter --&gt; adaboost
+    upos --&gt; segmenter
+    adaboost --&gt; segmenter
+    perceptron --&gt; segmenter
     segmenter --&gt; extractor
     adaboost --&gt; trainer
-    adaboost --&gt; util
+    perceptron --&gt; trainer
+    model_io --&gt; adaboost
+    model_io --&gt; perceptron
+    error --&gt; adaboost
+    error --&gt; perceptron
+    metrics --&gt; trainer
 </code></pre>
 <h2 id="module-details"><a class="header" href="#module-details">Module Details</a></h2>
 <h3 id="languagers--language-definitions"><a class="header" href="#languagers--language-definitions"><code>language.rs</code> – Language Definitions</a></h3>
-<p>Defines the <code>Language</code> enum and character type classification system.</p>
+<p>Defines the <code>Language</code> enum and character type classification.</p>
 <ul>
 <li><strong><code>Language</code></strong> – Enum with variants <code>Japanese</code>, <code>Chinese</code>, <code>Korean</code>
 <ul>
 <li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>)</li>
 <li>Implements <code>Display</code> (outputs lowercase name)</li>
-<li>Factory method <code>char_type_patterns()</code> returns language-specific patterns</li>
+<li><code>char_type(c: char) -&gt; &amp;'static str</code> – Classifies a character with a direct <code>match</code> on character ranges (allocation-free; no regex). Language-specific functions (<code>japanese_char_type</code>, etc.) share a <code>punct_latin_digit()</code> helper for the common <code>"P"</code>/<code>"A"</code>/<code>"N"</code> classes.</li>
 </ul>
 </li>
-<li><strong><code>CharTypePatterns</code></strong> – Maps characters to type codes (e.g., <code>"I"</code> for Hiragana, <code>"K"</code> for Katakana)</li>
-<li><strong><code>CharMatcher</code></strong> – Internal enum supporting both regex-based and closure-based character matching</li>
 </ul>
-<h3 id="segmenterrs--word-segmentation"><a class="header" href="#segmenterrs--word-segmentation"><code>segmenter.rs</code> – Word Segmentation</a></h3>
-<p>The main user-facing module for text segmentation.</p>
+<h3 id="segmenterrs--word-segmentation-and-pos-tagging"><a class="header" href="#segmenterrs--word-segmentation-and-pos-tagging"><code>segmenter.rs</code> – Word Segmentation and POS Tagging</a></h3>
+<p>The main user-facing module.</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, <code>CharTypePatterns</code>, and <code>AdaBoost</code> instance
+<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, an <code>AdaBoost</code> learner, and an optional <code>AveragedPerceptron</code> POS learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, <code>pos_learner_mut()</code>)
 <ul>
 <li><code>new(language, learner)</code> – Create a segmenter with an optional pre-trained model</li>
+<li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
-<li><code>get_type(ch)</code> – Classify a single character into its type code</li>
-<li><code>get_attributes(i, tags, chars, types)</code> – Extract feature set for a character position</li>
-<li><code>add_corpus(corpus)</code> – Add training data from a space-separated corpus</li>
-<li><code>add_corpus_with_writer(corpus, callback)</code> – Process corpus with a custom callback</li>
+<li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Vec&lt;(String, Upos)&gt;</code></li>
+<li><code>char_type(ch)</code> – Classify a single character into its type code</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – Add training data</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – Process a corpus with a custom callback</li>
 </ul>
 </li>
 </ul>
 <h3 id="adaboostrs--adaboost-algorithm"><a class="header" href="#adaboostrs--adaboost-algorithm"><code>adaboost.rs</code> – AdaBoost Algorithm</a></h3>
-<p>The core machine learning engine for binary classification.</p>
+<p>The binary classifier used for word boundary decisions.</p>
 <ul>
-<li><strong><code>AdaBoost</code></strong> – The binary classifier
+<li><strong><code>AdaBoost</code></strong>
 <ul>
 <li><code>new(threshold, num_iterations)</code> – Create with training parameters</li>
-<li><code>initialize_features(path)</code> – Load feature names from a training file</li>
-<li><code>initialize_instances(path)</code> – Load labeled instances from a training file</li>
+<li><code>initialize_features(path)</code> / <code>initialize_instances(path)</code> – Load training data</li>
 <li><code>train(running)</code> – Run the AdaBoost training loop</li>
-<li><code>predict(attributes)</code> – Predict boundary (+1) or non-boundary (-1)</li>
-<li><code>load_model(uri)</code> – Load model weights from file or URL (async)</li>
+<li><code>predict(&amp;attributes)</code> – Predict boundary (+1) or non-boundary (-1)</li>
+<li><code>load_model(uri)</code> (async) / <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – Load model weights</li>
 <li><code>save_model(path)</code> – Save model weights to a file</li>
-<li><code>get_metrics()</code> – Calculate accuracy, precision, and recall</li>
-<li><code>get_bias()</code> – Get the model’s bias term</li>
+<li><code>metrics()</code> – Calculate accuracy, precision, and recall (<code>BinaryMetrics</code>)</li>
+<li><code>bias()</code> – Get the model’s bias term</li>
 </ul>
 </li>
-<li><strong><code>Metrics</code></strong> – Evaluation metrics (accuracy, precision, recall, confusion matrix)</li>
+</ul>
+<h3 id="perceptronrs--averaged-perceptron"><a class="header" href="#perceptronrs--averaged-perceptron"><code>perceptron.rs</code> – Averaged Perceptron</a></h3>
+<p>The multiclass classifier used for joint segmentation + POS tagging.</p>
+<ul>
+<li><strong><code>AveragedPerceptron</code></strong>
+<ul>
+<li><code>add_instance(features, label)</code> – Add a training instance</li>
+<li><code>train(num_epochs, running)</code> – Train with weight averaging</li>
+<li><code>predict(&amp;features)</code> – Predict the best class label</li>
+<li><code>load_model(uri)</code> (async) / <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – Load model weights</li>
+<li><code>save_model(path)</code> – Save model weights</li>
+<li><code>metrics()</code> – Macro-averaged evaluation (<code>MulticlassMetrics</code>)</li>
+</ul>
+</li>
+<li>Weights are stored in a feature → per-class vector layout for fast inference.</li>
+</ul>
+<h3 id="uposrs--universal-pos-tags"><a class="header" href="#uposrs--universal-pos-tags"><code>upos.rs</code> – Universal POS Tags</a></h3>
+<ul>
+<li><strong><code>Upos</code></strong> – The 17 Universal Dependencies POS tags (<code>NOUN</code>, <code>VERB</code>, …)</li>
+<li><strong><code>SegmentLabel</code></strong> – Combined segmentation + POS label per character position (<code>B(Upos)</code> or <code>O</code>), with <code>Display</code>/<code>FromStr</code> for the <code>"B-NOUN"</code> / <code>"O"</code> string form</li>
 </ul>
 <h3 id="extractorrs--feature-extraction"><a class="header" href="#extractorrs--feature-extraction"><code>extractor.rs</code> – Feature Extraction</a></h3>
 <p>Extracts features from a corpus for model training.</p>
@@ -249,43 +277,65 @@
 <li><strong><code>Extractor</code></strong> – Wraps a <code>Segmenter</code> to process corpus files
 <ul>
 <li><code>new(language)</code> – Create an extractor for a specific language</li>
-<li><code>extract(corpus_path, features_path)</code> – Read corpus, write feature file</li>
+<li><code>extract(corpus_path, features_path)</code> – Read a corpus, write a features file</li>
+<li><code>extract_with_pos(corpus_path, features_path)</code> – Same for POS-tagged corpora</li>
 </ul>
 </li>
 </ul>
 <h3 id="trainerrs--training-orchestration"><a class="header" href="#trainerrs--training-orchestration"><code>trainer.rs</code> – Training Orchestration</a></h3>
-<p>High-level training workflow that ties everything together.</p>
+<p>High-level training workflows.</p>
 <ul>
-<li><strong><code>Trainer</code></strong> – Orchestrates the full training pipeline
+<li><strong><code>Trainer</code></strong> – Segmentation model training (AdaBoost)
 <ul>
 <li><code>new(threshold, num_iterations, features_path)</code> – Initialize from a features file</li>
-<li><code>load_model(uri)</code> – Optionally load an existing model for retraining (async)</li>
-<li><code>train(running, model_path)</code> – Train and save the model, returns <code>Metrics</code></li>
+<li><code>load_model(uri)</code> – Optionally load an existing model for incremental training (async)</li>
+<li><code>train(running, model_path)</code> – Train and save, returns <code>BinaryMetrics</code></li>
+</ul>
+</li>
+<li><strong><code>PosTrainer</code></strong> – POS model training (Averaged Perceptron)
+<ul>
+<li><code>new(num_epochs, features_path)</code> / <code>load_model(uri)</code> / <code>train(running, model_path)</code> returning <code>MulticlassMetrics</code></li>
 </ul>
 </li>
 </ul>
-<h3 id="utilrs--utilities"><a class="header" href="#utilrs--utilities"><code>util.rs</code> – Utilities</a></h3>
-<p>URI scheme parsing for model loading.</p>
+<h3 id="errorrs--error-handling"><a class="header" href="#errorrs--error-handling"><code>error.rs</code> – Error Handling</a></h3>
 <ul>
-<li><strong><code>ModelScheme</code></strong> – Enum with variants <code>Http</code>, <code>Https</code>, <code>File</code>
+<li><strong><code>LitseaError</code></strong> – Error enum (<code>Io</code>, <code>InvalidData</code>, <code>InvalidInput</code>, <code>Unsupported</code>, and <code>Download</code> with the <code>remote_model</code> feature)</li>
+<li><strong><code>Result&lt;T&gt;</code></strong> – Alias used by every fallible API</li>
+</ul>
+<h3 id="metricsrs--evaluation-metrics"><a class="header" href="#metricsrs--evaluation-metrics"><code>metrics.rs</code> – Evaluation Metrics</a></h3>
 <ul>
-<li>Used to determine how to load a model based on its URI prefix</li>
+<li><strong><code>BinaryMetrics</code></strong> – Accuracy, precision, recall, confusion matrix (AdaBoost)</li>
+<li><strong><code>MulticlassMetrics</code></strong> – Accuracy and macro-averaged precision/recall (Averaged Perceptron)</li>
 </ul>
-</li>
-</ul>
+<h3 id="model_iors--model-loading-io-private"><a class="header" href="#model_iors--model-loading-io-private"><code>model_io.rs</code> – Model Loading I/O (private)</a></h3>
+<p>Internal module that resolves a model URI (plain path, <code>file://</code>, or <code>http(s)://</code> with the <code>remote_model</code> feature) and returns the raw model bytes. Not part of the public API.</p>
 <h2 id="public-exports"><a class="header" href="#public-exports">Public Exports</a></h2>
-<p>The library’s <code>lib.rs</code> re-exports all modules and provides:</p>
+<p>The library’s <code>lib.rs</code> exposes the public modules and re-exports the main types:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub mod adaboost;
+pub mod error;
 pub mod extractor;
 pub mod language;
+pub mod metrics;
+mod model_io;
+pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
-pub mod util;
+pub mod upos;
 
-pub const VERSION: &amp;str = env!("CARGO_PKG_VERSION");
-pub fn version() -&gt; &amp;'static str { VERSION }
+pub use adaboost::AdaBoost;
+pub use error::{LitseaError, Result};
+pub use extractor::Extractor;
+pub use language::Language;
+pub use metrics::{BinaryMetrics, MulticlassMetrics};
+pub use perceptron::AveragedPerceptron;
+pub use segmenter::Segmenter;
+pub use trainer::{PosTrainer, Trainer};
+pub use upos::{SegmentLabel, Upos};
+
+pub fn version() -&gt; &amp;'static str { ... }
 <span class="boring">}</span></code></pre>
 
                     </main>
@@ -332,11 +382,11 @@ pub fn version() -&gt; &amp;'static str { VERSION }
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

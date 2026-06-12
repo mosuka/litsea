@@ -15,8 +15,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cc69bee1.js";
+            window.path_to_searchindex_js = "searchindex-05f73a17.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ae7d976f.js"></script>
+        <script src="toc-dc1e276c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,19 +184,20 @@
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.4.0"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+litsea = "0.5.0"
 </code></pre>
+<p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method.</p>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
-    C["litsea::adaboost"] --- D["AdaBoost, Metrics"]
-    E["litsea::language"] --- F["Language, CharTypePatterns"]
+    C["litsea::adaboost"] --- D["AdaBoost"]
+    E["litsea::language"] --- F["Language"]
     G["litsea::extractor"] --- H["Extractor"]
-    I["litsea::trainer"] --- J["Trainer"]
-    K["litsea::util"] --- L["ModelScheme"]
-    M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
+    I["litsea::trainer"] --- J["Trainer, PosTrainer"]
+    K["litsea::error"] --- L["LitseaError, Result"]
+    M["litsea::perceptron"] --- N["AveragedPerceptron"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
+    Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -205,25 +206,28 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 </thead>
 <tbody>
 <tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>Word segmentation, joint segmentation with POS tagging</td></tr>
-<tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code>, <code>Metrics</code></td><td>Binary classification, model I/O</td></tr>
-<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code>, <code>Metrics</code></td><td>Multiclass classification (POS tagging), model I/O</td></tr>
+<tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code></td><td>Binary classification, model I/O</td></tr>
+<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>Multiclass classification (POS tagging), model I/O</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS POS tags, segment labels</td></tr>
-<tr><td><code>litsea::language</code></td><td><code>Language</code>, <code>CharTypePatterns</code></td><td>Language definitions, character classification</td></tr>
+<tr><td><code>litsea::language</code></td><td><code>Language</code></td><td>Language definitions, character classification</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>Feature extraction from corpus</td></tr>
-<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code></td><td>Training orchestration</td></tr>
-<tr><td><code>litsea::util</code></td><td><code>ModelScheme</code></td><td>URI scheme parsing</td></tr>
+<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PosTrainer</code></td><td>Training orchestration</td></tr>
+<tr><td><code>litsea::error</code></td><td><code>LitseaError</code>, <code>Result</code></td><td>Error type and result alias</td></tr>
+<tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>Evaluation metrics</td></tr>
 </tbody>
 </table>
 </div>
+<p>All primary types are also re-exported at the crate root, so <code>use litsea::Segmenter;</code> works as a shorthand for <code>use litsea::segmenter::Segmenter;</code>.</p>
 <h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
-<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");
@@ -232,14 +236,15 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre>
 <h2 id="quick-example-pos-tagging"><a class="header" href="#quick-example-pos-tagging">Quick Example (POS Tagging)</a></h2>
-<pre class="playground"><code class="language-rust">use litsea::language::Language;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
     let tokens = segmenter.segment_with_pos("これはテストです。");
@@ -298,11 +303,11 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>

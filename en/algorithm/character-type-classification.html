@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
+            window.path_to_searchindex_js = "../searchindex-05f73a17.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ae7d976f.js"></script>
+        <script src="../toc-dc1e276c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,12 +183,8 @@
                         <h1 id="character-type-classification"><a class="header" href="#character-type-classification">Character Type Classification</a></h1>
 <p>Each language in Litsea defines a set of <strong>character type patterns</strong> that classify individual characters into linguistically meaningful categories. These type codes are used as features for the AdaBoost classifier.</p>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
-<p>The <code>CharTypePatterns</code> struct holds an ordered list of <code>(CharMatcher, type_code)</code> pairs. For each character, the <strong>first matching pattern</strong> determines the type code. If no pattern matches, the character is classified as <code>"O"</code> (Other).</p>
-<p><code>CharMatcher</code> supports two matching strategies:</p>
-<ul>
-<li><strong>Regex</strong> – Compiled regex patterns for Unicode range matching</li>
-<li><strong>Closure</strong> – Custom functions for complex logic (e.g., Korean Hangul syllable structure)</li>
-</ul>
+<p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> classifies a character with a direct <code>match</code> expression on Unicode character ranges — no regex, no allocation. Match arms are tried top to bottom, so the <strong>first matching arm</strong> determines the type code. If no arm matches, the character is classified as <code>"O"</code> (Other).</p>
+<p>Each language has its own classification function (<code>japanese_char_type</code>, <code>chinese_char_type</code>, <code>korean_char_type</code>); the classes shared by all languages — <code>"P"</code> (punctuation), <code>"A"</code> (Latin), <code>"N"</code> (digits) — live in a common <code>punct_latin_digit()</code> helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with match guards (e.g., Korean Hangul syllable structure).</p>
 <h2 id="japanese-character-types"><a class="header" href="#japanese-character-types">Japanese Character Types</a></h2>
 <div class="table-wrapper">
 <table>
@@ -258,7 +254,7 @@
 </table>
 </div>
 <h3 id="korean-hangul-syllable-detection"><a class="header" href="#korean-hangul-syllable-detection">Korean Hangul Syllable Detection</a></h3>
-<p>Korean uses <strong>closure-based matching</strong> for SN and SF types. This leverages Unicode’s systematic Hangul encoding:</p>
+<p>Korean uses a <strong>match guard</strong> for the SN and SF types. This leverages Unicode’s systematic Hangul encoding:</p>
 <ul>
 <li>Hangul Syllables occupy U+AC00–U+D7AF</li>
 <li>Each syllable is encoded as: <code>(initial * 21 + medial) * 28 + final + 0xAC00</code></li>
@@ -276,7 +272,7 @@
 <tr><td>Total types</td><td>8</td><td>9</td><td>10</td></tr>
 <tr><td>Unique types</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
 <tr><td>Shared types</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O (H shared with JP)</td></tr>
-<tr><td>Matching method</td><td>Regex only</td><td>Regex only</td><td>Regex + Closure</td></tr>
+<tr><td>Matching method</td><td>Range match</td><td>Range match</td><td>Range match + guard</td></tr>
 <tr><td>WC features used</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 </tbody>
 </table>
@@ -326,11 +322,11 @@
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

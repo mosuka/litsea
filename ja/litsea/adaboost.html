@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-95c94099.js";
+            window.path_to_searchindex_js = "../searchindex-a1bf51be.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-feadcd78.js"></script>
+        <script src="../toc-007a5c4f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -205,40 +205,57 @@
 let mut learner = AdaBoost::new(0.01, 100);
 <span class="boring">}</span></code></pre>
 <h2 id="モデルの読み込み"><a class="header" href="#モデルの読み込み">モデルの読み込み</a></h2>
+<h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>ローカルファイルからモデルの重みを同期的に読み込みます。ローカルファイルにはこのメソッドが推奨されます – 非同期ランタイムは不要です。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+<span class="boring">}</span></code></pre>
+<h3 id="load_model_from_reader"><a class="header" href="#load_model_from_reader"><code>load_model_from_reader</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>メモリ上のバッファや既に開いているファイルなど、任意の <code>BufRead</code> ソースからモデルの重みを読み込みます。</p>
 <h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>URI からモデルの重みを読み込みます。以下の形式に対応しています:</p>
 <ul>
 <li>ローカルファイルパス: <code>./models/japanese.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP: <code>http://example.com/model</code></li>
-<li>HTTPS: <code>https://example.com/model</code></li>
+<li>HTTP: <code>http://example.com/model</code>（<code>remote_model</code> フィーチャーが必要）</li>
+<li>HTTPS: <code>https://example.com/model</code>（<code>remote_model</code> フィーチャーが必要）</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./models/japanese.model").await?;
-learner.load_model("https://example.com/model").await?;
+</span>learner.load_model("https://example.com/model").await?;
 <span class="boring">}</span></code></pre>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>モデルの重みをファイルに保存します。モデルが空の場合はエラーを返します。</p>
 <h2 id="学習メソッド"><a class="header" href="#学習メソッド">学習メソッド</a></h2>
 <h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>特徴量ファイルを読み込み、特徴量インデックスを構築します。<code>initialize_instances</code> の前に呼び出す必要があります。</p>
 <h3 id="initialize_instances"><a class="header" href="#initialize_instances"><code>initialize_instances</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>同じ特徴量ファイルを読み込み、ラベル付きインスタンスとその重みを初期化します。</p>
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
@@ -257,7 +274,7 @@ learner.load_model("https://example.com/model").await?;
 <h3 id="predict"><a class="header" href="#predict"><code>predict</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn predict(&amp;self, attributes: HashSet&lt;String&gt;) -&gt; i8
+</span>pub fn predict(&amp;self, attributes: &amp;HashSet&lt;String&gt;) -&gt; i8
 <span class="boring">}</span></code></pre>
 <p>与えられた特徴量セットに対してラベルを予測します。<code>+1</code>（境界）または <code>-1</code>（非境界）を返します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -269,26 +286,27 @@ attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
 // ... その他の特徴量
 
-let label = learner.predict(attrs);
+let label = learner.predict(&amp;attrs);
 // label == 1 (境界) or -1 (非境界)
 <span class="boring">}</span></code></pre>
-<h3 id="get_bias"><a class="header" href="#get_bias"><code>get_bias</code></a></h3>
+<h3 id="bias"><a class="header" href="#bias"><code>bias</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_bias(&amp;self) -&gt; f64
+</span>pub fn bias(&amp;self) -&gt; f64
 <span class="boring">}</span></code></pre>
 <p>バイアス項を返します: <code>-sum(all model weights) / 2.0</code></p>
 <h2 id="評価"><a class="header" href="#評価">評価</a></h2>
-<h3 id="get_metrics"><a class="header" href="#get_metrics"><code>get_metrics</code></a></h3>
+<h3 id="metrics"><a class="header" href="#metrics"><code>metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_metrics(&amp;self) -&gt; Metrics
+</span>pub fn metrics(&amp;self) -&gt; BinaryMetrics
 <span class="boring">}</span></code></pre>
 <p>学習データに対する評価メトリクスを算出します。</p>
-<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<h2 id="binarymetrics"><a class="header" href="#binarymetrics">BinaryMetrics</a></h2>
+<p><code>litsea::metrics</code> で定義されています（<code>litsea::BinaryMetrics</code> としても再エクスポートされます）:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct Metrics {
+</span>pub struct BinaryMetrics {
     pub accuracy: f64,          // 正解率（パーセント）
     pub precision: f64,         // 適合率（パーセント）
     pub recall: f64,            // 再現率（パーセント）
@@ -344,11 +362,11 @@ let label = learner.predict(attrs);
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

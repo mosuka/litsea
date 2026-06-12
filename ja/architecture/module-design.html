@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-95c94099.js";
+            window.path_to_searchindex_js = "../searchindex-a1bf51be.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-feadcd78.js"></script>
+        <script src="../toc-007a5c4f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,111 +181,161 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="モジュール設計"><a class="header" href="#モジュール設計">モジュール設計</a></h1>
-<p><code>litsea</code> ライブラリクレートは、それぞれ明確な責務を持つ 6 つのモジュールで構成されています。</p>
+<p><code>litsea</code> ライブラリクレートは、それぞれ明確な責務を持つモジュールで構成されています。</p>
 <h2 id="モジュール依存関係グラフ"><a class="header" href="#モジュール依存関係グラフ">モジュール依存関係グラフ</a></h2>
 <pre><code class="language-mermaid">graph TD
-    language["language.rs&lt;br/&gt;Character type patterns"]
-    segmenter["segmenter.rs&lt;br/&gt;Word segmentation"]
-    adaboost["adaboost.rs&lt;br/&gt;Core ML algorithm"]
-    extractor["extractor.rs&lt;br/&gt;Feature extraction"]
-    trainer["trainer.rs&lt;br/&gt;Training orchestration"]
-    util["util.rs&lt;br/&gt;URI scheme parsing"]
+    language["language.rs&lt;br/&gt;文字種分類"]
+    segmenter["segmenter.rs&lt;br/&gt;分割 + 品詞付与"]
+    adaboost["adaboost.rs&lt;br/&gt;AdaBoost（境界判定）"]
+    perceptron["perceptron.rs&lt;br/&gt;Averaged Perceptron（品詞）"]
+    upos["upos.rs&lt;br/&gt;UPOSタグとラベル"]
+    extractor["extractor.rs&lt;br/&gt;特徴量抽出"]
+    trainer["trainer.rs&lt;br/&gt;学習オーケストレーション"]
+    model_io["model_io.rs（非公開）&lt;br/&gt;モデルURI読み込み"]
+    error["error.rs&lt;br/&gt;LitseaError / Result"]
+    metrics["metrics.rs&lt;br/&gt;評価指標"]
 
     language --&gt; segmenter
-    segmenter --&gt; adaboost
+    upos --&gt; segmenter
+    adaboost --&gt; segmenter
+    perceptron --&gt; segmenter
     segmenter --&gt; extractor
     adaboost --&gt; trainer
-    adaboost --&gt; util
+    perceptron --&gt; trainer
+    model_io --&gt; adaboost
+    model_io --&gt; perceptron
+    error --&gt; adaboost
+    error --&gt; perceptron
+    metrics --&gt; trainer
 </code></pre>
-<h2 id="モジュールの詳細"><a class="header" href="#モジュールの詳細">モジュールの詳細</a></h2>
+<h2 id="モジュール詳細"><a class="header" href="#モジュール詳細">モジュール詳細</a></h2>
 <h3 id="languagers--言語定義"><a class="header" href="#languagers--言語定義"><code>language.rs</code> – 言語定義</a></h3>
-<p><code>Language</code> 列挙型と文字種分類システムを定義します。</p>
+<p><code>Language</code> enum と文字種分類を定義します。</p>
 <ul>
-<li><strong><code>Language</code></strong> – <code>Japanese</code>、<code>Chinese</code>、<code>Korean</code> のバリアントを持つ列挙型
+<li><strong><code>Language</code></strong> – <code>Japanese</code>・<code>Chinese</code>・<code>Korean</code> のバリアントを持つ enum
 <ul>
-<li><code>FromStr</code> を実装（<code>"japanese"</code>、<code>"ja"</code>、<code>"chinese"</code>、<code>"zh"</code>、<code>"korean"</code>、<code>"ko"</code> を解析）</li>
-<li><code>Display</code> を実装（小文字の名前を出力）</li>
-<li>ファクトリメソッド <code>char_type_patterns()</code> が言語固有のパターンを返す</li>
+<li><code>FromStr</code> を実装（<code>"japanese"</code>・<code>"ja"</code>・<code>"chinese"</code>・<code>"zh"</code>・<code>"korean"</code>・<code>"ko"</code> をパース）</li>
+<li><code>Display</code> を実装（小文字名を出力）</li>
+<li><code>char_type(c: char) -&gt; &amp;'static str</code> – 文字範囲に対する <code>match</code> で文字を直接分類（アロケーションなし・正規表現不使用）。言語別関数（<code>japanese_char_type</code> など）が、共通の <code>"P"</code>/<code>"A"</code>/<code>"N"</code> クラス用の <code>punct_latin_digit()</code> ヘルパーを共有します。</li>
 </ul>
 </li>
-<li><strong><code>CharTypePatterns</code></strong> – 文字を種別コードにマッピング（例: ひらがなは <code>"I"</code>、カタカナは <code>"K"</code>）</li>
-<li><strong><code>CharMatcher</code></strong> – 正規表現ベースとクロージャベースの文字マッチングをサポートする内部列挙型</li>
 </ul>
-<h3 id="segmenterrs--単語分割"><a class="header" href="#segmenterrs--単語分割"><code>segmenter.rs</code> – 単語分割</a></h3>
-<p>テキスト分割のための主要なユーザー向けモジュールです。</p>
+<h3 id="segmenterrs--単語分割と品詞付与"><a class="header" href="#segmenterrs--単語分割と品詞付与"><code>segmenter.rs</code> – 単語分割と品詞付与</a></h3>
+<p>主要なユーザー向けモジュールです。</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>CharTypePatterns</code>、<code>AdaBoost</code> インスタンスを保持
+<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）
 <ul>
-<li><code>new(language, learner)</code> – オプションの学習済みモデルでセグメンタを作成</li>
-<li><code>segment(sentence)</code> – テキストを単語に分割し、<code>Vec&lt;String&gt;</code> を返す</li>
-<li><code>get_type(ch)</code> – 単一文字をその種別コードに分類</li>
-<li><code>get_attributes(i, tags, chars, types)</code> – 文字位置の特徴量セットを抽出</li>
-<li><code>add_corpus(corpus)</code> – スペース区切りのコーパスから学習データを追加</li>
-<li><code>add_corpus_with_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
+<li><code>new(language, learner)</code> – 学習済みモデル（任意）付きでセグメンターを作成</li>
+<li><code>with_pos_learner(language, pos_learner)</code> – 分割+品詞付与用のセグメンターを作成</li>
+<li><code>segment(sentence)</code> – テキストを単語に分割し <code>Vec&lt;String&gt;</code> を返す</li>
+<li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Vec&lt;(String, Upos)&gt;</code> を返す</li>
+<li><code>char_type(ch)</code> – 1文字を種別コードに分類</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – 学習データを追加</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
 </ul>
 </li>
 </ul>
 <h3 id="adaboostrs--adaboost-アルゴリズム"><a class="header" href="#adaboostrs--adaboost-アルゴリズム"><code>adaboost.rs</code> – AdaBoost アルゴリズム</a></h3>
-<p>二値分類のためのコア機械学習エンジンです。</p>
+<p>単語境界の判定に使う二値分類器です。</p>
 <ul>
-<li><strong><code>AdaBoost</code></strong> – 二値分類器
+<li><strong><code>AdaBoost</code></strong>
 <ul>
 <li><code>new(threshold, num_iterations)</code> – 学習パラメータを指定して作成</li>
-<li><code>initialize_features(path)</code> – 学習ファイルから特徴量名を読み込み</li>
-<li><code>initialize_instances(path)</code> – 学習ファイルからラベル付きインスタンスを読み込み</li>
+<li><code>initialize_features(path)</code> / <code>initialize_instances(path)</code> – 学習データを読み込み</li>
 <li><code>train(running)</code> – AdaBoost の学習ループを実行</li>
-<li><code>predict(attributes)</code> – 境界（+1）または非境界（-1）を予測</li>
-<li><code>load_model(uri)</code> – ファイルまたは URL からモデルの重みを読み込み（非同期）</li>
-<li><code>save_model(path)</code> – モデルの重みをファイルに保存</li>
-<li><code>get_metrics()</code> – 精度、適合率、再現率を算出</li>
-<li><code>get_bias()</code> – モデルのバイアス項を取得</li>
+<li><code>predict(&amp;attributes)</code> – 境界（+1）か非境界（-1）かを予測</li>
+<li><code>load_model(uri)</code>（async）/ <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – モデルの読み込み</li>
+<li><code>save_model(path)</code> – モデルをファイルに保存</li>
+<li><code>metrics()</code> – 正解率・適合率・再現率を計算（<code>BinaryMetrics</code>）</li>
+<li><code>bias()</code> – モデルのバイアス項を取得</li>
 </ul>
 </li>
-<li><strong><code>Metrics</code></strong> – 評価指標（精度、適合率、再現率、混同行列）</li>
+</ul>
+<h3 id="perceptronrs--averaged-perceptron"><a class="header" href="#perceptronrs--averaged-perceptron"><code>perceptron.rs</code> – Averaged Perceptron</a></h3>
+<p>分割+品詞付与に使う多クラス分類器です。</p>
+<ul>
+<li><strong><code>AveragedPerceptron</code></strong>
+<ul>
+<li><code>add_instance(features, label)</code> – 学習インスタンスを追加</li>
+<li><code>train(num_epochs, running)</code> – 重み平均化付きで学習</li>
+<li><code>predict(&amp;features)</code> – 最良クラスのラベルを予測</li>
+<li><code>load_model(uri)</code>（async）/ <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – モデルの読み込み</li>
+<li><code>save_model(path)</code> – モデルを保存</li>
+<li><code>metrics()</code> – マクロ平均の評価指標（<code>MulticlassMetrics</code>）</li>
+</ul>
+</li>
+<li>重みは高速な推論のため「特徴 → クラス別ベクトル」レイアウトで保持します。</li>
+</ul>
+<h3 id="uposrs--universal-pos-タグ"><a class="header" href="#uposrs--universal-pos-タグ"><code>upos.rs</code> – Universal POS タグ</a></h3>
+<ul>
+<li><strong><code>Upos</code></strong> – Universal Dependencies の17品詞タグ（<code>NOUN</code>、<code>VERB</code>、…）</li>
+<li><strong><code>SegmentLabel</code></strong> – 文字位置ごとの分割+品詞の複合ラベル（<code>B(Upos)</code> または <code>O</code>）。<code>"B-NOUN"</code> / <code>"O"</code> 文字列形式の <code>Display</code>/<code>FromStr</code> を実装</li>
 </ul>
 <h3 id="extractorrs--特徴量抽出"><a class="header" href="#extractorrs--特徴量抽出"><code>extractor.rs</code> – 特徴量抽出</a></h3>
-<p>モデル学習のためにコーパスから特徴量を抽出します。</p>
+<p>モデル学習用にコーパスから特徴量を抽出します。</p>
 <ul>
 <li><strong><code>Extractor</code></strong> – <code>Segmenter</code> をラップしてコーパスファイルを処理
 <ul>
-<li><code>new(language)</code> – 特定の言語用の抽出器を作成</li>
-<li><code>extract(corpus_path, features_path)</code> – コーパスを読み込み、特徴量ファイルを書き出し</li>
+<li><code>new(language)</code> – 言語を指定して作成</li>
+<li><code>extract(corpus_path, features_path)</code> – コーパスを読み、特徴量ファイルを書き出す</li>
+<li><code>extract_with_pos(corpus_path, features_path)</code> – 品詞付きコーパス版</li>
 </ul>
 </li>
 </ul>
 <h3 id="trainerrs--学習オーケストレーション"><a class="header" href="#trainerrs--学習オーケストレーション"><code>trainer.rs</code> – 学習オーケストレーション</a></h3>
-<p>すべてを結合する高レベルの学習ワークフローです。</p>
+<p>高レベルの学習ワークフローです。</p>
 <ul>
-<li><strong><code>Trainer</code></strong> – 学習パイプライン全体を統括
+<li><strong><code>Trainer</code></strong> – 分割モデルの学習（AdaBoost）
 <ul>
 <li><code>new(threshold, num_iterations, features_path)</code> – 特徴量ファイルから初期化</li>
-<li><code>load_model(uri)</code> – 再学習のために既存のモデルをオプションで読み込み（非同期）</li>
-<li><code>train(running, model_path)</code> – 学習を実行しモデルを保存、<code>Metrics</code> を返す</li>
+<li><code>load_model(uri)</code> – 増分学習用に既存モデルを読み込み（async・任意）</li>
+<li><code>train(running, model_path)</code> – 学習・保存して <code>BinaryMetrics</code> を返す</li>
+</ul>
+</li>
+<li><strong><code>PosTrainer</code></strong> – 品詞モデルの学習（Averaged Perceptron）
+<ul>
+<li><code>new(num_epochs, features_path)</code> / <code>load_model(uri)</code> / <code>train(running, model_path)</code>（<code>MulticlassMetrics</code> を返す）</li>
 </ul>
 </li>
 </ul>
-<h3 id="utilrs--ユーティリティ"><a class="header" href="#utilrs--ユーティリティ"><code>util.rs</code> – ユーティリティ</a></h3>
-<p>モデル読み込みのための URI スキーム解析です。</p>
+<h3 id="errorrs--エラー処理"><a class="header" href="#errorrs--エラー処理"><code>error.rs</code> – エラー処理</a></h3>
 <ul>
-<li><strong><code>ModelScheme</code></strong> – <code>Http</code>、<code>Https</code>、<code>File</code> のバリアントを持つ列挙型
+<li><strong><code>LitseaError</code></strong> – エラー enum（<code>Io</code>・<code>InvalidData</code>・<code>InvalidInput</code>・<code>Unsupported</code>、<code>remote_model</code> フィーチャー時は <code>Download</code> も）</li>
+<li><strong><code>Result&lt;T&gt;</code></strong> – すべての失敗しうるAPIが使うエイリアス</li>
+</ul>
+<h3 id="metricsrs--評価指標"><a class="header" href="#metricsrs--評価指標"><code>metrics.rs</code> – 評価指標</a></h3>
 <ul>
-<li>URI プレフィックスに基づいてモデルの読み込み方法を決定するために使用</li>
+<li><strong><code>BinaryMetrics</code></strong> – 正解率・適合率・再現率・混同行列（AdaBoost）</li>
+<li><strong><code>MulticlassMetrics</code></strong> – 正解率とマクロ平均適合率/再現率（Averaged Perceptron）</li>
 </ul>
-</li>
-</ul>
-<h2 id="パブリックエクスポート"><a class="header" href="#パブリックエクスポート">パブリックエクスポート</a></h2>
-<p>ライブラリの <code>lib.rs</code> はすべてのモジュールを再エクスポートし、以下を提供します:</p>
+<h3 id="model_iors--モデル読み込みio非公開"><a class="header" href="#model_iors--モデル読み込みio非公開"><code>model_io.rs</code> – モデル読み込みI/O（非公開）</a></h3>
+<p>モデルURI（プレーンパス、<code>file://</code>、<code>remote_model</code> フィーチャー時の <code>http(s)://</code>）を解決して生のモデルバイト列を返す内部モジュールです。公開APIには含まれません。</p>
+<h2 id="公開エクスポート"><a class="header" href="#公開エクスポート">公開エクスポート</a></h2>
+<p>ライブラリの <code>lib.rs</code> は公開モジュールと主要型の再エクスポートを提供します:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub mod adaboost;
+pub mod error;
 pub mod extractor;
 pub mod language;
+pub mod metrics;
+mod model_io;
+pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
-pub mod util;
+pub mod upos;
 
-pub const VERSION: &amp;str = env!("CARGO_PKG_VERSION");
-pub fn version() -&gt; &amp;'static str { VERSION }
+pub use adaboost::AdaBoost;
+pub use error::{LitseaError, Result};
+pub use extractor::Extractor;
+pub use language::Language;
+pub use metrics::{BinaryMetrics, MulticlassMetrics};
+pub use perceptron::AveragedPerceptron;
+pub use segmenter::Segmenter;
+pub use trainer::{PosTrainer, Trainer};
+pub use upos::{SegmentLabel, Upos};
+
+pub fn version() -&gt; &amp;'static str { ... }
 <span class="boring">}</span></code></pre>
 
                     </main>
@@ -332,11 +382,11 @@ pub fn version() -&gt; &amp;'static str { VERSION }
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

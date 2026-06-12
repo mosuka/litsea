@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-95c94099.js";
+            window.path_to_searchindex_js = "../searchindex-a1bf51be.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-feadcd78.js"></script>
+        <script src="../toc-007a5c4f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,14 +181,10 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="文字種分類"><a class="header" href="#文字種分類">文字種分類</a></h1>
-<p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種パターン</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
+<p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種クラス</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
 <h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
-<p><code>CharTypePatterns</code> 構造体は <code>(CharMatcher, type_code)</code> ペアの順序付きリストを保持します。各文字に対して、<strong>最初にマッチしたパターン</strong>が種別コードを決定します。どのパターンにもマッチしない場合、その文字は <code>"O"</code>（Other）に分類されます。</p>
-<p><code>CharMatcher</code> は 2 つのマッチング戦略をサポートします:</p>
-<ul>
-<li><strong>Regex</strong> – Unicode 範囲マッチングのためのコンパイル済み正規表現パターン</li>
-<li><strong>Closure</strong> – 複雑なロジック（例: 韓国語ハングル音節構造）のためのカスタム関数</li>
-</ul>
+<p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> は、Unicode 文字範囲に対する <code>match</code> 式で文字を直接分類します（正規表現・アロケーションなし）。matchアームは上から順に評価され、<strong>最初にマッチしたアーム</strong>が種別コードを決定します。どのアームにもマッチしない場合、その文字は <code>"O"</code>（Other）に分類されます。</p>
+<p>言語ごとに分類関数（<code>japanese_char_type</code>・<code>chinese_char_type</code>・<code>korean_char_type</code>）があり、全言語で共通のクラス <code>"P"</code>（句読点）・<code>"A"</code>（ラテン文字）・<code>"N"</code>（数字）は、言語固有クラスの後に評価される共有ヘルパー <code>punct_latin_digit()</code> にまとめられています。単純な範囲を超えるロジックはmatchガードで表現します（例: 韓国語のハングル音節構造）。</p>
 <h2 id="日本語の文字種"><a class="header" href="#日本語の文字種">日本語の文字種</a></h2>
 <div class="table-wrapper">
 <table>
@@ -258,7 +254,7 @@
 </table>
 </div>
 <h3 id="韓国語ハングル音節の検出"><a class="header" href="#韓国語ハングル音節の検出">韓国語ハングル音節の検出</a></h3>
-<p>韓国語では SN と SF の種別に<strong>クロージャベースのマッチング</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
+<p>韓国語では SN と SF の種別に<strong>matchガード</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
 <ul>
 <li>ハングル音節は U+AC00–U+D7AF を占有</li>
 <li>各音節は <code>(初声 * 21 + 中声) * 28 + 終声 + 0xAC00</code> としてエンコード</li>
@@ -276,7 +272,7 @@
 <tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td></tr>
 <tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
 <tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td></tr>
-<tr><td>マッチング方法</td><td>Regex のみ</td><td>Regex のみ</td><td>Regex + Closure</td></tr>
+<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + ガード</td></tr>
 <tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td></tr>
 </tbody>
 </table>
@@ -326,11 +322,11 @@
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

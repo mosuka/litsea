@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-95c94099.js";
+            window.path_to_searchindex_js = "../searchindex-a1bf51be.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-feadcd78.js"></script>
+        <script src="../toc-007a5c4f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -207,15 +207,16 @@
 </code></pre>
 <h2 id="ライブラリ-クイックスタート"><a class="header" href="#ライブラリ-クイックスタート">ライブラリ クイックスタート</a></h2>
 <p>モデルを読み込みテキストを分割する最小限の Rust プログラムです:</p>
-<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Load the pre-trained model
+fn main() -&gt; litsea::Result&lt;()&gt; {
+    // 学習済みモデルを読み込み
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -229,15 +230,16 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre>
 <h2 id="ライブラリ-クイックスタート品詞推定"><a class="header" href="#ライブラリ-クイックスタート品詞推定">ライブラリ クイックスタート（品詞推定）</a></h2>
 <p>品詞推定付きモデルを読み込み、単語分割と品詞推定を同時に行う例です:</p>
-<pre class="playground"><code class="language-rust">use litsea::language::Language;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     // POS モデルを読み込み
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     // POS 対応 Segmenter を作成
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
@@ -302,11 +304,11 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

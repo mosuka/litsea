@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-95c94099.js";
+            window.path_to_searchindex_js = "../searchindex-a1bf51be.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-feadcd78.js"></script>
+        <script src="../toc-007a5c4f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="language"><a class="header" href="#language">Language</a></h1>
-<p><code>Language</code> 列挙型と <code>CharTypePatterns</code> 構造体は、言語固有の動作を定義します。</p>
+<p><code>Language</code> 列挙型は、文字種分類を含む言語固有の動作を定義します。</p>
 <h2 id="language-列挙型"><a class="header" href="#language-列挙型">Language 列挙型</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -220,38 +220,23 @@ let ko: Language = "KOREAN".parse().unwrap();
 // 無効な値
 assert!("french".parse::&lt;Language&gt;().is_err());
 <span class="boring">}</span></code></pre>
-<h3 id="char_type_patterns"><a class="header" href="#char_type_patterns"><code>char_type_patterns</code></a></h3>
+<h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str
 <span class="boring">}</span></code></pre>
-<p>この言語に対応する文字種パターンを作成します。呼び出しのたびに正規表現パターンをコンパイルするため、パフォーマンスのために結果をキャッシュすることを推奨します（<code>Segmenter::new</code> は自動的にキャッシュします）。</p>
-<h2 id="chartypepatterns"><a class="header" href="#chartypepatterns">CharTypePatterns</a></h2>
+<p>文字をその言語固有の文字種コードに分類します。どのクラスにも属さない文字には <code>"O"</code>（その他）を返します。</p>
+<p>分類は文字範囲に対する直接の <code>match</code> で行われます – アロケーション不要、O(1) で、正規表現は使用しません。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct CharTypePatterns {
-    // internal: Vec&lt;(CharMatcher, &amp;'static str)&gt;
-}
+</span>use litsea::language::Language;
+
+let lang = Language::Japanese;
+assert_eq!(lang.char_type('あ'), "I");
+assert_eq!(lang.char_type('漢'), "H");
+assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<h3 id="get_type"><a class="header" href="#get_type"><code>get_type</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
-<span class="boring">}</span></code></pre>
-<p>文字をその文字種コードに分類します。一致するパターンがない場合は <code>"O"</code>（その他）を返します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let patterns = Language::Japanese.char_type_patterns();
-assert_eq!(patterns.get_type("あ"), "I");
-assert_eq!(patterns.get_type("漢"), "H");
-assert_eq!(patterns.get_type("@"), "O");
-<span class="boring">}</span></code></pre>
-<h3 id="new"><a class="header" href="#new"><code>new</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn new(patterns: Vec&lt;(Regex, &amp;'static str)&gt;) -&gt; Self
-<span class="boring">}</span></code></pre>
-<p>正規表現と文字種コードのペアのリストからパターンを作成します。パターンは順番にチェックされ、最初に一致したものが使用されます。</p>
+<p>内部的には、<code>char_type</code> は言語ごとの非公開関数（<code>japanese_char_type</code>、<code>chinese_char_type</code>、<code>korean_char_type</code>）にディスパッチします。全言語に共通のクラス – <code>"P"</code>（句読点）、<code>"A"</code>（ラテン文字）、<code>"N"</code>（数字） – は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。</p>
 
                     </main>
 
@@ -297,11 +282,11 @@ assert_eq!(patterns.get_type("@"), "O");
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

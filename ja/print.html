@@ -16,8 +16,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-95c94099.js";
+            window.path_to_searchindex_js = "searchindex-a1bf51be.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-feadcd78.js"></script>
+        <script src="toc-007a5c4f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -301,15 +301,16 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 </code></pre>
 <h2 id="ライブラリ-クイックスタート"><a class="header" href="#ライブラリ-クイックスタート">ライブラリ クイックスタート</a></h2>
 <p>モデルを読み込みテキストを分割する最小限の Rust プログラムです:</p>
-<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
-    // Load the pre-trained model
+fn main() -&gt; litsea::Result&lt;()&gt; {
+    // 学習済みモデルを読み込み
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -323,15 +324,16 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre>
 <h2 id="ライブラリ-クイックスタート品詞推定"><a class="header" href="#ライブラリ-クイックスタート品詞推定">ライブラリ クイックスタート（品詞推定）</a></h2>
 <p>品詞推定付きモデルを読み込み、単語分割と品詞推定を同時に行う例です:</p>
-<pre class="playground"><code class="language-rust">use litsea::language::Language;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     // POS モデルを読み込み
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     // POS 対応 Segmenter を作成
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
@@ -441,7 +443,7 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <tr><th>Dependency</th><th>Version</th><th>用途</th></tr>
 </thead>
 <tbody>
-<tr><td><code>regex</code></td><td>1.12</td><td>文字種パターンマッチング</td></tr>
+<tr><td><code>thiserror</code></td><td>2.0</td><td>エラー型の導出</td></tr>
 <tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS モデル読み込み（rustls）</td></tr>
 <tr><td><code>tokio</code></td><td>1.49</td><td>リモートモデル読み込み用非同期ランタイム</td></tr>
 <tr><td><code>criterion</code></td><td>0.8</td><td>ベンチマーク（開発依存）</td></tr>
@@ -478,111 +480,161 @@ rust-version = "1.87"
 <p>共有依存関係はワークスペースレベルの <code>[workspace.dependencies]</code> で定義され、各クレートから <code>{ workspace = true }</code> で参照されます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="モジュール設計"><a class="header" href="#モジュール設計">モジュール設計</a></h1>
-<p><code>litsea</code> ライブラリクレートは、それぞれ明確な責務を持つ 6 つのモジュールで構成されています。</p>
+<p><code>litsea</code> ライブラリクレートは、それぞれ明確な責務を持つモジュールで構成されています。</p>
 <h2 id="モジュール依存関係グラフ"><a class="header" href="#モジュール依存関係グラフ">モジュール依存関係グラフ</a></h2>
 <pre><code class="language-mermaid">graph TD
-    language["language.rs&lt;br/&gt;Character type patterns"]
-    segmenter["segmenter.rs&lt;br/&gt;Word segmentation"]
-    adaboost["adaboost.rs&lt;br/&gt;Core ML algorithm"]
-    extractor["extractor.rs&lt;br/&gt;Feature extraction"]
-    trainer["trainer.rs&lt;br/&gt;Training orchestration"]
-    util["util.rs&lt;br/&gt;URI scheme parsing"]
+    language["language.rs&lt;br/&gt;文字種分類"]
+    segmenter["segmenter.rs&lt;br/&gt;分割 + 品詞付与"]
+    adaboost["adaboost.rs&lt;br/&gt;AdaBoost（境界判定）"]
+    perceptron["perceptron.rs&lt;br/&gt;Averaged Perceptron（品詞）"]
+    upos["upos.rs&lt;br/&gt;UPOSタグとラベル"]
+    extractor["extractor.rs&lt;br/&gt;特徴量抽出"]
+    trainer["trainer.rs&lt;br/&gt;学習オーケストレーション"]
+    model_io["model_io.rs（非公開）&lt;br/&gt;モデルURI読み込み"]
+    error["error.rs&lt;br/&gt;LitseaError / Result"]
+    metrics["metrics.rs&lt;br/&gt;評価指標"]
 
     language --&gt; segmenter
-    segmenter --&gt; adaboost
+    upos --&gt; segmenter
+    adaboost --&gt; segmenter
+    perceptron --&gt; segmenter
     segmenter --&gt; extractor
     adaboost --&gt; trainer
-    adaboost --&gt; util
+    perceptron --&gt; trainer
+    model_io --&gt; adaboost
+    model_io --&gt; perceptron
+    error --&gt; adaboost
+    error --&gt; perceptron
+    metrics --&gt; trainer
 </code></pre>
-<h2 id="モジュールの詳細"><a class="header" href="#モジュールの詳細">モジュールの詳細</a></h2>
+<h2 id="モジュール詳細"><a class="header" href="#モジュール詳細">モジュール詳細</a></h2>
 <h3 id="languagers--言語定義"><a class="header" href="#languagers--言語定義"><code>language.rs</code> – 言語定義</a></h3>
-<p><code>Language</code> 列挙型と文字種分類システムを定義します。</p>
+<p><code>Language</code> enum と文字種分類を定義します。</p>
 <ul>
-<li><strong><code>Language</code></strong> – <code>Japanese</code>、<code>Chinese</code>、<code>Korean</code> のバリアントを持つ列挙型
+<li><strong><code>Language</code></strong> – <code>Japanese</code>・<code>Chinese</code>・<code>Korean</code> のバリアントを持つ enum
 <ul>
-<li><code>FromStr</code> を実装（<code>"japanese"</code>、<code>"ja"</code>、<code>"chinese"</code>、<code>"zh"</code>、<code>"korean"</code>、<code>"ko"</code> を解析）</li>
-<li><code>Display</code> を実装（小文字の名前を出力）</li>
-<li>ファクトリメソッド <code>char_type_patterns()</code> が言語固有のパターンを返す</li>
+<li><code>FromStr</code> を実装（<code>"japanese"</code>・<code>"ja"</code>・<code>"chinese"</code>・<code>"zh"</code>・<code>"korean"</code>・<code>"ko"</code> をパース）</li>
+<li><code>Display</code> を実装（小文字名を出力）</li>
+<li><code>char_type(c: char) -&gt; &amp;'static str</code> – 文字範囲に対する <code>match</code> で文字を直接分類（アロケーションなし・正規表現不使用）。言語別関数（<code>japanese_char_type</code> など）が、共通の <code>"P"</code>/<code>"A"</code>/<code>"N"</code> クラス用の <code>punct_latin_digit()</code> ヘルパーを共有します。</li>
 </ul>
 </li>
-<li><strong><code>CharTypePatterns</code></strong> – 文字を種別コードにマッピング（例: ひらがなは <code>"I"</code>、カタカナは <code>"K"</code>）</li>
-<li><strong><code>CharMatcher</code></strong> – 正規表現ベースとクロージャベースの文字マッチングをサポートする内部列挙型</li>
 </ul>
-<h3 id="segmenterrs--単語分割"><a class="header" href="#segmenterrs--単語分割"><code>segmenter.rs</code> – 単語分割</a></h3>
-<p>テキスト分割のための主要なユーザー向けモジュールです。</p>
+<h3 id="segmenterrs--単語分割と品詞付与"><a class="header" href="#segmenterrs--単語分割と品詞付与"><code>segmenter.rs</code> – 単語分割と品詞付与</a></h3>
+<p>主要なユーザー向けモジュールです。</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>CharTypePatterns</code>、<code>AdaBoost</code> インスタンスを保持
+<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）
 <ul>
-<li><code>new(language, learner)</code> – オプションの学習済みモデルでセグメンタを作成</li>
-<li><code>segment(sentence)</code> – テキストを単語に分割し、<code>Vec&lt;String&gt;</code> を返す</li>
-<li><code>get_type(ch)</code> – 単一文字をその種別コードに分類</li>
-<li><code>get_attributes(i, tags, chars, types)</code> – 文字位置の特徴量セットを抽出</li>
-<li><code>add_corpus(corpus)</code> – スペース区切りのコーパスから学習データを追加</li>
-<li><code>add_corpus_with_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
+<li><code>new(language, learner)</code> – 学習済みモデル（任意）付きでセグメンターを作成</li>
+<li><code>with_pos_learner(language, pos_learner)</code> – 分割+品詞付与用のセグメンターを作成</li>
+<li><code>segment(sentence)</code> – テキストを単語に分割し <code>Vec&lt;String&gt;</code> を返す</li>
+<li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Vec&lt;(String, Upos)&gt;</code> を返す</li>
+<li><code>char_type(ch)</code> – 1文字を種別コードに分類</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – 学習データを追加</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
 </ul>
 </li>
 </ul>
 <h3 id="adaboostrs--adaboost-アルゴリズム"><a class="header" href="#adaboostrs--adaboost-アルゴリズム"><code>adaboost.rs</code> – AdaBoost アルゴリズム</a></h3>
-<p>二値分類のためのコア機械学習エンジンです。</p>
+<p>単語境界の判定に使う二値分類器です。</p>
 <ul>
-<li><strong><code>AdaBoost</code></strong> – 二値分類器
+<li><strong><code>AdaBoost</code></strong>
 <ul>
 <li><code>new(threshold, num_iterations)</code> – 学習パラメータを指定して作成</li>
-<li><code>initialize_features(path)</code> – 学習ファイルから特徴量名を読み込み</li>
-<li><code>initialize_instances(path)</code> – 学習ファイルからラベル付きインスタンスを読み込み</li>
+<li><code>initialize_features(path)</code> / <code>initialize_instances(path)</code> – 学習データを読み込み</li>
 <li><code>train(running)</code> – AdaBoost の学習ループを実行</li>
-<li><code>predict(attributes)</code> – 境界（+1）または非境界（-1）を予測</li>
-<li><code>load_model(uri)</code> – ファイルまたは URL からモデルの重みを読み込み（非同期）</li>
-<li><code>save_model(path)</code> – モデルの重みをファイルに保存</li>
-<li><code>get_metrics()</code> – 精度、適合率、再現率を算出</li>
-<li><code>get_bias()</code> – モデルのバイアス項を取得</li>
+<li><code>predict(&amp;attributes)</code> – 境界（+1）か非境界（-1）かを予測</li>
+<li><code>load_model(uri)</code>（async）/ <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – モデルの読み込み</li>
+<li><code>save_model(path)</code> – モデルをファイルに保存</li>
+<li><code>metrics()</code> – 正解率・適合率・再現率を計算（<code>BinaryMetrics</code>）</li>
+<li><code>bias()</code> – モデルのバイアス項を取得</li>
 </ul>
 </li>
-<li><strong><code>Metrics</code></strong> – 評価指標（精度、適合率、再現率、混同行列）</li>
+</ul>
+<h3 id="perceptronrs--averaged-perceptron"><a class="header" href="#perceptronrs--averaged-perceptron"><code>perceptron.rs</code> – Averaged Perceptron</a></h3>
+<p>分割+品詞付与に使う多クラス分類器です。</p>
+<ul>
+<li><strong><code>AveragedPerceptron</code></strong>
+<ul>
+<li><code>add_instance(features, label)</code> – 学習インスタンスを追加</li>
+<li><code>train(num_epochs, running)</code> – 重み平均化付きで学習</li>
+<li><code>predict(&amp;features)</code> – 最良クラスのラベルを予測</li>
+<li><code>load_model(uri)</code>（async）/ <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – モデルの読み込み</li>
+<li><code>save_model(path)</code> – モデルを保存</li>
+<li><code>metrics()</code> – マクロ平均の評価指標（<code>MulticlassMetrics</code>）</li>
+</ul>
+</li>
+<li>重みは高速な推論のため「特徴 → クラス別ベクトル」レイアウトで保持します。</li>
+</ul>
+<h3 id="uposrs--universal-pos-タグ"><a class="header" href="#uposrs--universal-pos-タグ"><code>upos.rs</code> – Universal POS タグ</a></h3>
+<ul>
+<li><strong><code>Upos</code></strong> – Universal Dependencies の17品詞タグ（<code>NOUN</code>、<code>VERB</code>、…）</li>
+<li><strong><code>SegmentLabel</code></strong> – 文字位置ごとの分割+品詞の複合ラベル（<code>B(Upos)</code> または <code>O</code>）。<code>"B-NOUN"</code> / <code>"O"</code> 文字列形式の <code>Display</code>/<code>FromStr</code> を実装</li>
 </ul>
 <h3 id="extractorrs--特徴量抽出"><a class="header" href="#extractorrs--特徴量抽出"><code>extractor.rs</code> – 特徴量抽出</a></h3>
-<p>モデル学習のためにコーパスから特徴量を抽出します。</p>
+<p>モデル学習用にコーパスから特徴量を抽出します。</p>
 <ul>
 <li><strong><code>Extractor</code></strong> – <code>Segmenter</code> をラップしてコーパスファイルを処理
 <ul>
-<li><code>new(language)</code> – 特定の言語用の抽出器を作成</li>
-<li><code>extract(corpus_path, features_path)</code> – コーパスを読み込み、特徴量ファイルを書き出し</li>
+<li><code>new(language)</code> – 言語を指定して作成</li>
+<li><code>extract(corpus_path, features_path)</code> – コーパスを読み、特徴量ファイルを書き出す</li>
+<li><code>extract_with_pos(corpus_path, features_path)</code> – 品詞付きコーパス版</li>
 </ul>
 </li>
 </ul>
 <h3 id="trainerrs--学習オーケストレーション"><a class="header" href="#trainerrs--学習オーケストレーション"><code>trainer.rs</code> – 学習オーケストレーション</a></h3>
-<p>すべてを結合する高レベルの学習ワークフローです。</p>
+<p>高レベルの学習ワークフローです。</p>
 <ul>
-<li><strong><code>Trainer</code></strong> – 学習パイプライン全体を統括
+<li><strong><code>Trainer</code></strong> – 分割モデルの学習（AdaBoost）
 <ul>
 <li><code>new(threshold, num_iterations, features_path)</code> – 特徴量ファイルから初期化</li>
-<li><code>load_model(uri)</code> – 再学習のために既存のモデルをオプションで読み込み（非同期）</li>
-<li><code>train(running, model_path)</code> – 学習を実行しモデルを保存、<code>Metrics</code> を返す</li>
+<li><code>load_model(uri)</code> – 増分学習用に既存モデルを読み込み（async・任意）</li>
+<li><code>train(running, model_path)</code> – 学習・保存して <code>BinaryMetrics</code> を返す</li>
+</ul>
+</li>
+<li><strong><code>PosTrainer</code></strong> – 品詞モデルの学習（Averaged Perceptron）
+<ul>
+<li><code>new(num_epochs, features_path)</code> / <code>load_model(uri)</code> / <code>train(running, model_path)</code>（<code>MulticlassMetrics</code> を返す）</li>
 </ul>
 </li>
 </ul>
-<h3 id="utilrs--ユーティリティ"><a class="header" href="#utilrs--ユーティリティ"><code>util.rs</code> – ユーティリティ</a></h3>
-<p>モデル読み込みのための URI スキーム解析です。</p>
+<h3 id="errorrs--エラー処理"><a class="header" href="#errorrs--エラー処理"><code>error.rs</code> – エラー処理</a></h3>
 <ul>
-<li><strong><code>ModelScheme</code></strong> – <code>Http</code>、<code>Https</code>、<code>File</code> のバリアントを持つ列挙型
+<li><strong><code>LitseaError</code></strong> – エラー enum（<code>Io</code>・<code>InvalidData</code>・<code>InvalidInput</code>・<code>Unsupported</code>、<code>remote_model</code> フィーチャー時は <code>Download</code> も）</li>
+<li><strong><code>Result&lt;T&gt;</code></strong> – すべての失敗しうるAPIが使うエイリアス</li>
+</ul>
+<h3 id="metricsrs--評価指標"><a class="header" href="#metricsrs--評価指標"><code>metrics.rs</code> – 評価指標</a></h3>
 <ul>
-<li>URI プレフィックスに基づいてモデルの読み込み方法を決定するために使用</li>
+<li><strong><code>BinaryMetrics</code></strong> – 正解率・適合率・再現率・混同行列（AdaBoost）</li>
+<li><strong><code>MulticlassMetrics</code></strong> – 正解率とマクロ平均適合率/再現率（Averaged Perceptron）</li>
 </ul>
-</li>
-</ul>
-<h2 id="パブリックエクスポート"><a class="header" href="#パブリックエクスポート">パブリックエクスポート</a></h2>
-<p>ライブラリの <code>lib.rs</code> はすべてのモジュールを再エクスポートし、以下を提供します:</p>
+<h3 id="model_iors--モデル読み込みio非公開"><a class="header" href="#model_iors--モデル読み込みio非公開"><code>model_io.rs</code> – モデル読み込みI/O（非公開）</a></h3>
+<p>モデルURI（プレーンパス、<code>file://</code>、<code>remote_model</code> フィーチャー時の <code>http(s)://</code>）を解決して生のモデルバイト列を返す内部モジュールです。公開APIには含まれません。</p>
+<h2 id="公開エクスポート"><a class="header" href="#公開エクスポート">公開エクスポート</a></h2>
+<p>ライブラリの <code>lib.rs</code> は公開モジュールと主要型の再エクスポートを提供します:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub mod adaboost;
+pub mod error;
 pub mod extractor;
 pub mod language;
+pub mod metrics;
+mod model_io;
+pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
-pub mod util;
+pub mod upos;
 
-pub const VERSION: &amp;str = env!("CARGO_PKG_VERSION");
-pub fn version() -&gt; &amp;'static str { VERSION }
+pub use adaboost::AdaBoost;
+pub use error::{LitseaError, Result};
+pub use extractor::Extractor;
+pub use language::Language;
+pub use metrics::{BinaryMetrics, MulticlassMetrics};
+pub use perceptron::AveragedPerceptron;
+pub use segmenter::Segmenter;
+pub use trainer::{PosTrainer, Trainer};
+pub use upos::{SegmentLabel, Upos};
+
+pub fn version() -&gt; &amp;'static str { ... }
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="adaboost-二値分類"><a class="header" href="#adaboost-二値分類">AdaBoost 二値分類</a></h1>
@@ -880,14 +932,10 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="文字種分類"><a class="header" href="#文字種分類">文字種分類</a></h1>
-<p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種パターン</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
+<p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種クラス</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
 <h2 id="仕組み-1"><a class="header" href="#仕組み-1">仕組み</a></h2>
-<p><code>CharTypePatterns</code> 構造体は <code>(CharMatcher, type_code)</code> ペアの順序付きリストを保持します。各文字に対して、<strong>最初にマッチしたパターン</strong>が種別コードを決定します。どのパターンにもマッチしない場合、その文字は <code>"O"</code>（Other）に分類されます。</p>
-<p><code>CharMatcher</code> は 2 つのマッチング戦略をサポートします:</p>
-<ul>
-<li><strong>Regex</strong> – Unicode 範囲マッチングのためのコンパイル済み正規表現パターン</li>
-<li><strong>Closure</strong> – 複雑なロジック（例: 韓国語ハングル音節構造）のためのカスタム関数</li>
-</ul>
+<p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> は、Unicode 文字範囲に対する <code>match</code> 式で文字を直接分類します（正規表現・アロケーションなし）。matchアームは上から順に評価され、<strong>最初にマッチしたアーム</strong>が種別コードを決定します。どのアームにもマッチしない場合、その文字は <code>"O"</code>（Other）に分類されます。</p>
+<p>言語ごとに分類関数（<code>japanese_char_type</code>・<code>chinese_char_type</code>・<code>korean_char_type</code>）があり、全言語で共通のクラス <code>"P"</code>（句読点）・<code>"A"</code>（ラテン文字）・<code>"N"</code>（数字）は、言語固有クラスの後に評価される共有ヘルパー <code>punct_latin_digit()</code> にまとめられています。単純な範囲を超えるロジックはmatchガードで表現します（例: 韓国語のハングル音節構造）。</p>
 <h2 id="日本語の文字種"><a class="header" href="#日本語の文字種">日本語の文字種</a></h2>
 <div class="table-wrapper">
 <table>
@@ -957,7 +1005,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 </table>
 </div>
 <h3 id="韓国語ハングル音節の検出"><a class="header" href="#韓国語ハングル音節の検出">韓国語ハングル音節の検出</a></h3>
-<p>韓国語では SN と SF の種別に<strong>クロージャベースのマッチング</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
+<p>韓国語では SN と SF の種別に<strong>matchガード</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
 <ul>
 <li>ハングル音節は U+AC00–U+D7AF を占有</li>
 <li>各音節は <code>(初声 * 21 + 中声) * 28 + 終声 + 0xAC00</code> としてエンコード</li>
@@ -975,7 +1023,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td></tr>
 <tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
 <tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td></tr>
-<tr><td>マッチング方法</td><td>Regex のみ</td><td>Regex のみ</td><td>Regex + Closure</td></tr>
+<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + ガード</td></tr>
 <tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td></tr>
 </tbody>
 </table>
@@ -1312,32 +1360,20 @@ Language::Thai =&gt; write!(f, "thai"),
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
 <h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
-<p>新しい言語の <code>CharTypePatterns</code> を返す関数を定義します。</p>
+<p>新しい言語の文字を種別コードに分類する関数を定義します。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn thai_patterns() -&gt; CharTypePatterns {
-    CharTypePatterns::from_matchers(vec![
-        // Thai characters (U+0E01-U+0E3A)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E01}-\u{0E3A}]").unwrap()
-        ), "T"),
-        // Thai vowels (U+0E40-U+0E4E)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E40}-\u{0E4E}]").unwrap()
-        ), "V"),
-        // Thai digits (U+0E50-U+0E59)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E50}-\u{0E59}]").unwrap()
-        ), "N"),
-        // ASCII + Full-width Latin
-        (CharMatcher::Regex(
-            Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()
-        ), "A"),
-        // Digits
-        (CharMatcher::Regex(
-            Regex::new(r"[0-9０-９]").unwrap()
-        ), "N"),
-    ])
+</span>fn thai_char_type(c: char) -&gt; &amp;'static str {
+    match c {
+        // タイ文字の子音・順行母音 (U+0E01-U+0E3A)
+        '\u{0E01}'..='\u{0E3A}' =&gt; "T",
+        // タイ文字の母音・声調記号 (U+0E40-U+0E4E)
+        '\u{0E40}'..='\u{0E4E}' =&gt; "V",
+        // タイ数字 (U+0E50-U+0E59)
+        '\u{0E50}'..='\u{0E59}' =&gt; "N",
+        // 共通クラス: "P"（句読点）、"A"（ラテン文字）、"N"（数字）
+        _ =&gt; punct_latin_digit(c).unwrap_or("O"),
+    }
 }
 <span class="boring">}</span></code></pre>
 <h3 id="文字タイプ設計のヒント"><a class="header" href="#文字タイプ設計のヒント">文字タイプ設計のヒント</a></h3>
@@ -1348,15 +1384,15 @@ Language::Thai =&gt; write!(f, "thai"),
 <li>単一の正規表現では表現できない複雑なロジックには<strong>クロージャ</strong>を使用する</li>
 </ul>
 <h2 id="手順4-パターン関数を登録"><a class="header" href="#手順4-パターン関数を登録">手順4: パターン関数を登録</a></h2>
-<p><code>Language::char_type_patterns()</code> にmatchアームを追加します。</p>
+<p><code>Language::char_type()</code> にmatchアームを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns {
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str {
     match self {
-        Language::Japanese =&gt; japanese_patterns(),
-        Language::Chinese =&gt; chinese_patterns(),
-        Language::Korean =&gt; korean_patterns(),
-        Language::Thai =&gt; thai_patterns(),    // ← new
+        Language::Japanese =&gt; japanese_char_type(c),
+        Language::Chinese =&gt; chinese_char_type(c),
+        Language::Korean =&gt; korean_char_type(c),
+        Language::Thai =&gt; thai_char_type(c),    // ← new
     }
 }
 <span class="boring">}</span></code></pre>
@@ -1401,17 +1437,17 @@ Language::Thai =&gt; write!(f, "thai"),
 </span>// In language.rs tests
 #[test]
 fn test_thai_patterns() {
-    let p = Language::Thai.char_type_patterns();
-    assert_eq!(p.get_type("ก"), "T");   // Thai consonant
-    assert_eq!(p.get_type("A"), "A");   // ASCII
-    assert_eq!(p.get_type("@"), "O");   // Other
+    let lang = Language::Thai;
+    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
+    assert_eq!(lang.char_type('A'), "A");   // ASCII
+    assert_eq!(lang.char_type('@'), "O");   // Other
 }
 
 // In segmenter.rs tests
 #[test]
-fn test_get_type_thai() {
+fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai, None);
-    assert_eq!(segmenter.get_type("ก"), "T");
+    assert_eq!(segmenter.char_type("ก"), "T");
 }
 <span class="boring">}</span></code></pre>
 <p>全テストを実行して検証します。</p>
@@ -1422,19 +1458,20 @@ fn test_get_type_thai() {
 <p><code>litsea</code> クレートは、単語分割、モデル学習、特徴量抽出のための Rust API を提供します。</p>
 <h2 id="インストール-1"><a class="header" href="#インストール-1">インストール</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.4.0"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+litsea = "0.5.0"
 </code></pre>
+<p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（<code>load_model</code>）を使う場合のみ、非同期ランタイムを追加してください。</p>
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
-    C["litsea::adaboost"] --- D["AdaBoost, Metrics"]
-    E["litsea::language"] --- F["Language, CharTypePatterns"]
+    C["litsea::adaboost"] --- D["AdaBoost"]
+    E["litsea::language"] --- F["Language"]
     G["litsea::extractor"] --- H["Extractor"]
-    I["litsea::trainer"] --- J["Trainer"]
-    K["litsea::util"] --- L["ModelScheme"]
-    M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
+    I["litsea::trainer"] --- J["Trainer, PosTrainer"]
+    K["litsea::error"] --- L["LitseaError, Result"]
+    M["litsea::perceptron"] --- N["AveragedPerceptron"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
+    Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -1443,25 +1480,26 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 </thead>
 <tbody>
 <tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>単語分割、品詞推定付き分割</td></tr>
-<tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code>, <code>Metrics</code></td><td>二値分類、モデルの入出力</td></tr>
-<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code>, <code>Metrics</code></td><td>多クラス分類（品詞推定）、モデルの入出力</td></tr>
+<tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code></td><td>二値分類、モデルの入出力</td></tr>
+<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>多クラス分類（品詞推定）、モデルの入出力</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS 品詞タグ、セグメントラベル</td></tr>
-<tr><td><code>litsea::language</code></td><td><code>Language</code>, <code>CharTypePatterns</code></td><td>言語定義、文字分類</td></tr>
+<tr><td><code>litsea::language</code></td><td><code>Language</code></td><td>言語定義、文字分類</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>コーパスからの特徴量抽出</td></tr>
-<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code></td><td>学習パイプラインの制御</td></tr>
-<tr><td><code>litsea::util</code></td><td><code>ModelScheme</code></td><td>URI スキームの解析</td></tr>
+<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PosTrainer</code></td><td>学習パイプラインの制御</td></tr>
+<tr><td><code>litsea::error</code></td><td><code>LitseaError</code>, <code>Result</code></td><td>エラー型と <code>Result</code> エイリアス</td></tr>
+<tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>学習結果の評価指標</td></tr>
 </tbody>
 </table>
 </div>
+<p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::{AdaBoost, Language, Segmenter};</code> のように短いパスで利用できます。</p>
 <h2 id="クイックスタート-1"><a class="header" href="#クイックスタート-1">クイックスタート</a></h2>
-<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
-use litsea::language::Language;
-use litsea::segmenter::Segmenter;
+<pre class="playground"><code class="language-rust">use std::path::Path;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+use litsea::{AdaBoost, Language, Segmenter};
+
+fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");
@@ -1470,14 +1508,15 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     Ok(())
 }</code></pre>
 <h2 id="クイックスタート品詞推定"><a class="header" href="#クイックスタート品詞推定">クイックスタート（品詞推定）</a></h2>
-<pre class="playground"><code class="language-rust">use litsea::language::Language;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
     let tokens = segmenter.segment_with_pos("これはテストです。");
@@ -1498,11 +1537,12 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct Segmenter {
-    pub language: Language,
-    pub learner: AdaBoost,
-    // internal: char_types: CharTypePatterns
+    // private: language: Language,
+    // private: learner: AdaBoost,
+    // private: pos_learner: Option&lt;AveragedPerceptron&gt;,
 }
 <span class="boring">}</span></code></pre>
+<p>フィールドは非公開です。アクセサメソッド <code>language()</code>、<code>learner()</code>、<code>learner_mut()</code>、<code>pos_learner()</code>、<code>pos_learner_mut()</code> を使ってアクセスしてください。</p>
 <h2 id="コンストラクタ"><a class="header" href="#コンストラクタ">コンストラクタ</a></h2>
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1537,18 +1577,18 @@ let segmenter = Segmenter::new(Language::Japanese, None);
 </span>let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
 <span class="boring">}</span></code></pre>
-<h3 id="get_type"><a class="header" href="#get_type"><code>get_type</code></a></h3>
+<h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+</span>pub fn char_type(&amp;self, ch: &amp;str) -&gt; &amp;str
 <span class="boring">}</span></code></pre>
-<p>言語固有のパターンを使用して、1文字をその文字種コードに分類します。</p>
+<p>言語固有のルールを使用して、1文字をその文字種コードに分類します。<code>&amp;str</code> の先頭の文字が分類対象になります。空文字列の場合は <code>"O"</code> を返します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let segmenter = Segmenter::new(Language::Japanese, None);
-assert_eq!(segmenter.get_type("あ"), "I");  // ひらがな
-assert_eq!(segmenter.get_type("漢"), "H");  // 漢字
-assert_eq!(segmenter.get_type("A"), "A");   // ASCII
+assert_eq!(segmenter.char_type("あ"), "I");  // ひらがな
+assert_eq!(segmenter.char_type("漢"), "H");  // 漢字
+assert_eq!(segmenter.char_type("A"), "A");   // ASCII
 <span class="boring">}</span></code></pre>
 <h3 id="add_corpus"><a class="header" href="#add_corpus"><code>add_corpus</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1575,20 +1615,18 @@ where
     println!("Features: {:?}, Label: {}", attrs, label);
 });
 <span class="boring">}</span></code></pre>
-<h3 id="get_attributes"><a class="header" href="#get_attributes"><code>get_attributes</code></a></h3>
+<h3 id="アクセサ"><a class="header" href="#アクセサ">アクセサ</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_attributes(
-    &amp;self,
-    i: usize,
-    tags: &amp;[String],
-    chars: &amp;[String],
-    types: &amp;[String],
-) -&gt; HashSet&lt;String&gt;
+</span>pub fn language(&amp;self) -&gt; Language
+pub fn learner(&amp;self) -&gt; &amp;AdaBoost
+pub fn learner_mut(&amp;mut self) -&gt; &amp;mut AdaBoost
+pub fn pos_learner(&amp;self) -&gt; Option&lt;&amp;AveragedPerceptron&gt;
+pub fn pos_learner_mut(&amp;mut self) -&gt; Option&lt;&amp;mut AveragedPerceptron&gt;
 <span class="boring">}</span></code></pre>
-<p>特定の文字位置における特徴量セットを抽出します。韓国語では38個、日本語・中国語では42個の特徴量を返します。</p>
+<p>Segmenter の言語と内部の学習器へのアクセスを提供します。</p>
 <blockquote>
-<p>これは主に <code>segment()</code> と <code>process_corpus()</code> の内部で使用されます。</p>
+<p>文字位置ごとの特徴量抽出（韓国語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の <code>get_attributes</code> メソッドは非公開になりました。</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
@@ -1622,7 +1660,7 @@ let mut extractor = Extractor::new(Language::Japanese);
     &amp;mut self,
     corpus_path: &amp;Path,
     features_path: &amp;Path,
-) -&gt; Result&lt;(), Box&lt;dyn Error&gt;&gt;
+) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>コーパスファイル（スペース区切りの単語、1行1文）を読み込み、抽出した特徴量を出力ファイルに書き込みます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1663,7 +1701,7 @@ extractor.extract(
     threshold: f64,
     num_iterations: usize,
     features_path: &amp;Path,
-) -&gt; io::Result&lt;Self&gt;
+) -&gt; litsea::Result&lt;Self&gt;
 <span class="boring">}</span></code></pre>
 <p>Trainer を作成し、特徴量ファイルから初期化します。内部で <code>AdaBoost::initialize_features()</code> と <code>AdaBoost::initialize_instances()</code> を呼び出します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1681,9 +1719,10 @@ let mut trainer = Trainer::new(
 <h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>再学習用に既存のモデルを読み込みます。ファイルパス、<code>file://</code>、<code>http://</code>、<code>https://</code> URI に対応しています。</p>
+<p>再学習用に既存のモデルを読み込みます。ファイルパス、<code>file://</code>、および（<code>remote_model</code> フィーチャー有効時）<code>http://</code>、<code>https://</code> URI に対応しています。</p>
+<p><code>Trainer::new</code> の後に呼び出すと、読み込んだ重みは特徴名をキーとして、初期化済みの学習データにマージされます。そのため、特徴量インデックスを壊すことなく、既存モデルから増分学習を開始できます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>trainer.load_model("./models/japanese.model").await?;
@@ -1695,7 +1734,7 @@ let mut trainer = Trainer::new(
     &amp;mut self,
     running: Arc&lt;AtomicBool&gt;,
     model_path: &amp;Path,
-) -&gt; Result&lt;Metrics, Box&lt;dyn std::error::Error&gt;&gt;
+) -&gt; litsea::Result&lt;BinaryMetrics&gt;
 <span class="boring">}</span></code></pre>
 <p>モデルを学習し、指定したパスに保存します。評価メトリクスを返します。</p>
 <p><code>running</code> フラグにより、学習の途中停止が可能です。<code>false</code> に設定すると学習を早期終了します。</p>
@@ -1718,7 +1757,7 @@ use std::path::Path;
 use litsea::trainer::Trainer;
 
 #[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+async fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut trainer = Trainer::new(
         0.005,
         1000,
@@ -1763,40 +1802,57 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 let mut learner = AdaBoost::new(0.01, 100);
 <span class="boring">}</span></code></pre>
 <h2 id="モデルの読み込み"><a class="header" href="#モデルの読み込み">モデルの読み込み</a></h2>
+<h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>ローカルファイルからモデルの重みを同期的に読み込みます。ローカルファイルにはこのメソッドが推奨されます – 非同期ランタイムは不要です。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+<span class="boring">}</span></code></pre>
+<h3 id="load_model_from_reader"><a class="header" href="#load_model_from_reader"><code>load_model_from_reader</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>メモリ上のバッファや既に開いているファイルなど、任意の <code>BufRead</code> ソースからモデルの重みを読み込みます。</p>
 <h3 id="load_model-1"><a class="header" href="#load_model-1"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>URI からモデルの重みを読み込みます。以下の形式に対応しています:</p>
 <ul>
 <li>ローカルファイルパス: <code>./models/japanese.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP: <code>http://example.com/model</code></li>
-<li>HTTPS: <code>https://example.com/model</code></li>
+<li>HTTP: <code>http://example.com/model</code>（<code>remote_model</code> フィーチャーが必要）</li>
+<li>HTTPS: <code>https://example.com/model</code>（<code>remote_model</code> フィーチャーが必要）</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./models/japanese.model").await?;
-learner.load_model("https://example.com/model").await?;
+</span>learner.load_model("https://example.com/model").await?;
 <span class="boring">}</span></code></pre>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>モデルの重みをファイルに保存します。モデルが空の場合はエラーを返します。</p>
 <h2 id="学習メソッド"><a class="header" href="#学習メソッド">学習メソッド</a></h2>
 <h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn initialize_features(&amp;mut self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>特徴量ファイルを読み込み、特徴量インデックスを構築します。<code>initialize_instances</code> の前に呼び出す必要があります。</p>
 <h3 id="initialize_instances"><a class="header" href="#initialize_instances"><code>initialize_instances</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>同じ特徴量ファイルを読み込み、ラベル付きインスタンスとその重みを初期化します。</p>
 <h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
@@ -1815,7 +1871,7 @@ learner.load_model("https://example.com/model").await?;
 <h3 id="predict"><a class="header" href="#predict"><code>predict</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn predict(&amp;self, attributes: HashSet&lt;String&gt;) -&gt; i8
+</span>pub fn predict(&amp;self, attributes: &amp;HashSet&lt;String&gt;) -&gt; i8
 <span class="boring">}</span></code></pre>
 <p>与えられた特徴量セットに対してラベルを予測します。<code>+1</code>（境界）または <code>-1</code>（非境界）を返します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1827,26 +1883,27 @@ attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
 // ... その他の特徴量
 
-let label = learner.predict(attrs);
+let label = learner.predict(&amp;attrs);
 // label == 1 (境界) or -1 (非境界)
 <span class="boring">}</span></code></pre>
-<h3 id="get_bias"><a class="header" href="#get_bias"><code>get_bias</code></a></h3>
+<h3 id="bias"><a class="header" href="#bias"><code>bias</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_bias(&amp;self) -&gt; f64
+</span>pub fn bias(&amp;self) -&gt; f64
 <span class="boring">}</span></code></pre>
 <p>バイアス項を返します: <code>-sum(all model weights) / 2.0</code></p>
 <h2 id="評価"><a class="header" href="#評価">評価</a></h2>
-<h3 id="get_metrics"><a class="header" href="#get_metrics"><code>get_metrics</code></a></h3>
+<h3 id="metrics"><a class="header" href="#metrics"><code>metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_metrics(&amp;self) -&gt; Metrics
+</span>pub fn metrics(&amp;self) -&gt; BinaryMetrics
 <span class="boring">}</span></code></pre>
 <p>学習データに対する評価メトリクスを算出します。</p>
-<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<h2 id="binarymetrics"><a class="header" href="#binarymetrics">BinaryMetrics</a></h2>
+<p><code>litsea::metrics</code> で定義されています（<code>litsea::BinaryMetrics</code> としても再エクスポートされます）:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct Metrics {
+</span>pub struct BinaryMetrics {
     pub accuracy: f64,          // 正解率（パーセント）
     pub precision: f64,         // 適合率（パーセント）
     pub recall: f64,            // 再現率（パーセント）
@@ -1935,36 +1992,55 @@ let label = learner.predict(&amp;attrs);
 <h3 id="save_model-1"><a class="header" href="#save_model-1"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>モデルをファイルに保存します。モデルが空の場合はエラーを返します。</p>
+<h3 id="load_model_from_path-1"><a class="header" href="#load_model_from_path-1"><code>load_model_from_path</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>ローカルファイルからモデルの重みを同期的に読み込みます。ローカルファイルにはこのメソッドが推奨されます – 非同期ランタイムは不要です。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+<span class="boring">}</span></code></pre>
+<h3 id="load_model_from_reader-1"><a class="header" href="#load_model_from_reader-1"><code>load_model_from_reader</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>メモリ上のバッファや既に開いているファイルなど、任意の <code>BufRead</code> ソースからモデルの重みを読み込みます。</p>
 <h3 id="load_model-2"><a class="header" href="#load_model-2"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>URI からモデルを読み込みます。以下の形式に対応しています:</p>
 <ul>
 <li>ローカルファイルパス: <code>./models/japanese_pos.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP: <code>http://example.com/model</code></li>
-<li>HTTPS: <code>https://example.com/model</code></li>
+<li>HTTP: <code>http://example.com/model</code>（<code>remote_model</code> フィーチャーが必要）</li>
+<li>HTTPS: <code>https://example.com/model</code>（<code>remote_model</code> フィーチャーが必要）</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./models/japanese_pos.model").await?;
+</span>learner.load_model("https://example.com/models/japanese_pos.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="評価-1"><a class="header" href="#評価-1">評価</a></h2>
-<h3 id="get_metrics-1"><a class="header" href="#get_metrics-1"><code>get_metrics</code></a></h3>
+<h3 id="metrics-1"><a class="header" href="#metrics-1"><code>metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_metrics(&amp;self) -&gt; Metrics
+</span>pub fn metrics(&amp;self) -&gt; MulticlassMetrics
 <span class="boring">}</span></code></pre>
 <p>学習データに対する評価メトリクスを算出します。</p>
-<h2 id="metrics-1"><a class="header" href="#metrics-1">Metrics</a></h2>
+<h2 id="multiclassmetrics"><a class="header" href="#multiclassmetrics">MulticlassMetrics</a></h2>
+<p><code>litsea::metrics</code> で定義されています（<code>litsea::MulticlassMetrics</code> としても再エクスポートされます）:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct Metrics {
+</span>pub struct MulticlassMetrics {
     pub accuracy: f64,                            // 正解率（パーセント）
     pub macro_precision: f64,                     // マクロ平均適合率（パーセント）
     pub macro_recall: f64,                        // マクロ平均再現率（パーセント）
@@ -2110,7 +2186,7 @@ assert_eq!(label_o.pos(), None);
 <span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language"><a class="header" href="#language">Language</a></h1>
-<p><code>Language</code> 列挙型と <code>CharTypePatterns</code> 構造体は、言語固有の動作を定義します。</p>
+<p><code>Language</code> 列挙型は、文字種分類を含む言語固有の動作を定義します。</p>
 <h2 id="language-列挙型-1"><a class="header" href="#language-列挙型-1">Language 列挙型</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2149,38 +2225,23 @@ let ko: Language = "KOREAN".parse().unwrap();
 // 無効な値
 assert!("french".parse::&lt;Language&gt;().is_err());
 <span class="boring">}</span></code></pre>
-<h3 id="char_type_patterns"><a class="header" href="#char_type_patterns"><code>char_type_patterns</code></a></h3>
+<h3 id="char_type-1"><a class="header" href="#char_type-1"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str
 <span class="boring">}</span></code></pre>
-<p>この言語に対応する文字種パターンを作成します。呼び出しのたびに正規表現パターンをコンパイルするため、パフォーマンスのために結果をキャッシュすることを推奨します（<code>Segmenter::new</code> は自動的にキャッシュします）。</p>
-<h2 id="chartypepatterns"><a class="header" href="#chartypepatterns">CharTypePatterns</a></h2>
+<p>文字をその言語固有の文字種コードに分類します。どのクラスにも属さない文字には <code>"O"</code>（その他）を返します。</p>
+<p>分類は文字範囲に対する直接の <code>match</code> で行われます – アロケーション不要、O(1) で、正規表現は使用しません。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct CharTypePatterns {
-    // internal: Vec&lt;(CharMatcher, &amp;'static str)&gt;
-}
+</span>use litsea::language::Language;
+
+let lang = Language::Japanese;
+assert_eq!(lang.char_type('あ'), "I");
+assert_eq!(lang.char_type('漢'), "H");
+assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<h3 id="get_type-1"><a class="header" href="#get_type-1"><code>get_type</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn get_type(&amp;self, ch: &amp;str) -&gt; &amp;str
-<span class="boring">}</span></code></pre>
-<p>文字をその文字種コードに分類します。一致するパターンがない場合は <code>"O"</code>（その他）を返します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>let patterns = Language::Japanese.char_type_patterns();
-assert_eq!(patterns.get_type("あ"), "I");
-assert_eq!(patterns.get_type("漢"), "H");
-assert_eq!(patterns.get_type("@"), "O");
-<span class="boring">}</span></code></pre>
-<h3 id="new"><a class="header" href="#new"><code>new</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn new(patterns: Vec&lt;(Regex, &amp;'static str)&gt;) -&gt; Self
-<span class="boring">}</span></code></pre>
-<p>正規表現と文字種コードのペアのリストからパターンを作成します。パターンは順番にチェックされ、最初に一致したものが使用されます。</p>
+<p>内部的には、<code>char_type</code> は言語ごとの非公開関数（<code>japanese_char_type</code>、<code>chinese_char_type</code>、<code>korean_char_type</code>）にディスパッチします。全言語に共通のクラス – <code>"P"</code>（句読点）、<code>"A"</code>（ラテン文字）、<code>"N"</code>（数字） – は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cliリファレンス概要"><a class="header" href="#cliリファレンス概要">CLIリファレンス概要</a></h1>
 <p><code>litsea</code> CLIは、単語分割、モデル学習、テキスト処理のためのコマンドを提供します。</p>
@@ -3014,7 +3075,7 @@ score = bias + sum(model[feature] for feature in input_attributes)
 </span>let mut learner = AdaBoost::new(0.01, 100);
 
 // ローカルファイル
-learner.load_model("./models/japanese.model").await?;
+learner.load_model_from_path(Path::new("./models/japanese.model"))?; // ローカルは同期
 
 // HTTP URL
 learner.load_model("https://example.com/models/japanese.model").await?;
@@ -3051,17 +3112,16 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tr><th>ベンチマーク</th><th>説明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_japanese_short</code></td><td>短い日本語文の分割</td></tr>
-<tr><td><code>segment_japanese_long</code></td><td>坊っちゃんの全文の分割（約 300 KB）</td></tr>
-<tr><td><code>segment_chinese_short</code></td><td>短い中国語文の分割</td></tr>
-<tr><td><code>segment_korean_short</code></td><td>短い韓国語文の分割</td></tr>
+<tr><td><code>segment_short/adaboost/{ja,zh,ko}</code></td><td>短い文の分割（AdaBoost）</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{ja,zh,ko}</code></td><td>短い文の分割+品詞付与</td></tr>
+<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>坊っちゃん全文の処理（約 300 KB）</td></tr>
 <tr><td><code>get_type_hiragana</code></td><td>文字種分類</td></tr>
 <tr><td><code>add_corpus</code></td><td>学習用コーパスの取り込み</td></tr>
-<tr><td><code>char_type_patterns_japanese</code></td><td>パターンコンパイルのコスト</td></tr>
-<tr><td><code>predict</code></td><td>単一の AdaBoost 予測</td></tr>
+<tr><td><code>predict_adaboost</code></td><td>単一の AdaBoost 予測</td></tr>
 </tbody>
 </table>
 </div>
+<p>モデルは <code>load_model_from_path</code> で同期的に読み込まれます。ベンチマークに非同期ランタイムは関与しません。</p>
 <h2 id="html-レポート"><a class="header" href="#html-レポート">HTML レポート</a></h2>
 <p>Criterion は、統計情報と比較グラフを含む詳細な HTML レポートを以下の場所に生成します:</p>
 <pre><code class="language-text">target/criterion/report/index.html
@@ -3076,7 +3136,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <p>パフォーマンスに影響する主な要因:</p>
 <ul>
 <li><strong>分割処理</strong>は入力長に対して線形（O(n)）</li>
-<li><strong>パターンコンパイル</strong>（正規表現）は最もコストが高い初回処理 – <code>Segmenter::new()</code> がパターンをキャッシュする</li>
+<li><strong>文字種分類</strong>は文字範囲に対する <code>match</code> で直接行われる（数ナノ秒、セットアップコストなし）</li>
 <li>各位置での<strong>予測</strong>は特徴量の数に依存（38-42個、定数）</li>
 <li><strong>モデル読み込み</strong>時間はモデルファイルサイズに比例</li>
 </ul>
@@ -3280,11 +3340,11 @@ All rights reserved.
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="mermaid-eefea253.min.js"></script>

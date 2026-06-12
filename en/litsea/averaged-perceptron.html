@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
+            window.path_to_searchindex_js = "../searchindex-05f73a17.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ae7d976f.js"></script>
+        <script src="../toc-dc1e276c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -258,36 +258,55 @@ let label = learner.predict(&amp;attrs);
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; io::Result&lt;()&gt;
+</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Saves model weights to a file. Returns an error if the model is empty.</p>
+<h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from a local file, synchronously. This is the preferred method for local files – no async runtime is needed.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+<span class="boring">}</span></code></pre>
+<h3 id="load_model_from_reader"><a class="header" href="#load_model_from_reader"><code>load_model_from_reader</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads model weights from any <code>BufRead</code> source, such as an in-memory buffer or an already-open file.</p>
 <h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; io::Result&lt;()&gt;
+</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Loads model weights from a URI. Supports the following URI schemes:</p>
 <ul>
 <li>Local file path: <code>./models/japanese_pos.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP: <code>http://example.com/model</code></li>
-<li>HTTPS: <code>https://example.com/model</code></li>
+<li>HTTP: <code>http://example.com/model</code> (requires the <code>remote_model</code> feature)</li>
+<li>HTTPS: <code>https://example.com/model</code> (requires the <code>remote_model</code> feature)</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("./models/japanese_pos.model").await?;
+</span>learner.load_model("https://example.com/models/japanese_pos.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="evaluation"><a class="header" href="#evaluation">Evaluation</a></h2>
-<h3 id="get_metrics"><a class="header" href="#get_metrics"><code>get_metrics</code></a></h3>
+<h3 id="metrics"><a class="header" href="#metrics"><code>metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn get_metrics(&amp;self) -&gt; Metrics
+</span>pub fn metrics(&amp;self) -&gt; MulticlassMetrics
 <span class="boring">}</span></code></pre>
 <p>Calculates evaluation metrics on the training data.</p>
-<h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
+<h2 id="multiclassmetrics"><a class="header" href="#multiclassmetrics">MulticlassMetrics</a></h2>
+<p>Defined in <code>litsea::metrics</code> (also re-exported as <code>litsea::MulticlassMetrics</code>):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct Metrics {
+</span>pub struct MulticlassMetrics {
     pub accuracy: f64,                            // Overall accuracy in percentage
     pub macro_precision: f64,                     // Macro-averaged precision in percentage
     pub macro_recall: f64,                        // Macro-averaged recall in percentage
@@ -342,11 +361,11 @@ let label = learner.predict(&amp;attrs);
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

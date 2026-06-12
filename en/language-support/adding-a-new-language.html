@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
+            window.path_to_searchindex_js = "../searchindex-05f73a17.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ae7d976f.js"></script>
+        <script src="../toc-dc1e276c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,8 +186,8 @@
 <ol>
 <li>Add a variant to the <code>Language</code> enum</li>
 <li>Implement <code>Display</code> and <code>FromStr</code> match arms</li>
-<li>Create a character type pattern function</li>
-<li>Register the pattern function</li>
+<li>Create a character classification function</li>
+<li>Register the classification function</li>
 <li>Decide on WC feature inclusion</li>
 <li>Prepare a training corpus and train a model</li>
 <li>Add tests</li>
@@ -214,66 +214,55 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
-<h2 id="step-3-create-character-type-patterns"><a class="header" href="#step-3-create-character-type-patterns">Step 3: Create Character Type Patterns</a></h2>
-<p>Define a function that returns <code>CharTypePatterns</code> for the new language:</p>
+<h2 id="step-3-create-a-character-classification-function"><a class="header" href="#step-3-create-a-character-classification-function">Step 3: Create a Character Classification Function</a></h2>
+<p>Define a function that classifies a <code>char</code> into a type code for the new language. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn thai_patterns() -&gt; CharTypePatterns {
-    CharTypePatterns::from_matchers(vec![
-        // Thai characters (U+0E01-U+0E3A)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E01}-\u{0E3A}]").unwrap()
-        ), "T"),
-        // Thai vowels (U+0E40-U+0E4E)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E40}-\u{0E4E}]").unwrap()
-        ), "V"),
+</span>fn thai_char_type(c: char) -&gt; &amp;'static str {
+    match c {
+        // Thai consonants and sequential vowels (U+0E01-U+0E3A)
+        '\u{0E01}'..='\u{0E3A}' =&gt; "T",
+        // Thai vowels and tone marks (U+0E40-U+0E4E)
+        '\u{0E40}'..='\u{0E4E}' =&gt; "V",
         // Thai digits (U+0E50-U+0E59)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E50}-\u{0E59}]").unwrap()
-        ), "N"),
-        // ASCII + Full-width Latin
-        (CharMatcher::Regex(
-            Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()
-        ), "A"),
-        // Digits
-        (CharMatcher::Regex(
-            Regex::new(r"[0-9０-９]").unwrap()
-        ), "N"),
-    ])
+        '\u{0E50}'..='\u{0E59}' =&gt; "N",
+        // Shared classes: "P" (punctuation), "A" (Latin), "N" (digits)
+        _ =&gt; punct_latin_digit(c).unwrap_or("O"),
+    }
 }
 <span class="boring">}</span></code></pre>
 <h3 id="design-tips-for-character-types"><a class="header" href="#design-tips-for-character-types">Design Tips for Character Types</a></h3>
 <ul>
 <li><strong>Identify linguistically distinct categories</strong> that correlate with word boundary patterns</li>
-<li><strong>Order matters</strong> – first match wins, so put more specific patterns before general ones</li>
+<li><strong>Order matters</strong> – match arms are tried top to bottom, so put more specific classes before general ones</li>
 <li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
-<li><strong>Use closures</strong> for complex logic that cannot be expressed as a single regex</li>
+<li><strong>Use match guards</strong> for logic beyond plain ranges (as Korean does to split syllables with/without 받침)</li>
+<li>Reuse the shared <code>punct_latin_digit()</code> helper for the common “P”/“A”/“N” classes</li>
 </ul>
-<h2 id="step-4-register-the-pattern-function"><a class="header" href="#step-4-register-the-pattern-function">Step 4: Register the Pattern Function</a></h2>
-<p>Add a match arm in <code>Language::char_type_patterns()</code>:</p>
+<h2 id="step-4-register-the-classification-function"><a class="header" href="#step-4-register-the-classification-function">Step 4: Register the Classification Function</a></h2>
+<p>Add a match arm in <code>Language::char_type()</code>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns {
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str {
     match self {
-        Language::Japanese =&gt; japanese_patterns(),
-        Language::Chinese =&gt; chinese_patterns(),
-        Language::Korean =&gt; korean_patterns(),
-        Language::Thai =&gt; thai_patterns(),    // ← new
+        Language::Japanese =&gt; japanese_char_type(c),
+        Language::Chinese =&gt; chinese_char_type(c),
+        Language::Korean =&gt; korean_char_type(c),
+        Language::Thai =&gt; thai_char_type(c),    // ← new
     }
 }
 <span class="boring">}</span></code></pre>
 <h2 id="step-5-decide-on-wc-feature-inclusion"><a class="header" href="#step-5-decide-on-wc-feature-inclusion">Step 5: Decide on WC Feature Inclusion</a></h2>
-<p>In <code>segmenter.rs</code>, <code>get_attributes()</code> has a <code>match</code> on the language to decide whether to include WC features:</p>
+<p>In <code>segmenter.rs</code>, the internal attribute builder (<code>write_attributes()</code>) has a <code>match</code> on the language to decide whether to include WC features:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match self.language {
     Language::Japanese | Language::Chinese =&gt; {
         // Include WC features
-        attrs.insert(format!("WC1:{}{}", w3, c4));
-        attrs.insert(format!("WC2:{}{}", c3, w4));
-        attrs.insert(format!("WC3:{}{}", w3, c3));
-        attrs.insert(format!("WC4:{}{}", w4, c4));
+        attr!("WC1:{}{}", w3, c4);
+        attr!("WC2:{}{}", c3, w4);
+        attr!("WC3:{}{}", w3, c3);
+        attr!("WC4:{}{}", w4, c4);
     }
     _ =&gt; {}
 }
@@ -303,18 +292,18 @@ Language::Thai =&gt; write!(f, "thai"),
 </span><span class="boring">fn main() {
 </span>// In language.rs tests
 #[test]
-fn test_thai_patterns() {
-    let p = Language::Thai.char_type_patterns();
-    assert_eq!(p.get_type("ก"), "T");   // Thai consonant
-    assert_eq!(p.get_type("A"), "A");   // ASCII
-    assert_eq!(p.get_type("@"), "O");   // Other
+fn test_thai_char_types() {
+    let lang = Language::Thai;
+    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
+    assert_eq!(lang.char_type('A'), "A");   // ASCII
+    assert_eq!(lang.char_type('@'), "O");   // Other
 }
 
 // In segmenter.rs tests
 #[test]
-fn test_get_type_thai() {
+fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai, None);
-    assert_eq!(segmenter.get_type("ก"), "T");
+    assert_eq!(segmenter.char_type("ก"), "T");
 }
 <span class="boring">}</span></code></pre>
 <p>Run all tests to verify:</p>
@@ -365,11 +354,11 @@ fn test_get_type_thai() {
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

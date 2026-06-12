@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cc69bee1.js";
+            window.path_to_searchindex_js = "../searchindex-05f73a17.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ae7d976f.js"></script>
+        <script src="../toc-dc1e276c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -208,15 +208,16 @@
 <p>Each token is annotated with a <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tag.</p>
 <h2 id="library-quick-start"><a class="header" href="#library-quick-start">Library Quick Start</a></h2>
 <p>Here is a minimal Rust program that loads a model and segments text:</p>
-<pre class="playground"><code class="language-rust">use litsea::adaboost::AdaBoost;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -230,15 +231,16 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 }</code></pre>
 <h3 id="pos-tagging-with-the-library"><a class="header" href="#pos-tagging-with-the-library">POS Tagging with the Library</a></h3>
 <p>Here is a minimal Rust program that loads a POS model and segments text with POS tags:</p>
-<pre class="playground"><code class="language-rust">use litsea::language::Language;
+<pre class="playground"><code class="language-rust">use std::path::Path;
+
+use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+fn main() -&gt; litsea::Result&lt;()&gt; {
     // Load the pre-trained POS model
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     // Create a segmenter with POS support
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
@@ -303,11 +305,11 @@ async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>

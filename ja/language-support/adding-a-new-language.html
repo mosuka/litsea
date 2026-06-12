@@ -15,8 +15,8 @@
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-0392ca55.css">
+        <link rel="stylesheet" href="../css/chrome-fc474251.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-95c94099.js";
+            window.path_to_searchindex_js = "../searchindex-a1bf51be.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-feadcd78.js"></script>
+        <script src="../toc-007a5c4f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -215,32 +215,20 @@ Language::Thai =&gt; write!(f, "thai"),
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
 <h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
-<p>新しい言語の <code>CharTypePatterns</code> を返す関数を定義します。</p>
+<p>新しい言語の文字を種別コードに分類する関数を定義します。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn thai_patterns() -&gt; CharTypePatterns {
-    CharTypePatterns::from_matchers(vec![
-        // Thai characters (U+0E01-U+0E3A)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E01}-\u{0E3A}]").unwrap()
-        ), "T"),
-        // Thai vowels (U+0E40-U+0E4E)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E40}-\u{0E4E}]").unwrap()
-        ), "V"),
-        // Thai digits (U+0E50-U+0E59)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E50}-\u{0E59}]").unwrap()
-        ), "N"),
-        // ASCII + Full-width Latin
-        (CharMatcher::Regex(
-            Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()
-        ), "A"),
-        // Digits
-        (CharMatcher::Regex(
-            Regex::new(r"[0-9０-９]").unwrap()
-        ), "N"),
-    ])
+</span>fn thai_char_type(c: char) -&gt; &amp;'static str {
+    match c {
+        // タイ文字の子音・順行母音 (U+0E01-U+0E3A)
+        '\u{0E01}'..='\u{0E3A}' =&gt; "T",
+        // タイ文字の母音・声調記号 (U+0E40-U+0E4E)
+        '\u{0E40}'..='\u{0E4E}' =&gt; "V",
+        // タイ数字 (U+0E50-U+0E59)
+        '\u{0E50}'..='\u{0E59}' =&gt; "N",
+        // 共通クラス: "P"（句読点）、"A"（ラテン文字）、"N"（数字）
+        _ =&gt; punct_latin_digit(c).unwrap_or("O"),
+    }
 }
 <span class="boring">}</span></code></pre>
 <h3 id="文字タイプ設計のヒント"><a class="header" href="#文字タイプ設計のヒント">文字タイプ設計のヒント</a></h3>
@@ -251,15 +239,15 @@ Language::Thai =&gt; write!(f, "thai"),
 <li>単一の正規表現では表現できない複雑なロジックには<strong>クロージャ</strong>を使用する</li>
 </ul>
 <h2 id="手順4-パターン関数を登録"><a class="header" href="#手順4-パターン関数を登録">手順4: パターン関数を登録</a></h2>
-<p><code>Language::char_type_patterns()</code> にmatchアームを追加します。</p>
+<p><code>Language::char_type()</code> にmatchアームを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type_patterns(&amp;self) -&gt; CharTypePatterns {
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str {
     match self {
-        Language::Japanese =&gt; japanese_patterns(),
-        Language::Chinese =&gt; chinese_patterns(),
-        Language::Korean =&gt; korean_patterns(),
-        Language::Thai =&gt; thai_patterns(),    // ← new
+        Language::Japanese =&gt; japanese_char_type(c),
+        Language::Chinese =&gt; chinese_char_type(c),
+        Language::Korean =&gt; korean_char_type(c),
+        Language::Thai =&gt; thai_char_type(c),    // ← new
     }
 }
 <span class="boring">}</span></code></pre>
@@ -304,17 +292,17 @@ Language::Thai =&gt; write!(f, "thai"),
 </span>// In language.rs tests
 #[test]
 fn test_thai_patterns() {
-    let p = Language::Thai.char_type_patterns();
-    assert_eq!(p.get_type("ก"), "T");   // Thai consonant
-    assert_eq!(p.get_type("A"), "A");   // ASCII
-    assert_eq!(p.get_type("@"), "O");   // Other
+    let lang = Language::Thai;
+    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
+    assert_eq!(lang.char_type('A'), "A");   // ASCII
+    assert_eq!(lang.char_type('@'), "O");   // Other
 }
 
 // In segmenter.rs tests
 #[test]
-fn test_get_type_thai() {
+fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai, None);
-    assert_eq!(segmenter.get_type("ก"), "T");
+    assert_eq!(segmenter.char_type("ก"), "T");
 }
 <span class="boring">}</span></code></pre>
 <p>全テストを実行して検証します。</p>
@@ -365,11 +353,11 @@ fn test_get_type_thai() {
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
         <script src="../mermaid-eefea253.min.js"></script>
