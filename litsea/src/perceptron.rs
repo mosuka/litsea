@@ -1,12 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, Write};
 use std::path::Path;
-use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-
-use crate::util::ModelScheme;
 
 /// 多クラスAveraged Perceptron分類器。
 ///
@@ -226,7 +223,7 @@ impl AveragedPerceptron {
         self.average_weights();
     }
 
-    /// モデルをJSON形式でファイルに保存する。
+    /// モデルをテキスト形式(クラスヘッダ + TSV)でファイルに保存する。
     ///
     /// フォーマット:
     /// ```text
@@ -267,95 +264,12 @@ impl AveragedPerceptron {
     }
 
     /// モデルをURIから読み込む。
+    ///
+    /// URIにはファイルパス、`file://`パス、`http(s)://` URL
+    /// (`remote_model`フィーチャー有効時のみ)を指定できる。
     pub async fn load_model(&mut self, uri: &str) -> std::io::Result<()> {
-        if uri.contains("://") {
-            let parts: Vec<&str> = uri.splitn(2, "://").collect();
-            if parts.len() != 2 {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    format!("Invalid URI: {}", uri),
-                ));
-            }
-            let scheme = ModelScheme::from_str(parts[0]).map_err(|e| {
-                std::io::Error::new(std::io::ErrorKind::InvalidInput, e.to_string())
-            })?;
-            match scheme {
-                ModelScheme::Http | ModelScheme::Https => {
-                    #[cfg(not(feature = "remote_model"))]
-                    {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::Unsupported,
-                            "http:// and https:// scheme is not supported in this build. Use file:// URLs.",
-                        ));
-                    }
-                    #[cfg(feature = "remote_model")]
-                    {
-                        self.load_model_from_url(uri).await.map_err(|e| {
-                            std::io::Error::other(format!("Failed to load model from URL: {}", e))
-                        })
-                    }
-                }
-                ModelScheme::File => {
-                    #[cfg(target_arch = "wasm32")]
-                    {
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::Unsupported,
-                            "file:// scheme is not supported in WASM environment.",
-                        ));
-                    }
-                    #[cfg(not(target_arch = "wasm32"))]
-                    {
-                        let path = Path::new(parts[1]);
-                        self.load_model_from_file(path)
-                    }
-                }
-            }
-        } else {
-            #[cfg(target_arch = "wasm32")]
-            {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Unsupported,
-                    "Local file paths are not supported in WASM environment.",
-                ));
-            }
-            #[cfg(not(target_arch = "wasm32"))]
-            {
-                let path = Path::new(uri);
-                self.load_model_from_file(path)
-            }
-        }
-    }
-
-    /// URLからモデルを読み込む。
-    #[cfg(feature = "remote_model")]
-    async fn load_model_from_url(&mut self, url: &str) -> std::io::Result<()> {
-        use reqwest::Client;
-
-        let client = Client::builder()
-            .user_agent(format!("Litsea/{}", env!("CARGO_PKG_VERSION")))
-            .build()
-            .map_err(|e| std::io::Error::other(format!("Failed to create HTTP client: {}", e)))?;
-
-        let resp = client
-            .get(url)
-            .send()
-            .await
-            .map_err(|e| std::io::Error::other(format!("Failed to download model: {}", e)))?;
-
-        if !resp.status().is_success() {
-            return Err(std::io::Error::other(format!(
-                "Failed to download model: HTTP {}",
-                resp.status()
-            )));
-        }
-
-        let content = resp
-            .bytes()
-            .await
-            .map_err(|e| std::io::Error::other(format!("Failed to read model content: {}", e)))?;
-
-        let reader = BufReader::new(content.as_ref());
-        self.parse_model_content(reader)
+        let bytes = crate::model_io::read_model_bytes(uri).await?;
+        self.parse_model_content(bytes.as_slice())
     }
 
     /// モデルの内容をパースする。
@@ -432,22 +346,6 @@ impl AveragedPerceptron {
         Ok(())
     }
 
-    /// ファイルからモデルを読み込む。
-    #[cfg(not(target_arch = "wasm32"))]
-    fn load_model_from_file(&mut self, path: &Path) -> std::io::Result<()> {
-        let file = File::open(path)?;
-        let reader = BufReader::new(file);
-        self.parse_model_content(reader)
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn load_model_from_file(&mut self, _path: &Path) -> std::io::Result<()> {
-        Err(std::io::Error::new(
-            std::io::ErrorKind::Unsupported,
-            "File system access is not supported in WASM environment",
-        ))
-    }
-
     /// 学習データに対する評価指標を計算する。
     #[must_use]
     pub fn get_metrics(&self) -> Metrics {
@@ -506,6 +404,7 @@ impl AveragedPerceptron {
 mod tests {
     use super::*;
 
+    use std::io::BufReader;
     use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
 

@@ -13,6 +13,7 @@
 pub mod adaboost;
 pub mod extractor;
 pub mod language;
+mod model_io;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;

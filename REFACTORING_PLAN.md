@@ -16,7 +16,7 @@
 | # | 内容 | 根拠 |
 |---|------|------|
 | B1 | ✅ **修正済み(Phase 0 PR に前倒しで含めた)** — **`--no-default-features` でビルド不能**。`perceptron.rs` が `reqwest` を feature gate なしで使用しており(`perceptron.rs:9` の `use reqwest::Client;` と `load_model_from_url`)、`remote_model` を無効にするとコンパイルエラーになる。`adaboost.rs` は正しく `#[cfg(feature = "remote_model")]` で保護されているのに対し、後から追加された perceptron 側が追従していない。 | `cargo check -p litsea --no-default-features` が E0432/E0282 で失敗することを確認済み |
-| B2 | `AveragedPerceptron::save_model` の doc コメントが「モデルを**JSON形式**でファイルに保存する」と記述しているが、実際はクラスヘッダ + TSV のテキスト形式(`perceptron.rs:231-242`)。 | コード読解 |
+| B2 | ✅ **修正済み(Phase 1)** — `AveragedPerceptron::save_model` の doc コメントが「モデルを**JSON形式**でファイルに保存する」と記述しているが、実際はクラスヘッダ + TSV のテキスト形式(`perceptron.rs:231-242`)。 | コード読解 |
 | B3 | CI(regression.yml / periodic.yml)に feature マトリクスがなく、B1 のようなビルド破壊が検出されない。 | ワークフロー確認 |
 
 ### 1.2 重複コード(本計画の主対象)
@@ -102,13 +102,19 @@
 
 ---
 
-### フェーズ 1: バグ修正とモデル I/O の共通化(挙動不変)
+### フェーズ 1: バグ修正とモデル I/O の共通化(挙動不変) — ✅ 実施済み
 
 **目的**: 確認済みバグの解消と、最大の重複(D1)の排除。
 
+**実施結果**(2026-06-12):
+- 内部モジュール `litsea/src/model_io.rs` を新設し、URI 解決・`file://`・HTTP(S) ダウンロード・wasm32 分岐を `read_model_bytes()` に一本化。`AdaBoost::load_model` / `AveragedPerceptron::load_model` は「バイト列取得 + `parse_model_content`」の 2 行に縮退(両学習器あわせて約 340 行の重複を削除、net -226 行 + 新モジュール約 130 行)。
+- 当初計画からの変更点: `util::ModelScheme` の移動と `util.rs` 廃止は**公開 API の互換維持のため Phase 3 に延期**(`model_io` は `util::ModelScheme` を利用する内部モジュールとした)。エラー生成ヘルパも Phase 3 のエラー型導入に統合する形で見送り。
+- 副次効果: wasm32 + `--no-default-features` ビルドで出ていた到達不能コード警告 3 件が解消。
+- `model_io` に単体テスト 4 件を追加(プレーンパス / `file://` / 不正スキーム / 存在しないファイル)。
+
 **作業項目**:
 1. ✅ **B1 修正**(Phase 0 PR で実施済み): `perceptron.rs` の `reqwest` 利用を `adaboost.rs:358-372` と同じ構造で `#[cfg(feature = "remote_model")]` ゲートに統一。
-2. **モデル I/O 共通モジュール `litsea/src/model_io.rs` の新設**:
+2. ✅ **モデル I/O 共通モジュール `litsea/src/model_io.rs` の新設**:
    - `util::ModelScheme` を移動し、`util.rs` を廃止。
    - URI 解決 → 読み取りソース取得を一本化する関数を提供:
      ```rust
@@ -120,9 +126,9 @@
      `load_model` は `read_model` + `parse_model_content` の 2 行に縮退させる。
    - HTTP クライアント生成(User-Agent 付与)も同モジュールへ移動。
    - これにより `adaboost.rs:334-524` / `perceptron.rs:271-438` の重複約 340 行を 1 実装に集約。
-3. **B2 修正**: `save_model` の doc コメントを実フォーマット(ヘッダ + TSV)の記述に修正。
-4. **エラー生成ヘルパ**: `invalid_data(format!(...))` 的な内部ヘルパを `model_io.rs` に置き、散在する `io::Error::new(InvalidData, ...)` ボイラープレートを削減(完全なエラー型再設計は Phase 3 に送る)。
-5. Phase 0 で `continue-on-error` にした feature チェック CI を必須化。
+3. ✅ **B2 修正**: `save_model` の doc コメントを実フォーマット(ヘッダ + TSV)の記述に修正。
+4. ⏭ **エラー生成ヘルパ**(Phase 3 へ統合): `invalid_data(format!(...))` 的な内部ヘルパを `model_io.rs` に置き、散在する `io::Error::new(InvalidData, ...)` ボイラープレートを削減(完全なエラー型再設計は Phase 3 に送る)。
+5. ✅ Phase 0 で `continue-on-error` にした feature チェック CI を必須化(B1 修正と同時に Phase 0 PR で実施済み)。
 
 **完了条件**: 全テスト・ゴールデン green、`--no-default-features` / `remote_model` 双方でビルド成功、重複 I/O コードの消滅。
 **リスク**: 低。I/O 経路の挙動はゴールデン + round-trip テストで担保。
