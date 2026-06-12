@@ -230,10 +230,19 @@
 
 ---
 
-### フェーズ 4: 内部データ表現とパフォーマンス最適化(挙動不変)
+### フェーズ 4: 内部データ表現とパフォーマンス最適化(挙動不変) — ✅ 実施済み
 
 **目的**: ホットパス(文字種分類・特徴量生成・Perceptron 学習)のアロケーション削減。
-**前提**: Phase 0 の criterion ベースラインと比較し、各変更の効果を PR に記録する。
+
+**実施結果**(2026-06-12、criterion median、Phase 0 ベースライン比):
+- **文字種分類の match 化**: `CharTypePatterns`(正規表現の線形走査)を `char` 範囲 `match` の `Language::char_type()` に置換。**61ns → 9.4ns(-85%)**。3 言語で重複していた P/A/N パターンも 1 関数に集約(D6 解消)。**`regex` 依存を削除**。
+- **Perceptron 重みレイアウトの転置**: `HashMap<class, HashMap<feat, w>>` → `HashMap<feat, Vec<w; クラス数>>`。1 文字あたりのハッシュ参照が 特徴数×クラス数(~756 回)→ 特徴数(~42 回)に減少。
+- **属性生成のアロケーション削減**: 特徴テンプレートを単一の `write_attributes()`(再利用バッファ + sink)に集約。`segment()` は HashSet を作らず重みを直接合算、`segment_with_pos()` は `Vec<String>` バッファを位置間で再利用。bias の毎文字再計算(全重みの総和!)も文単位の 1 回に。
+- **学習ループ**: `train()` のインスタンス全クローンを `mem::take` に置換、エポック毎の HashSet 再構築を撤廃。
+- tags/types を `&'static str` 化。
+- **ベンチ結果**: `segment_short` adaboost **-66〜70%**(ja 56.8→17.1µs)、perceptron **-88〜90%**(ja 293→30.8µs)。`segment_long_japanese` adaboost **611ms → 215ms(-65%)**、perceptron **4.48s → 396ms(-91%)**。`add_corpus` -37%。
+- **挙動不変をゴールデンテスト 10 件の完全一致で確認**(モデルファイル形式も round-trip テストで不変)。
+- 未実施(費用対効果で見送り): `chars: Vec<String>` → `Vec<char>` 化(センチネル表現の複雑化に対し残る利得が小さい)。
 
 **作業項目**(独立した PR に分割可、効果の大きい順):
 1. **文字種分類の match 化**(`language.rs`):

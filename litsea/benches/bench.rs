@@ -133,13 +133,6 @@ fn bench_add_corpus(c: &mut Criterion) {
     });
 }
 
-/// Benchmarks `char_type_patterns()` which includes regex compilation cost on every call.
-fn bench_char_type_patterns(c: &mut Criterion) {
-    c.bench_function("char_type_patterns_japanese", |b| {
-        b.iter(|| Language::Japanese.char_type_patterns());
-    });
-}
-
 fn bench_predict_adaboost(c: &mut Criterion) {
     let learner = load_adaboost_model("japanese.model");
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -164,7 +157,6 @@ criterion_group!(
     bench_segment_long,
     bench_char_type,
     bench_add_corpus,
-    bench_char_type_patterns,
     bench_predict_adaboost,
 );
 criterion_main!(benches);

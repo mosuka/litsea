@@ -12,17 +12,21 @@ use crate::metrics::MulticlassMetrics;
 ///
 /// スパースな二値特徴に対する多クラス分類を行う。
 /// 学習時に重みの累積平均を保持し、過学習を抑制する。
+///
+/// 重みは「特徴 → クラス別ベクトル」のレイアウトで保持する。
+/// 予測時の参照回数が特徴数×クラス数から特徴数に減り、
+/// 推論のホットパスが大幅に速くなる。
 #[derive(Debug)]
 pub struct AveragedPerceptron {
-    /// クラスごとの重みベクトル: weights\[class\]\[feature\] = weight
-    weights: HashMap<String, HashMap<String, f64>>,
+    /// 特徴ごとの重みベクトル: weights\[feature\]\[class_index\] = weight
+    weights: HashMap<String, Vec<f64>>,
     /// 平均化用の累積重み
-    accumulated: HashMap<String, HashMap<String, f64>>,
+    accumulated: HashMap<String, Vec<f64>>,
     /// 各重みの最終更新タイムスタンプ
-    timestamps: HashMap<String, HashMap<String, usize>>,
+    timestamps: HashMap<String, Vec<usize>>,
     /// 現在のステップ数（全インスタンスの累計）
     step: usize,
-    /// 既知のクラス一覧
+    /// 既知のクラス一覧（常にソート済み）
     classes: Vec<String>,
     /// 学習インスタンス: (特徴量セット, 正解ラベル)
     instances: Vec<(Vec<String>, String)>,
@@ -47,19 +51,66 @@ impl AveragedPerceptron {
         }
     }
 
+    /// クラスを登録し、そのインデックスを返す。
+    /// 新しいクラスはソート順を保って挿入し、既存の重みベクトルにも
+    /// 対応する列を挿入する。
+    fn ensure_class(&mut self, label: &str) -> usize {
+        match self.classes.binary_search_by(|c| c.as_str().cmp(label)) {
+            Ok(i) => i,
+            Err(i) => {
+                self.classes.insert(i, label.to_string());
+                for v in self.weights.values_mut() {
+                    v.insert(i, 0.0);
+                }
+                for v in self.accumulated.values_mut() {
+                    v.insert(i, 0.0);
+                }
+                for v in self.timestamps.values_mut() {
+                    v.insert(i, 0);
+                }
+                i
+            }
+        }
+    }
+
     /// インスタンスを追加する。
     ///
     /// # Arguments
     /// * `features` - 特徴量の集合
     /// * `label` - 正解ラベル
     pub fn add_instance(&mut self, features: HashSet<String>, label: String) {
-        // 新しいクラスを登録
-        if !self.classes.contains(&label) {
-            self.classes.push(label.clone());
-            self.classes.sort();
-        }
+        self.ensure_class(&label);
         let feats: Vec<String> = features.into_iter().collect();
         self.instances.push((feats, label));
+    }
+
+    /// 特徴量集合から最大スコアのクラスのインデックスを返す。
+    /// クラスが未登録の場合はNoneを返す。
+    fn predict_idx<I>(&self, features: I) -> Option<usize>
+    where
+        I: IntoIterator,
+        I::Item: AsRef<str>,
+    {
+        if self.classes.is_empty() {
+            return None;
+        }
+        let mut scores = vec![0.0f64; self.classes.len()];
+        for feat in features {
+            if let Some(ws) = self.weights.get(feat.as_ref()) {
+                for (s, w) in scores.iter_mut().zip(ws.iter()) {
+                    *s += *w;
+                }
+            }
+        }
+        let mut best = 0;
+        let mut best_score = f64::NEG_INFINITY;
+        for (i, s) in scores.iter().enumerate() {
+            if *s > best_score {
+                best_score = *s;
+                best = i;
+            }
+        }
+        Some(best)
     }
 
     /// 特徴量セットからラベルを予測する。
@@ -68,34 +119,34 @@ impl AveragedPerceptron {
     /// クラスが未登録の場合は空文字列を返す。
     #[must_use]
     pub fn predict(&self, features: &HashSet<String>) -> String {
-        if self.classes.is_empty() {
-            return String::new();
+        match self.predict_idx(features.iter()) {
+            Some(i) => self.classes[i].clone(),
+            None => String::new(),
         }
-        let mut best_class = &self.classes[0];
-        let mut best_score = f64::NEG_INFINITY;
-
-        for class in &self.classes {
-            let score = self.score(class, features);
-            if score > best_score {
-                best_score = score;
-                best_class = class;
-            }
-        }
-        best_class.clone()
     }
 
-    /// クラスに対するスコアを計算する。
-    fn score(&self, class: &str, features: &HashSet<String>) -> f64 {
-        let Some(class_weights) = self.weights.get(class) else {
-            return 0.0;
-        };
-        let mut score = 0.0;
-        for feat in features {
-            if let Some(&w) = class_weights.get(feat) {
-                score += w;
-            }
+    /// スライスからラベルを予測する（アロケーション回避用の内部API）。
+    pub(crate) fn predict_slice(&self, features: &[String]) -> &str {
+        match self.predict_idx(features.iter()) {
+            Some(i) => &self.classes[i],
+            None => "",
         }
-        score
+    }
+
+    /// 1つの (特徴, クラス) の重みを更新する。
+    /// 累積重みを現在のステップまで追いつかせてから `delta` を加算する。
+    fn update_single(&mut self, feat: &str, class_idx: usize, delta: f64) {
+        let n = self.classes.len();
+        let ws = self.weights.entry(feat.to_string()).or_insert_with(|| vec![0.0; n]);
+        let ts = self.timestamps.entry(feat.to_string()).or_insert_with(|| vec![0; n]);
+        let acc = self.accumulated.entry(feat.to_string()).or_insert_with(|| vec![0.0; n]);
+
+        let elapsed = self.step - ts[class_idx];
+        if elapsed > 0 {
+            acc[class_idx] += ws[class_idx] * elapsed as f64;
+        }
+        ts[class_idx] = self.step;
+        ws[class_idx] += delta;
     }
 
     /// 重みを更新する（1インスタンス分）。
@@ -103,72 +154,26 @@ impl AveragedPerceptron {
     /// 予測が正解と異なる場合:
     /// - 正解クラスの重みを +1
     /// - 予測クラスの重みを -1
-    fn update(&mut self, truth: &str, guess: &str, features: &[String]) {
-        if truth == guess {
-            return;
-        }
+    fn update(&mut self, truth_idx: usize, guess_idx: usize, features: &[String]) {
         for feat in features {
-            // 正解クラスの累積を更新してから重みを+1
-            self.update_accumulated(truth, feat);
-            *self
-                .weights
-                .entry(truth.to_string())
-                .or_default()
-                .entry(feat.clone())
-                .or_insert(0.0) += 1.0;
-
-            // 予測クラスの累積を更新してから重みを-1
-            self.update_accumulated(guess, feat);
-            *self
-                .weights
-                .entry(guess.to_string())
-                .or_default()
-                .entry(feat.clone())
-                .or_insert(0.0) -= 1.0;
+            self.update_single(feat, truth_idx, 1.0);
+            self.update_single(feat, guess_idx, -1.0);
         }
-    }
-
-    /// 累積重みを最新のステップまで追いつかせる。
-    fn update_accumulated(&mut self, class: &str, feature: &str) {
-        let last_step = self
-            .timestamps
-            .entry(class.to_string())
-            .or_default()
-            .entry(feature.to_string())
-            .or_insert(0);
-        let elapsed = self.step - *last_step;
-        if elapsed > 0 {
-            let current_weight =
-                self.weights.get(class).and_then(|cw| cw.get(feature)).copied().unwrap_or(0.0);
-            *self
-                .accumulated
-                .entry(class.to_string())
-                .or_default()
-                .entry(feature.to_string())
-                .or_insert(0.0) += current_weight * elapsed as f64;
-        }
-        *last_step = self.step;
     }
 
     /// 平均化した重みを最終モデルに反映する。
     fn average_weights(&mut self) {
-        let classes: Vec<String> = self.classes.clone();
-        for class in &classes {
-            let features: Vec<String> = self
-                .weights
-                .get(class)
-                .map(|cw| cw.keys().cloned().collect())
-                .unwrap_or_default();
-            for feat in features {
-                self.update_accumulated(class, &feat);
-                let acc = self
-                    .accumulated
-                    .get(class)
-                    .and_then(|cw| cw.get(&feat))
-                    .copied()
-                    .unwrap_or(0.0);
-                let avg = acc / self.step.max(1) as f64;
-                self.weights.entry(class.to_string()).or_default().insert(feat, avg);
+        let n = self.classes.len();
+        let step = self.step.max(1) as f64;
+        let feats: Vec<String> = self.weights.keys().cloned().collect();
+        for feat in feats {
+            for class_idx in 0..n {
+                // delta 0 の更新で累積重みを現在のステップまで追いつかせる
+                self.update_single(&feat, class_idx, 0.0);
+                let acc = self.accumulated[&feat][class_idx];
+                if let Some(ws) = self.weights.get_mut(&feat) {
+                    ws[class_idx] = acc / step;
+                }
             }
         }
     }
@@ -183,8 +188,9 @@ impl AveragedPerceptron {
             return;
         }
 
-        // インスタンスのコピーを作成（学習中にself.instancesを参照するため）
-        let instances: Vec<(Vec<String>, String)> = self.instances.clone();
+        // インスタンスを一時的に取り出して学習中の二重借用を避ける
+        // （以前はエポックを跨いで全インスタンスを複製していた）。
+        let instances = std::mem::take(&mut self.instances);
 
         for _epoch in 0..num_epochs {
             if !running.load(Ordering::SeqCst) {
@@ -196,12 +202,19 @@ impl AveragedPerceptron {
                     break;
                 }
 
-                let feature_set: HashSet<String> = features.iter().cloned().collect();
-                let guess = self.predict(&feature_set);
-                self.update(truth, &guess, features);
+                let guess_idx = self.predict_idx(features.iter()).expect("classes registered");
+                let truth_idx = self
+                    .classes
+                    .binary_search_by(|c| c.as_str().cmp(truth))
+                    .expect("truth class registered by add_instance");
+                if guess_idx != truth_idx {
+                    self.update(truth_idx, guess_idx, features);
+                }
                 self.step += 1;
             }
         }
+
+        self.instances = instances;
 
         // 平均化した重みを最終モデルに反映
         self.average_weights();
@@ -233,10 +246,10 @@ impl AveragedPerceptron {
         }
 
         // 重み: 非ゼロの重みのみ保存
-        for (class, class_weights) in &self.weights {
-            for (feat, &w) in class_weights {
+        for (feat, ws) in &self.weights {
+            for (class_idx, &w) in ws.iter().enumerate() {
                 if w != 0.0 {
-                    writeln!(file, "{}\t{}\t{}", feat, class, w)?;
+                    writeln!(file, "{}\t{}\t{}", feat, self.classes[class_idx], w)?;
                 }
             }
         }
@@ -289,15 +302,12 @@ impl AveragedPerceptron {
                     )
                 })?
                 .map_err(|e| LitseaError::InvalidData(format!("Read error: {}", e)))?;
-            let class = class.trim().to_string();
-            if !self.classes.contains(&class) {
-                self.classes.push(class);
-            }
+            self.ensure_class(class.trim());
         }
-        self.classes.sort();
 
         // 重みを読む
         self.weights.clear();
+        let n = self.classes.len();
         for line in lines {
             let line = line?;
             let line = line.trim();
@@ -309,14 +319,15 @@ impl AveragedPerceptron {
                 return Err(LitseaError::InvalidData(format!("Invalid weight line: '{}'", line)));
             }
             let feat = parts[0];
-            let class = parts[1];
+            let class_idx =
+                self.classes.binary_search_by(|c| c.as_str().cmp(parts[1])).map_err(|_| {
+                    LitseaError::InvalidData(format!("Unknown class in weight line: '{}'", line))
+                })?;
             let weight: f64 = parts[2]
                 .parse()
                 .map_err(|e| LitseaError::InvalidData(format!("Invalid weight value: {}", e)))?;
-            self.weights
-                .entry(class.to_string())
-                .or_default()
-                .insert(feat.to_string(), weight);
+            self.weights.entry(feat.to_string()).or_insert_with(|| vec![0.0; n])[class_idx] =
+                weight;
         }
 
         Ok(())
@@ -331,13 +342,15 @@ impl AveragedPerceptron {
         let mut total_correct = 0usize;
 
         for (features, truth) in &self.instances {
-            let feature_set: HashSet<String> = features.iter().cloned().collect();
-            let guess = self.predict(&feature_set);
+            let guess = match self.predict_idx(features.iter()) {
+                Some(i) => self.classes[i].as_str(),
+                None => "",
+            };
 
             *gold_per_class.entry(truth.clone()).or_insert(0) += 1;
-            *predicted_per_class.entry(guess.clone()).or_insert(0) += 1;
+            *predicted_per_class.entry(guess.to_string()).or_insert(0) += 1;
 
-            if guess == *truth {
+            if guess == truth {
                 total_correct += 1;
                 *correct_per_class.entry(truth.clone()).or_insert(0) += 1;
             }
@@ -404,6 +417,17 @@ mod tests {
     }
 
     #[test]
+    fn test_classes_stay_sorted() {
+        let mut p = AveragedPerceptron::new();
+        for label in ["C", "A", "B", "A"] {
+            let mut feats = HashSet::new();
+            feats.insert(format!("f_{}", label));
+            p.add_instance(feats, label.to_string());
+        }
+        assert_eq!(p.classes, vec!["A", "B", "C"]);
+    }
+
+    #[test]
     fn test_predict_empty() {
         let p = AveragedPerceptron::new();
         let feats = HashSet::new();
@@ -446,6 +470,8 @@ mod tests {
 
         // 学習が即座に停止しても panic しない
         assert_eq!(p.step, 0);
+        // インスタンスは失われない
+        assert_eq!(p.instances.len(), 1);
     }
 
     #[test]
@@ -483,6 +509,25 @@ mod tests {
         test_b.insert("feat_b".to_string());
         test_b.insert("shared".to_string());
         assert_eq!(p.predict(&test_b), "CLASS_B");
+    }
+
+    #[test]
+    fn test_predict_slice_matches_predict() {
+        let mut p = AveragedPerceptron::new();
+        let mut feats_a = HashSet::new();
+        feats_a.insert("f1".to_string());
+        p.add_instance(feats_a.clone(), "A".to_string());
+        let mut feats_b = HashSet::new();
+        feats_b.insert("f2".to_string());
+        p.add_instance(feats_b.clone(), "B".to_string());
+
+        let running = Arc::new(AtomicBool::new(true));
+        p.train(10, running);
+
+        let slice_a: Vec<String> = feats_a.iter().cloned().collect();
+        assert_eq!(p.predict_slice(&slice_a), p.predict(&feats_a));
+        let slice_b: Vec<String> = feats_b.iter().cloned().collect();
+        assert_eq!(p.predict_slice(&slice_b), p.predict(&feats_b));
     }
 
     #[test]

@@ -13,7 +13,6 @@ categories.workspace = true
 license.workspace = true
 
 [dependencies]
-regex.workspace = true
 thiserror.workspace = true
 reqwest = { workspace = true, optional = true }
 

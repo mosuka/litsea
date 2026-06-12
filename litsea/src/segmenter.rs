@@ -1,7 +1,8 @@
 use std::collections::HashSet;
+use std::fmt::Write as _;
 
 use crate::adaboost::AdaBoost;
-use crate::language::{CharTypePatterns, Language};
+use crate::language::Language;
 use crate::perceptron::AveragedPerceptron;
 use crate::upos::{SegmentLabel, Upos};
 
@@ -9,7 +10,6 @@ use crate::upos::{SegmentLabel, Upos};
 /// It uses predefined patterns to classify characters and segment sentences into words.
 pub struct Segmenter {
     language: Language,
-    char_types: CharTypePatterns,
     learner: AdaBoost,
     /// 品詞推定用のAveraged Perceptron（オプション）
     pos_learner: Option<AveragedPerceptron>,
@@ -34,7 +34,6 @@ impl Segmenter {
     /// ```
     pub fn new(language: Language, learner: Option<AdaBoost>) -> Self {
         Segmenter {
-            char_types: language.char_type_patterns(),
             language,
             learner: learner.unwrap_or_else(|| AdaBoost::new(0.01, 100)),
             pos_learner: None,
@@ -51,7 +50,6 @@ impl Segmenter {
     /// A new Segmenter instance configured for joint segmentation + POS tagging.
     pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -> Self {
         Segmenter {
-            char_types: language.char_type_patterns(),
             language,
             learner: AdaBoost::new(0.01, 100),
             pos_learner: Some(pos_learner),
@@ -106,7 +104,10 @@ impl Segmenter {
     /// ```
     #[must_use]
     pub fn char_type(&self, ch: &str) -> &str {
-        self.char_types.get_type(ch)
+        match ch.chars().next() {
+            Some(c) => self.language.char_type(c),
+            None => "O",
+        }
     }
 
     /// Builds the padded character and character-type arrays for a text.
@@ -114,16 +115,15 @@ impl Segmenter {
     /// Returns `(chars, types)` where the first three entries are the B3/B2/B1
     /// head sentinels and the last three are the E1/E2/E3 tail sentinels, so
     /// real characters occupy indices `3..chars.len() - 3`.
-    fn sentence_context(&self, text: &str) -> (Vec<String>, Vec<String>) {
+    fn sentence_context(&self, text: &str) -> (Vec<String>, Vec<&'static str>) {
         let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
-        let mut types = vec!["O".to_string(); 3];
+        let mut types: Vec<&'static str> = vec!["O"; 3];
         for ch in text.chars() {
-            let s = ch.to_string();
-            types.push(self.char_type(&s).to_string());
-            chars.push(s);
+            types.push(self.language.char_type(ch));
+            chars.push(ch.to_string());
         }
         chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
-        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
+        types.extend_from_slice(&["O", "O", "O"]);
         (chars, types)
     }
 
@@ -142,8 +142,8 @@ impl Segmenter {
         F: FnMut(HashSet<String>, L),
     {
         // Padding for lookback: tags[i-3], tags[i-2], tags[i-1] are referenced by
-        // get_attributes(). The real characters' tags follow the padding.
-        let mut tags = vec!["U".to_string(); 3];
+        // the attribute builder. The real characters' tags follow the padding.
+        let mut tags: Vec<&'static str> = vec!["U"; 3];
         let mut labels: Vec<L> = Vec::new();
         let mut text = String::new();
 
@@ -152,10 +152,10 @@ impl Segmenter {
             if char_count == 0 {
                 continue;
             }
-            tags.push("B".to_string());
+            tags.push("B");
             labels.push(label);
             for _ in 1..char_count {
-                tags.push("O".to_string());
+                tags.push("O");
                 labels.push(cont_label.clone());
             }
             text.push_str(word);
@@ -166,7 +166,7 @@ impl Segmenter {
         }
         // Override the first real character's tag to "U" (Unknown) instead of "B",
         // because there is no preceding word boundary decision to reference at position 0.
-        tags[3] = "U".to_string();
+        tags[3] = "U";
 
         let (chars, types) = self.sentence_context(&text);
 
@@ -334,21 +334,30 @@ impl Segmenter {
         }
         let learner = &self.learner;
         let (chars, types) = self.sentence_context(sentence);
-        // Padding for lookback: tags[0..3] are fixed "U" (Unknown) for get_attributes(),
-        // and tags[3] is also "U" since there is no boundary decision before the first character.
-        let mut tags = vec!["U".to_string(); 4];
+        // Padding for lookback: tags[0..3] are fixed "U" (Unknown), and tags[3]
+        // is also "U" since there is no boundary decision before the first character.
+        let mut tags: Vec<&'static str> = vec!["U"; 4];
+
+        // The bias is a sum over all model weights; compute it once per
+        // sentence instead of once per character.
+        let bias = learner.bias();
 
         let mut result = Vec::new();
         let mut word = chars[3].clone();
-        for i in 4..(chars.len() - 3) {
-            let label = learner.predict(&self.get_attributes(i, &tags, &chars, &types));
-            if label >= 0 {
+        for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
+            // Sum the weights of the attributes directly instead of building
+            // a HashSet per position.
+            let mut score = bias;
+            self.write_attributes(i, &tags, &chars, &types, &mut |attr| {
+                score += learner.weight(attr);
+            });
+            if score >= 0.0 {
                 result.push(std::mem::take(&mut word));
-                tags.push("B".to_string());
+                tags.push("B");
             } else {
-                tags.push("O".to_string());
+                tags.push("O");
             }
-            word += &chars[i];
+            word += ch;
         }
         result.push(word);
         result
@@ -380,29 +389,31 @@ impl Segmenter {
             .expect("pos_learner is not set. Use with_pos_learner() or add_corpus_with_pos().");
 
         let (chars, types) = self.sentence_context(sentence);
-        let mut tags = vec!["U".to_string(); 4];
-
-        let predict = |i: usize, tags: &[String]| -> SegmentLabel {
-            let attrs = self.get_attributes(i, tags, &chars, &types);
-            pos_learner.predict(&attrs).parse().unwrap_or(SegmentLabel::O)
-        };
+        let mut tags: Vec<&'static str> = vec!["U"; 4];
+        // Attribute buffer reused across positions to amortize allocations.
+        let mut attrs_buf: Vec<String> = Vec::new();
 
         // The first character always starts the first word; its predicted
         // label is used only to determine the first word's POS.
-        let mut current_pos = predict(3, &tags).pos().unwrap_or(Upos::X);
+        self.collect_attributes(3, &tags, &chars, &types, &mut attrs_buf);
+        let first_label: SegmentLabel =
+            pos_learner.predict_slice(&attrs_buf).parse().unwrap_or(SegmentLabel::O);
+        let mut current_pos = first_label.pos().unwrap_or(Upos::X);
 
         let mut result: Vec<(String, Upos)> = Vec::new();
         let mut word = chars[3].clone();
 
         for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
-            let label = predict(i, &tags);
+            self.collect_attributes(i, &tags, &chars, &types, &mut attrs_buf);
+            let label: SegmentLabel =
+                pos_learner.predict_slice(&attrs_buf).parse().unwrap_or(SegmentLabel::O);
             if label.is_boundary() {
                 // 現在の単語を確定して結果に追加
                 result.push((std::mem::take(&mut word), current_pos));
                 current_pos = label.pos().unwrap_or(Upos::X);
-                tags.push("B".to_string());
+                tags.push("B");
             } else {
-                tags.push("O".to_string());
+                tags.push("O");
             }
             word += ch;
         }
@@ -411,104 +422,136 @@ impl Segmenter {
         result
     }
 
-    /// Gets the attributes for a specific index in the character and type arrays.
-    ///
-    /// # Arguments
-    /// * `i` - The index for which to get the attributes.
-    /// * `tags` - A slice of strings representing the tags for each character.
-    /// * `chars` - A slice of strings representing the characters in the sentence.
-    /// * `types` - A slice of strings representing the types of each character.
-    ///
-    /// # Returns
-    /// A HashSet of strings representing the attributes for the specified index.
-    ///
-    /// # Panics
-    /// Panics if `i` is less than 3 or if `i + 2` exceeds the length of `chars` or `types`.
-    /// Callers must ensure that `i` is within the valid range `[3, chars.len() - 3)`.
-    ///
-    /// # Note
-    /// The attributes are constructed based on the surrounding characters and their types, allowing for rich feature extraction.
-    /// This method is used internally by the segmenter to create features for each character in the sentence.
-    #[must_use]
+    /// Builds the attribute set for a specific index (used by the corpus
+    /// processing pipeline, where the public callbacks expect a `HashSet`).
     fn get_attributes(
         &self,
         i: usize,
-        tags: &[String],
+        tags: &[&'static str],
         chars: &[String],
-        types: &[String],
+        types: &[&'static str],
     ) -> HashSet<String> {
+        let mut attrs = HashSet::with_capacity(48);
+        self.write_attributes(i, tags, chars, types, &mut |attr| {
+            attrs.insert(attr.to_string());
+        });
+        attrs
+    }
+
+    /// Collects the attributes for a position into a reusable `Vec<String>`,
+    /// reusing the existing string allocations where possible.
+    fn collect_attributes(
+        &self,
+        i: usize,
+        tags: &[&'static str],
+        chars: &[String],
+        types: &[&'static str],
+        out: &mut Vec<String>,
+    ) {
+        let mut idx = 0;
+        self.write_attributes(i, tags, chars, types, &mut |attr| {
+            if idx < out.len() {
+                out[idx].clear();
+                out[idx].push_str(attr);
+            } else {
+                out.push(attr.to_string());
+            }
+            idx += 1;
+        });
+        out.truncate(idx);
+    }
+
+    /// Writes each attribute for position `i` into a reusable buffer and
+    /// passes it to `sink`. This is the single source of truth for the
+    /// feature template.
+    ///
+    /// # Panics
+    /// Panics if `i` is less than 3 or if `i + 2` exceeds the length of
+    /// `chars` or `types`. Callers must ensure that `i` is within the valid
+    /// range `[3, chars.len() - 3)`.
+    fn write_attributes(
+        &self,
+        i: usize,
+        tags: &[&'static str],
+        chars: &[String],
+        types: &[&'static str],
+        sink: &mut dyn FnMut(&str),
+    ) {
         let w1 = &chars[i - 3];
         let w2 = &chars[i - 2];
         let w3 = &chars[i - 1];
         let w4 = &chars[i];
         let w5 = &chars[i + 1];
         let w6 = &chars[i + 2];
-        let c1 = &types[i - 3];
-        let c2 = &types[i - 2];
-        let c3 = &types[i - 1];
-        let c4 = &types[i];
-        let c5 = &types[i + 1];
-        let c6 = &types[i + 2];
-        let p1 = &tags[i - 3];
-        let p2 = &tags[i - 2];
-        let p3 = &tags[i - 1];
+        let c1 = types[i - 3];
+        let c2 = types[i - 2];
+        let c3 = types[i - 1];
+        let c4 = types[i];
+        let c5 = types[i + 1];
+        let c6 = types[i + 2];
+        let p1 = tags[i - 3];
+        let p2 = tags[i - 2];
+        let p3 = tags[i - 1];
 
-        let mut attrs: HashSet<String> = [
-            format!("UP1:{}", p1),
-            format!("UP2:{}", p2),
-            format!("UP3:{}", p3),
-            format!("BP1:{}{}", p1, p2),
-            format!("BP2:{}{}", p2, p3),
-            format!("UW1:{}", w1),
-            format!("UW2:{}", w2),
-            format!("UW3:{}", w3),
-            format!("UW4:{}", w4),
-            format!("UW5:{}", w5),
-            format!("UW6:{}", w6),
-            format!("BW1:{}{}", w2, w3),
-            format!("BW2:{}{}", w3, w4),
-            format!("BW3:{}{}", w4, w5),
-            format!("UC1:{}", c1),
-            format!("UC2:{}", c2),
-            format!("UC3:{}", c3),
-            format!("UC4:{}", c4),
-            format!("UC5:{}", c5),
-            format!("UC6:{}", c6),
-            format!("BC1:{}{}", c2, c3),
-            format!("BC2:{}{}", c3, c4),
-            format!("BC3:{}{}", c4, c5),
-            format!("TC1:{}{}{}", c1, c2, c3),
-            format!("TC2:{}{}{}", c2, c3, c4),
-            format!("TC3:{}{}{}", c3, c4, c5),
-            format!("TC4:{}{}{}", c4, c5, c6),
-            format!("UQ1:{}{}", p1, c1),
-            format!("UQ2:{}{}", p2, c2),
-            format!("UQ3:{}{}", p3, c3),
-            format!("BQ1:{}{}{}", p2, c2, c3),
-            format!("BQ2:{}{}{}", p2, c3, c4),
-            format!("BQ3:{}{}{}", p3, c2, c3),
-            format!("BQ4:{}{}{}", p3, c3, c4),
-            format!("TQ1:{}{}{}{}", p2, c1, c2, c3),
-            format!("TQ2:{}{}{}{}", p2, c2, c3, c4),
-            format!("TQ3:{}{}{}{}", p3, c1, c2, c3),
-            format!("TQ4:{}{}{}{}", p3, c2, c3, c4),
-        ]
-        .into_iter()
-        .collect();
+        let mut buf = String::with_capacity(32);
+        macro_rules! attr {
+            ($($arg:tt)*) => {{
+                buf.clear();
+                let _ = write!(buf, $($arg)*);
+                sink(&buf);
+            }};
+        }
+
+        attr!("UP1:{}", p1);
+        attr!("UP2:{}", p2);
+        attr!("UP3:{}", p3);
+        attr!("BP1:{}{}", p1, p2);
+        attr!("BP2:{}{}", p2, p3);
+        attr!("UW1:{}", w1);
+        attr!("UW2:{}", w2);
+        attr!("UW3:{}", w3);
+        attr!("UW4:{}", w4);
+        attr!("UW5:{}", w5);
+        attr!("UW6:{}", w6);
+        attr!("BW1:{}{}", w2, w3);
+        attr!("BW2:{}{}", w3, w4);
+        attr!("BW3:{}{}", w4, w5);
+        attr!("UC1:{}", c1);
+        attr!("UC2:{}", c2);
+        attr!("UC3:{}", c3);
+        attr!("UC4:{}", c4);
+        attr!("UC5:{}", c5);
+        attr!("UC6:{}", c6);
+        attr!("BC1:{}{}", c2, c3);
+        attr!("BC2:{}{}", c3, c4);
+        attr!("BC3:{}{}", c4, c5);
+        attr!("TC1:{}{}{}", c1, c2, c3);
+        attr!("TC2:{}{}{}", c2, c3, c4);
+        attr!("TC3:{}{}{}", c3, c4, c5);
+        attr!("TC4:{}{}{}", c4, c5, c6);
+        attr!("UQ1:{}{}", p1, c1);
+        attr!("UQ2:{}{}", p2, c2);
+        attr!("UQ3:{}{}", p3, c3);
+        attr!("BQ1:{}{}{}", p2, c2, c3);
+        attr!("BQ2:{}{}{}", p2, c3, c4);
+        attr!("BQ3:{}{}{}", p3, c2, c3);
+        attr!("BQ4:{}{}{}", p3, c3, c4);
+        attr!("TQ1:{}{}{}{}", p2, c1, c2, c3);
+        attr!("TQ2:{}{}{}{}", p2, c2, c3, c4);
+        attr!("TQ3:{}{}{}{}", p3, c1, c2, c3);
+        attr!("TQ4:{}{}{}{}", p3, c2, c3, c4);
 
         // Language-specific features: char + char-type mixed features for Japanese and Chinese.
         // Korean is excluded because its uniform character types (SN/SF only) make these features noise.
         match self.language {
             Language::Japanese | Language::Chinese => {
-                attrs.insert(format!("WC1:{}{}", w3, c4));
-                attrs.insert(format!("WC2:{}{}", c3, w4));
-                attrs.insert(format!("WC3:{}{}", w3, c3));
-                attrs.insert(format!("WC4:{}{}", w4, c4));
+                attr!("WC1:{}{}", w3, c4);
+                attr!("WC2:{}{}", c3, w4);
+                attr!("WC3:{}{}", w3, c3);
+                attr!("WC4:{}{}", w4, c4);
             }
             _ => {}
         }
-
-        attrs
     }
 }
 
@@ -530,6 +573,7 @@ mod tests {
         assert_eq!(segmenter.char_type("A"), "A"); // Latin
         assert_eq!(segmenter.char_type("1"), "N"); // Digit
         assert_eq!(segmenter.char_type("@"), "O"); // Not matching any pattern
+        assert_eq!(segmenter.char_type(""), "O"); // Empty string
     }
 
     #[test]
@@ -593,14 +637,14 @@ mod tests {
         // Should not panic or add anything, just a smoke test
     }
 
-    #[tokio::test]
-    async fn test_segment() {
+    #[test]
+    fn test_segment() {
         let sentence = "これはテストです。";
 
         let model_file =
             PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("RWCP.model");
         let mut learner = AdaBoost::new(0.01, 100);
-        learner.load_model(model_file.to_str().unwrap()).await.unwrap();
+        learner.load_model_from_path(&model_file).unwrap();
 
         let segmenter = Segmenter::new(Language::Japanese, Some(learner));
 
@@ -635,7 +679,7 @@ mod tests {
     fn test_get_attributes() {
         let segmenter = Segmenter::new(Language::Japanese, None);
 
-        let tags = vec!["U".to_string(); 7];
+        let tags: Vec<&'static str> = vec!["U"; 7];
 
         let chars = vec![
             "B3".to_string(), // index 0
@@ -647,15 +691,7 @@ mod tests {
             "E1".to_string(), // index 6
         ];
 
-        let types = vec![
-            "O".to_string(), // index 0
-            "O".to_string(), // index 1
-            "O".to_string(), // index 2
-            "O".to_string(), // index 3
-            "I".to_string(), // index 4
-            "I".to_string(), // index 5
-            "O".to_string(), // index 6
-        ];
+        let types: Vec<&'static str> = vec!["O", "O", "O", "O", "I", "I", "O"];
 
         let attrs = segmenter.get_attributes(4, &tags, &chars, &types);
         assert!(attrs.contains("UW4:い"));
@@ -671,10 +707,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
-    fn test_get_attributes_panics_index_too_low() {
+    fn test_collect_attributes_reuses_buffer() {
         let segmenter = Segmenter::new(Language::Japanese, None);
-        let tags = vec!["U".to_string(); 7];
+        let tags: Vec<&'static str> = vec!["U"; 7];
         let chars = vec![
             "B3".to_string(),
             "B2".to_string(),
@@ -684,7 +719,36 @@ mod tests {
             "う".to_string(),
             "E1".to_string(),
         ];
-        let types = vec!["O".to_string(); 7];
+        let types: Vec<&'static str> = vec!["O", "O", "O", "O", "I", "I", "O"];
+
+        let mut buf: Vec<String> = Vec::new();
+        segmenter.collect_attributes(4, &tags, &chars, &types, &mut buf);
+        assert_eq!(buf.len(), 42);
+        // The slice contents must match the HashSet variant.
+        let set = segmenter.get_attributes(4, &tags, &chars, &types);
+        for attr in &buf {
+            assert!(set.contains(attr), "missing from set: {}", attr);
+        }
+        // A second collection reuses the buffer and yields the same result.
+        segmenter.collect_attributes(4, &tags, &chars, &types, &mut buf);
+        assert_eq!(buf.len(), 42);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_get_attributes_panics_index_too_low() {
+        let segmenter = Segmenter::new(Language::Japanese, None);
+        let tags: Vec<&'static str> = vec!["U"; 7];
+        let chars = vec![
+            "B3".to_string(),
+            "B2".to_string(),
+            "B1".to_string(),
+            "あ".to_string(),
+            "い".to_string(),
+            "う".to_string(),
+            "E1".to_string(),
+        ];
+        let types: Vec<&'static str> = vec!["O"; 7];
         // i=2 is out of valid range [3, chars.len()-3); should panic on chars[i-3]
         let _ = segmenter.get_attributes(2, &tags, &chars, &types);
     }
@@ -693,7 +757,7 @@ mod tests {
     #[should_panic]
     fn test_get_attributes_panics_index_too_high() {
         let segmenter = Segmenter::new(Language::Japanese, None);
-        let tags = vec!["U".to_string(); 7];
+        let tags: Vec<&'static str> = vec!["U"; 7];
         let chars = vec![
             "B3".to_string(),
             "B2".to_string(),
@@ -703,7 +767,7 @@ mod tests {
             "う".to_string(),
             "E1".to_string(),
         ];
-        let types = vec!["O".to_string(); 7];
+        let types: Vec<&'static str> = vec!["O"; 7];
         // i=5 means i+2=7 which exceeds chars.len()=7; should panic on chars[i+2]
         let _ = segmenter.get_attributes(5, &tags, &chars, &types);
     }
@@ -712,7 +776,7 @@ mod tests {
     fn test_get_attributes_korean() {
         let segmenter = Segmenter::new(Language::Korean, None);
 
-        let tags = vec!["U".to_string(); 7];
+        let tags: Vec<&'static str> = vec!["U"; 7];
 
         let chars = vec![
             "B3".to_string(), // index 0
@@ -724,15 +788,7 @@ mod tests {
             "E1".to_string(), // index 6
         ];
 
-        let types = vec![
-            "O".to_string(),  // index 0
-            "O".to_string(),  // index 1
-            "O".to_string(),  // index 2
-            "SF".to_string(), // index 3
-            "SF".to_string(), // index 4
-            "SN".to_string(), // index 5
-            "O".to_string(),  // index 6
-        ];
+        let types: Vec<&'static str> = vec!["O", "O", "O", "SF", "SF", "SN", "O"];
 
         let attrs = segmenter.get_attributes(4, &tags, &chars, &types);
         assert!(attrs.contains("UW4:국"));

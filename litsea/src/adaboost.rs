@@ -447,6 +447,13 @@ impl AdaBoost {
         if score >= 0.0 { 1 } else { -1 }
     }
 
+    /// Returns the model weight of a single attribute (0.0 if unknown).
+    /// Used by the segmenter's hot path to score positions without building
+    /// an attribute set.
+    pub(crate) fn weight(&self, attr: &str) -> f64 {
+        self.feature_index.get(attr).map_or(0.0, |&idx| self.model[idx])
+    }
+
     /// Gets the bias term of the model.
     /// The bias is calculated as the negative sum of the model weights divided by 2.
     ///
