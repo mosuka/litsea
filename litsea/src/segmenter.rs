@@ -81,35 +81,58 @@ impl Segmenter {
         self.char_types.get_type(ch)
     }
 
-    /// Processes a corpus string by building tags, characters, and types arrays,
-    /// then calls the callback for each character position with its attributes and label.
-    fn process_corpus<F>(&self, corpus: &str, mut callback: F)
-    where
-        F: FnMut(HashSet<String>, i8),
-    {
-        if corpus.is_empty() {
-            return;
-        }
-        // Padding for lookback: tags[i-3], tags[i-2], tags[i-1] are referenced by
-        // get_attributes(). The first real character's tag is pushed inside the word loop.
-        let mut tags = vec!["U".to_string(); 3];
+    /// Builds the padded character and character-type arrays for a text.
+    ///
+    /// Returns `(chars, types)` where the first three entries are the B3/B2/B1
+    /// head sentinels and the last three are the E1/E2/E3 tail sentinels, so
+    /// real characters occupy indices `3..chars.len() - 3`.
+    fn sentence_context(&self, text: &str) -> (Vec<String>, Vec<String>) {
         let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
         let mut types = vec!["O".to_string(); 3];
+        for ch in text.chars() {
+            let s = ch.to_string();
+            types.push(self.get_type(&s).to_string());
+            chars.push(s);
+        }
+        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
+        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
+        (chars, types)
+    }
 
-        for word in corpus.split(' ') {
-            if word.is_empty() {
+    /// Shared corpus-processing pipeline behind `process_corpus` and
+    /// `process_corpus_with_pos`.
+    ///
+    /// `tokens` yields `(word, label)` pairs where `label` is assigned to the
+    /// first character of the word; continuation characters receive
+    /// `cont_label`. Builds the padded context arrays and invokes `callback`
+    /// with the feature set and label for each character position except the
+    /// first one, which has no preceding boundary decision to learn from.
+    fn process_tokens<'a, L, I, F>(&self, tokens: I, cont_label: L, mut callback: F)
+    where
+        L: Clone,
+        I: Iterator<Item = (&'a str, L)>,
+        F: FnMut(HashSet<String>, L),
+    {
+        // Padding for lookback: tags[i-3], tags[i-2], tags[i-1] are referenced by
+        // get_attributes(). The real characters' tags follow the padding.
+        let mut tags = vec!["U".to_string(); 3];
+        let mut labels: Vec<L> = Vec::new();
+        let mut text = String::new();
+
+        for (word, label) in tokens {
+            let char_count = word.chars().count();
+            if char_count == 0 {
                 continue;
             }
             tags.push("B".to_string());
-            for _ in 1..word.chars().count() {
+            labels.push(label);
+            for _ in 1..char_count {
                 tags.push("O".to_string());
+                labels.push(cont_label.clone());
             }
-            for ch in word.chars() {
-                let s = ch.to_string();
-                types.push(self.get_type(&s).to_string());
-                chars.push(s);
-            }
+            text.push_str(word);
         }
+
         if tags.len() < 4 {
             return;
         }
@@ -117,87 +140,41 @@ impl Segmenter {
         // because there is no preceding word boundary decision to reference at position 0.
         tags[3] = "U".to_string();
 
-        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
-        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
+        let (chars, types) = self.sentence_context(&text);
 
         for i in 4..(chars.len() - 3) {
-            let label = if tags[i] == "B" { 1 } else { -1 };
             let attrs = self.get_attributes(i, &tags, &chars, &types);
-            callback(attrs, label);
+            callback(attrs, labels[i - 3].clone());
         }
+    }
+
+    /// Processes a corpus string ("word word ..."), calling the callback for
+    /// each character position with its attributes and boundary label
+    /// (1 = word start, -1 = continuation).
+    fn process_corpus<F>(&self, corpus: &str, callback: F)
+    where
+        F: FnMut(HashSet<String>, i8),
+    {
+        self.process_tokens(corpus.split(' ').map(|word| (word, 1i8)), -1i8, callback);
     }
 
     /// 品詞付きコーパスを処理し、各文字位置の特徴量とSegmentLabelを返す。
     ///
     /// コーパスフォーマット: "単語/品詞 単語/品詞 ..."
     /// 例: "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT"
-    fn process_corpus_with_pos<F>(&self, corpus: &str, mut callback: F)
+    fn process_corpus_with_pos<F>(&self, corpus: &str, callback: F)
     where
         F: FnMut(HashSet<String>, SegmentLabel),
     {
-        if corpus.is_empty() {
-            return;
-        }
-
-        let mut tags = vec!["U".to_string(); 3];
-        let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
-        let mut types = vec!["O".to_string(); 3];
-        let mut labels: Vec<SegmentLabel> = Vec::new();
-
-        for token in corpus.split(' ') {
-            if token.is_empty() {
-                continue;
-            }
-            // "単語/品詞" をパース
-            let (word, pos) = if let Some(slash_pos) = token.rfind('/') {
-                let word_part = &token[..slash_pos];
-                let pos_str = &token[slash_pos + 1..];
-                let pos: Upos = pos_str.parse().unwrap_or(Upos::X);
-                (word_part, pos)
-            } else {
-                // スラッシュが無い場合はXとして扱う
-                (token, Upos::X)
+        let tokens = corpus.split(' ').map(|token| {
+            // "単語/品詞" をパース（スラッシュが無い場合はXとして扱う）
+            let (word, pos) = match token.rfind('/') {
+                Some(idx) => (&token[..idx], token[idx + 1..].parse().unwrap_or(Upos::X)),
+                None => (token, Upos::X),
             };
-
-            let char_count = word.chars().count();
-            if char_count == 0 {
-                continue;
-            }
-
-            // 先頭文字: B-品詞
-            tags.push("B".to_string());
-            labels.push(SegmentLabel::B(pos));
-            // 継続文字: O
-            for _ in 1..char_count {
-                tags.push("O".to_string());
-                labels.push(SegmentLabel::O);
-            }
-            for ch in word.chars() {
-                let s = ch.to_string();
-                types.push(self.get_type(&s).to_string());
-                chars.push(s);
-            }
-        }
-
-        if tags.len() < 4 {
-            return;
-        }
-        tags[3] = "U".to_string();
-
-        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
-        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
-
-        // labels[0]はtags[3]に対応（先頭文字のラベルはB-品詞だがタグはU）
-        for i in 4..(chars.len() - 3) {
-            let label_idx = i - 3; // labels配列のインデックス
-            if label_idx >= labels.len() {
-                break;
-            }
-            // 先頭文字（tags[3]="U"の位置）のラベルはB-品詞のまま維持
-            let label = labels[label_idx].clone();
-            let attrs = self.get_attributes(i, &tags, &chars, &types);
-            callback(attrs, label);
-        }
+            (word, SegmentLabel::B(pos))
+        });
+        self.process_tokens(tokens, SegmentLabel::O, callback);
     }
 
     /// Adds a corpus to the segmenter with a custom writer function.
@@ -330,19 +307,10 @@ impl Segmenter {
             return Vec::new();
         }
         let learner = &self.learner;
+        let (chars, types) = self.sentence_context(sentence);
         // Padding for lookback: tags[0..3] are fixed "U" (Unknown) for get_attributes(),
         // and tags[3] is also "U" since there is no boundary decision before the first character.
         let mut tags = vec!["U".to_string(); 4];
-        let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
-        let mut types = vec!["O".to_string(); 3];
-
-        for ch in sentence.chars() {
-            let s = ch.to_string();
-            types.push(self.get_type(&s).to_string());
-            chars.push(s);
-        }
-        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
-        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
 
         let mut result = Vec::new();
         let mut word = chars[3].clone();
@@ -364,6 +332,7 @@ impl Segmenter {
     ///
     /// Averaged Perceptron（`pos_learner`）を使って各文字位置のラベル
     /// （`B-品詞`/`O`）を予測し、単語と品詞のペアを返す。
+    /// 先頭単語の品詞は先頭文字位置の予測ラベルから決定する。
     ///
     /// # Arguments
     /// * `sentence` - 分割対象の文
@@ -384,28 +353,23 @@ impl Segmenter {
             .as_ref()
             .expect("pos_learner is not set. Use with_pos_learner() or add_corpus_with_pos().");
 
+        let (chars, types) = self.sentence_context(sentence);
         let mut tags = vec!["U".to_string(); 4];
-        let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
-        let mut types = vec!["O".to_string(); 3];
 
-        for ch in sentence.chars() {
-            let s = ch.to_string();
-            types.push(self.get_type(&s).to_string());
-            chars.push(s);
-        }
-        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
-        types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
+        let predict = |i: usize, tags: &[String]| -> SegmentLabel {
+            let attrs = self.get_attributes(i, tags, &chars, &types);
+            pos_learner.predict(&attrs).parse().unwrap_or(SegmentLabel::O)
+        };
+
+        // The first character always starts the first word; its predicted
+        // label is used only to determine the first word's POS.
+        let mut current_pos = predict(3, &tags).pos().unwrap_or(Upos::X);
 
         let mut result: Vec<(String, Upos)> = Vec::new();
         let mut word = chars[3].clone();
-        // 先頭文字の品詞（最初のpredict結果から取得）
-        let mut current_pos = Upos::X;
 
-        for i in 4..(chars.len() - 3) {
-            let attrs = self.get_attributes(i, &tags, &chars, &types);
-            let label_str = pos_learner.predict(&attrs);
-            let label: SegmentLabel = label_str.parse().unwrap_or(SegmentLabel::O);
-
+        for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
+            let label = predict(i, &tags);
             if label.is_boundary() {
                 // 現在の単語を確定して結果に追加
                 result.push((std::mem::take(&mut word), current_pos));
@@ -414,17 +378,7 @@ impl Segmenter {
             } else {
                 tags.push("O".to_string());
             }
-            word += &chars[i];
-        }
-
-        // 先頭単語の品詞を決定: 最初の文字位置で予測
-        if result.is_empty() {
-            // 文全体が1単語の場合
-            let first_attrs =
-                self.get_attributes(4.min(chars.len().saturating_sub(3)), &tags, &chars, &types);
-            let first_label_str = pos_learner.predict(&first_attrs);
-            let first_label: SegmentLabel = first_label_str.parse().unwrap_or(SegmentLabel::O);
-            current_pos = first_label.pos().unwrap_or(Upos::X);
+            word += ch;
         }
 
         result.push((word, current_pos));

@@ -1,13 +1,12 @@
-use std::cell::RefCell;
 use std::collections::HashSet;
 use std::error::Error;
+use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
 use crate::language::Language;
 use crate::segmenter::Segmenter;
-use crate::upos::SegmentLabel;
 
 /// Extractor struct for processing text data and extracting features.
 /// It reads sentences from a corpus file, segments them into words,
@@ -53,50 +52,12 @@ impl Extractor {
         corpus_path: &Path,
         features_path: &Path,
     ) -> Result<(), Box<dyn Error>> {
-        // Read sentences from the corpus file.
-        // Each line is treated as a separate sentence.
-        let corpus_file = File::open(corpus_path)?;
-        let corpus = io::BufReader::new(corpus_file);
-
-        // Create a file to write the features
-        let features_file = File::create(features_path)?;
-        let mut features = io::BufWriter::new(features_file);
-
-        // Capture write errors from the closure via RefCell
-        let write_error: RefCell<Option<io::Error>> = RefCell::new(None);
-
-        // Learner function to write features
-        // It takes a set of attributes and a label, and writes them to the output file
-        let mut learner = |attributes: HashSet<String>, label: i8| {
-            if write_error.borrow().is_some() {
-                return;
-            }
-            let mut attrs: Vec<String> = attributes.into_iter().collect();
-            attrs.sort();
-            let mut line = vec![label.to_string()];
-            line.extend(attrs);
-            if let Err(e) = writeln!(features, "{}", line.join("\t")) {
-                *write_error.borrow_mut() = Some(e);
-            }
-        };
-
-        for line in corpus.lines() {
-            let line = line?;
-            let line = line.trim();
-            if !line.is_empty() {
-                self.segmenter.add_corpus_with_writer(line, &mut learner);
-            }
-            // Stop processing further lines if a write error occurred.
-            if write_error.borrow().is_some() {
-                break;
-            }
-        }
-
-        if let Some(e) = write_error.into_inner() {
-            return Err(Box::new(e));
-        }
-
-        Ok(())
+        let segmenter = &self.segmenter;
+        Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_with_writer(line, |attrs, label| {
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
     }
 
     /// 品詞付きコーパスから特徴量を抽出してファイルに書き出す。
@@ -113,43 +74,61 @@ impl Extractor {
         corpus_path: &Path,
         features_path: &Path,
     ) -> Result<(), Box<dyn Error>> {
+        let segmenter = &self.segmenter;
+        Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_with_pos_writer(line, |attrs, label| {
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
+    }
+
+    /// Shared extraction pipeline: reads the corpus line by line, lets
+    /// `process_line` convert each non-empty line into formatted feature rows,
+    /// and writes the rows to the features file.
+    fn write_features<P>(
+        corpus_path: &Path,
+        features_path: &Path,
+        mut process_line: P,
+    ) -> Result<(), Box<dyn Error>>
+    where
+        P: FnMut(&str, &mut Vec<String>),
+    {
+        // Read sentences from the corpus file.
+        // Each line is treated as a separate sentence.
         let corpus_file = File::open(corpus_path)?;
         let corpus = io::BufReader::new(corpus_file);
 
+        // Create a file to write the features
         let features_file = File::create(features_path)?;
         let mut features = io::BufWriter::new(features_file);
 
-        let write_error: RefCell<Option<io::Error>> = RefCell::new(None);
-
-        let mut writer = |attributes: HashSet<String>, label: SegmentLabel| {
-            if write_error.borrow().is_some() {
-                return;
-            }
-            let mut attrs: Vec<String> = attributes.into_iter().collect();
-            attrs.sort();
-            let mut line = vec![label.to_string()];
-            line.extend(attrs);
-            if let Err(e) = writeln!(features, "{}", line.join("\t")) {
-                *write_error.borrow_mut() = Some(e);
-            }
-        };
-
+        let mut rows: Vec<String> = Vec::new();
         for line in corpus.lines() {
             let line = line?;
             let line = line.trim();
-            if !line.is_empty() {
-                self.segmenter.add_corpus_with_pos_writer(line, &mut writer);
+            if line.is_empty() {
+                continue;
             }
-            if write_error.borrow().is_some() {
-                break;
+            process_line(line, &mut rows);
+            for row in rows.drain(..) {
+                writeln!(features, "{}", row)?;
             }
-        }
-
-        if let Some(e) = write_error.into_inner() {
-            return Err(Box::new(e));
         }
 
         Ok(())
+    }
+
+    /// Formats one feature row: the label followed by the sorted attributes,
+    /// tab-separated.
+    fn format_row(attributes: HashSet<String>, label: impl fmt::Display) -> String {
+        let mut attrs: Vec<String> = attributes.into_iter().collect();
+        attrs.sort();
+        let mut row = label.to_string();
+        for attr in attrs {
+            row.push('\t');
+            row.push_str(&attr);
+        }
+        row
     }
 }
 
