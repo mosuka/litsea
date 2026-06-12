@@ -15,7 +15,7 @@
 
 | # | 内容 | 根拠 |
 |---|------|------|
-| B1 | **`--no-default-features` でビルド不能**。`perceptron.rs` が `reqwest` を feature gate なしで使用しており(`perceptron.rs:9` の `use reqwest::Client;` と `load_model_from_url`)、`remote_model` を無効にするとコンパイルエラーになる。`adaboost.rs` は正しく `#[cfg(feature = "remote_model")]` で保護されているのに対し、後から追加された perceptron 側が追従していない。 | `cargo check -p litsea --no-default-features` が E0432/E0282 で失敗することを確認済み |
+| B1 | ✅ **修正済み(Phase 0 PR に前倒しで含めた)** — **`--no-default-features` でビルド不能**。`perceptron.rs` が `reqwest` を feature gate なしで使用しており(`perceptron.rs:9` の `use reqwest::Client;` と `load_model_from_url`)、`remote_model` を無効にするとコンパイルエラーになる。`adaboost.rs` は正しく `#[cfg(feature = "remote_model")]` で保護されているのに対し、後から追加された perceptron 側が追従していない。 | `cargo check -p litsea --no-default-features` が E0432/E0282 で失敗することを確認済み |
 | B2 | `AveragedPerceptron::save_model` の doc コメントが「モデルを**JSON形式**でファイルに保存する」と記述しているが、実際はクラスヘッダ + TSV のテキスト形式(`perceptron.rs:231-242`)。 | コード読解 |
 | B3 | CI(regression.yml / periodic.yml)に feature マトリクスがなく、B1 のようなビルド破壊が検出されない。 | ワークフロー確認 |
 
@@ -77,7 +77,7 @@
 **実施結果**(2026-06-12):
 - `litsea/tests/golden.rs` を追加(全 8 モデルのスナップショット 10 テスト、すべて green)。
 - round-trip テスト(AdaBoost / Perceptron)を同ファイルに追加。
-- regression.yml に `feature-check` ジョブを追加(`--no-default-features` と wasm32。B1 未修正のため `continue-on-error: true`。Phase 1 で必須化する)。
+- regression.yml に `feature-check` ジョブを追加(`--no-default-features` と wasm32)。B1 修正も本 PR に前倒しで含めたため、当初予定と異なり最初から必須ジョブとした。
 - criterion ベースライン(`--save-baseline pre-refactor`、短縮計測の参考値、median):
   `segment_short/adaboost` ja 56.8µs / zh 37.1µs / ko 51.3µs、
   `segment_short/averaged_perceptron` ja 293µs / zh 211µs / ko 286µs、
@@ -107,7 +107,7 @@
 **目的**: 確認済みバグの解消と、最大の重複(D1)の排除。
 
 **作業項目**:
-1. **B1 修正**: `perceptron.rs` の `reqwest` 利用を `adaboost.rs:358-372` と同じ構造で `#[cfg(feature = "remote_model")]` ゲートに統一。
+1. ✅ **B1 修正**(Phase 0 PR で実施済み): `perceptron.rs` の `reqwest` 利用を `adaboost.rs:358-372` と同じ構造で `#[cfg(feature = "remote_model")]` ゲートに統一。
 2. **モデル I/O 共通モジュール `litsea/src/model_io.rs` の新設**:
    - `util::ModelScheme` を移動し、`util.rs` を廃止。
    - URI 解決 → 読み取りソース取得を一本化する関数を提供:
