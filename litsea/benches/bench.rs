@@ -11,20 +11,20 @@ use litsea::segmenter::Segmenter;
 
 /// Load an AdaBoost model file from the models directory.
 fn load_adaboost_model(model_name: &str) -> AdaBoost {
-    let rt = tokio::runtime::Runtime::new().unwrap();
     let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
     let mut learner = AdaBoost::new(0.01, 100);
-    rt.block_on(learner.load_model(model_path.to_str().unwrap()))
+    learner
+        .load_model_from_path(&model_path)
         .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
     learner
 }
 
 /// Load an AveragedPerceptron model file from the models directory.
 fn load_perceptron_model(model_name: &str) -> AveragedPerceptron {
-    let rt = tokio::runtime::Runtime::new().unwrap();
     let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
     let mut learner = AveragedPerceptron::new();
-    rt.block_on(learner.load_model(model_path.to_str().unwrap()))
+    learner
+        .load_model_from_path(&model_path)
         .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
     learner
 }
@@ -116,10 +116,10 @@ fn bench_segment_long(c: &mut Criterion) {
 // Internal component benchmarks
 // ---------------------------------------------------------------------------
 
-fn bench_get_type(c: &mut Criterion) {
+fn bench_char_type(c: &mut Criterion) {
     let segmenter = Segmenter::new(Language::Japanese, None);
     c.bench_function("get_type_hiragana", |b| {
-        b.iter(|| black_box(segmenter.get_type(black_box("あ"))));
+        b.iter(|| black_box(segmenter.char_type(black_box("あ"))));
     });
 }
 
@@ -144,24 +144,17 @@ fn bench_predict_adaboost(c: &mut Criterion) {
     let learner = load_adaboost_model("japanese.model");
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
 
-    // Build a realistic attribute set from the segment pipeline.
-    let sentence = "テスト";
-    let mut tags = vec!["U".to_string(); 4];
-    let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
-    let mut types = vec!["O".to_string(); 3];
-    for ch in sentence.chars() {
-        let s = ch.to_string();
-        types.push(segmenter.get_type(&s).to_string());
-        chars.push(s);
-    }
-    chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
-    types.extend_from_slice(&["O".into(), "O".into(), "O".into()]);
-    tags.extend(vec!["O".to_string(); chars.len() - 4]);
-
-    let attrs = segmenter.get_attributes(4, &tags, &chars, &types);
+    // Capture a realistic attribute set from the corpus pipeline.
+    let mut attrs = None;
+    segmenter.add_corpus_with_writer("テスト です", |a, _| {
+        if attrs.is_none() {
+            attrs = Some(a);
+        }
+    });
+    let attrs = attrs.expect("corpus should produce at least one attribute set");
 
     c.bench_function("predict_adaboost", |b| {
-        b.iter(|| segmenter.learner.predict(black_box(attrs.clone())));
+        b.iter(|| segmenter.learner().predict(black_box(&attrs)));
     });
 }
 
@@ -169,7 +162,7 @@ criterion_group!(
     benches,
     bench_segment_short,
     bench_segment_long,
-    bench_get_type,
+    bench_char_type,
     bench_add_corpus,
     bench_char_type_patterns,
     bench_predict_adaboost,

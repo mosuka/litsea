@@ -5,28 +5,10 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-type Label = i8;
+use crate::error::{LitseaError, Result};
+use crate::metrics::BinaryMetrics;
 
-/// Structure to hold evaluation metrics.
-#[derive(Debug, Clone)]
-pub struct Metrics {
-    /// Accuracy in percentage (%)
-    pub accuracy: f64,
-    /// Precision in percentage (%)
-    pub precision: f64,
-    /// Recall in percentage (%)
-    pub recall: f64,
-    /// Number of instances in the dataset
-    pub num_instances: usize,
-    /// True Positives count
-    pub true_positives: usize,
-    /// False Positives count
-    pub false_positives: usize,
-    /// False Negatives count
-    pub false_negatives: usize,
-    /// True Negatives count
-    pub true_negatives: usize,
-}
+type Label = i8;
 
 /// AdaBoost implementation for binary classification
 /// This implementation uses a simple feature extraction method
@@ -89,7 +71,7 @@ impl AdaBoost {
     /// The last feature is an empty string, which is used as a bias term.
     /// The model is initialized with zeros for each feature.
     /// The number of instances is counted to ensure that the model can handle the data efficiently.
-    pub fn initialize_features(&mut self, filename: &Path) -> std::io::Result<()> {
+    pub fn initialize_features(&mut self, filename: &Path) -> Result<()> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
         let mut map = BTreeMap::new(); // preserve order
@@ -118,9 +100,8 @@ impl AdaBoost {
 
         // A map with only the bias term means no actual features were extracted.
         if map.len() == 1 {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "No features found in the training data (only bias term present)",
+            return Err(LitseaError::InvalidData(
+                "No features found in the training data (only bias term present)".to_string(),
             ));
         }
 
@@ -154,10 +135,10 @@ impl AdaBoost {
     /// and initializes the instances with their corresponding weights.
     /// It calculates the score for each instance based on the features and updates the model accordingly.
     /// The instance weights are initialized based on the label and score.
-    pub fn initialize_instances(&mut self, filename: &Path) -> std::io::Result<()> {
+    pub fn initialize_instances(&mut self, filename: &Path) -> Result<()> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
-        let bias = self.get_bias();
+        let bias = self.bias();
 
         for line in reader.lines() {
             let line = line?;
@@ -165,18 +146,10 @@ impl AdaBoost {
             let label: Label = parts
                 .next()
                 .ok_or_else(|| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        "Missing label in instance line",
-                    )
+                    LitseaError::InvalidData("Missing label in instance line".to_string())
                 })?
                 .parse()
-                .map_err(|e| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        format!("Invalid label: {}", e),
-                    )
-                })?;
+                .map_err(|e| LitseaError::InvalidData(format!("Invalid label: {}", e)))?;
             self.labels.push(label);
 
             let start = self.instances_buf.len();
@@ -309,12 +282,9 @@ impl AdaBoost {
     /// This method writes the model to a file in a tab-separated format,
     /// where each line contains a feature and its corresponding weight.
     /// The last line contains the bias term, which is calculated as the negative sum of the model weights divided by 2.
-    pub fn save_model(&self, filename: &Path) -> std::io::Result<()> {
+    pub fn save_model(&self, filename: &Path) -> Result<()> {
         if self.model.is_empty() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::InvalidData,
-                "Cannot save an empty model",
-            ));
+            return Err(LitseaError::InvalidInput("Cannot save an empty model".to_string()));
         }
         let mut file = File::create(filename)?;
         let mut bias = -self.model[0];
@@ -334,27 +304,44 @@ impl AdaBoost {
     /// The model should contain lines with a feature and its weight,
     /// with the last line containing the bias term.
     ///
+    /// For local files, prefer the synchronous
+    /// [`load_model_from_path`](Self::load_model_from_path).
+    ///
     /// # Arguments
     /// * `uri`: The URI of the file containing the model.
     ///
-    /// # Returns: A result indicating success or failure.
-    ///
-    /// # Errors: Returns an error if the URI is invalid or the file cannot be read.
-    pub async fn load_model(&mut self, uri: &str) -> std::io::Result<()> {
+    /// # Errors: Returns an error if the URI is invalid or the model cannot be read.
+    pub async fn load_model(&mut self, uri: &str) -> Result<()> {
         let bytes = crate::model_io::read_model_bytes(uri).await?;
-        self.parse_model_content(bytes.as_slice())
+        self.load_model_from_reader(bytes.as_slice())
     }
 
-    /// Parses model content from a buffered reader.
-    /// This is a helper method used by both `load_model_from_file` and `load_model_from_url`.
+    /// Loads a model from a local file path (synchronous).
+    ///
+    /// # Arguments
+    /// * `path`: The path to the file containing the model.
+    ///
+    /// # Errors: Returns an error if the file cannot be read or parsed.
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn load_model_from_path(&mut self, path: &Path) -> Result<()> {
+        let file = File::open(path)?;
+        self.load_model_from_reader(BufReader::new(file))
+    }
+
+    /// Loads a model from a buffered reader (synchronous).
+    ///
+    /// If the learner already holds features (e.g. training data was loaded
+    /// via [`initialize_features`](Self::initialize_features)), the loaded
+    /// weights are merged into the existing feature index by feature name and
+    /// unknown features are appended. This keeps previously built instance
+    /// data valid for incremental training. Otherwise the model is loaded
+    /// as-is.
     ///
     /// # Arguments
     /// * `reader`: A buffered reader containing the model data.
     ///
-    /// # Returns: A result indicating success or failure.
-    ///
     /// # Errors: Returns an error if the content cannot be parsed.
-    pub(crate) fn parse_model_content<R: BufRead>(&mut self, reader: R) -> std::io::Result<()> {
+    pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()> {
         let mut m: HashMap<String, f64> = HashMap::new();
         let mut bias = 0.0;
 
@@ -363,37 +350,53 @@ impl AdaBoost {
             let mut parts = line.split_whitespace();
 
             let h = parts.next().ok_or_else(|| {
-                std::io::Error::new(
-                    std::io::ErrorKind::InvalidData,
-                    format!("Empty line at line {}", line_num + 1),
-                )
+                LitseaError::InvalidData(format!("Empty line at line {}", line_num + 1))
             })?;
 
             if let Some(v) = parts.next() {
                 let value: f64 = v.parse().map_err(|e| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        format!("Invalid value at line {}: {}", line_num + 1, e),
-                    )
+                    LitseaError::InvalidData(format!(
+                        "Invalid value at line {}: {}",
+                        line_num + 1,
+                        e
+                    ))
                 })?;
                 m.insert(h.to_string(), value);
                 bias += value;
             } else {
                 let b: f64 = h.parse().map_err(|e| {
-                    std::io::Error::new(
-                        std::io::ErrorKind::InvalidData,
-                        format!("Invalid bias at line {}: {}", line_num + 1, e),
-                    )
+                    LitseaError::InvalidData(format!(
+                        "Invalid bias at line {}: {}",
+                        line_num + 1,
+                        e
+                    ))
                 })?;
                 m.insert("".to_string(), -b * 2.0 - bias);
             }
         }
 
-        let sorted: BTreeMap<_, _> = m.into_iter().collect();
-        self.features = sorted.keys().cloned().collect();
-        self.model = sorted.values().cloned().collect();
-        self.feature_index =
-            self.features.iter().enumerate().map(|(i, f)| (f.clone(), i)).collect();
+        if self.features.is_empty() {
+            // Fresh load: replace everything, features sorted by name.
+            let sorted: BTreeMap<_, _> = m.into_iter().collect();
+            self.features = sorted.keys().cloned().collect();
+            self.model = sorted.values().cloned().collect();
+            self.feature_index =
+                self.features.iter().enumerate().map(|(i, f)| (f.clone(), i)).collect();
+        } else {
+            // Incremental load: merge weights by feature name so that indices
+            // referenced by already-built instances stay valid; append
+            // features that are not part of the training data.
+            for (feature, weight) in m {
+                if let Some(&idx) = self.feature_index.get(&feature) {
+                    self.model[idx] = weight;
+                } else {
+                    let idx = self.features.len();
+                    self.features.push(feature.clone());
+                    self.model.push(weight);
+                    self.feature_index.insert(feature, idx);
+                }
+            }
+        }
         Ok(())
     }
 
@@ -434,9 +437,9 @@ impl AdaBoost {
     ///
     /// # Returns: The predicted label as an `i8`, where 1 indicates a positive prediction and -1 indicates a negative prediction.
     #[must_use]
-    pub fn predict(&self, attributes: HashSet<String>) -> i8 {
-        let mut score = self.get_bias();
-        for attr in &attributes {
+    pub fn predict(&self, attributes: &HashSet<String>) -> i8 {
+        let mut score = self.bias();
+        for attr in attributes {
             if let Some(&idx) = self.feature_index.get(attr) {
                 score += self.model[idx];
             }
@@ -449,14 +452,14 @@ impl AdaBoost {
     ///
     /// # Returns: The bias term as a `f64`.
     #[must_use]
-    pub fn get_bias(&self) -> f64 {
+    pub fn bias(&self) -> f64 {
         -self.model.iter().sum::<f64>() / 2.0
     }
 
     /// Calculates and returns the performance metrics of the model on the training data.
     #[must_use]
-    pub fn get_metrics(&self) -> Metrics {
-        let bias = self.get_bias();
+    pub fn metrics(&self) -> BinaryMetrics {
+        let bias = self.bias();
         let mut true_positives = 0; // true positives
         let mut false_positives = 0; // false positives
         let mut false_negatives = 0; // false negatives
@@ -489,7 +492,7 @@ impl AdaBoost {
         let recall =
             true_positives as f64 / (true_positives + false_negatives).max(1) as f64 * 100.0;
 
-        Metrics {
+        BinaryMetrics {
             accuracy,
             precision,
             recall,
@@ -514,7 +517,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[test]
-    fn test_initialize_features() -> std::io::Result<()> {
+    fn test_initialize_features() -> Result<()> {
         // Create a dummy features file
         let mut features_file = NamedTempFile::new()?;
         writeln!(features_file, "1 feat1 feat2")?;
@@ -533,7 +536,7 @@ mod tests {
     }
 
     #[test]
-    fn test_initialize_instances() -> std::io::Result<()> {
+    fn test_initialize_instances() -> Result<()> {
         // First, initialize features in the feature file.
         let mut features_file = NamedTempFile::new()?;
         writeln!(features_file, "1 feat1 feat2")?;
@@ -560,7 +563,7 @@ mod tests {
     }
 
     #[test]
-    fn test_train_immediate_stop() -> std::io::Result<()> {
+    fn test_train_immediate_stop() -> Result<()> {
         // Initialize features using a features file.
         let mut features_file = NamedTempFile::new()?;
         writeln!(features_file, "1 feat1 feat2")?;
@@ -595,8 +598,8 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
-    async fn test_save_and_load_model() -> std::io::Result<()> {
+    #[test]
+    fn test_save_and_load_model() -> Result<()> {
         // Prepare a dummy learner.
         let mut learner = AdaBoost::new(0.01, 10);
 
@@ -608,14 +611,61 @@ mod tests {
         let temp_model = NamedTempFile::new()?;
         learner.save_model(temp_model.path())?;
 
-        // Load the model with a new learner.
+        // Load the model with a new learner (synchronous path API).
         let mut learner2 = AdaBoost::new(0.01, 10);
-        learner2.load_model(temp_model.path().to_str().unwrap()).await?;
+        learner2.load_model_from_path(temp_model.path())?;
 
         // Check that the number of features and models match.
         assert_eq!(learner2.features.len(), learner.features.len());
         assert_eq!(learner2.model.len(), learner.model.len());
 
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_load_model_uri() -> Result<()> {
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.features = vec!["feat1".to_string()];
+        learner.model = vec![0.5];
+
+        let temp_model = NamedTempFile::new()?;
+        learner.save_model(temp_model.path())?;
+
+        // Load via the async URI API with a plain path.
+        let mut learner2 = AdaBoost::new(0.01, 10);
+        learner2.load_model(temp_model.path().to_str().unwrap()).await?;
+        assert_eq!(learner2.features.len(), learner.features.len());
+        Ok(())
+    }
+
+    #[test]
+    fn test_load_model_merges_into_existing_features() -> Result<()> {
+        // Regression test for the incremental-training path (bug B4):
+        // loading a model after training data must keep existing feature
+        // indices valid by merging weights by name.
+        let mut features_file = NamedTempFile::new()?;
+        writeln!(features_file, "1 feat1 feat2")?;
+        writeln!(features_file, "-1 feat3")?;
+        features_file.as_file().sync_all()?;
+
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.initialize_features(features_file.path())?;
+        learner.initialize_instances(features_file.path())?;
+
+        let feat1_idx = learner.feature_index["feat1"];
+        let feat3_idx = learner.feature_index["feat3"];
+
+        // A model that knows feat1 (existing) and feat9 (new).
+        let model_content = "feat1\t0.5\nfeat9\t-0.25\n0.0\n";
+        learner.load_model_from_reader(model_content.as_bytes())?;
+
+        // Existing indices are unchanged and weights are applied in place.
+        assert_eq!(learner.feature_index["feat1"], feat1_idx);
+        assert_eq!(learner.feature_index["feat3"], feat3_idx);
+        assert!((learner.model[feat1_idx] - 0.5).abs() < 1e-9);
+        // The unknown feature is appended, not substituted.
+        assert!(learner.feature_index["feat9"] >= learner.features.len() - 2);
+        assert_eq!(learner.features.len(), learner.model.len());
         Ok(())
     }
 
@@ -629,23 +679,23 @@ mod tests {
         learner.add_instance(attrs.clone(), 1);
 
         // When the same attribute is passed to predict, score returns 1 based on the initial model value (0.0) (because score>=0).
-        let prediction = learner.predict(attrs);
+        let prediction = learner.predict(&attrs);
         assert_eq!(prediction, 1);
     }
 
     #[test]
-    fn test_get_bias() {
+    fn test_bias() {
         let mut learner = AdaBoost::new(0.01, 10);
 
         // Set model weights as an example.
         learner.model = vec![0.2, 0.3, -0.1];
 
         // bias = -sum(model)/2 = -(0.2+0.3-0.1)/2 = -0.4/2 = -0.2
-        assert!((learner.get_bias() + 0.2).abs() < 1e-6);
+        assert!((learner.bias() + 0.2).abs() < 1e-6);
     }
 
     #[test]
-    fn test_get_metrics() {
+    fn test_metrics() {
         let mut learner = AdaBoost::new(0.01, 10);
 
         // Set features and model for prediction
@@ -659,12 +709,12 @@ mod tests {
         attrs1.insert("A".to_string());
         learner.add_instance(attrs1, 1);
 
-        // Instance 2: Attribute “B” → score = 0.25 + (-1.0) = -0.75 (negative example)
+        // Instance 2: Attribute "B" → score = 0.25 + (-1.0) = -0.75 (negative example)
         let mut attrs2 = HashSet::new();
         attrs2.insert("B".to_string());
         learner.add_instance(attrs2, -1);
 
-        let metrics = learner.get_metrics();
+        let metrics = learner.metrics();
         assert_eq!(metrics.true_positives, 1);
         assert_eq!(metrics.true_negatives, 1);
         assert_eq!(metrics.false_positives, 0);
@@ -676,11 +726,11 @@ mod tests {
     }
 
     #[test]
-    fn test_get_metrics_zero_instances() {
+    fn test_metrics_zero_instances() {
         // An empty AdaBoost with no instances should return zeroed metrics
         // without division-by-zero panics.
         let learner = AdaBoost::new(0.01, 10);
-        let metrics = learner.get_metrics();
+        let metrics = learner.metrics();
         assert_eq!(metrics.num_instances, 0);
         assert_eq!(metrics.true_positives, 0);
         assert_eq!(metrics.false_positives, 0);
@@ -693,7 +743,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_metrics_all_positive() {
+    fn test_metrics_all_positive() {
         // All-positive instances: precision=100%, recall=100%, no false negatives.
         // Verifies the .max(1) guard handles zero denominators correctly.
         let mut learner = AdaBoost::new(0.01, 10);
@@ -710,7 +760,7 @@ mod tests {
         learner.add_instance(attrs.clone(), 1);
         learner.add_instance(attrs, 1);
 
-        let metrics = learner.get_metrics();
+        let metrics = learner.metrics();
         assert_eq!(metrics.num_instances, 2);
         assert_eq!(metrics.true_positives, 2);
         assert_eq!(metrics.false_positives, 0);
@@ -722,30 +772,28 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_model_content_empty_input() {
+    fn test_load_model_from_reader_empty_input() {
         let mut learner = AdaBoost::new(0.01, 10);
         // Empty input should succeed with no features.
-        let result = learner.parse_model_content(std::io::BufReader::new("".as_bytes()));
+        let result = learner.load_model_from_reader("".as_bytes());
         assert!(result.is_ok());
         assert!(learner.features.is_empty());
     }
 
     #[test]
-    fn test_parse_model_content_invalid_bias() {
+    fn test_load_model_from_reader_invalid_bias() {
         let mut learner = AdaBoost::new(0.01, 10);
         // A single non-numeric token (no tab separator) should fail as an invalid bias.
-        let result =
-            learner.parse_model_content(std::io::BufReader::new("not_a_number".as_bytes()));
-        assert!(result.is_err());
+        let result = learner.load_model_from_reader("not_a_number".as_bytes());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
     }
 
     #[test]
-    fn test_parse_model_content_invalid_weight() {
+    fn test_load_model_from_reader_invalid_weight() {
         let mut learner = AdaBoost::new(0.01, 10);
         // A feature line with a non-numeric weight should fail.
-        let result =
-            learner.parse_model_content(std::io::BufReader::new("feat1\tnot_a_number".as_bytes()));
-        assert!(result.is_err());
+        let result = learner.load_model_from_reader("feat1\tnot_a_number".as_bytes());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
     }
 
     #[test]
@@ -753,7 +801,6 @@ mod tests {
         let learner = AdaBoost::new(0.01, 10);
         let temp = NamedTempFile::new().unwrap();
         let result = learner.save_model(temp.path());
-        assert!(result.is_err());
-        assert_eq!(result.unwrap_err().kind(), std::io::ErrorKind::InvalidData);
+        assert!(matches!(result, Err(LitseaError::InvalidInput(_))));
     }
 }

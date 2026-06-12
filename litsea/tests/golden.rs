@@ -14,29 +14,22 @@ use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 use litsea::upos::Upos;
 
-fn model_path(name: &str) -> String {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../models")
-        .join(name)
-        .to_str()
-        .unwrap()
-        .to_string()
+fn model_path(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(name)
 }
 
-async fn adaboost_segmenter(language: Language, model: &str) -> Segmenter {
+fn adaboost_segmenter(language: Language, model: &str) -> Segmenter {
     let mut learner = AdaBoost::new(0.01, 100);
     learner
-        .load_model(&model_path(model))
-        .await
+        .load_model_from_path(&model_path(model))
         .unwrap_or_else(|e| panic!("failed to load {}: {}", model, e));
     Segmenter::new(language, Some(learner))
 }
 
-async fn pos_segmenter(language: Language, model: &str) -> Segmenter {
+fn pos_segmenter(language: Language, model: &str) -> Segmenter {
     let mut learner = AveragedPerceptron::new();
     learner
-        .load_model(&model_path(model))
-        .await
+        .load_model_from_path(&model_path(model))
         .unwrap_or_else(|e| panic!("failed to load {}: {}", model, e));
     Segmenter::with_pos_learner(language, learner)
 }
@@ -67,9 +60,9 @@ fn assert_segment_with_pos(segmenter: &Segmenter, cases: &[(&str, &[(&str, &str)
 // Word segmentation (AdaBoost models)
 // ---------------------------------------------------------------------------
 
-#[tokio::test]
-async fn golden_segment_japanese() {
-    let segmenter = adaboost_segmenter(Language::Japanese, "japanese.model").await;
+#[test]
+fn golden_segment_japanese() {
+    let segmenter = adaboost_segmenter(Language::Japanese, "japanese.model");
     assert_segment(
         &segmenter,
         &[
@@ -90,9 +83,9 @@ async fn golden_segment_japanese() {
     assert!(segmenter.segment("").is_empty());
 }
 
-#[tokio::test]
-async fn golden_segment_japanese_rwcp() {
-    let segmenter = adaboost_segmenter(Language::Japanese, "RWCP.model").await;
+#[test]
+fn golden_segment_japanese_rwcp() {
+    let segmenter = adaboost_segmenter(Language::Japanese, "RWCP.model");
     assert_segment(
         &segmenter,
         &[
@@ -108,10 +101,9 @@ async fn golden_segment_japanese_rwcp() {
     );
 }
 
-#[tokio::test]
-async fn golden_segment_japanese_jeita() {
-    let segmenter =
-        adaboost_segmenter(Language::Japanese, "JEITA_Genpaku_ChaSen_IPAdic.model").await;
+#[test]
+fn golden_segment_japanese_jeita() {
+    let segmenter = adaboost_segmenter(Language::Japanese, "JEITA_Genpaku_ChaSen_IPAdic.model");
     assert_segment(
         &segmenter,
         &[
@@ -129,9 +121,9 @@ async fn golden_segment_japanese_jeita() {
     );
 }
 
-#[tokio::test]
-async fn golden_segment_chinese() {
-    let segmenter = adaboost_segmenter(Language::Chinese, "chinese.model").await;
+#[test]
+fn golden_segment_chinese() {
+    let segmenter = adaboost_segmenter(Language::Chinese, "chinese.model");
     assert_segment(
         &segmenter,
         &[
@@ -145,9 +137,9 @@ async fn golden_segment_chinese() {
     assert!(segmenter.segment("").is_empty());
 }
 
-#[tokio::test]
-async fn golden_segment_korean() {
-    let segmenter = adaboost_segmenter(Language::Korean, "korean.model").await;
+#[test]
+fn golden_segment_korean() {
+    let segmenter = adaboost_segmenter(Language::Korean, "korean.model");
     assert_segment(
         &segmenter,
         &[
@@ -170,9 +162,9 @@ async fn golden_segment_korean() {
 // prediction; these expectations reflect the fixed behavior.
 // ---------------------------------------------------------------------------
 
-#[tokio::test]
-async fn golden_segment_with_pos_japanese() {
-    let segmenter = pos_segmenter(Language::Japanese, "japanese_pos.model").await;
+#[test]
+fn golden_segment_with_pos_japanese() {
+    let segmenter = pos_segmenter(Language::Japanese, "japanese_pos.model");
     assert_segment_with_pos(
         &segmenter,
         &[
@@ -240,9 +232,9 @@ async fn golden_segment_with_pos_japanese() {
     assert!(segmenter.segment_with_pos("").is_empty());
 }
 
-#[tokio::test]
-async fn golden_segment_with_pos_chinese() {
-    let segmenter = pos_segmenter(Language::Chinese, "chinese_pos.model").await;
+#[test]
+fn golden_segment_with_pos_chinese() {
+    let segmenter = pos_segmenter(Language::Chinese, "chinese_pos.model");
     assert_segment_with_pos(
         &segmenter,
         &[
@@ -293,9 +285,9 @@ async fn golden_segment_with_pos_chinese() {
     assert!(segmenter.segment_with_pos("").is_empty());
 }
 
-#[tokio::test]
-async fn golden_segment_with_pos_korean() {
-    let segmenter = pos_segmenter(Language::Korean, "korean_pos.model").await;
+#[test]
+fn golden_segment_with_pos_korean() {
+    let segmenter = pos_segmenter(Language::Korean, "korean_pos.model");
     assert_segment_with_pos(
         &segmenter,
         &[
@@ -340,18 +332,18 @@ async fn golden_segment_with_pos_korean() {
 // Guards the on-disk model format compatibility across refactoring.
 // ---------------------------------------------------------------------------
 
-#[tokio::test]
-async fn roundtrip_adaboost_model() {
+#[test]
+fn roundtrip_adaboost_model() {
     let sentences = ["これはテストです。", "私の猫は可愛い。", "価格は1000円です。", "こんにちは"];
 
     let mut original = AdaBoost::new(0.01, 100);
-    original.load_model(&model_path("japanese.model")).await.unwrap();
+    original.load_model_from_path(&model_path("japanese.model")).unwrap();
 
     let temp = tempfile::NamedTempFile::new().unwrap();
     original.save_model(temp.path()).unwrap();
 
     let mut reloaded = AdaBoost::new(0.01, 100);
-    reloaded.load_model(temp.path().to_str().unwrap()).await.unwrap();
+    reloaded.load_model_from_path(temp.path()).unwrap();
 
     let seg_original = Segmenter::new(Language::Japanese, Some(original));
     let seg_reloaded = Segmenter::new(Language::Japanese, Some(reloaded));
@@ -365,18 +357,18 @@ async fn roundtrip_adaboost_model() {
     }
 }
 
-#[tokio::test]
-async fn roundtrip_perceptron_model() {
+#[test]
+fn roundtrip_perceptron_model() {
     let sentences = ["これはテストです。", "私の猫は可愛い。", "価格は1000円です。"];
 
     let mut original = AveragedPerceptron::new();
-    original.load_model(&model_path("japanese_pos.model")).await.unwrap();
+    original.load_model_from_path(&model_path("japanese_pos.model")).unwrap();
 
     let temp = tempfile::NamedTempFile::new().unwrap();
     original.save_model(temp.path()).unwrap();
 
     let mut reloaded = AveragedPerceptron::new();
-    reloaded.load_model(temp.path().to_str().unwrap()).await.unwrap();
+    reloaded.load_model_from_path(temp.path()).unwrap();
 
     let seg_original = Segmenter::with_pos_learner(Language::Japanese, original);
     let seg_reloaded = Segmenter::with_pos_learner(Language::Japanese, reloaded);

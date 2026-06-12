@@ -1,10 +1,10 @@
 use std::collections::HashSet;
-use std::error::Error;
 use std::fmt;
 use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
+use crate::error::Result;
 use crate::language::Language;
 use crate::segmenter::Segmenter;
 
@@ -47,11 +47,7 @@ impl Extractor {
     ///
     /// # Returns
     /// Returns a Result indicating success or failure.
-    pub fn extract(
-        &mut self,
-        corpus_path: &Path,
-        features_path: &Path,
-    ) -> Result<(), Box<dyn Error>> {
+    pub fn extract(&mut self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
             segmenter.add_corpus_with_writer(line, |attrs, label| {
@@ -69,11 +65,7 @@ impl Extractor {
     /// # Arguments
     /// * `corpus_path` - 品詞付きコーパスファイルのパス
     /// * `features_path` - 特徴量出力ファイルのパス
-    pub fn extract_with_pos(
-        &mut self,
-        corpus_path: &Path,
-        features_path: &Path,
-    ) -> Result<(), Box<dyn Error>> {
+    pub fn extract_with_pos(&mut self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
             segmenter.add_corpus_with_pos_writer(line, |attrs, label| {
@@ -89,7 +81,7 @@ impl Extractor {
         corpus_path: &Path,
         features_path: &Path,
         mut process_line: P,
-    ) -> Result<(), Box<dyn Error>>
+    ) -> Result<()>
     where
         P: FnMut(&str, &mut Vec<String>),
     {
@@ -142,7 +134,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     #[test]
-    fn test_extract() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_extract() -> Result<()> {
         // Create a temporary file to simulate the corpus input
         let mut corpus_file = NamedTempFile::new()?;
         writeln!(corpus_file, "これ は テスト です 。")?;
@@ -181,7 +173,7 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_with_pos() -> Result<(), Box<dyn std::error::Error>> {
+    fn test_extract_with_pos() -> Result<()> {
         // 品詞付きコーパスの作成
         let mut corpus_file = NamedTempFile::new()?;
         writeln!(corpus_file, "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT")?;

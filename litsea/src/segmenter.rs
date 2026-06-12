@@ -8,11 +8,11 @@ use crate::upos::{SegmentLabel, Upos};
 /// Segmenter struct for text segmentation using AdaBoost
 /// It uses predefined patterns to classify characters and segment sentences into words.
 pub struct Segmenter {
-    pub language: Language,
+    language: Language,
     char_types: CharTypePatterns,
-    pub learner: AdaBoost,
+    learner: AdaBoost,
     /// 品詞推定用のAveraged Perceptron（オプション）
-    pub pos_learner: Option<AveragedPerceptron>,
+    pos_learner: Option<AveragedPerceptron>,
 }
 
 impl Segmenter {
@@ -58,6 +58,34 @@ impl Segmenter {
         }
     }
 
+    /// Returns the language this segmenter was created for.
+    #[must_use]
+    pub fn language(&self) -> Language {
+        self.language
+    }
+
+    /// Returns a reference to the AdaBoost learner used for segmentation.
+    #[must_use]
+    pub fn learner(&self) -> &AdaBoost {
+        &self.learner
+    }
+
+    /// Returns a mutable reference to the AdaBoost learner used for segmentation.
+    pub fn learner_mut(&mut self) -> &mut AdaBoost {
+        &mut self.learner
+    }
+
+    /// Returns a reference to the POS learner, if one is set.
+    #[must_use]
+    pub fn pos_learner(&self) -> Option<&AveragedPerceptron> {
+        self.pos_learner.as_ref()
+    }
+
+    /// Returns a mutable reference to the POS learner, if one is set.
+    pub fn pos_learner_mut(&mut self) -> Option<&mut AveragedPerceptron> {
+        self.pos_learner.as_mut()
+    }
+
     /// Gets the type of a character based on language-specific patterns.
     ///
     /// # Arguments
@@ -73,11 +101,11 @@ impl Segmenter {
     /// use litsea::segmenter::Segmenter;
     ///
     /// let segmenter = Segmenter::new(Language::Japanese, None);
-    /// let char_type = segmenter.get_type("あ");
+    /// let char_type = segmenter.char_type("あ");
     /// assert_eq!(char_type, "I"); // Hiragana
     /// ```
     #[must_use]
-    pub fn get_type(&self, ch: &str) -> &str {
+    pub fn char_type(&self, ch: &str) -> &str {
         self.char_types.get_type(ch)
     }
 
@@ -91,7 +119,7 @@ impl Segmenter {
         let mut types = vec!["O".to_string(); 3];
         for ch in text.chars() {
             let s = ch.to_string();
-            types.push(self.get_type(&s).to_string());
+            types.push(self.char_type(&s).to_string());
             chars.push(s);
         }
         chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
@@ -289,16 +317,14 @@ impl Segmenter {
     /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// # tokio_test::block_on(async {
     /// let model_file =
     ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("RWCP.model");
     /// let mut learner = AdaBoost::new(0.01, 100);
-    /// learner.load_model(model_file.to_str().unwrap()).await.unwrap();
+    /// learner.load_model_from_path(&model_file).unwrap();
     ///
     /// let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     /// let result = segmenter.segment("これはテストです。");
     /// assert_eq!(result, vec!["これ", "は", "テスト", "です", "。"]);
-    /// # });
     /// ```
     /// This will segment the sentence into words and return them as a vector of strings.
     #[must_use]
@@ -315,7 +341,7 @@ impl Segmenter {
         let mut result = Vec::new();
         let mut word = chars[3].clone();
         for i in 4..(chars.len() - 3) {
-            let label = learner.predict(self.get_attributes(i, &tags, &chars, &types));
+            let label = learner.predict(&self.get_attributes(i, &tags, &chars, &types));
             if label >= 0 {
                 result.push(std::mem::take(&mut word));
                 tags.push("B".to_string());
@@ -404,7 +430,7 @@ impl Segmenter {
     /// The attributes are constructed based on the surrounding characters and their types, allowing for rich feature extraction.
     /// This method is used internally by the segmenter to create features for each character in the sentence.
     #[must_use]
-    pub fn get_attributes(
+    fn get_attributes(
         &self,
         i: usize,
         tags: &[String],
@@ -495,42 +521,42 @@ mod tests {
     use std::sync::atomic::AtomicBool;
 
     #[test]
-    fn test_get_type_japanese() {
+    fn test_char_type_japanese() {
         let segmenter = Segmenter::new(Language::Japanese, None);
 
-        assert_eq!(segmenter.get_type("あ"), "I"); // Hiragana
-        assert_eq!(segmenter.get_type("漢"), "H"); // Kanji
-        assert_eq!(segmenter.get_type("。"), "P"); // Punctuation
-        assert_eq!(segmenter.get_type("A"), "A"); // Latin
-        assert_eq!(segmenter.get_type("1"), "N"); // Digit
-        assert_eq!(segmenter.get_type("@"), "O"); // Not matching any pattern
+        assert_eq!(segmenter.char_type("あ"), "I"); // Hiragana
+        assert_eq!(segmenter.char_type("漢"), "H"); // Kanji
+        assert_eq!(segmenter.char_type("。"), "P"); // Punctuation
+        assert_eq!(segmenter.char_type("A"), "A"); // Latin
+        assert_eq!(segmenter.char_type("1"), "N"); // Digit
+        assert_eq!(segmenter.char_type("@"), "O"); // Not matching any pattern
     }
 
     #[test]
-    fn test_get_type_chinese() {
+    fn test_char_type_chinese() {
         let segmenter = Segmenter::new(Language::Chinese, None);
 
-        assert_eq!(segmenter.get_type("的"), "F"); // Function word
-        assert_eq!(segmenter.get_type("中"), "C"); // CJK Unified
-        assert_eq!(segmenter.get_type("国"), "C"); // CJK Unified
-        assert_eq!(segmenter.get_type("。"), "P"); // Punctuation
-        assert_eq!(segmenter.get_type("A"), "A"); // Latin
-        assert_eq!(segmenter.get_type("5"), "N"); // Digit
-        assert_eq!(segmenter.get_type("@"), "O"); // Other
+        assert_eq!(segmenter.char_type("的"), "F"); // Function word
+        assert_eq!(segmenter.char_type("中"), "C"); // CJK Unified
+        assert_eq!(segmenter.char_type("国"), "C"); // CJK Unified
+        assert_eq!(segmenter.char_type("。"), "P"); // Punctuation
+        assert_eq!(segmenter.char_type("A"), "A"); // Latin
+        assert_eq!(segmenter.char_type("5"), "N"); // Digit
+        assert_eq!(segmenter.char_type("@"), "O"); // Other
     }
 
     #[test]
-    fn test_get_type_korean() {
+    fn test_char_type_korean() {
         let segmenter = Segmenter::new(Language::Korean, None);
 
-        assert_eq!(segmenter.get_type("는"), "E"); // Particle (topic marker)
-        assert_eq!(segmenter.get_type("가"), "SN"); // Hangul Syllable without 받침
-        assert_eq!(segmenter.get_type("한"), "SF"); // Hangul Syllable with 받침
-        assert_eq!(segmenter.get_type("ㄱ"), "G"); // Compatibility Jamo
-        assert_eq!(segmenter.get_type("漢"), "H"); // Hanja
-        assert_eq!(segmenter.get_type("A"), "A"); // Latin
-        assert_eq!(segmenter.get_type("5"), "N"); // Digit
-        assert_eq!(segmenter.get_type("@"), "O"); // Other
+        assert_eq!(segmenter.char_type("는"), "E"); // Particle (topic marker)
+        assert_eq!(segmenter.char_type("가"), "SN"); // Hangul Syllable without 받침
+        assert_eq!(segmenter.char_type("한"), "SF"); // Hangul Syllable with 받침
+        assert_eq!(segmenter.char_type("ㄱ"), "G"); // Compatibility Jamo
+        assert_eq!(segmenter.char_type("漢"), "H"); // Hanja
+        assert_eq!(segmenter.char_type("A"), "A"); // Latin
+        assert_eq!(segmenter.char_type("5"), "N"); // Digit
+        assert_eq!(segmenter.char_type("@"), "O"); // Other
     }
 
     #[test]

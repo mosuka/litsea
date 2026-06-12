@@ -11,14 +11,25 @@
 //! - Korean
 
 pub mod adaboost;
+pub mod error;
 pub mod extractor;
 pub mod language;
+pub mod metrics;
 mod model_io;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
 pub mod upos;
-pub mod util;
+
+pub use adaboost::AdaBoost;
+pub use error::{LitseaError, Result};
+pub use extractor::Extractor;
+pub use language::Language;
+pub use metrics::{BinaryMetrics, MulticlassMetrics};
+pub use perceptron::AveragedPerceptron;
+pub use segmenter::Segmenter;
+pub use trainer::{PosTrainer, Trainer};
+pub use upos::{SegmentLabel, Upos};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 

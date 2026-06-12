@@ -179,9 +179,19 @@
 
 ---
 
-### フェーズ 3: エラー型と公開 API の再設計(破壊的変更 → v0.5.0)
+### フェーズ 3: エラー型と公開 API の再設計(破壊的変更 → v0.5.0) — ✅ 実施済み
 
 **目的**: 利用者向け API の一貫性確保。破壊的変更をこのフェーズに集約する。
+
+**実施結果**(2026-06-12):
+- `thiserror` ベースの `LitseaError`(`Io` / `InvalidData` / `InvalidInput` / `Unsupported` / `Download`)と `litsea::Result<T>` を導入し、`io::Error` 流用と `Box<dyn Error>` を全廃。
+- 同期 API `load_model_from_path` / `load_model_from_reader` を両学習器に追加(案A)。doc テストの `tokio_test`、ベンチの手製ランタイムが不要になり、`tokio-test` dev 依存を削除。
+- `lib.rs` に主要型を再エクスポート。`Segmenter` のフィールドを非公開化しアクセサを追加。`get_attributes` を非公開化。
+- 命名整理: `get_bias`→`bias`、`get_metrics`→`metrics`、`get_type`→`char_type`。`Metrics` 2 種を `metrics::BinaryMetrics` / `MulticlassMetrics` に改名・集約(D4 解消)。
+- **B4 修正**: `AdaBoost::load_model_from_reader` は既存の特徴インデックスがある場合に名前でマージ(未知特徴は末尾に追加)し、構築済みインスタンスのインデックスを保全。`AveragedPerceptron` 側もクラス一覧をマージ。回帰テスト追加。
+- `util` モジュール廃止(`ModelScheme` は `model_io` 内部へ)。CLI は `Language` を型付き引数で受理。
+- `CHANGELOG.md` を新設し、v0.5.0 の変更点と移行ガイドを記載。バージョンを 0.5.0 に更新。
+- 見送り: Trainer / PosTrainer の構造統合(2 つの薄いラッパーのままエラー型のみ刷新。統合の利得が小さい)。
 
 **作業項目**:
 1. **エラー型の導入**(`thiserror` 採用、`litsea/src/error.rs`):
