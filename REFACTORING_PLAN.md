@@ -17,7 +17,8 @@
 |---|------|------|
 | B1 | ✅ **修正済み(Phase 0 PR に前倒しで含めた)** — **`--no-default-features` でビルド不能**。`perceptron.rs` が `reqwest` を feature gate なしで使用しており(`perceptron.rs:9` の `use reqwest::Client;` と `load_model_from_url`)、`remote_model` を無効にするとコンパイルエラーになる。`adaboost.rs` は正しく `#[cfg(feature = "remote_model")]` で保護されているのに対し、後から追加された perceptron 側が追従していない。 | `cargo check -p litsea --no-default-features` が E0432/E0282 で失敗することを確認済み |
 | B2 | ✅ **修正済み(Phase 1)** — `AveragedPerceptron::save_model` の doc コメントが「モデルを**JSON形式**でファイルに保存する」と記述しているが、実際はクラスヘッダ + TSV のテキスト形式(`perceptron.rs:231-242`)。 | コード読解 |
-| B3 | CI(regression.yml / periodic.yml)に feature マトリクスがなく、B1 のようなビルド破壊が検出されない。 | ワークフロー確認 |
+| B3 | ✅ **解消済み(Phase 0)** — CI(regression.yml / periodic.yml)に feature マトリクスがなく、B1 のようなビルド破壊が検出されない。 | ワークフロー確認 |
+| B4 | **増分学習時の特徴量インデックス不整合(潜在バグ、未修正)**。`Trainer::new`(`initialize_features` + `initialize_instances`)の後に `load_model` を呼ぶと(CLI の `train -m` パス)、`parse_model_content` が `features`/`feature_index` をモデルファイルの内容(非ゼロ重みの特徴のみ)で再構築するため、`instances_buf` に格納済みの特徴インデックスが古い索引を指したまま `train()` が走る。Phase 3 のエラー型・API 再設計時に修正予定。 | Phase 2 作業中のコード読解で発見 |
 
 ### 1.2 重複コード(本計画の主対象)
 
@@ -136,9 +137,19 @@
 
 ---
 
-### フェーズ 2: Segmenter / Extractor / Trainer の構造統一(挙動不変)
+### フェーズ 2: Segmenter / Extractor / Trainer の構造統一 — ✅ 実施済み
 
 **目的**: D2・D3・D5 の重複排除と、コールバック設計の歪み(RefCell ハック)の解消。
+
+**実施結果**(2026-06-12):
+- `sentence_context()`(パディング付き chars/types 構築)と `process_tokens()`(コーパス処理の共通パイプライン)を導入し、4 箇所の重複を 1 箇所に集約。`process_corpus` / `process_corpus_with_pos` は数行の薄いラッパーに縮退。
+- **意図的な挙動変更**: `segment_with_pos` の先頭単語の品詞を、先頭文字位置の予測ラベルから決定するよう修正(従来は常に X、1 単語文では E1 センチネル上で予測していた)。全テスト文で品詞が改善(これ→PRON、東京→PROPN、字→NOUN(旧 SYM)、好→ADJ(旧 PUNCT)等)。ゴールデンテストの期待値を更新済み。分割位置は不変。
+- Extractor: `extract` / `extract_with_pos` を `write_features` + `format_row` の共通実装に統合し、`RefCell<Option<io::Error>>` ハックを撤廃(行を整形してからループ外で `?` 伝播)。
+- 当初計画からの変更点:
+  - `segment` / `segment_with_pos` の走査ループの完全統合は**見送り**(境界判定の型・所有権の契約が複雑になり可読性が下がるため、共通コンテキスト上の 2 つの薄いループとして保持)。
+  - AdaBoost の特徴量ファイル 2 回読みの 1 パス化は**取り止め**。OS のページキャッシュで 2 回目の読み込みは安価であり、全体をメモリに載せる方式は巨大コーパスでメモリを浪費、逐次インターン方式は特徴順序が変わり学習結果の再現性を壊すため、コストに見合わない。
+  - Trainer / PosTrainer の統合は公開 API 変更を伴うため Phase 3 へ。
+- 副産物: 増分学習パスの潜在バグ B4 を発見(1.1 節参照)。
 
 **作業項目**:
 1. **文コンテキスト構築の一本化**(`segmenter.rs`):

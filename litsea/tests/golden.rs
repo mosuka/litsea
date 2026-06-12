@@ -164,11 +164,10 @@ async fn golden_segment_korean() {
 // ---------------------------------------------------------------------------
 // Joint segmentation + POS tagging (Averaged Perceptron models)
 //
-// Note: the first word of every sentence is currently tagged "X" because
-// segment_with_pos() determines the first word's POS from a prediction made
-// before any boundary context exists (see segmenter.rs). This is a known
-// quirk snapshotted as-is; Phase 2 of the refactoring plan may change it
-// intentionally.
+// Note: until refactoring Phase 2, the first word of every sentence was
+// tagged "X" because segment_with_pos() never used the prediction at the
+// first character position. It now derives the first word's POS from that
+// prediction; these expectations reflect the fixed behavior.
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
@@ -180,7 +179,7 @@ async fn golden_segment_with_pos_japanese() {
             (
                 "これはテストです。",
                 &[
-                    ("これ", "X"),
+                    ("これ", "PRON"),
                     ("は", "ADP"),
                     ("テスト", "NOUN"),
                     ("です", "AUX"),
@@ -190,7 +189,7 @@ async fn golden_segment_with_pos_japanese() {
             (
                 "私の猫は可愛い。",
                 &[
-                    ("私", "X"),
+                    ("私", "PRON"),
                     ("の", "ADP"),
                     ("猫", "NOUN"),
                     ("は", "ADP"),
@@ -201,7 +200,7 @@ async fn golden_segment_with_pos_japanese() {
             (
                 "東京都に住んでいます。",
                 &[
-                    ("東京", "X"),
+                    ("東京", "PROPN"),
                     ("都", "NOUN"),
                     ("に", "ADP"),
                     ("住ん", "VERB"),
@@ -211,12 +210,12 @@ async fn golden_segment_with_pos_japanese() {
                     ("。", "PUNCT"),
                 ],
             ),
-            ("字", &[("字", "SYM")]),
-            ("こんにちは", &[("こん", "X"), ("にち", "ADP"), ("は", "ADP")]),
+            ("字", &[("字", "NOUN")]),
+            ("こんにちは", &[("こん", "PRON"), ("にち", "ADP"), ("は", "ADP")]),
             (
                 "価格は1000円です。",
                 &[
-                    ("価格", "X"),
+                    ("価格", "NOUN"),
                     ("は", "ADP"),
                     ("1000", "NUM"),
                     ("円", "NOUN"),
@@ -227,7 +226,7 @@ async fn golden_segment_with_pos_japanese() {
             (
                 "RustでNLPを実装する。",
                 &[
-                    ("Rust", "X"),
+                    ("Rust", "NOUN"),
                     ("で", "ADP"),
                     ("NLP", "PROPN"),
                     ("を", "ADP"),
@@ -261,7 +260,7 @@ async fn golden_segment_with_pos_chinese() {
             (
                 "我喜欢吃中国菜。",
                 &[
-                    ("我", "X"),
+                    ("我", "PRON"),
                     ("喜欢", "VERB"),
                     ("吃中", "VERB"),
                     ("国菜", "VERB"),
@@ -270,12 +269,24 @@ async fn golden_segment_with_pos_chinese() {
             ),
             (
                 "他在北京工作。",
-                &[("他", "X"), ("在", "ADP"), ("北京", "PROPN"), ("工作", "NOUN"), ("。", "PUNCT")],
+                &[
+                    ("他", "PRON"),
+                    ("在", "ADP"),
+                    ("北京", "PROPN"),
+                    ("工作", "NOUN"),
+                    ("。", "PUNCT"),
+                ],
             ),
-            ("好", &[("好", "PUNCT")]),
+            ("好", &[("好", "ADJ")]),
             (
                 "2024年的春天。",
-                &[("2024", "X"), ("年", "NOUN"), ("的", "PART"), ("春天", "NOUN"), ("。", "PUNCT")],
+                &[
+                    ("2024", "NUM"),
+                    ("年", "NOUN"),
+                    ("的", "PART"),
+                    ("春天", "NOUN"),
+                    ("。", "PUNCT"),
+                ],
             ),
         ],
     );
@@ -290,12 +301,12 @@ async fn golden_segment_with_pos_korean() {
         &[
             (
                 "이것은 테스트입니다.",
-                &[("이것은", "X"), (" ", "PUNCT"), ("테스트입니다", "NOUN"), (".", "PUNCT")],
+                &[("이것은", "PRON"), (" ", "PUNCT"), ("테스트입니다", "NOUN"), (".", "PUNCT")],
             ),
             (
                 "나는 고양이를 좋아한다.",
                 &[
-                    ("나는", "X"),
+                    ("나는", "PRON"),
                     (" ", "PUNCT"),
                     ("고양이를", "NOUN"),
                     (" ", "PUNCT"),
@@ -306,7 +317,7 @@ async fn golden_segment_with_pos_korean() {
             (
                 "한국어 형태소 분석기.",
                 &[
-                    ("한국어", "X"),
+                    ("한국어", "NOUN"),
                     (" ", "PUNCT"),
                     ("형태소", "NOUN"),
                     (" ", "PUNCT"),
@@ -314,8 +325,11 @@ async fn golden_segment_with_pos_korean() {
                     (".", "PUNCT"),
                 ],
             ),
-            ("글", &[("글", "PUNCT")]),
-            ("2024년 봄.", &[("2024년", "X"), (" ", "PUNCT"), ("봄", "NOUN"), (".", "PUNCT")]),
+            ("글", &[("글", "NOUN")]),
+            (
+                "2024년 봄.",
+                &[("2024년", "NOUN"), (" ", "PUNCT"), ("봄", "NOUN"), (".", "PUNCT")],
+            ),
         ],
     );
     assert!(segmenter.segment_with_pos("").is_empty());
