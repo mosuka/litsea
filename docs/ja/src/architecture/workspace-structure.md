@@ -55,7 +55,7 @@ litsea/
 
 | Dependency | Version | 用途 |
 |-----------|---------|------|
-| `regex` | 1.12 | 文字種パターンマッチング |
+| `thiserror` | 2.0 | エラー型の導出 |
 | `reqwest` | 0.13 | HTTP/HTTPS モデル読み込み（rustls） |
 | `tokio` | 1.49 | リモートモデル読み込み用非同期ランタイム |
 | `criterion` | 0.8 | ベンチマーク（開発依存） |

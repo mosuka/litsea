@@ -1,49 +1,49 @@
 use std::fmt;
 use std::str::FromStr;
 
-/// Universal POS (UPOS) タグ。
-/// Universal Dependencies で定義された17品詞分類。
+/// Universal POS (UPOS) tag.
+/// The 17 part-of-speech categories defined by Universal Dependencies.
 /// <https://universaldependencies.org/u/pos/>
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Upos {
-    /// 形容詞 (Adjective)
+    /// Adjective
     ADJ,
-    /// 接置詞 (Adposition)
+    /// Adposition
     ADP,
-    /// 副詞 (Adverb)
+    /// Adverb
     ADV,
-    /// 助動詞 (Auxiliary)
+    /// Auxiliary
     AUX,
-    /// 等位接続詞 (Coordinating conjunction)
+    /// Coordinating conjunction
     CCONJ,
-    /// 限定詞 (Determiner)
+    /// Determiner
     DET,
-    /// 間投詞 (Interjection)
+    /// Interjection
     INTJ,
-    /// 名詞 (Noun)
+    /// Noun
     NOUN,
-    /// 数詞 (Numeral)
+    /// Numeral
     NUM,
-    /// 助詞・小辞 (Particle)
+    /// Particle
     PART,
-    /// 代名詞 (Pronoun)
+    /// Pronoun
     PRON,
-    /// 固有名詞 (Proper noun)
+    /// Proper noun
     PROPN,
-    /// 句読点 (Punctuation)
+    /// Punctuation
     PUNCT,
-    /// 従属接続詞 (Subordinating conjunction)
+    /// Subordinating conjunction
     SCONJ,
-    /// 記号 (Symbol)
+    /// Symbol
     SYM,
-    /// 動詞 (Verb)
+    /// Verb
     VERB,
-    /// その他 (Other)
+    /// Other
     X,
 }
 
 impl Upos {
-    /// 全UPOSタグの一覧を返す。
+    /// All UPOS tags.
     pub const ALL: [Upos; 17] = [
         Upos::ADJ,
         Upos::ADP,
@@ -117,13 +117,12 @@ impl FromStr for Upos {
     }
 }
 
-/// セグメンテーション+品詞の複合ラベル。
-/// 各文字位置に割り当てられる。
+/// Combined segmentation + POS label assigned to each character position.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SegmentLabel {
-    /// 単語の先頭文字（境界）。品詞情報を持つ。
+    /// First character of a word (boundary), carrying the POS tag.
     B(Upos),
-    /// 単語の継続文字（非境界）。
+    /// Continuation character of a word (non-boundary).
     O,
 }
 
@@ -152,7 +151,7 @@ impl FromStr for SegmentLabel {
 }
 
 impl SegmentLabel {
-    /// 全ラベルの一覧を返す（B-ADJ, B-ADP, ..., B-X, O）。
+    /// Returns all labels (B-ADJ, B-ADP, ..., B-X, O).
     pub fn all_labels() -> Vec<SegmentLabel> {
         let mut labels: Vec<SegmentLabel> =
             Upos::ALL.iter().map(|&pos| SegmentLabel::B(pos)).collect();
@@ -160,12 +159,12 @@ impl SegmentLabel {
         labels
     }
 
-    /// 境界ラベルかどうかを返す。
+    /// Returns true if this is a boundary label.
     pub fn is_boundary(&self) -> bool {
         matches!(self, SegmentLabel::B(_))
     }
 
-    /// 品詞タグを返す。非境界（O）の場合はNone。
+    /// Returns the POS tag, or None for the non-boundary label (O).
     pub fn pos(&self) -> Option<Upos> {
         match self {
             SegmentLabel::B(pos) => Some(*pos),
@@ -190,18 +189,18 @@ mod tests {
     #[test]
     fn test_upos_parse_error() {
         assert!("UNKNOWN".parse::<Upos>().is_err());
-        assert!("noun".parse::<Upos>().is_err()); // 大文字のみ
+        assert!("noun".parse::<Upos>().is_err()); // upper case only
         assert!("".parse::<Upos>().is_err());
     }
 
     #[test]
     fn test_segment_label_display_and_parse() {
-        // B-品詞ラベル
+        // B-<POS> label
         let label = SegmentLabel::B(Upos::NOUN);
         assert_eq!(label.to_string(), "B-NOUN");
         assert_eq!("B-NOUN".parse::<SegmentLabel>().unwrap(), label);
 
-        // Oラベル
+        // O label
         let label_o = SegmentLabel::O;
         assert_eq!(label_o.to_string(), "O");
         assert_eq!("O".parse::<SegmentLabel>().unwrap(), label_o);
@@ -217,7 +216,7 @@ mod tests {
     #[test]
     fn test_all_labels() {
         let labels = SegmentLabel::all_labels();
-        // 17品詞のB + O = 18ラベル
+        // 17 B-<POS> labels + O = 18 labels
         assert_eq!(labels.len(), 18);
         assert!(labels.last().unwrap() == &SegmentLabel::O);
         assert!(labels[0].is_boundary());

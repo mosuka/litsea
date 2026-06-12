@@ -36,7 +36,7 @@ pub fn extract(
     &mut self,
     corpus_path: &Path,
     features_path: &Path,
-) -> Result<(), Box<dyn Error>>
+) -> litsea::Result<()>
 ```
 
 Reads a corpus file (space-separated words, one sentence per line) and writes the extracted features to the output file.

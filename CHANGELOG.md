@@ -69,6 +69,13 @@ Measured on the bundled models (criterion, medians, vs v0.4.0):
 - `AveragedPerceptron::train`: no longer clones all instances per call and
   no longer rebuilds a `HashSet` per instance per epoch.
 
+### Documentation
+
+- All source doc comments are now in English (Japanese documentation lives
+  in the `docs/ja` mdbook).
+- The mdbook documentation (English and Japanese) and README are updated to
+  the v0.5.0 API; README model paths now point at `models/`.
+
 ### Migration notes
 
 - Replace `learner.load_model(path).await?` with

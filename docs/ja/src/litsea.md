@@ -6,46 +6,50 @@
 
 ```toml
 [dependencies]
-litsea = "0.4.0"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+litsea = "0.5.0"
 ```
+
+ローカルファイルからのモデル読み込みは同期 API（`load_model_from_path`）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（`load_model`）を使う場合のみ、非同期ランタイムを追加してください。
 
 ## モジュール構成
 
 ```mermaid
 graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
-    C["litsea::adaboost"] --- D["AdaBoost, Metrics"]
-    E["litsea::language"] --- F["Language, CharTypePatterns"]
+    C["litsea::adaboost"] --- D["AdaBoost"]
+    E["litsea::language"] --- F["Language"]
     G["litsea::extractor"] --- H["Extractor"]
-    I["litsea::trainer"] --- J["Trainer"]
-    K["litsea::util"] --- L["ModelScheme"]
-    M["litsea::perceptron"] --- N["AveragedPerceptron, Metrics"]
+    I["litsea::trainer"] --- J["Trainer, PosTrainer"]
+    K["litsea::error"] --- L["LitseaError, Result"]
+    M["litsea::perceptron"] --- N["AveragedPerceptron"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
+    Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
 ```
 
 | モジュール | 主要な型 | 用途 |
 |--------|--------------|---------|
 | `litsea::segmenter` | `Segmenter` | 単語分割、品詞推定付き分割 |
-| `litsea::adaboost` | `AdaBoost`, `Metrics` | 二値分類、モデルの入出力 |
-| `litsea::perceptron` | `AveragedPerceptron`, `Metrics` | 多クラス分類（品詞推定）、モデルの入出力 |
+| `litsea::adaboost` | `AdaBoost` | 二値分類、モデルの入出力 |
+| `litsea::perceptron` | `AveragedPerceptron` | 多クラス分類（品詞推定）、モデルの入出力 |
 | `litsea::upos` | `Upos`, `SegmentLabel` | UPOS 品詞タグ、セグメントラベル |
-| `litsea::language` | `Language`, `CharTypePatterns` | 言語定義、文字分類 |
+| `litsea::language` | `Language` | 言語定義、文字分類 |
 | `litsea::extractor` | `Extractor` | コーパスからの特徴量抽出 |
-| `litsea::trainer` | `Trainer` | 学習パイプラインの制御 |
-| `litsea::util` | `ModelScheme` | URI スキームの解析 |
+| `litsea::trainer` | `Trainer`, `PosTrainer` | 学習パイプラインの制御 |
+| `litsea::error` | `LitseaError`, `Result` | エラー型と `Result` エイリアス |
+| `litsea::metrics` | `BinaryMetrics`, `MulticlassMetrics` | 学習結果の評価指標 |
+
+主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::{AdaBoost, Language, Segmenter};` のように短いパスで利用できます。
 
 ## クイックスタート
 
 ```rust
-use litsea::adaboost::AdaBoost;
-use litsea::language::Language;
-use litsea::segmenter::Segmenter;
+use std::path::Path;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+use litsea::{AdaBoost, Language, Segmenter};
+
+fn main() -> litsea::Result<()> {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");
@@ -58,14 +62,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ## クイックスタート（品詞推定）
 
 ```rust
+use std::path::Path;
+
 use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> litsea::Result<()> {
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
     let tokens = segmenter.segment_with_pos("これはテストです。");

@@ -51,15 +51,16 @@ echo "今日はいい天気ですね。" \
 モデルを読み込みテキストを分割する最小限の Rust プログラムです:
 
 ```rust
+use std::path::Path;
+
 use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Load the pre-trained model
+fn main() -> litsea::Result<()> {
+    // 学習済みモデルを読み込み
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -78,15 +79,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 品詞推定付きモデルを読み込み、単語分割と品詞推定を同時に行う例です:
 
 ```rust
+use std::path::Path;
+
 use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> litsea::Result<()> {
     // POS モデルを読み込み
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     // POS 対応 Segmenter を作成
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);

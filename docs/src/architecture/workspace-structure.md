@@ -56,7 +56,7 @@ The core library provides all segmentation, training, and model I/O functionalit
 
 | Dependency | Version | Purpose |
 |-----------|---------|---------|
-| `regex` | 1.12 | Character type pattern matching |
+| `thiserror` | 2.0 | Error type derivation |
 | `reqwest` | 0.13 | HTTP/HTTPS model loading (rustls) |
 | `tokio` | 1.49 | Async runtime for remote model loading |
 | `criterion` | 0.8 | Benchmarking (dev dependency) |

@@ -56,15 +56,15 @@ impl Extractor {
         })
     }
 
-    /// 品詞付きコーパスから特徴量を抽出してファイルに書き出す。
+    /// Extracts features from a POS-tagged corpus and writes them to a file.
     ///
-    /// コーパスフォーマット: 各行が "単語/品詞 単語/品詞 ..." 形式。
-    /// 出力フォーマット: 各行が "ラベル\t特徴1\t特徴2\t..." 形式。
-    /// ラベルは "B-NOUN", "B-VERB", ..., "O" のSegmentLabel文字列。
+    /// Corpus format: each line is "word/POS word/POS ...".
+    /// Output format: each line is "label\tfeature1\tfeature2\t...".
+    /// Labels are SegmentLabel strings: "B-NOUN", "B-VERB", ..., "O".
     ///
     /// # Arguments
-    /// * `corpus_path` - 品詞付きコーパスファイルのパス
-    /// * `features_path` - 特徴量出力ファイルのパス
+    /// * `corpus_path` - The path to the POS-tagged corpus file
+    /// * `features_path` - The path to the features output file
     pub fn extract_with_pos(&mut self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
@@ -174,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_extract_with_pos() -> Result<()> {
-        // 品詞付きコーパスの作成
+        // Create a POS-tagged corpus
         let mut corpus_file = NamedTempFile::new()?;
         writeln!(corpus_file, "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT")?;
         writeln!(corpus_file, "私/PRON の/PART 猫/NOUN 。/PUNCT")?;
@@ -190,17 +190,17 @@ mod tests {
 
         assert!(!output.is_empty(), "Extracted features should not be empty");
 
-        // ラベルが SegmentLabel 形式であることを確認
+        // Verify the labels follow the SegmentLabel format
         for line in output.lines() {
             let fields: Vec<&str> = line.split('\t').collect();
             assert!(fields.len() >= 2, "Line should have label + features: {line}");
             let label = fields[0];
-            // ラベルは "O" または "B-品詞" のいずれか
+            // The label is either "O" or "B-<POS>"
             assert!(
                 label == "O" || label.starts_with("B-"),
                 "Label should be 'O' or 'B-<POS>', got: {label}"
             );
-            // B-品詞の場合、品詞がUPOSタグであることを確認
+            // For B-<POS>, verify the POS is a valid UPOS tag
             if let Some(pos) = label.strip_prefix("B-") {
                 assert!(
                     pos.parse::<crate::upos::Upos>().is_ok(),

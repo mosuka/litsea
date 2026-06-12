@@ -6,11 +6,13 @@ The `Segmenter` struct is the primary interface for word segmentation.
 
 ```rust
 pub struct Segmenter {
-    pub language: Language,
-    pub learner: AdaBoost,
-    // internal: char_types: CharTypePatterns
+    // private: language: Language,
+    // private: learner: AdaBoost,
+    // private: pos_learner: Option<AveragedPerceptron>,
 }
 ```
+
+The fields are private; use the accessor methods `language()`, `learner()`, `learner_mut()`, `pos_learner()`, and `pos_learner_mut()` to reach them.
 
 ## Constructor
 
@@ -51,19 +53,19 @@ let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
 ```
 
-### `get_type`
+### `char_type`
 
 ```rust
-pub fn get_type(&self, ch: &str) -> &str
+pub fn char_type(&self, ch: &str) -> &str
 ```
 
-Classifies a single character into its type code using language-specific patterns.
+Classifies a single character into its type code using language-specific rules. The first character of the `&str` is classified; an empty string returns `"O"`.
 
 ```rust
 let segmenter = Segmenter::new(Language::Japanese, None);
-assert_eq!(segmenter.get_type("あ"), "I");  // Hiragana
-assert_eq!(segmenter.get_type("漢"), "H");  // Kanji
-assert_eq!(segmenter.get_type("A"), "A");   // ASCII
+assert_eq!(segmenter.char_type("あ"), "I");  // Hiragana
+assert_eq!(segmenter.char_type("漢"), "H");  // Kanji
+assert_eq!(segmenter.char_type("A"), "A");   // ASCII
 ```
 
 ### `add_corpus`
@@ -95,18 +97,16 @@ segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
 });
 ```
 
-### `get_attributes`
+### Accessors
 
 ```rust
-pub fn get_attributes(
-    &self,
-    i: usize,
-    tags: &[String],
-    chars: &[String],
-    types: &[String],
-) -> HashSet<String>
+pub fn language(&self) -> Language
+pub fn learner(&self) -> &AdaBoost
+pub fn learner_mut(&mut self) -> &mut AdaBoost
+pub fn pos_learner(&self) -> Option<&AveragedPerceptron>
+pub fn pos_learner_mut(&mut self) -> Option<&mut AveragedPerceptron>
 ```
 
-Extracts the feature set for a specific character position. Returns 38 features (Korean) or 42 features (Japanese/Chinese).
+Provide access to the segmenter's language and its internal learners.
 
-> This is primarily used internally by `segment()` and `process_corpus()`.
+> Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former `get_attributes` method is now private.

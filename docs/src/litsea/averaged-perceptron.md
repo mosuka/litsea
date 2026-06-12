@@ -92,42 +92,66 @@ let label = learner.predict(&attrs);
 ### `save_model`
 
 ```rust
-pub fn save_model(&self, path: &Path) -> io::Result<()>
+pub fn save_model(&self, path: &Path) -> litsea::Result<()>
 ```
 
 Saves model weights to a file. Returns an error if the model is empty.
 
+### `load_model_from_path`
+
+```rust
+pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
+```
+
+Loads model weights from a local file, synchronously. This is the preferred method for local files -- no async runtime is needed.
+
+```rust
+use std::path::Path;
+
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+```
+
+### `load_model_from_reader`
+
+```rust
+pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> litsea::Result<()>
+```
+
+Loads model weights from any `BufRead` source, such as an in-memory buffer or an already-open file.
+
 ### `load_model`
 
 ```rust
-pub async fn load_model(&mut self, uri: &str) -> io::Result<()>
+pub async fn load_model(&mut self, uri: &str) -> litsea::Result<()>
 ```
 
 Loads model weights from a URI. Supports the following URI schemes:
 
 - Local file path: `./models/japanese_pos.model`
 - File URI: `file:///path/to/model`
-- HTTP: `http://example.com/model`
-- HTTPS: `https://example.com/model`
+- HTTP: `http://example.com/model` (requires the `remote_model` feature)
+- HTTPS: `https://example.com/model` (requires the `remote_model` feature)
 
 ```rust
-learner.load_model("./models/japanese_pos.model").await?;
+learner.load_model("https://example.com/models/japanese_pos.model").await?;
 ```
 
 ## Evaluation
 
-### `get_metrics`
+### `metrics`
 
 ```rust
-pub fn get_metrics(&self) -> Metrics
+pub fn metrics(&self) -> MulticlassMetrics
 ```
 
 Calculates evaluation metrics on the training data.
 
-## Metrics
+## MulticlassMetrics
+
+Defined in `litsea::metrics` (also re-exported as `litsea::MulticlassMetrics`):
 
 ```rust
-pub struct Metrics {
+pub struct MulticlassMetrics {
     pub accuracy: f64,                            // Overall accuracy in percentage
     pub macro_precision: f64,                     // Macro-averaged precision in percentage
     pub macro_recall: f64,                        // Macro-averaged recall in percentage

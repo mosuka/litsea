@@ -4,12 +4,9 @@ Each language in Litsea defines a set of **character type patterns** that classi
 
 ## How It Works
 
-The `CharTypePatterns` struct holds an ordered list of `(CharMatcher, type_code)` pairs. For each character, the **first matching pattern** determines the type code. If no pattern matches, the character is classified as `"O"` (Other).
+`Language::char_type(c: char) -> &'static str` classifies a character with a direct `match` expression on Unicode character ranges — no regex, no allocation. Match arms are tried top to bottom, so the **first matching arm** determines the type code. If no arm matches, the character is classified as `"O"` (Other).
 
-`CharMatcher` supports two matching strategies:
-
-- **Regex** -- Compiled regex patterns for Unicode range matching
-- **Closure** -- Custom functions for complex logic (e.g., Korean Hangul syllable structure)
+Each language has its own classification function (`japanese_char_type`, `chinese_char_type`, `korean_char_type`); the classes shared by all languages — `"P"` (punctuation), `"A"` (Latin), `"N"` (digits) — live in a common `punct_latin_digit()` helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with match guards (e.g., Korean Hangul syllable structure).
 
 ## Japanese Character Types
 
@@ -65,7 +62,7 @@ The `CharTypePatterns` struct holds an ordered list of `(CharMatcher, type_code)
 
 ### Korean Hangul Syllable Detection
 
-Korean uses **closure-based matching** for SN and SF types. This leverages Unicode's systematic Hangul encoding:
+Korean uses a **match guard** for the SN and SF types. This leverages Unicode's systematic Hangul encoding:
 
 - Hangul Syllables occupy U+AC00--U+D7AF
 - Each syllable is encoded as: `(initial * 21 + medial) * 28 + final + 0xAC00`
@@ -81,5 +78,5 @@ This distinction is important because the presence of a final consonant (받침)
 | Total types | 8 | 9 | 10 |
 | Unique types | M, H, I, K | F, C, X, R, B | E, SN, SF, J, G |
 | Shared types | P, A, N, O | P, A, N, O | P, A, N, O (H shared with JP) |
-| Matching method | Regex only | Regex only | Regex + Closure |
+| Matching method | Range match | Range match | Range match + guard |
 | WC features used | Yes | Yes | No |

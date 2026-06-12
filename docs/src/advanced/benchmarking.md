@@ -20,14 +20,14 @@ The benchmarks are defined in `litsea/benches/bench.rs`:
 
 | Benchmark | Description |
 |-----------|------------|
-| `segment_japanese_short` | Segment a short Japanese sentence |
-| `segment_japanese_long` | Segment the full Bocchan novel (~300 KB) |
-| `segment_chinese_short` | Segment a short Chinese sentence |
-| `segment_korean_short` | Segment a short Korean sentence |
+| `segment_short/adaboost/{ja,zh,ko}` | Segment a short sentence (AdaBoost) |
+| `segment_short/averaged_perceptron/{ja,zh,ko}` | Segment + POS tag a short sentence |
+| `segment_long_japanese/{adaboost,averaged_perceptron}` | Process the full Bocchan novel (~300 KB) |
 | `get_type_hiragana` | Character type classification |
 | `add_corpus` | Corpus ingestion for training |
-| `char_type_patterns_japanese` | Pattern compilation cost |
-| `predict` | Single AdaBoost prediction |
+| `predict_adaboost` | Single AdaBoost prediction |
+
+Models are loaded synchronously with `load_model_from_path` — no async runtime is involved in the benchmarks.
 
 ## HTML Reports
 
@@ -48,6 +48,6 @@ Open this file in a browser after running benchmarks to view:
 Key performance factors:
 
 - **Segmentation** is linear in input length (O(n))
-- **Pattern compilation** (regex) is the most expensive one-time cost -- `Segmenter::new()` caches patterns
+- **Character classification** is a direct `match` on character ranges (a few nanoseconds; no setup cost)
 - **Prediction** at each position depends on the number of features (38-42, constant)
 - **Model loading** time is proportional to the model file size

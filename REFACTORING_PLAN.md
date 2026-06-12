@@ -266,9 +266,16 @@
 
 ---
 
-### フェーズ 5: ドキュメント・体裁の統一(仕上げ)
+### フェーズ 5: ドキュメント・体裁の統一(仕上げ) — ✅ 実施済み
 
 **目的**: コードコメント・ドキュメント・周辺ファイルの一貫性確保。
+
+**実施結果**(2026-06-12):
+- ソースの doc コメントを**英語に統一**(`perceptron.rs`・`upos.rs`・`segmenter.rs`・`trainer.rs`・`extractor.rs` の日本語コメントを翻訳。テストデータ・コード例中の日本語文は当然維持)。
+- doc コメント様式を統一(`# Returns:` インライン型 → セクション型)。`AdaBoost` の公開フィールドに doc を追加し、`cargo doc --no-deps` の警告ゼロを確認。
+- **mdbook(EN/JA 両方)を v0.5.0 API に全面追従**: 同期ロードAPI、`LitseaError`/`Result`、改名(`bias`/`metrics`/`char_type`)、`CharTypePatterns` 廃止 → `Language::char_type`、`util` 削除、モジュール構成(error/metrics/model_io/perceptron/upos)、新言語追加ガイドの match ベース化、ベンチ名の更新。
+- README の古いモデルパス(`resources/*.model` → `models/*.model`)を修正。
+- `rustfmt.toml` のコメントアウト行を削除(有効設定のみ残す)。
 
 **作業項目**:
 1. **doc コメント言語の統一**: crates.io 公開ライブラリのため**英語に統一**(`perceptron.rs`・`upos.rs`・`trainer.rs` 後半・`segmenter.rs` の日本語コメントを翻訳)。日本語ドキュメントは既存の `docs/ja`(mdbook)に集約する。

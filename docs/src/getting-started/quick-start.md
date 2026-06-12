@@ -53,15 +53,16 @@ Each token is annotated with a [Universal POS (UPOS)](https://universaldependenc
 Here is a minimal Rust program that loads a model and segments text:
 
 ```rust
+use std::path::Path;
+
 use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> litsea::Result<()> {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model("./models/japanese.model").await?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -80,15 +81,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 Here is a minimal Rust program that loads a POS model and segments text with POS tags:
 
 ```rust
+use std::path::Path;
+
 use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> litsea::Result<()> {
     // Load the pre-trained POS model
     let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model("./models/japanese_pos.model").await?;
+    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     // Create a segmenter with POS support
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);

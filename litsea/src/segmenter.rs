@@ -11,7 +11,7 @@ use crate::upos::{SegmentLabel, Upos};
 pub struct Segmenter {
     language: Language,
     learner: AdaBoost,
-    /// 品詞推定用のAveraged Perceptron（オプション）
+    /// Optional Averaged Perceptron for POS tagging
     pos_learner: Option<AveragedPerceptron>,
 }
 
@@ -186,16 +186,17 @@ impl Segmenter {
         self.process_tokens(corpus.split(' ').map(|word| (word, 1i8)), -1i8, callback);
     }
 
-    /// 品詞付きコーパスを処理し、各文字位置の特徴量とSegmentLabelを返す。
+    /// Processes a POS-tagged corpus, yielding the attributes and
+    /// SegmentLabel for each character position.
     ///
-    /// コーパスフォーマット: "単語/品詞 単語/品詞 ..."
-    /// 例: "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT"
+    /// Corpus format: "word/POS word/POS ..."
+    /// Example: "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT"
     fn process_corpus_with_pos<F>(&self, corpus: &str, callback: F)
     where
         F: FnMut(HashSet<String>, SegmentLabel),
     {
         let tokens = corpus.split(' ').map(|token| {
-            // "単語/品詞" をパース（スラッシュが無い場合はXとして扱う）
+            // Parse "word/POS" (no slash means the POS defaults to X)
             let (word, pos) = match token.rfind('/') {
                 Some(idx) => (&token[..idx], token[idx + 1..].parse().unwrap_or(Upos::X)),
                 None => (token, Upos::X),
@@ -260,10 +261,10 @@ impl Segmenter {
         }
     }
 
-    /// 品詞付きコーパスをAveraged Perceptronの学習データとして追加する。
+    /// Adds a POS-tagged corpus as Averaged Perceptron training data.
     ///
     /// # Arguments
-    /// * `corpus` - 品詞付きコーパス（"単語/品詞 単語/品詞 ..."形式）
+    /// * `corpus` - A POS-tagged corpus ("word/POS word/POS ..." format)
     ///
     /// # Example
     /// ```
@@ -284,11 +285,11 @@ impl Segmenter {
         }
     }
 
-    /// 品詞付きコーパスの特徴量をカスタムライター関数で処理する。
+    /// Processes a POS-tagged corpus's features with a custom writer.
     ///
     /// # Arguments
-    /// * `corpus` - 品詞付きコーパス（"単語/品詞 単語/品詞 ..."形式）
-    /// * `writer` - 各文字位置の特徴量セットとSegmentLabelを受け取るクロージャ
+    /// * `corpus` - A POS-tagged corpus ("word/POS word/POS ..." format)
+    /// * `writer` - A closure receiving the attribute set and SegmentLabel for each character position
     pub fn add_corpus_with_pos_writer<F>(&self, corpus: &str, writer: F)
     where
         F: FnMut(HashSet<String>, SegmentLabel),
@@ -363,21 +364,22 @@ impl Segmenter {
         result
     }
 
-    /// 文を単語に分割し、各単語のUPOS品詞タグを同時に推定する。
+    /// Segments a sentence into words and jointly predicts each word's UPOS tag.
     ///
-    /// Averaged Perceptron（`pos_learner`）を使って各文字位置のラベル
-    /// （`B-品詞`/`O`）を予測し、単語と品詞のペアを返す。
-    /// 先頭単語の品詞は先頭文字位置の予測ラベルから決定する。
+    /// Uses the Averaged Perceptron (`pos_learner`) to predict the label
+    /// (`B-<POS>` / `O`) at each character position and returns word/POS
+    /// pairs. The first word's POS is derived from the predicted label at
+    /// the first character position.
     ///
     /// # Arguments
-    /// * `sentence` - 分割対象の文
+    /// * `sentence` - The sentence to segment
     ///
     /// # Returns
-    /// `Vec<(String, Upos)>` - 単語と品詞タグのペアのベクタ
+    /// `Vec<(String, Upos)>` - Pairs of words and their POS tags
     ///
     /// # Panics
-    /// `pos_learner`が設定されていない場合にパニックする。
-    /// `with_pos_learner()`または`add_corpus_with_pos()`で事前に設定すること。
+    /// Panics if `pos_learner` is not set. Set it beforehand with
+    /// `with_pos_learner()` or `add_corpus_with_pos()`.
     #[must_use]
     pub fn segment_with_pos(&self, sentence: &str) -> Vec<(String, Upos)> {
         if sentence.is_empty() {
@@ -408,7 +410,7 @@ impl Segmenter {
             let label: SegmentLabel =
                 pos_learner.predict_slice(&attrs_buf).parse().unwrap_or(SegmentLabel::O);
             if label.is_boundary() {
-                // 現在の単語を確定して結果に追加
+                // Finalize the current word and push it to the result
                 result.push((std::mem::take(&mut word), current_pos));
                 current_pos = label.pos().unwrap_or(Upos::X);
                 tags.push("B");
@@ -800,13 +802,13 @@ mod tests {
         assert_eq!(attrs.len(), 38);
     }
 
-    // --- 品詞推定関連テスト ---
+    // --- POS tagging tests ---
 
     #[test]
     fn test_add_corpus_with_pos() {
         let mut segmenter = Segmenter::new(Language::Japanese, None);
         segmenter.add_corpus_with_pos("これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT");
-        // pos_learnerが初期化される
+        // pos_learner is initialized
         assert!(segmenter.pos_learner.is_some());
     }
 
@@ -820,18 +822,19 @@ mod tests {
             collected.push((attrs, label));
         });
 
-        // "テストです" は5文字。ループは4..(8-3)=4..5で4回。
-        // ただしlabels[0]はtags[3]に対応（先頭文字）で、ループはi=4から始まるのでlabel_idx=1から。
-        // つまり "ス", "ト", "で", "す" の4文字分
+        // "テストです" has 5 characters; the loop runs 4 times (i=4..8).
+        // labels[0] corresponds to tags[3] (the first character), and the
+        // loop starts at i=4, so label_idx starts at 1 — i.e. the four
+        // characters "ス", "ト", "で", "す".
         assert_eq!(collected.len(), 4);
 
         // "テスト/NOUN" → テ=B-NOUN, ス=O, ト=O
         // "です/AUX" → で=B-AUX, す=O
-        // ループはi=4からなので: ス=O, ト=O, で=B-AUX, す=O
+        // The loop starts at i=4, so: ス=O, ト=O, で=B-AUX, す=O
         let boundary_count = collected.iter().filter(|(_, l)| l.is_boundary()).count();
-        assert_eq!(boundary_count, 1); // "で"のB-AUXのみ
+        assert_eq!(boundary_count, 1); // only the B-AUX at "で"
 
-        // B-AUXラベルの確認
+        // Check the B-AUX label
         let b_aux = collected.iter().find(|(_, l)| l.is_boundary());
         assert!(b_aux.is_some());
         assert_eq!(b_aux.unwrap().1, SegmentLabel::B(Upos::AUX));
@@ -841,24 +844,24 @@ mod tests {
     fn test_segment_with_pos() {
         let mut segmenter = Segmenter::new(Language::Japanese, None);
 
-        // 学習データを複数回追加して学習
+        // Add the training data multiple times and train
         for _ in 0..20 {
             segmenter.add_corpus_with_pos("これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT");
             segmenter.add_corpus_with_pos("私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT");
         }
 
-        // Perceptronを学習
+        // Train the perceptron
         let running = Arc::new(AtomicBool::new(true));
         segmenter.pos_learner.as_mut().unwrap().train(10, running);
 
-        // 分割+品詞推定
+        // Segmentation + POS tagging
         let result = segmenter.segment_with_pos("これはテストです。");
         assert!(!result.is_empty());
 
-        // 結果が (単語, 品詞) のペアであることを確認
+        // Verify the result is (word, POS) pairs
         for (word, pos) in &result {
             assert!(!word.is_empty());
-            // 品詞はUposのいずれか
+            // The POS is one of the Upos variants
             let _ = pos.to_string();
         }
     }

@@ -40,32 +40,20 @@ Language::Thai => write!(f, "thai"),
 
 ## 手順3: 文字タイプパターンを作成
 
-新しい言語の `CharTypePatterns` を返す関数を定義します。
+新しい言語の文字を種別コードに分類する関数を定義します。分類は文字範囲に対する `match` 式で直接行います（正規表現は使いません）。**最初にマッチしたアーム**が種別を決定します。
 
 ```rust
-fn thai_patterns() -> CharTypePatterns {
-    CharTypePatterns::from_matchers(vec![
-        // Thai characters (U+0E01-U+0E3A)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E01}-\u{0E3A}]").unwrap()
-        ), "T"),
-        // Thai vowels (U+0E40-U+0E4E)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E40}-\u{0E4E}]").unwrap()
-        ), "V"),
-        // Thai digits (U+0E50-U+0E59)
-        (CharMatcher::Regex(
-            Regex::new(r"[\u{0E50}-\u{0E59}]").unwrap()
-        ), "N"),
-        // ASCII + Full-width Latin
-        (CharMatcher::Regex(
-            Regex::new(r"[a-zA-Zａ-ｚＡ-Ｚ]").unwrap()
-        ), "A"),
-        // Digits
-        (CharMatcher::Regex(
-            Regex::new(r"[0-9０-９]").unwrap()
-        ), "N"),
-    ])
+fn thai_char_type(c: char) -> &'static str {
+    match c {
+        // タイ文字の子音・順行母音 (U+0E01-U+0E3A)
+        '\u{0E01}'..='\u{0E3A}' => "T",
+        // タイ文字の母音・声調記号 (U+0E40-U+0E4E)
+        '\u{0E40}'..='\u{0E4E}' => "V",
+        // タイ数字 (U+0E50-U+0E59)
+        '\u{0E50}'..='\u{0E59}' => "N",
+        // 共通クラス: "P"（句読点）、"A"（ラテン文字）、"N"（数字）
+        _ => punct_latin_digit(c).unwrap_or("O"),
+    }
 }
 ```
 
@@ -78,15 +66,15 @@ fn thai_patterns() -> CharTypePatterns {
 
 ## 手順4: パターン関数を登録
 
-`Language::char_type_patterns()` にmatchアームを追加します。
+`Language::char_type()` にmatchアームを追加します。
 
 ```rust
-pub fn char_type_patterns(&self) -> CharTypePatterns {
+pub fn char_type(&self, c: char) -> &'static str {
     match self {
-        Language::Japanese => japanese_patterns(),
-        Language::Chinese => chinese_patterns(),
-        Language::Korean => korean_patterns(),
-        Language::Thai => thai_patterns(),    // ← new
+        Language::Japanese => japanese_char_type(c),
+        Language::Chinese => chinese_char_type(c),
+        Language::Korean => korean_char_type(c),
+        Language::Thai => thai_char_type(c),    // ← new
     }
 }
 ```
@@ -138,17 +126,17 @@ match self.language {
 // In language.rs tests
 #[test]
 fn test_thai_patterns() {
-    let p = Language::Thai.char_type_patterns();
-    assert_eq!(p.get_type("ก"), "T");   // Thai consonant
-    assert_eq!(p.get_type("A"), "A");   // ASCII
-    assert_eq!(p.get_type("@"), "O");   // Other
+    let lang = Language::Thai;
+    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
+    assert_eq!(lang.char_type('A'), "A");   // ASCII
+    assert_eq!(lang.char_type('@'), "O");   // Other
 }
 
 // In segmenter.rs tests
 #[test]
-fn test_get_type_thai() {
+fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai, None);
-    assert_eq!(segmenter.get_type("ก"), "T");
+    assert_eq!(segmenter.char_type("ก"), "T");
 }
 ```
 
