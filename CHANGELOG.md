@@ -53,6 +53,11 @@ compatible: all pre-trained models in `models/` load unchanged.
   skipped consistently by both feature-file passes. Note: legacy
   hand-written space-separated features files are no longer accepted; the
   `extract` command has always produced tab-separated output (#99).
+- `litsea segment` now treats a downstream consumer closing stdout early
+  (e.g. `litsea segment model | head -1`) as normal termination instead of
+  reporting `Error: Broken pipe` and exiting 1, and explicitly flushes its
+  output buffer so real I/O errors are surfaced instead of being lost in
+  the writer's drop (#102).
 - Model loading now fails loudly on corrupt data instead of silently
   producing a broken model: both loaders reject non-finite weights
   (`NaN`/`inf`, which poisoned every score comparison), and the AdaBoost

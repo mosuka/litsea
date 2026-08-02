@@ -194,10 +194,49 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Writes one output line, treating a closed downstream pipe as normal
+/// termination.
+///
+/// # Arguments
+/// * `writer` - The output writer.
+/// * `line` - The line to write (a newline is appended).
+///
+/// # Returns
+/// `Ok(true)` to continue writing, `Ok(false)` when the downstream consumer
+/// closed the pipe (e.g. `litsea segment model | head -1`), or the original
+/// error for any other I/O failure.
+fn write_output_line<W: Write>(writer: &mut W, line: &str) -> io::Result<bool> {
+    match writeln!(writer, "{}", line) {
+        Ok(()) => Ok(true),
+        Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(false),
+        Err(e) => Err(e),
+    }
+}
+
+/// Flushes the output writer, treating a closed downstream pipe as normal
+/// termination.
+///
+/// # Arguments
+/// * `writer` - The output writer to flush.
+///
+/// # Returns
+/// `Ok(())` on success or broken pipe; any other I/O error is returned so it
+/// is surfaced instead of being lost in the writer's drop.
+fn flush_output<W: Write>(writer: &mut W) -> io::Result<()> {
+    match writer.flush() {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == io::ErrorKind::BrokenPipe => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
 /// Segment a sentence using the trained model.
 /// This function loads the AdaBoost model from the specified file,
 /// reads sentences from standard input, segments them into words,
 /// and writes the segmented sentences to standard output.
+///
+/// A downstream consumer closing stdout early (broken pipe) terminates the
+/// command successfully instead of reporting an error.
 ///
 /// # Arguments
 /// * `args` - The arguments for the segment command [`SegmentArgs`].
@@ -227,7 +266,9 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
             let tokens = segmenter.segment_with_pos(line);
             let formatted: Vec<String> =
                 tokens.iter().map(|(word, pos)| format!("{}/{}", word, pos)).collect();
-            writeln!(writer, "{}", formatted.join(" "))?;
+            if !write_output_line(&mut writer, &formatted.join(" "))? {
+                return Ok(());
+            }
         }
     } else {
         // 既存のAdaBoostモデルで単語分割のみ
@@ -243,10 +284,13 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
                 continue;
             }
             let tokens = segmenter.segment(line);
-            writeln!(writer, "{}", tokens.join(" "))?;
+            if !write_output_line(&mut writer, &tokens.join(" "))? {
+                return Ok(());
+            }
         }
     }
 
+    flush_output(&mut writer)?;
     Ok(())
 }
 
