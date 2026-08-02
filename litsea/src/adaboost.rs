@@ -395,10 +395,23 @@ impl AdaBoost {
     /// * `reader`: A buffered reader containing the model data.
     ///
     /// # Errors
-    /// Returns an error if the content cannot be parsed.
+    /// Returns `LitseaError::InvalidData` if the content cannot be parsed or
+    /// violates the model format: the file must consist of unique
+    /// tab-separated weight lines plus exactly one bias line (a single
+    /// number), and every value must be finite. An empty file, a file
+    /// without a bias line (e.g. a truncated download), or a file with more
+    /// than one bias line is rejected. The learner is not modified on error.
+    ///
+    /// `save_model` always writes the bias line last; weight lines after the
+    /// bias line are nevertheless accepted for compatibility with legacy
+    /// models (e.g. `RWCP.model`), with the bias-bucket weight computed from
+    /// the weights preceding the bias line exactly as the historical loader
+    /// did.
     pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()> {
         let mut m: HashMap<String, f64> = HashMap::new();
-        let mut bias = 0.0;
+        let mut weight_sum = 0.0;
+        let mut bias_seen = false;
+        let mut any_line = false;
 
         for (line_num, line) in reader.lines().enumerate() {
             let line = line?;
@@ -408,6 +421,7 @@ impl AdaBoost {
                     line_num + 1
                 )));
             }
+            any_line = true;
             // Model lines are tab-separated ("feature\tweight", written by
             // save_model); feature names may embed any non-tab character.
             let mut parts = line.split('\t');
@@ -424,9 +438,28 @@ impl AdaBoost {
                         e
                     ))
                 })?;
-                m.insert(h.to_string(), value);
-                bias += value;
+                if !value.is_finite() {
+                    return Err(LitseaError::InvalidData(format!(
+                        "Non-finite weight at line {}: {}",
+                        line_num + 1,
+                        v
+                    )));
+                }
+                if m.insert(h.to_string(), value).is_some() {
+                    return Err(LitseaError::InvalidData(format!(
+                        "Duplicate feature at line {}: '{}'",
+                        line_num + 1,
+                        h
+                    )));
+                }
+                weight_sum += value;
             } else {
+                if bias_seen {
+                    return Err(LitseaError::InvalidData(format!(
+                        "Duplicate bias line at line {}",
+                        line_num + 1
+                    )));
+                }
                 let b: f64 = h.parse().map_err(|e| {
                     LitseaError::InvalidData(format!(
                         "Invalid bias at line {}: {}",
@@ -434,8 +467,29 @@ impl AdaBoost {
                         e
                     ))
                 })?;
-                m.insert("".to_string(), -b * 2.0 - bias);
+                if !b.is_finite() {
+                    return Err(LitseaError::InvalidData(format!(
+                        "Non-finite bias at line {}: {}",
+                        line_num + 1,
+                        h
+                    )));
+                }
+                bias_seen = true;
+                // Reconstruct the bias-bucket weight from the bias value and
+                // the running sum of the weights seen so far (the inverse of
+                // save_model's computation; also matches the historical
+                // loader for legacy files whose bias line is not last).
+                m.insert("".to_string(), -b * 2.0 - weight_sum);
             }
+        }
+
+        if !any_line {
+            return Err(LitseaError::InvalidData("Empty model file".to_string()));
+        }
+        if !bias_seen {
+            return Err(LitseaError::InvalidData(
+                "Model file has no bias line; the file may be truncated".to_string(),
+            ));
         }
 
         // A learner is "fresh" when it holds no instances and no real
@@ -852,11 +906,64 @@ mod tests {
 
     #[test]
     fn test_load_model_from_reader_empty_input() {
+        // #101: an empty model file is rejected (consistent with the
+        // perceptron loader), and the learner state stays untouched.
         let mut learner = AdaBoost::new(0.01, 10);
-        // Empty input should succeed, leaving only the bias bucket registered.
         let result = learner.load_model_from_reader("".as_bytes());
-        assert!(result.is_ok());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
         assert_eq!(learner.features, vec![String::new()]);
+    }
+
+    #[test]
+    fn test_load_model_rejects_nonfinite_weight() {
+        // #101: NaN/inf parse successfully as f64 but poison bias() and every
+        // score comparison; they must be rejected at load time.
+        for content in ["feat1\tNaN\n0.0\n", "feat1\tinf\n0.0\n"] {
+            let mut learner = AdaBoost::new(0.01, 10);
+            let result = learner.load_model_from_reader(content.as_bytes());
+            assert!(
+                matches!(result, Err(LitseaError::InvalidData(_))),
+                "expected InvalidData for {:?}",
+                content
+            );
+        }
+    }
+
+    #[test]
+    fn test_load_model_rejects_nonfinite_bias() {
+        let mut learner = AdaBoost::new(0.01, 10);
+        let result = learner.load_model_from_reader("feat1\t0.5\n-inf\n".as_bytes());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
+    }
+
+    #[test]
+    fn test_load_model_allows_weight_lines_after_bias() {
+        // #101: save_model always writes the bias line last, but legacy
+        // models (e.g. the shipped RWCP.model) place it mid-file. Such files
+        // must keep loading, with the bias bucket computed from the weights
+        // preceding the bias line (the historical loader's semantics).
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.load_model_from_reader("0.5\nfeat1\t0.5\n".as_bytes()).unwrap();
+        // Bias bucket from the bias line only: -0.5 * 2 - 0 = -1.0.
+        let bias_idx = learner.feature_index[""];
+        assert!((learner.model[bias_idx] + 1.0).abs() < 1e-9);
+        assert!(learner.feature_index.contains_key("feat1"));
+    }
+
+    #[test]
+    fn test_load_model_rejects_double_bias() {
+        let mut learner = AdaBoost::new(0.01, 10);
+        let result = learner.load_model_from_reader("feat1\t0.5\n0.1\n0.2\n".as_bytes());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
+    }
+
+    #[test]
+    fn test_load_model_rejects_duplicate_feature() {
+        // save_model never emits the same feature twice; a duplicate would
+        // make the reconstructed bias-bucket weight inconsistent.
+        let mut learner = AdaBoost::new(0.01, 10);
+        let result = learner.load_model_from_reader("feat1\t0.5\nfeat1\t0.25\n0.0\n".as_bytes());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
     }
 
     #[test]
@@ -915,15 +1022,15 @@ mod tests {
 
     #[test]
     fn test_load_model_without_bias_line() {
-        // Regression test for #98: a model file consisting only of weight
-        // lines (no trailing bias line) must still leave the bias feature ""
-        // registered at index 0.
+        // #101 (supersedes the lenient #98 expectation): save_model always
+        // writes a trailing bias line, so a file without one indicates
+        // truncation (e.g. a partial download) and must be rejected instead
+        // of loading silently with a wrong bias.
         let mut learner = AdaBoost::new(0.01, 10);
-        learner.load_model_from_reader("feat1\t0.5\nfeat2\t-0.25\n".as_bytes()).unwrap();
-        assert_eq!(learner.features.first().map(String::as_str), Some(""));
-        assert_eq!(learner.feature_index.get(""), Some(&0));
-        assert!(learner.feature_index.contains_key("feat1"));
-        assert!(learner.feature_index.contains_key("feat2"));
+        let result = learner.load_model_from_reader("feat1\t0.5\nfeat2\t-0.25\n".as_bytes());
+        assert!(matches!(result, Err(LitseaError::InvalidData(_))));
+        // The learner state stays untouched on error.
+        assert_eq!(learner.features, vec![String::new()]);
     }
 
     #[test]

@@ -308,8 +308,14 @@ impl AveragedPerceptron {
             self.ensure_class(class.trim());
         }
 
-        // Read the weights
+        // Read the weights. Reset all learned state: the weights are replaced
+        // by the file's, and the averaging accumulators must not survive into
+        // a later train() call (they would combine stale timestamps with the
+        // loaded weights and corrupt the averaged model).
         self.weights.clear();
+        self.accumulated.clear();
+        self.timestamps.clear();
+        self.step = 0;
         let n = self.classes.len();
         for line in lines {
             let line = line?;
@@ -329,6 +335,12 @@ impl AveragedPerceptron {
             let weight: f64 = parts[2]
                 .parse()
                 .map_err(|e| LitseaError::InvalidData(format!("Invalid weight value: {}", e)))?;
+            if !weight.is_finite() {
+                return Err(LitseaError::InvalidData(format!(
+                    "Non-finite weight in line: '{}'",
+                    line
+                )));
+            }
             self.weights.entry(feat.to_string()).or_insert_with(|| vec![0.0; n])[class_idx] =
                 weight;
         }
@@ -643,6 +655,56 @@ mod tests {
         // Invalid class count
         let result = p.load_model_from_reader("not_a_number".as_bytes());
         assert!(matches!(result, Err(LitseaError::InvalidData(_))));
+    }
+
+    #[test]
+    fn test_load_model_rejects_nonfinite_weight() {
+        // #101: NaN/inf weights must be rejected at load time.
+        for content in ["1\nA\nf1\tA\tNaN\n", "1\nA\nf1\tA\tinf\n"] {
+            let mut p = AveragedPerceptron::new();
+            let result = p.load_model_from_reader(content.as_bytes());
+            assert!(
+                matches!(result, Err(LitseaError::InvalidData(_))),
+                "expected InvalidData for {:?}",
+                content
+            );
+        }
+    }
+
+    #[test]
+    fn test_load_model_resets_averaging_state() -> Result<()> {
+        // #101: loading a model must reset the averaging accumulators so a
+        // subsequent train() does not mix stale state with loaded weights.
+        let mut feats_a = HashSet::new();
+        feats_a.insert("f1".to_string());
+        let mut feats_b = HashSet::new();
+        feats_b.insert("f2".to_string());
+
+        let mut p = AveragedPerceptron::new();
+        p.add_instance(feats_a.clone(), "A".to_string());
+        p.add_instance(feats_b.clone(), "B".to_string());
+        p.train(5, Arc::new(AtomicBool::new(true)));
+        assert!(p.step > 0);
+
+        let model_content = "2\nA\nB\nf1\tA\t0.5\nf2\tB\t0.5\n";
+        p.load_model_from_reader(model_content.as_bytes())?;
+        assert_eq!(p.step, 0);
+        assert!(p.accumulated.is_empty());
+        assert!(p.timestamps.is_empty());
+
+        // Behavioral check: train-after-load on the recycled instance matches
+        // load-then-train on a fresh perceptron with the same instances.
+        p.train(5, Arc::new(AtomicBool::new(true)));
+
+        let mut q = AveragedPerceptron::new();
+        q.add_instance(feats_a.clone(), "A".to_string());
+        q.add_instance(feats_b.clone(), "B".to_string());
+        q.load_model_from_reader(model_content.as_bytes())?;
+        q.train(5, Arc::new(AtomicBool::new(true)));
+
+        assert_eq!(p.predict(&feats_a), q.predict(&feats_a));
+        assert_eq!(p.predict(&feats_b), q.predict(&feats_b));
+        Ok(())
     }
 
     #[test]

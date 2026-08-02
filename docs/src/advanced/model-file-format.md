@@ -31,8 +31,30 @@ UC4:I	0.2345
 When loading a model, the bias is reconstructed using:
 
 ```text
-bias_bucket_weight = -bias_value * 2 - sum(all_feature_weights)
+bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
 ```
+
+Files written by `save_model` always place the bias line last, so this equals
+the sum of all feature weights. Legacy models (e.g. `RWCP.model`) place the
+bias line mid-file; their trailing weight lines are accepted and the bias
+bucket is computed from the weights preceding the bias line, matching the
+historical loader.
+
+## Validation
+
+The loader rejects malformed files with an explicit error instead of loading
+them silently:
+
+- an **empty file**
+- a file **without a bias line** (the typical symptom of a truncated
+  download or interrupted copy)
+- **more than one** bias line
+- **duplicate** feature lines
+- **non-finite** weights or bias values (`NaN`, `inf`, `-inf`), which would
+  otherwise poison every score comparison
+
+The Averaged Perceptron model loader likewise validates its class-count
+header and rejects non-finite weights.
 
 During prediction:
 
