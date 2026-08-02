@@ -160,6 +160,11 @@ fn golden_segment_korean() {
 // tagged "X" because segment_with_pos() never used the prediction at the
 // first character position. It now derives the first word's POS from that
 // prediction; these expectations reflect the fixed behavior.
+//
+// The POS models were retrained for #100 so that the training data also
+// covers the first character position (previously never emitted, leaving
+// sentence-initial sentinel features untrained). These expectations are
+// snapshots of the retrained models' outputs.
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -241,7 +246,7 @@ fn golden_segment_with_pos_chinese() {
             (
                 "这是一个测试。",
                 &[
-                    ("这", "X"),
+                    ("这", "VERB"),
                     ("是", "AUX"),
                     ("一", "NUM"),
                     ("个", "NOUN"),
@@ -252,10 +257,10 @@ fn golden_segment_with_pos_chinese() {
             (
                 "我喜欢吃中国菜。",
                 &[
-                    ("我", "PRON"),
-                    ("喜欢", "VERB"),
-                    ("吃中", "VERB"),
-                    ("国菜", "VERB"),
+                    ("我喜", "PRON"),
+                    ("欢吃", "NOUN"),
+                    ("中国", "ADP"),
+                    ("菜", "PART"),
                     ("。", "PUNCT"),
                 ],
             ),
@@ -269,7 +274,7 @@ fn golden_segment_with_pos_chinese() {
                     ("。", "PUNCT"),
                 ],
             ),
-            ("好", &[("好", "ADJ")]),
+            ("好", &[("好", "PROPN")]),
             (
                 "2024年的春天。",
                 &[
@@ -293,7 +298,13 @@ fn golden_segment_with_pos_korean() {
         &[
             (
                 "이것은 테스트입니다.",
-                &[("이것은", "PRON"), (" ", "PUNCT"), ("테스트입니다", "NOUN"), (".", "PUNCT")],
+                &[
+                    ("이", "PRON"),
+                    ("것은", "NOUN"),
+                    (" ", "PUNCT"),
+                    ("테스트입니다", "NOUN"),
+                    (".", "PUNCT"),
+                ],
             ),
             (
                 "나는 고양이를 좋아한다.",
@@ -302,7 +313,7 @@ fn golden_segment_with_pos_korean() {
                     (" ", "PUNCT"),
                     ("고양이를", "NOUN"),
                     (" ", "PUNCT"),
-                    ("좋아한다", "VERB"),
+                    ("좋아한다", "ADJ"),
                     (".", "PUNCT"),
                 ],
             ),

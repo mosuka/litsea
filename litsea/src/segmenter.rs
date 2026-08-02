@@ -133,10 +133,21 @@ impl Segmenter {
     /// `tokens` yields `(word, label)` pairs where `label` is assigned to the
     /// first character of the word; continuation characters receive
     /// `cont_label`. Builds the padded context arrays and invokes `callback`
-    /// with the feature set and label for each character position except the
-    /// first one, which has no preceding boundary decision to learn from.
-    fn process_tokens<'a, L, I, F>(&self, tokens: I, cont_label: L, mut callback: F)
-    where
+    /// with the feature set and label for each character position.
+    ///
+    /// When `include_first` is false the first character position is skipped:
+    /// for the boundary (AdaBoost) pipeline its label is degenerate (always a
+    /// word start). The POS pipeline passes true, because
+    /// [`segment_with_pos`](Self::segment_with_pos) predicts at the first
+    /// position to derive the first word's POS, so training must cover it
+    /// (issue #100).
+    fn process_tokens<'a, L, I, F>(
+        &self,
+        tokens: I,
+        cont_label: L,
+        include_first: bool,
+        mut callback: F,
+    ) where
         L: Clone,
         I: Iterator<Item = (&'a str, L)>,
         F: FnMut(HashSet<String>, L),
@@ -170,24 +181,27 @@ impl Segmenter {
 
         let (chars, types) = self.sentence_context(&text);
 
-        for i in 4..(chars.len() - 3) {
+        let first = if include_first { 3 } else { 4 };
+        for i in first..(chars.len() - 3) {
             let attrs = self.get_attributes(i, &tags, &chars, &types);
             callback(attrs, labels[i - 3].clone());
         }
     }
 
     /// Processes a corpus string ("word word ..."), calling the callback for
-    /// each character position with its attributes and boundary label
-    /// (1 = word start, -1 = continuation).
+    /// each character position except the first with its attributes and
+    /// boundary label (1 = word start, -1 = continuation).
     fn process_corpus<F>(&self, corpus: &str, callback: F)
     where
         F: FnMut(HashSet<String>, i8),
     {
-        self.process_tokens(corpus.split(' ').map(|word| (word, 1i8)), -1i8, callback);
+        self.process_tokens(corpus.split(' ').map(|word| (word, 1i8)), -1i8, false, callback);
     }
 
     /// Processes a POS-tagged corpus, yielding the attributes and
-    /// SegmentLabel for each character position.
+    /// SegmentLabel for every character position, including the first one
+    /// (whose label carries the first word's POS; see
+    /// [`segment_with_pos`](Self::segment_with_pos)).
     ///
     /// Corpus format: "word/POS word/POS ..."
     /// Example: "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT"
@@ -203,7 +217,7 @@ impl Segmenter {
             };
             (word, SegmentLabel::B(pos))
         });
-        self.process_tokens(tokens, SegmentLabel::O, callback);
+        self.process_tokens(tokens, SegmentLabel::O, true, callback);
     }
 
     /// Adds a corpus to the segmenter with a custom writer function.
@@ -822,22 +836,41 @@ mod tests {
             collected.push((attrs, label));
         });
 
-        // "テストです" has 5 characters; the loop runs 4 times (i=4..8).
-        // labels[0] corresponds to tags[3] (the first character), and the
-        // loop starts at i=4, so label_idx starts at 1 — i.e. the four
-        // characters "ス", "ト", "で", "す".
-        assert_eq!(collected.len(), 4);
+        // "テストです" has 5 characters; the POS pipeline emits every
+        // position including the first one (i=3..8), producing 5 instances:
+        // テ=B-NOUN, ス=O, ト=O, で=B-AUX, す=O.
+        assert_eq!(collected.len(), 5);
+        assert_eq!(collected[0].1, SegmentLabel::B(Upos::NOUN));
 
-        // "テスト/NOUN" → テ=B-NOUN, ス=O, ト=O
-        // "です/AUX" → で=B-AUX, す=O
-        // The loop starts at i=4, so: ス=O, ト=O, で=B-AUX, す=O
         let boundary_count = collected.iter().filter(|(_, l)| l.is_boundary()).count();
-        assert_eq!(boundary_count, 1); // only the B-AUX at "で"
+        assert_eq!(boundary_count, 2); // B-NOUN at "テ" and B-AUX at "で"
 
         // Check the B-AUX label
-        let b_aux = collected.iter().find(|(_, l)| l.is_boundary());
+        let b_aux = collected.iter().find(|(_, l)| *l == SegmentLabel::B(Upos::AUX));
         assert!(b_aux.is_some());
-        assert_eq!(b_aux.unwrap().1, SegmentLabel::B(Upos::AUX));
+    }
+
+    #[test]
+    fn test_pos_writer_emits_first_position() {
+        // Regression test for #100: the POS pipeline must emit the first
+        // character position (its label carries the first word's POS, which
+        // segment_with_pos predicts at inference), while the AdaBoost
+        // boundary pipeline keeps skipping it (the boundary label at the
+        // first position is degenerate — always a word start).
+        let segmenter = Segmenter::new(Language::Japanese, None);
+
+        let mut pos_labels = Vec::new();
+        segmenter.add_corpus_with_pos_writer("テスト/NOUN です/AUX", |_, label| {
+            pos_labels.push(label);
+        });
+        assert_eq!(pos_labels.len(), 5);
+        assert_eq!(pos_labels[0], SegmentLabel::B(Upos::NOUN));
+
+        let mut boundary_instances = 0;
+        segmenter.add_corpus_with_writer("テスト です", |_, _| {
+            boundary_instances += 1;
+        });
+        assert_eq!(boundary_instances, 4); // AdaBoost path still starts at i=4
     }
 
     #[test]
