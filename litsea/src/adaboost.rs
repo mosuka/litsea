@@ -63,7 +63,10 @@ impl AdaBoost {
     }
 
     /// Initializes the features from a file.
-    /// The file should contain lines with a label followed by space-separated features.
+    /// The file should contain lines with a label followed by tab-separated
+    /// features (the format produced by [`Extractor`](crate::extractor::Extractor)).
+    /// Feature values embed raw corpus characters, so splitting must never
+    /// happen on general Unicode whitespace (e.g. U+3000 inside a feature).
     ///
     /// # Arguments
     /// * `filename`: The path to the file containing the features.
@@ -93,13 +96,15 @@ impl AdaBoost {
 
         for line in reader.lines() {
             let line = line?;
-            let mut parts = line.split_whitespace();
-            // Skip empty lines (no label token).
-            let Some(_label) = parts.next() else {
+            // Skip blank lines.
+            if line.is_empty() {
                 continue;
-            };
-
-            for h in parts {
+            }
+            let mut parts = line.split('\t');
+            // The first column is the label; the rest are features. Empty
+            // tokens are skipped ("" is the reserved bias-bucket name).
+            let _label = parts.next();
+            for h in parts.filter(|h| !h.is_empty()) {
                 map.entry(h.to_string()).or_insert(0.0);
                 buf_size += 1;
             }
@@ -131,7 +136,8 @@ impl AdaBoost {
     }
 
     /// Initializes the instances from a file.
-    /// The file should contain lines with a label followed by space-separated features.
+    /// The file should contain lines with a label followed by tab-separated
+    /// features (the format produced by [`Extractor`](crate::extractor::Extractor)).
     ///
     /// Must be called after [`initialize_features`](Self::initialize_features) on the same file,
     /// because it depends on the feature index built by that method.
@@ -156,7 +162,11 @@ impl AdaBoost {
 
         for line in reader.lines() {
             let line = line?;
-            let mut parts = line.split_whitespace();
+            // Skip blank lines (consistent with initialize_features).
+            if line.is_empty() {
+                continue;
+            }
+            let mut parts = line.split('\t');
             let label: Label = parts
                 .next()
                 .ok_or_else(|| {
@@ -169,7 +179,9 @@ impl AdaBoost {
             let start = self.instances_buf.len();
             let mut score = bias;
 
-            for h in parts {
+            // Empty tokens are skipped: "" is the bias-bucket name and must
+            // never be treated as an instance feature.
+            for h in parts.filter(|h| !h.is_empty()) {
                 if let Some(&pos) = self.feature_index.get(h) {
                     self.instances_buf.push(pos);
                     score += self.model[pos];
@@ -390,7 +402,15 @@ impl AdaBoost {
 
         for (line_num, line) in reader.lines().enumerate() {
             let line = line?;
-            let mut parts = line.split_whitespace();
+            if line.is_empty() {
+                return Err(LitseaError::InvalidData(format!(
+                    "Empty line at line {}",
+                    line_num + 1
+                )));
+            }
+            // Model lines are tab-separated ("feature\tweight", written by
+            // save_model); feature names may embed any non-tab character.
+            let mut parts = line.split('\t');
 
             let h = parts.next().ok_or_else(|| {
                 LitseaError::InvalidData(format!("Empty line at line {}", line_num + 1))
@@ -579,8 +599,8 @@ mod tests {
     fn test_initialize_features() -> Result<()> {
         // Create a dummy features file
         let mut features_file = NamedTempFile::new()?;
-        writeln!(features_file, "1 feat1 feat2")?;
-        writeln!(features_file, "0 feat3")?;
+        writeln!(features_file, "1\tfeat1\tfeat2")?;
+        writeln!(features_file, "0\tfeat3")?;
         features_file.as_file().sync_all()?;
 
         let mut learner = AdaBoost::new(0.01, 10);
@@ -598,7 +618,7 @@ mod tests {
     fn test_initialize_instances() -> Result<()> {
         // First, initialize features in the feature file.
         let mut features_file = NamedTempFile::new()?;
-        writeln!(features_file, "1 feat1 feat2")?;
+        writeln!(features_file, "1\tfeat1\tfeat2")?;
         features_file.as_file().sync_all()?;
 
         let mut learner = AdaBoost::new(0.01, 10);
@@ -607,7 +627,7 @@ mod tests {
         // Create a dummy instance file
         let mut instance_file = NamedTempFile::new()?;
         // Example: "1 feat1" line. The learner will consider feat1 as a candidate if found by binary_search.
-        writeln!(instance_file, "1 feat1")?;
+        writeln!(instance_file, "1\tfeat1")?;
         instance_file.as_file().sync_all()?;
 
         learner.initialize_instances(instance_file.path())?;
@@ -625,7 +645,7 @@ mod tests {
     fn test_train_immediate_stop() -> Result<()> {
         // Initialize features using a features file.
         let mut features_file = NamedTempFile::new()?;
-        writeln!(features_file, "1 feat1 feat2")?;
+        writeln!(features_file, "1\tfeat1\tfeat2")?;
         features_file.as_file().sync_all()?;
 
         let mut learner = AdaBoost::new(0.01, 3);
@@ -633,7 +653,7 @@ mod tests {
 
         // Create a dummy instance file with one instance.
         let mut instance_file = NamedTempFile::new()?;
-        writeln!(instance_file, "1 feat1")?;
+        writeln!(instance_file, "1\tfeat1")?;
         instance_file.as_file().sync_all()?;
         learner.initialize_instances(instance_file.path())?;
 
@@ -703,8 +723,8 @@ mod tests {
         // loading a model after training data must keep existing feature
         // indices valid by merging weights by name.
         let mut features_file = NamedTempFile::new()?;
-        writeln!(features_file, "1 feat1 feat2")?;
-        writeln!(features_file, "-1 feat3")?;
+        writeln!(features_file, "1\tfeat1\tfeat2")?;
+        writeln!(features_file, "-1\tfeat3")?;
         features_file.as_file().sync_all()?;
 
         let mut learner = AdaBoost::new(0.01, 10);
@@ -974,6 +994,87 @@ mod tests {
         let empty: HashSet<String> = HashSet::new();
         assert_eq!(learner.predict(&attrs_of("A")), reloaded.predict(&attrs_of("A")));
         assert_eq!(learner.predict(&empty), reloaded.predict(&empty));
+        Ok(())
+    }
+
+    #[test]
+    fn test_initialize_features_preserves_unicode_whitespace_features() -> Result<()> {
+        // Regression test for #99: features embedding Unicode whitespace
+        // (ideographic space U+3000, NBSP U+00A0) must survive both feature
+        // file parsing passes intact.
+        let mut features_file = NamedTempFile::new()?;
+        writeln!(features_file, "1\tUW4:\u{3000}\tBW2:\u{a0}x")?;
+        writeln!(features_file, "-1\tUW4:x")?;
+        features_file.as_file().sync_all()?;
+
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.initialize_features(features_file.path())?;
+        assert!(learner.feature_index.contains_key("UW4:\u{3000}"));
+        assert!(learner.feature_index.contains_key("BW2:\u{a0}x"));
+        assert!(learner.feature_index.contains_key("UW4:x"));
+
+        learner.initialize_instances(features_file.path())?;
+        assert_eq!(learner.instances.len(), 2);
+        // The U+3000 feature is mapped into the first instance's features.
+        let (start, end) = learner.instances[0];
+        let idx = learner.feature_index["UW4:\u{3000}"];
+        assert!(learner.instances_buf[start..end].contains(&idx));
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_train_roundtrip_preserves_unicode_whitespace() -> Result<()> {
+        // Regression test for #99 (end-to-end): a corpus token containing an
+        // ideographic space (U+3000) produces features embedding that
+        // character, and the feature-file readers must preserve every one of
+        // them so training matches inference.
+        use crate::extractor::Extractor;
+
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "テ\u{3000}スト です")?;
+        corpus_file.as_file().sync_all()?;
+
+        let features_file = NamedTempFile::new()?;
+        let mut extractor = Extractor::default();
+        extractor.extract(corpus_file.path(), features_file.path())?;
+
+        // The extractor emitted at least one feature embedding U+3000.
+        let output = std::fs::read_to_string(features_file.path())?;
+        assert!(output.contains('\u{3000}'), "expected U+3000 features in: {output:?}");
+
+        // Every feature token in the file survives into the learner intact.
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.initialize_features(features_file.path())?;
+        learner.initialize_instances(features_file.path())?;
+        let mut checked = 0;
+        for line in output.lines() {
+            for feat in line.split('\t').skip(1).filter(|s| !s.is_empty()) {
+                assert!(
+                    learner.feature_index.contains_key(feat),
+                    "feature {feat:?} was mangled during parsing"
+                );
+                checked += 1;
+            }
+        }
+        assert!(checked > 0);
+        Ok(())
+    }
+
+    #[test]
+    fn test_model_roundtrip_preserves_unicode_whitespace_feature() -> Result<()> {
+        // Regression test for #99: model files are tab-separated, so a
+        // feature name embedding U+3000 must survive load -> save -> load.
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.load_model_from_reader("UW4:\u{3000}\t0.5\n0.0\n".as_bytes())?;
+        assert!(learner.feature_index.contains_key("UW4:\u{3000}"));
+
+        let temp = NamedTempFile::new()?;
+        learner.save_model(temp.path())?;
+        let mut reloaded = AdaBoost::new(0.01, 10);
+        reloaded.load_model_from_path(temp.path())?;
+        assert!(reloaded.feature_index.contains_key("UW4:\u{3000}"));
+        let attrs = attrs_of("UW4:\u{3000}");
+        assert_eq!(learner.predict(&attrs), reloaded.predict(&attrs));
         Ok(())
     }
 
