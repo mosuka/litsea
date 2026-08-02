@@ -53,6 +53,15 @@ compatible: all pre-trained models in `models/` load unchanged.
   skipped consistently by both feature-file passes. Note: legacy
   hand-written space-separated features files are no longer accepted; the
   `extract` command has always produced tab-separated output (#99).
+- The POS training pipeline never emitted the first character position of a
+  sentence, while `segment_with_pos` predicts at that position to derive
+  the first word's POS (since the Phase 2 fix). Sentence-initial sentinel
+  features therefore had zero weight and first-word POS relied on right
+  context only. The POS pipeline now emits the first position (the
+  AdaBoost boundary pipeline is unchanged), and the shipped POS models
+  were retrained: first-word POS accuracy on the UD-GSD dev sets improved
+  from 85.6% to 91.8% (Japanese), 85.2% to 90.9% (Chinese), and 73.2% to
+  85.2% (Korean), with first-word boundary accuracy unchanged (#100).
 
 ### Changed (breaking)
 
