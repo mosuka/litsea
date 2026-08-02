@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a5ae1cb7.js";
+            window.path_to_searchindex_js = "../searchindex-2cb780c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -203,8 +203,27 @@ UC4:I	0.2345
 </code></pre>
 <h2 id="bias-reconstruction"><a class="header" href="#bias-reconstruction">Bias Reconstruction</a></h2>
 <p>When loading a model, the bias is reconstructed using:</p>
-<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(all_feature_weights)
+<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
 </code></pre>
+<p>Files written by <code>save_model</code> always place the bias line last, so this equals
+the sum of all feature weights. Legacy models (e.g. <code>RWCP.model</code>) place the
+bias line mid-file; their trailing weight lines are accepted and the bias
+bucket is computed from the weights preceding the bias line, matching the
+historical loader.</p>
+<h2 id="validation"><a class="header" href="#validation">Validation</a></h2>
+<p>The loader rejects malformed files with an explicit error instead of loading
+them silently:</p>
+<ul>
+<li>an <strong>empty file</strong></li>
+<li>a file <strong>without a bias line</strong> (the typical symptom of a truncated
+download or interrupted copy)</li>
+<li><strong>more than one</strong> bias line</li>
+<li><strong>duplicate</strong> feature lines</li>
+<li><strong>non-finite</strong> weights or bias values (<code>NaN</code>, <code>inf</code>, <code>-inf</code>), which would
+otherwise poison every score comparison</li>
+</ul>
+<p>The Averaged Perceptron model loader likewise validates its class-count
+header and rejects non-finite weights.</p>
 <p>During prediction:</p>
 <pre><code class="language-text">bias = -sum(all_model_weights) / 2.0
 score = bias + sum(model[feature] for feature in input_attributes)

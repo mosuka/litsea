@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a5ae1cb7.js";
+            window.path_to_searchindex_js = "../searchindex-2cb780c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -216,6 +216,19 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <li>Custom User-Agent: <code>Litsea/&lt;version&gt;</code></li>
 <li>The <code>load_model</code> method is <strong>async</strong> because HTTP loading requires an async runtime</li>
 <li>For the CLI, <code>tokio</code> provides the async runtime</li>
+</ul>
+<h2 id="limits-and-failure-handling"><a class="header" href="#limits-and-failure-handling">Limits and Failure Handling</a></h2>
+<ul>
+<li><strong>Connect timeout</strong>: 10 seconds; <strong>overall request timeout</strong>: 60 seconds –
+a stalled server can no longer block model loading indefinitely</li>
+<li><strong>Maximum model size</strong>: 256 MiB. A larger advertised <code>Content-Length</code> is
+rejected before the body is read, and an oversized body is rejected after</li>
+<li><strong>Incomplete downloads</strong>: when the server sends a <code>Content-Length</code>, a
+shorter received body is reported as an incomplete download</li>
+<li>Non-2xx responses are reported as download errors with the HTTP status</li>
+<li>The model parser additionally rejects truncated files (a model without its
+trailing bias line fails to load; see
+<a href="model-file-format.html">Model File Format</a>)</li>
 </ul>
 <h2 id="wasm-considerations"><a class="header" href="#wasm-considerations">WASM Considerations</a></h2>
 <p>On <code>wasm32</code> targets:</p>
