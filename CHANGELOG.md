@@ -33,6 +33,15 @@ compatible: all pre-trained models in `models/` load unchanged.
   indices. `AdaBoost::load_model_from_reader` now merges weights by feature
   name into the existing index, and `AveragedPerceptron::load_model_from_reader`
   merges model classes with classes already registered from training data.
+- `AdaBoost` assumed the bias bucket (the empty-string feature `""`) always
+  occupied feature index 0, but the `add_instance` path (used by
+  `Segmenter::add_corpus`) let an arbitrary real feature claim that slot:
+  training could then silently corrupt or never select that feature
+  (nondeterministically, depending on `HashSet` iteration order), and
+  `save_model` dropped it from the saved file. The bias feature is now
+  registered at index 0 on every construction path, `save_model` identifies
+  the bias bucket by name instead of by index, and `train()` no longer
+  panics on a learner with no instances (#98).
 
 ### Changed (breaking)
 

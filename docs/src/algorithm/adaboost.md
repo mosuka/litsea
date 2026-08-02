@@ -92,6 +92,8 @@ bias = -sum(all model weights) / 2.0
 ```
 
 This centers the decision boundary. The empty-string feature (`""`) serves as the bias bucket during training.
+It is registered at feature index 0 on every construction path (`new()`, feature-file initialization, and
+model loading), so models trained through `add_instance()` train, save, and reload correctly.
 
 ## Model File Format
 
