@@ -76,11 +76,28 @@ fn read_file_bytes(_path: &str) -> Result<Vec<u8>> {
     ))
 }
 
+/// Maximum accepted size of a remotely downloaded model (256 MiB).
+///
+/// The largest shipped model is ~19 MB; the cap is a generous safety bound
+/// that prevents a misconfigured or malicious URL from buffering an
+/// unbounded body in memory.
+#[cfg(feature = "remote_model")]
+const MAX_MODEL_BYTES: u64 = 256 * 1024 * 1024;
+
 /// Downloads a model over HTTP(S).
+///
+/// The request uses a 10-second connect timeout and a 60-second overall
+/// timeout. Responses larger than [`MAX_MODEL_BYTES`] are rejected, and a
+/// body shorter than the advertised `Content-Length` is reported as an
+/// incomplete download.
 #[cfg(feature = "remote_model")]
 async fn download(url: &str) -> Result<Vec<u8>> {
+    use std::time::Duration;
+
     let client = reqwest::Client::builder()
         .user_agent(format!("Litsea/{}", env!("CARGO_PKG_VERSION")))
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(60))
         .build()
         .map_err(|e| LitseaError::Download(format!("failed to create HTTP client: {}", e)))?;
 
@@ -90,7 +107,34 @@ async fn download(url: &str) -> Result<Vec<u8>> {
         return Err(LitseaError::Download(format!("HTTP {}", resp.status())));
     }
 
+    let expected_len = resp.content_length();
+    if let Some(len) = expected_len {
+        if len > MAX_MODEL_BYTES {
+            return Err(LitseaError::Download(format!(
+                "model size {} bytes exceeds the maximum of {} bytes",
+                len, MAX_MODEL_BYTES
+            )));
+        }
+    }
+
     let content = resp.bytes().await.map_err(|e| LitseaError::Download(e.to_string()))?;
+
+    if content.len() as u64 > MAX_MODEL_BYTES {
+        return Err(LitseaError::Download(format!(
+            "model size {} bytes exceeds the maximum of {} bytes",
+            content.len(),
+            MAX_MODEL_BYTES
+        )));
+    }
+    if let Some(len) = expected_len {
+        if content.len() as u64 != len {
+            return Err(LitseaError::Download(format!(
+                "incomplete download: received {} of {} bytes",
+                content.len(),
+                len
+            )));
+        }
+    }
 
     Ok(content.to_vec())
 }
@@ -145,5 +189,68 @@ mod tests {
     async fn test_read_missing_file() {
         let result = read_model_bytes("/nonexistent/path/to.model").await;
         assert!(matches!(result, Err(LitseaError::Io(_))));
+    }
+
+    #[cfg(feature = "remote_model")]
+    mod download_tests {
+        use super::*;
+
+        use std::io::Read as _;
+        use std::net::TcpListener;
+
+        /// Serves one raw HTTP response on a random local port and returns
+        /// the port. The server thread exits after the first connection.
+        fn serve_once(response: &'static [u8]) -> u16 {
+            let listener = TcpListener::bind("127.0.0.1:0").expect("bind");
+            let port = listener.local_addr().expect("local_addr").port();
+            std::thread::spawn(move || {
+                if let Ok((mut stream, _)) = listener.accept() {
+                    // Read the request headers (best effort) before replying.
+                    let mut buf = [0u8; 4096];
+                    let _ = stream.read(&mut buf);
+                    let _ = stream.write_all(response);
+                }
+            });
+            port
+        }
+
+        #[tokio::test]
+        async fn test_download_success() {
+            let port = serve_once(
+                b"HTTP/1.1 200 OK\r\nContent-Length: 5\r\nConnection: close\r\n\r\nhello",
+            );
+            let bytes = read_model_bytes(&format!("http://127.0.0.1:{}/model", port))
+                .await
+                .expect("download should succeed");
+            assert_eq!(bytes, b"hello");
+        }
+
+        #[tokio::test]
+        async fn test_download_non_success_status() {
+            let port = serve_once(
+                b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            );
+            let result = read_model_bytes(&format!("http://127.0.0.1:{}/model", port)).await;
+            assert!(
+                matches!(result, Err(LitseaError::Download(ref msg)) if msg.contains("404")),
+                "expected an HTTP 404 download error, got {:?}",
+                result
+            );
+        }
+
+        #[tokio::test]
+        async fn test_download_rejects_oversized_content_length() {
+            // #101: an advertised size beyond the cap must be rejected before
+            // the body is read (the stub closes without sending a body).
+            let port = serve_once(
+                b"HTTP/1.1 200 OK\r\nContent-Length: 999999999999\r\nConnection: close\r\n\r\n",
+            );
+            let result = read_model_bytes(&format!("http://127.0.0.1:{}/model", port)).await;
+            assert!(
+                matches!(result, Err(LitseaError::Download(ref msg)) if msg.contains("exceeds")),
+                "expected a size-cap download error, got {:?}",
+                result
+            );
+        }
     }
 }

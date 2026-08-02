@@ -36,6 +36,19 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 - The `load_model` method is **async** because HTTP loading requires an async runtime
 - For the CLI, `tokio` provides the async runtime
 
+## Limits and Failure Handling
+
+- **Connect timeout**: 10 seconds; **overall request timeout**: 60 seconds --
+  a stalled server can no longer block model loading indefinitely
+- **Maximum model size**: 256 MiB. A larger advertised `Content-Length` is
+  rejected before the body is read, and an oversized body is rejected after
+- **Incomplete downloads**: when the server sends a `Content-Length`, a
+  shorter received body is reported as an incomplete download
+- Non-2xx responses are reported as download errors with the HTTP status
+- The model parser additionally rejects truncated files (a model without its
+  trailing bias line fails to load; see
+  [Model File Format](model-file-format.md))
+
 ## WASM Considerations
 
 On `wasm32` targets:

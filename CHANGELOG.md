@@ -53,6 +53,18 @@ compatible: all pre-trained models in `models/` load unchanged.
   skipped consistently by both feature-file passes. Note: legacy
   hand-written space-separated features files are no longer accepted; the
   `extract` command has always produced tab-separated output (#99).
+- Model loading now fails loudly on corrupt data instead of silently
+  producing a broken model: both loaders reject non-finite weights
+  (`NaN`/`inf`, which poisoned every score comparison), and the AdaBoost
+  loader validates the file format — empty files, files without a bias
+  line (the typical symptom of a truncated download), duplicate bias
+  lines, and duplicate feature lines are rejected. Weight lines after the
+  bias line remain accepted for legacy models (e.g. `RWCP.model`).
+  `AveragedPerceptron::load_model_from_reader` also resets the averaging
+  accumulators so an incremental train after a load no longer mixes stale
+  state into the averaged weights. Remote downloads gained a 10 s connect /
+  60 s request timeout, a 256 MiB size cap, and Content-Length
+  verification (#101).
 - The POS training pipeline never emitted the first character position of a
   sentence, while `segment_with_pos` predicts at that position to derive
   the first word's POS (since the Phase 2 fix). Sentence-initial sentinel
