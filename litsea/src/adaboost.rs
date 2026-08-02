@@ -35,6 +35,11 @@ impl AdaBoost {
     /// This method initializes the AdaBoost parameters such as threshold
     /// and number of iterations.
     ///
+    /// The bias feature (the empty-string key `""`) is registered at feature
+    /// index 0 up front. `train()` and `save_model()` rely on this invariant,
+    /// and it must hold on every construction path — including learners that
+    /// only ever receive data through [`add_instance`](Self::add_instance).
+    ///
     /// # Arguments
     /// * `threshold`: The threshold for stopping the training.
     /// * `num_iterations`: The maximum number of iterations for training.
@@ -46,9 +51,10 @@ impl AdaBoost {
             threshold,
             num_iterations,
             instance_weights: vec![],
-            model: vec![],
-            features: vec![],
-            feature_index: HashMap::new(),
+            // The bias bucket "" always occupies feature index 0.
+            model: vec![0.0],
+            features: vec![String::new()],
+            feature_index: HashMap::from([(String::new(), 0)]),
             labels: vec![],
             instances_buf: vec![],
             instances: vec![],
@@ -200,7 +206,16 @@ impl AdaBoost {
     /// 5. Updates the model with the best hypothesis and calculates the alpha value.
     /// 6. Updates the instance weights based on the predictions.
     /// 7. Normalizes the instance weights to ensure they sum to 1.
+    ///
+    /// Training is a no-op when no instances have been added, and stops early
+    /// if the instance weight sum degenerates (non-positive or non-finite).
     pub fn train(&mut self, running: Arc<AtomicBool>) {
+        // Without instances (or features) there is nothing to learn; the
+        // error-rate computation below would divide by zero.
+        if self.num_instances == 0 || self.features.is_empty() {
+            return;
+        }
+
         let num_features = self.features.len();
 
         for _t in 0..self.num_iterations {
@@ -225,6 +240,12 @@ impl AdaBoost {
                 for &h in &self.instances_buf[start..end] {
                     errors[h] -= delta;
                 }
+            }
+
+            // A degenerate weight state would turn the error rates into NaN
+            // and corrupt the model; stop instead.
+            if instance_weight_sum <= 0.0 || !instance_weight_sum.is_finite() {
+                break;
             }
 
             // Find the best hypothesis.
@@ -294,14 +315,20 @@ impl AdaBoost {
     /// This method writes the model to a file in a tab-separated format,
     /// where each line contains a feature and its corresponding weight.
     /// The last line contains the bias term, which is calculated as the negative sum of the model weights divided by 2.
+    /// The bias bucket (the empty-string feature `""`) is identified by name
+    /// and folded into the bias line instead of being written as a feature.
     pub fn save_model(&self, filename: &Path) -> Result<()> {
-        if self.model.is_empty() {
+        // A model without any real (non-bias) feature has nothing to save.
+        if !self.features.iter().any(|f| !f.is_empty()) {
             return Err(LitseaError::InvalidInput("Cannot save an empty model".to_string()));
         }
         let mut file = File::create(filename)?;
-        let mut bias = -self.model[0];
-        for (h, &w) in self.features.iter().zip(self.model.iter()).skip(1) {
-            if w != 0.0 {
+        let mut bias = match self.feature_index.get("") {
+            Some(&idx) => -self.model[idx],
+            None => 0.0,
+        };
+        for (h, &w) in self.features.iter().zip(self.model.iter()) {
+            if !h.is_empty() && w != 0.0 {
                 writeln!(file, "{}\t{}", h, w)?;
                 bias -= w;
             }
@@ -344,12 +371,13 @@ impl AdaBoost {
 
     /// Loads a model from a buffered reader (synchronous).
     ///
-    /// If the learner already holds features (e.g. training data was loaded
-    /// via [`initialize_features`](Self::initialize_features)), the loaded
-    /// weights are merged into the existing feature index by feature name and
-    /// unknown features are appended. This keeps previously built instance
-    /// data valid for incremental training. Otherwise the model is loaded
-    /// as-is.
+    /// If the learner already holds real features or instances (e.g. training
+    /// data was loaded via [`initialize_features`](Self::initialize_features)
+    /// or added via [`add_instance`](Self::add_instance)), the loaded weights
+    /// are merged into the existing feature index by feature name and unknown
+    /// features are appended. This keeps previously built instance data valid
+    /// for incremental training. Otherwise the model is loaded as-is, with
+    /// features sorted by name and the bias bucket `""` kept at index 0.
     ///
     /// # Arguments
     /// * `reader`: A buffered reader containing the model data.
@@ -390,9 +418,16 @@ impl AdaBoost {
             }
         }
 
-        if self.features.is_empty() {
-            // Fresh load: replace everything, features sorted by name.
-            let sorted: BTreeMap<_, _> = m.into_iter().collect();
+        // A learner is "fresh" when it holds no instances and no real
+        // features (only the bias bucket registered by `new()`); in that case
+        // the loaded model replaces everything. Otherwise the weights are
+        // merged into the existing feature index.
+        if self.num_instances == 0 && self.features.len() <= 1 {
+            // Fresh load: replace everything, features sorted by name. The
+            // bias bucket "" must exist even if the file has no bias line so
+            // that it stays at index 0 (it sorts first in the BTreeMap).
+            let mut sorted: BTreeMap<_, _> = m.into_iter().collect();
+            sorted.entry(String::new()).or_insert(0.0);
             self.features = sorted.keys().cloned().collect();
             self.model = sorted.values().cloned().collect();
             self.feature_index =
@@ -624,12 +659,10 @@ mod tests {
 
     #[test]
     fn test_save_and_load_model() -> Result<()> {
-        // Prepare a dummy learner.
+        // Build a learner through the public load path so the bias bucket
+        // invariant holds, then save it and reload it into a fresh learner.
         let mut learner = AdaBoost::new(0.01, 10);
-
-        // Set the features and weights in advance.
-        learner.features = vec!["feat1".to_string(), "feat2".to_string()];
-        learner.model = vec![0.5, -0.3];
+        learner.load_model_from_reader("feat1\t0.5\nfeat2\t-0.3\n0.1\n".as_bytes())?;
 
         // Save the model to a temporary file.
         let temp_model = NamedTempFile::new()?;
@@ -639,9 +672,12 @@ mod tests {
         let mut learner2 = AdaBoost::new(0.01, 10);
         learner2.load_model_from_path(temp_model.path())?;
 
-        // Check that the number of features and models match.
-        assert_eq!(learner2.features.len(), learner.features.len());
-        assert_eq!(learner2.model.len(), learner.model.len());
+        // The feature set survives the round-trip and predictions match.
+        assert_eq!(learner2.features, learner.features);
+        let empty: HashSet<String> = HashSet::new();
+        for attrs in [attrs_of("feat1"), attrs_of("feat2"), empty] {
+            assert_eq!(learner.predict(&attrs), learner2.predict(&attrs));
+        }
 
         Ok(())
     }
@@ -649,8 +685,7 @@ mod tests {
     #[tokio::test]
     async fn test_load_model_uri() -> Result<()> {
         let mut learner = AdaBoost::new(0.01, 10);
-        learner.features = vec!["feat1".to_string()];
-        learner.model = vec![0.5];
+        learner.load_model_from_reader("feat1\t0.5\n0.0\n".as_bytes())?;
 
         let temp_model = NamedTempFile::new()?;
         learner.save_model(temp_model.path())?;
@@ -658,7 +693,7 @@ mod tests {
         // Load via the async URI API with a plain path.
         let mut learner2 = AdaBoost::new(0.01, 10);
         learner2.load_model(temp_model.path().to_str().unwrap()).await?;
-        assert_eq!(learner2.features.len(), learner.features.len());
+        assert_eq!(learner2.features, learner.features);
         Ok(())
     }
 
@@ -798,10 +833,10 @@ mod tests {
     #[test]
     fn test_load_model_from_reader_empty_input() {
         let mut learner = AdaBoost::new(0.01, 10);
-        // Empty input should succeed with no features.
+        // Empty input should succeed, leaving only the bias bucket registered.
         let result = learner.load_model_from_reader("".as_bytes());
         assert!(result.is_ok());
-        assert!(learner.features.is_empty());
+        assert_eq!(learner.features, vec![String::new()]);
     }
 
     #[test]
@@ -826,5 +861,128 @@ mod tests {
         let temp = NamedTempFile::new().unwrap();
         let result = learner.save_model(temp.path());
         assert!(matches!(result, Err(LitseaError::InvalidInput(_))));
+    }
+
+    /// Helper: a single-attribute instance set.
+    fn attrs_of(name: &str) -> HashSet<String> {
+        let mut attrs = HashSet::new();
+        attrs.insert(name.to_string());
+        attrs
+    }
+
+    #[test]
+    fn test_bias_feature_registered_at_index_zero() {
+        // Regression test for #98: the bias feature "" must sit at index 0 on
+        // every construction path, because train() and save_model() rely on it.
+
+        // Path 1: a freshly constructed learner.
+        let learner = AdaBoost::new(0.01, 10);
+        assert_eq!(learner.features.first().map(String::as_str), Some(""));
+        assert_eq!(learner.feature_index.get(""), Some(&0));
+
+        // Path 2: after add_instance (the Segmenter::add_corpus path).
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.add_instance(attrs_of("A"), 1);
+        assert_eq!(learner.features.first().map(String::as_str), Some(""));
+        assert_eq!(learner.feature_index.get(""), Some(&0));
+
+        // Path 3: after a fresh model load.
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.load_model_from_reader("feat1\t0.5\n0.0\n".as_bytes()).unwrap();
+        assert_eq!(learner.features.first().map(String::as_str), Some(""));
+        assert_eq!(learner.feature_index.get(""), Some(&0));
+    }
+
+    #[test]
+    fn test_load_model_without_bias_line() {
+        // Regression test for #98: a model file consisting only of weight
+        // lines (no trailing bias line) must still leave the bias feature ""
+        // registered at index 0.
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.load_model_from_reader("feat1\t0.5\nfeat2\t-0.25\n".as_bytes()).unwrap();
+        assert_eq!(learner.features.first().map(String::as_str), Some(""));
+        assert_eq!(learner.feature_index.get(""), Some(&0));
+        assert!(learner.feature_index.contains_key("feat1"));
+        assert!(learner.feature_index.contains_key("feat2"));
+    }
+
+    #[test]
+    fn test_train_via_add_instance_learns() {
+        // Regression test for #98: training through add_instance only (the
+        // Segmenter::add_corpus path) must learn a separable dataset to 100%
+        // training accuracy regardless of feature registration order.
+        //
+        // Dataset: "a" is the only discriminative feature (present <=> label
+        // 1); "c" is shared noise. {a,c} and {c} are indistinguishable
+        // without a weight on "a", so a learner that cannot select "a" as a
+        // weak hypothesis (the index-0 bug) caps out below 100%.
+        for order in [["a", "c"], ["c", "a"]] {
+            let mut learner = AdaBoost::new(0.01, 100);
+            // Register the features in the given order first (single-attribute
+            // instances make the registration order deterministic).
+            for name in order {
+                let label = if name == "a" { 1 } else { -1 };
+                learner.add_instance(attrs_of(name), label);
+            }
+            // Then the rest of the separable dataset.
+            learner.add_instance(attrs_of("a"), 1);
+            let mut both = HashSet::new();
+            both.insert("a".to_string());
+            both.insert("c".to_string());
+            learner.add_instance(both.clone(), 1);
+            learner.add_instance(both.clone(), 1);
+            for _ in 0..3 {
+                learner.add_instance(attrs_of("c"), -1);
+            }
+
+            learner.train(Arc::new(AtomicBool::new(true)));
+
+            assert_eq!(learner.predict(&attrs_of("a")), 1, "order {:?}", order);
+            assert_eq!(learner.predict(&both), 1, "order {:?}", order);
+            assert_eq!(learner.predict(&attrs_of("c")), -1, "order {:?}", order);
+            let metrics = learner.metrics();
+            assert!(
+                (metrics.accuracy - 100.0).abs() < 1e-9,
+                "training accuracy {} for order {:?}",
+                metrics.accuracy,
+                order
+            );
+        }
+    }
+
+    #[test]
+    fn test_save_load_roundtrip_add_instance_trained() -> Result<()> {
+        // Regression test for #98: save_model() must not drop the feature at
+        // index 0 for add_instance-trained models. The dataset is imbalanced
+        // and inseparable so that no feature beats the all-negative baseline
+        // and train() updates the bias bucket via the h_best default branch —
+        // with the index-0 bug, that update lands on the real feature "A" and
+        // is folded into the bias line on save, flipping predictions.
+        let mut learner = AdaBoost::new(0.01, 1);
+        learner.add_instance(attrs_of("A"), 1);
+        for _ in 0..3 {
+            learner.add_instance(attrs_of("A"), -1);
+        }
+        learner.train(Arc::new(AtomicBool::new(true)));
+
+        let temp = NamedTempFile::new()?;
+        learner.save_model(temp.path())?;
+
+        let mut reloaded = AdaBoost::new(0.01, 1);
+        reloaded.load_model_from_path(temp.path())?;
+
+        let empty: HashSet<String> = HashSet::new();
+        assert_eq!(learner.predict(&attrs_of("A")), reloaded.predict(&attrs_of("A")));
+        assert_eq!(learner.predict(&empty), reloaded.predict(&empty));
+        Ok(())
+    }
+
+    #[test]
+    fn test_train_empty_learner_does_not_panic() {
+        // Regression test for #98: train() on a learner with no instances
+        // must be a no-op instead of panicking via NaN error rates.
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner.train(Arc::new(AtomicBool::new(true)));
+        assert!(learner.instance_weights.is_empty());
     }
 }
