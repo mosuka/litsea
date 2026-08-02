@@ -99,7 +99,9 @@ impl PosTrainer {
 
         for line in reader.lines() {
             let line = line?;
-            let line = line.trim();
+            // lines() already strips the trailing newline/CRLF; trimming
+            // further would strip Unicode whitespace (e.g. a trailing U+3000)
+            // off the last feature and desync training from inference (#99).
             if line.is_empty() {
                 continue;
             }
@@ -107,7 +109,8 @@ impl PosTrainer {
             let label = parts.next().ok_or_else(|| {
                 LitseaError::InvalidData("Missing label in feature line".to_string())
             })?;
-            let features: HashSet<String> = parts.map(|s| s.to_string()).collect();
+            let features: HashSet<String> =
+                parts.filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
             if features.is_empty() {
                 continue;
             }
@@ -158,8 +161,8 @@ mod tests {
     fn create_dummy_features_file() -> NamedTempFile {
         let mut file = NamedTempFile::new().expect("Failed to create temp file for features");
 
-        // For example, it could contain "1 feature1" to represent one feature.
-        writeln!(file, "1 feature1").expect("Failed to write to features file");
+        // For example, it could contain "1\tfeature1" to represent one feature.
+        writeln!(file, "1\tfeature1").expect("Failed to write to features file");
         file
     }
 
@@ -274,6 +277,33 @@ mod tests {
 
         let metrics = trainer.train(running, model_out.path())?;
         assert_eq!(metrics.num_instances, 4);
+        Ok(())
+    }
+
+    #[test]
+    fn test_pos_trainer_preserves_trailing_unicode_whitespace() -> Result<()> {
+        // Regression test for #99: a feature that ends its line with an
+        // ideographic space (U+3000) must not be trimmed away while reading
+        // the features file, or its trained weight becomes unreachable.
+        //
+        // The U+3000 instance is labeled "O" on purpose: ties are resolved to
+        // the alphabetically first class ("B-NOUN"), so this instance starts
+        // out misclassified and its feature is guaranteed a non-zero weight
+        // (save_model only writes non-zero weights).
+        let mut file = NamedTempFile::new().expect("Failed to create temp file");
+        writeln!(file, "O\tUW4:\u{3000}").expect("write");
+        writeln!(file, "B-NOUN\tUW4:x").expect("write");
+
+        let mut trainer = PosTrainer::new(5, file.path())?;
+        let model_out = NamedTempFile::new()?;
+        let running = Arc::new(AtomicBool::new(true));
+        trainer.train(running, model_out.path())?;
+
+        let saved = std::fs::read_to_string(model_out.path())?;
+        assert!(
+            saved.contains("UW4:\u{3000}"),
+            "trailing-U+3000 feature missing from saved model: {saved:?}"
+        );
         Ok(())
     }
 }

@@ -42,6 +42,17 @@ compatible: all pre-trained models in `models/` load unchanged.
   registered at index 0 on every construction path, `save_model` identifies
   the bias bucket by name instead of by index, and `train()` no longer
   panics on a learner with no instances (#98).
+- Feature and model files are now parsed strictly as tab-separated.
+  `AdaBoost::initialize_features` / `initialize_instances` and
+  `AdaBoost::load_model_from_reader` previously split lines on any Unicode
+  whitespace, silently mangling features that embed characters such as the
+  ideographic space (U+3000) — common inside Japanese corpus tokens — so
+  their trained weights were unreachable at inference time.
+  `PosTrainer::new` similarly trimmed Unicode whitespace off line edges,
+  destroying a trailing U+3000 in the last feature. Blank lines are now
+  skipped consistently by both feature-file passes. Note: legacy
+  hand-written space-separated features files are no longer accepted; the
+  `extract` command has always produced tab-separated output (#99).
 
 ### Changed (breaking)
 
