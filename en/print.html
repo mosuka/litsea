@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-dc1e276c.js"></script>
@@ -194,10 +194,10 @@
 </ul>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
 <p>Litsea treats word segmentation as a <strong>binary classification problem</strong>: for each character position in a sentence, the model predicts whether it is a <strong>word boundary</strong> (+1) or <strong>not a boundary</strong> (-1). The classifier uses character n-gram features and character type information specific to each language.</p>
-<pre><code class="language-text">Input:  "LitseaはRust製です"
-         ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
-         O O O O B O B O B   ← boundary predictions
-Output: ["Litsea", "は", "Rust製", "です"]
+<pre><code class="language-text">Input:  "これはテストです。"
+         こ れ は テ ス ト で す 。
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+Output: ["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
 <p>Litsea also supports <strong>POS (Part-of-Speech) tagging</strong> in addition to word segmentation. Using the <strong>Averaged Perceptron</strong> multiclass classifier, it performs joint segmentation and POS tagging simultaneously.</p>
@@ -208,7 +208,7 @@ Output: ["Litsea", "は", "Rust製", "です"]
 </ul>
 <p>The POS tags follow the <a href="https://universaldependencies.org/">Universal Dependencies</a> <strong>UPOS tagset</strong> (17 POS tags).</p>
 <pre><code class="language-text">Input:  "今日はいい天気ですね。"
-Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>
@@ -277,12 +277,12 @@ litsea = "0.5.0"
 <h2 id="cli-quick-start"><a class="header" href="#cli-quick-start">CLI Quick Start</a></h2>
 <h3 id="segmenting-text"><a class="header" href="#segmenting-text">Segmenting Text</a></h3>
 <p>Litsea ships with pre-trained models in the <code>models/</code> directory. Pipe text into the <code>segment</code> command:</p>
-<p><strong>Japanese:</strong></p>
+<p><strong>Japanese</strong> (using the bundled <code>RWCP.model</code>, the original TinySegmenter model):</p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 </code></pre>
 <p>Output:</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <p><strong>Chinese:</strong></p>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
@@ -296,7 +296,7 @@ litsea = "0.5.0"
   | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <p>Output:</p>
-<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+<pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p>Each token is annotated with a <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tag.</p>
 <h2 id="library-quick-start"><a class="header" href="#library-quick-start">Library Quick Start</a></h2>
@@ -310,7 +310,7 @@ use litsea::segmenter::Segmenter;
 fn main() -&gt; litsea::Result&lt;()&gt; {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -343,7 +343,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     for (word, pos) in &amp;tokens {
         print!("{}/{} ", word, pos);
     }
-    // Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+    // Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 
     Ok(())
 }</code></pre>
@@ -379,13 +379,13 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <ol>
 <li><strong>Model loading</strong> – Load a pre-trained model (from file or URL)</li>
 <li><strong>Character classification</strong> – For each character in the input, determine its type code based on language-specific patterns</li>
-<li><strong>Feature extraction</strong> – Build a feature set for each character position using a sliding window</li>
+<li><strong>Feature extraction</strong> – Stream character n-gram features for each position through a reused buffer using a sliding window</li>
 <li><strong>Prediction</strong> – AdaBoost predicts whether each position is a word boundary</li>
 </ol>
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
 <li><strong>No dictionary dependency</strong> – Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns</li>
-<li><strong>Compact models</strong> – Model files are typically 1-22 KB, containing only the feature weights that matter</li>
+<li><strong>Compact models</strong> – Word-segmentation model files are typically 1-22 KB (the joint segmentation + POS models are ~9-19 MB), containing only the feature weights that matter</li>
 <li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
 </ul>
@@ -394,7 +394,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <p>Litsea is organized as a <strong>Cargo workspace</strong> with two crates and supporting directories.</p>
 <h2 id="directory-layout"><a class="header" href="#directory-layout">Directory Layout</a></h2>
 <pre><code class="language-text">litsea/
-├── Cargo.toml              # Workspace manifest
+├── Cargo.toml              # Workspace manifest (incl. release profile)
 ├── Cargo.lock              # Dependency lock file
 ├── Makefile                # Build convenience targets
 ├── rustfmt.toml            # Rust formatting configuration
@@ -403,31 +403,45 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 ├── litsea/                 # Core library crate
 │   ├── Cargo.toml
 │   ├── src/
-│   │   ├── lib.rs          # Module declarations and version
-│   │   ├── adaboost.rs     # AdaBoost algorithm
-│   │   ├── segmenter.rs    # Word segmentation
+│   │   ├── lib.rs          # Module declarations, re-exports, and version
+│   │   ├── adaboost.rs     # AdaBoost algorithm (word segmentation)
+│   │   ├── perceptron.rs   # Averaged Perceptron (joint segmentation + POS)
+│   │   ├── segmenter.rs    # Segmentation pipeline and feature templates
 │   │   ├── extractor.rs    # Feature extraction from corpus
-│   │   ├── trainer.rs      # Training orchestration
-│   │   ├── language.rs     # Language definitions and char patterns
-│   │   └── util.rs         # URI scheme utilities
-│   └── benches/
-│       └── bench.rs        # Criterion benchmarks
+│   │   ├── trainer.rs      # Training orchestration (Trainer / PosTrainer)
+│   │   ├── language.rs     # Language enum and character classification
+│   │   ├── upos.rs         # UPOS tags and SegmentLabel
+│   │   ├── model_io.rs     # Model URI resolution and download limits
+│   │   ├── metrics.rs      # BinaryMetrics / MulticlassMetrics
+│   │   └── error.rs        # LitseaError / Result
+│   ├── benches/
+│   │   └── bench.rs        # Criterion benchmarks
+│   └── tests/
+│       └── golden.rs       # Golden snapshots for every bundled model
 ├── litsea-cli/             # CLI binary crate
 │   ├── Cargo.toml
-│   └── src/
-│       └── main.rs         # CLI entry point
+│   ├── src/
+│   │   └── main.rs         # CLI entry point
+│   └── tests/
+│       └── cli.rs          # CLI integration tests
 ├── models/                 # Pre-trained models
 │   ├── japanese.model
 │   ├── chinese.model
 │   ├── korean.model
+│   ├── japanese_pos.model
+│   ├── chinese_pos.model
+│   ├── korean_pos.model
 │   ├── RWCP.model
 │   └── JEITA_Genpaku_ChaSen_IPAdic.model
 ├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   ├── download_udtreebank.sh      # Download UD Treebanks (prints CoNLL-U file path)
-│   ├── corpus_udtreebank.sh           # Convert CoNLL-U to Litsea corpus format
-│   └── wikitexts.sh        # Download and prepare Wikipedia text data
+│   ├── download_udtreebank.sh   # Download UD Treebanks (prints CoNLL-U file path)
+│   ├── corpus_udtreebank.sh     # Convert CoNLL-U to Litsea corpus format
+│   ├── download_wikidump.sh     # Download Wikipedia dumps
+│   ├── corpus_wikidump.sh       # Convert Wikipedia dumps to corpus format
+│   ├── split_sentences.sh       # Split text into sentences
+│   └── wikitexts.sh             # Download and prepare Wikipedia text data
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines
@@ -444,11 +458,12 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
 </thead>
 <tbody>
+<tr><td><code>rustc-hash</code></td><td>2.1</td><td>Fast hashing for internal feature maps</td></tr>
 <tr><td><code>thiserror</code></td><td>2.0</td><td>Error type derivation</td></tr>
-<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls)</td></tr>
-<tr><td><code>tokio</code></td><td>1.49</td><td>Async runtime for remote model loading</td></tr>
+<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls, optional <code>remote_model</code> feature)</td></tr>
 <tr><td><code>criterion</code></td><td>0.8</td><td>Benchmarking (dev dependency)</td></tr>
-<tr><td><code>tempfile</code></td><td>3.25</td><td>Temporary files for tests (dev dependency)</td></tr>
+<tr><td><code>tempfile</code></td><td>3.27</td><td>Temporary files for tests (dev dependency)</td></tr>
+<tr><td><code>tokio</code></td><td>1.52+</td><td>Async runtime for tests (dev dependency)</td></tr>
 </tbody>
 </table>
 </div>
@@ -460,23 +475,32 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
 </thead>
 <tbody>
-<tr><td><code>clap</code></td><td>4.5</td><td>Command-line argument parsing</td></tr>
+<tr><td><code>clap</code></td><td>4.6</td><td>Command-line argument parsing</td></tr>
 <tr><td><code>ctrlc</code></td><td>3.5</td><td>Graceful Ctrl+C handling during training</td></tr>
-<tr><td><code>tokio</code></td><td>1.49</td><td>Async runtime</td></tr>
-<tr><td><code>litsea</code></td><td>0.4</td><td>Core library (workspace member)</td></tr>
+<tr><td><code>tokio</code></td><td>1.52+</td><td>Async runtime</td></tr>
+<tr><td><code>litsea</code></td><td>0.5</td><td>Core library (workspace member)</td></tr>
+<tr><td><code>tempfile</code></td><td>3.27</td><td>Temporary files for integration tests (dev dependency)</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="workspace-configuration"><a class="header" href="#workspace-configuration">Workspace Configuration</a></h2>
-<p>The workspace uses Cargo resolver version 3 (Rust Edition 2024):</p>
+<p>The workspace uses Cargo resolver version 3 (Rust Edition 2024). Release
+builds enable thin LTO and a single codegen unit so the per-character
+feature-scoring call chain can be inlined across codegen units
+(<code>panic = "abort"</code> was considered and rejected — it cannot be scoped to the
+CLI binary and would complicate release-profile tests and benches):</p>
 <pre><code class="language-toml">[workspace]
 resolver = "3"
 members = ["litsea", "litsea-cli"]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 rust-version = "1.87"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
 </code></pre>
 <p>Shared dependencies are defined at the workspace level in <code>[workspace.dependencies]</code> and referenced by each crate with <code>{ workspace = true }</code>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -696,6 +720,8 @@ prediction = +1 if score &gt;= 0, else -1
 <p>The bias is computed as:</p>
 <pre><code class="language-text">bias = -sum(all model weights) / 2.0
 </code></pre>
+<p>The value is cached in the learner and kept in sync by every weight-mutating
+path, so reading it during inference is O(1).</p>
 <p>This centers the decision boundary. The empty-string feature (<code>""</code>) serves as the bias bucket during training.
 It is registered at feature index 0 on every construction path (<code>new()</code>, feature-file initialization, and
 model loading), so models trained through <code>add_instance()</code> train, save, and reload correctly.</p>
@@ -711,7 +737,9 @@ bias_value
 <li>Zero-weight features are omitted</li>
 <li>The last line contains the bias term (a single number)</li>
 </ul>
-<p>See <a href="#model-file-format-2">Model File Format</a> for details.</p>
+<p>Malformed files (empty, truncated before the bias line, duplicate bias lines or
+features, non-finite weights) are rejected at load time. See
+<a href="#model-file-format-2">Model File Format</a> for details.</p>
 <h2 id="hyperparameters"><a class="header" href="#hyperparameters">Hyperparameters</a></h2>
 <div class="table-wrapper">
 <table>
@@ -736,8 +764,9 @@ bias_value
 <p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.</p>
 <h2 id="algorithm"><a class="header" href="#algorithm">Algorithm</a></h2>
 <h3 id="weight-representation"><a class="header" href="#weight-representation">Weight Representation</a></h3>
-<p>The perceptron maintains a <strong>weight vector per class</strong>. Weights are stored as a sparse map:</p>
-<pre><code class="language-text">weights: HashMap&lt;Feature, HashMap&lt;Class, f64&gt;&gt;
+<p>The perceptron maintains a <strong>per-class weight vector for each feature</strong>, stored in a single sparse map so that scoring and weight updates need one hashed lookup per feature (not one per feature x class):</p>
+<pre><code class="language-text">slots: FxHashMap&lt;Feature, FeatureSlot&gt;
+// FeatureSlot { w: Vec&lt;f64&gt;, acc: Vec&lt;f64&gt;, ts: Vec&lt;usize&gt; } -- one entry per class
 </code></pre>
 <p>For example:</p>
 <pre><code class="language-text">weights["UW4:猫"]["B-NOUN"] = 2.5
@@ -769,6 +798,7 @@ At the end of training:
     averaged[feature][class] = cumulative[feature][class] / total_steps
 </code></pre>
 <p>This avoids storing all intermediate weight vectors while producing the same result. The averaging reduces dependence on the order of training data and improves generalization performance.</p>
+<p>The accumulator and timestamp vectors are materialized lazily, the first time training touches a feature – a model loaded for inference only carries live weights and pays nothing for averaging state.</p>
 <h3 id="training-with-epochs"><a class="header" href="#training-with-epochs">Training with Epochs</a></h3>
 <p>Training iterates over the data multiple times (epochs). Each epoch processes all training instances in order:</p>
 <pre><code class="language-text">For each epoch (1 to num_epochs):
@@ -824,7 +854,7 @@ always produces byte-identical files; loading does not depend on the order</li>
 <tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
 <tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>
 <tr><td>Training</td><td>Iterative boosting with sample reweighting</td><td>Online learning with weight averaging</td></tr>
-<tr><td>Model size</td><td>A few KB</td><td>~11 MB (with POS features)</td></tr>
+<tr><td>Model size</td><td>A few KB</td><td>~9-19 MB (bundled POS models)</td></tr>
 <tr><td>Hyperparameters</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>
@@ -922,11 +952,11 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li><strong>B</strong> – “Boundary” tag (word start)</li>
 <li><strong>O</strong> – “Other” tag (continuation)</li>
 </ul>
-<p>Features are extracted for positions 4 through len-3, where the full window of i-3 to i+2 is available.</p>
+<p>Features are extracted for positions 4 through len-3 for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because <code>segment_with_pos</code> predicts there to derive the first word’s POS (#100). Positions run 4 (or 3) through len-3, where the full window of i-3 to i+2 is available.</p>
 <h2 id="training-data-format"><a class="header" href="#training-data-format">Training Data Format</a></h2>
 <p>The <code>extract</code> command writes features to a file in this format:</p>
-<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
+-1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
 </code></pre>
 <p>Each line contains:</p>
 <ol>
@@ -1070,11 +1100,11 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <p>At each position <em>i</em>, the segmenter:</p>
 <ol>
 <li>
-<p><strong>Extracts features</strong> – Calls <code>get_attributes(i, tags, chars, types)</code> to build a <code>HashSet&lt;String&gt;</code> of 38–42 features</p>
+<p><strong>Streams features</strong> – Calls <code>write_attributes(i, tags, chars, types, sink)</code>, which formats each of the 38–42 feature strings into a reused buffer and passes it to a sink closure. No per-position set or vector is built on this path.</p>
 </li>
 <li>
-<p><strong>Computes score</strong> – The AdaBoost learner sums the model weights for all matching features plus the bias:</p>
-<pre><code class="language-text">score = bias + sum(model[feature] for feature in attributes)
+<p><strong>Computes score</strong> – The sink adds <code>learner.weight(feature)</code> (an <code>FxHashMap</code> lookup of the model weight, 0.0 for unknown features) to a running score that starts at the bias. The bias itself is a cached field (<code>-sum(model) / 2.0</code>, kept in sync by every weight-mutating path) and is read once per sentence, not recomputed per position:</p>
+<pre><code class="language-text">score = bias + sum(weight(feature) for each streamed feature)
 </code></pre>
 </li>
 <li>
@@ -1083,6 +1113,15 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <li>
 <p><strong>Updates tags</strong> – Pushes “B” or “O” to the tags array, which affects feature extraction for subsequent positions</p>
 </li>
+</ol>
+<p>The padded character/type context (<code>sentence_context</code>) borrows string slices directly from the input instead of allocating a <code>String</code> per character, and the sentinel entries (<code>B3</code>…<code>E3</code>) are static literals.</p>
+<h2 id="joint-segmentation-and-pos-tagging-segment_with_pos"><a class="header" href="#joint-segmentation-and-pos-tagging-segment_with_pos">Joint Segmentation and POS Tagging (<code>segment_with_pos</code>)</a></h2>
+<p><code>segment_with_pos</code> runs the same left-to-right pipeline with the Averaged Perceptron instead of AdaBoost:</p>
+<ol>
+<li>Features for each position are collected into a reused <code>Vec&lt;String&gt;</code> (<code>collect_attributes</code>), and the perceptron’s per-class score vector is also a reused buffer.</li>
+<li>The perceptron predicts a <code>SegmentLabel</code> (<code>B-&lt;POS&gt;</code> or <code>O</code>) per position with a single <code>FxHashMap</code> lookup per feature (feature -&gt; per-class weight vector layout).</li>
+<li>The prediction at the <strong>first character position</strong> determines the first word’s POS. Since #100 the POS training pipeline emits that position too, so training and inference are symmetric (the boundary/AdaBoost pipeline still skips it because its first-position label is degenerate).</li>
+<li>A <code>B-&lt;POS&gt;</code> label closes the current word and starts a new one carrying that POS; <code>O</code> extends the current word.</li>
 </ol>
 <h2 id="training-vs-prediction"><a class="header" href="#training-vs-prediction">Training vs. Prediction</a></h2>
 <div class="table-wrapper">
@@ -1093,6 +1132,7 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <tbody>
 <tr><td>Tags source</td><td>Pre-computed from the annotated corpus</td><td>Dynamically generated by the model</td></tr>
 <tr><td>First tag</td><td>“U” (overrides “B” at position 3)</td><td>“U” (no prior decision)</td></tr>
+<tr><td>First position</td><td>Boundary pipeline skips it; POS pipeline emits it (#100)</td><td>POS mode predicts it for the first word’s POS</td></tr>
 <tr><td>Labels</td><td>Known from corpus (+1 or -1)</td><td>Predicted by AdaBoost</td></tr>
 <tr><td>Features</td><td>Written to file via callback</td><td>Passed directly to <code>predict()</code></td></tr>
 </tbody>
@@ -1103,9 +1143,10 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <p>The segmentation algorithm is <strong>linear</strong> in the length of the input:</p>
 <ul>
 <li>Each character position is visited once: O(n)</li>
-<li>Feature extraction at each position: O(1) (fixed number of features)</li>
-<li>Prediction at each position: O(f) where f is the number of active features (~38-42)</li>
+<li>Feature extraction at each position: O(1) (fixed number of features, streamed through a reused buffer)</li>
+<li>Prediction at each position: O(f) where f is the number of active features (~38-42), each a single <code>FxHashMap</code> probe</li>
 <li>Total: O(n * f) which is effectively O(n)</li>
+<li>Allocation profile: the sentence context borrows from the input, the bias is cached, and attribute/score buffers are reused across positions</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language-support-overview"><a class="header" href="#language-support-overview">Language Support Overview</a></h1>
@@ -1160,7 +1201,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <tr><td>Character types</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
 <tr><td>WC features</td><td>Yes (4 extra)</td><td>Yes (4 extra)</td><td>No</td></tr>
 <tr><td>Total features</td><td>42</td><td>42</td><td>38</td></tr>
-<tr><td>Matching method</td><td>Regex only</td><td>Regex only</td><td>Regex + Closure</td></tr>
+<tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> with a range guard</td></tr>
 </tbody>
 </table>
 </div>
@@ -1215,10 +1256,10 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 </ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 </code></pre>
 <p>Output:</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="chinese"><a class="header" href="#chinese">Chinese</a></h1>
@@ -1308,7 +1349,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 </div>
 <p>These particles frequently appear at word boundaries and are given a distinct type code to improve segmentation accuracy.</p>
 <h3 id="hangul-syllable-structure-받침-detection"><a class="header" href="#hangul-syllable-structure-받침-detection">Hangul Syllable Structure (받침 Detection)</a></h3>
-<p>Korean uses <strong>closure-based matching</strong> instead of regex for SN and SF types. This exploits the systematic Unicode Hangul encoding:</p>
+<p>Korean uses a <strong><code>match</code> arm with a range guard</strong> for the SN and SF types. This exploits the systematic Unicode Hangul encoding:</p>
 <ul>
 <li>Hangul Syllables: U+AC00–U+D7AF (11,172 syllables)</li>
 <li>Each syllable = <code>(initial * 21 + medial) * 28 + final + 0xAC00</code></li>
@@ -1505,7 +1546,7 @@ use litsea::segmenter::Segmenter;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");
@@ -1555,6 +1596,9 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 </span><span class="boring">fn main() {
 </span>pub fn new(language: Language, learner: Option&lt;AdaBoost&gt;) -&gt; Self
 <span class="boring">}</span></code></pre>
+<p>The POS learner is left unset; calling <code>segment_with_pos</code> on a segmenter
+built with <code>new()</code> panics. Use <a href="#pos-mode-api"><code>with_pos_learner</code></a> for joint
+segmentation + POS tagging.</p>
 <p>Creates a new segmenter.</p>
 <ul>
 <li><code>language</code> – The language for character type classification</li>
@@ -1634,6 +1678,58 @@ pub fn pos_learner_mut(&amp;mut self) -&gt; Option&lt;&amp;mut AveragedPerceptro
 <blockquote>
 <p>Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former <code>get_attributes</code> method is now private.</p>
 </blockquote>
+<h2 id="pos-mode-api"><a class="header" href="#pos-mode-api">POS-Mode API</a></h2>
+<p>The segmenter also supports <strong>joint word segmentation and POS tagging</strong> with
+an Averaged Perceptron model.</p>
+<h3 id="with_pos_learner"><a class="header" href="#with_pos_learner"><code>with_pos_learner</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>Creates a segmenter configured for joint segmentation + POS tagging.</p>
+<h3 id="segment_with_pos"><a class="header" href="#segment_with_pos"><code>segment_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn segment_with_pos(&amp;self, sentence: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+<span class="boring">}</span></code></pre>
+<p>Segments a sentence and jointly predicts each word’s UPOS tag. The
+prediction at the first character position determines the first word’s POS.</p>
+<p><strong>Panics</strong> if no POS learner is set — build the segmenter with
+<code>with_pos_learner()</code> or register training data with <code>add_corpus_with_pos()</code>
+first.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+let mut pos_learner = AveragedPerceptron::new();
+pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+let tokens = segmenter.segment_with_pos("これはテストです。");
+// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
+//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus_with_pos"><a class="header" href="#add_corpus_with_pos"><code>add_corpus_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_with_pos(&amp;mut self, corpus: &amp;str)
+<span class="boring">}</span></code></pre>
+<p>Adds a POS-tagged corpus (<code>word/POS word/POS ...</code>) as Averaged Perceptron
+training data, creating the POS learner on first use.</p>
+<h3 id="add_corpus_with_pos_writer"><a class="header" href="#add_corpus_with_pos_writer"><code>add_corpus_with_pos_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_with_pos_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, SegmentLabel)
+<span class="boring">}</span></code></pre>
+<p>Streams the POS training features for each character position (including
+the first one) to a custom writer, without mutating the segmenter. This is
+what <code>Extractor::extract_with_pos</code> builds on.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
 <p>The <code>Extractor</code> struct extracts features from a corpus file for model training.</p>
@@ -1689,6 +1785,31 @@ extractor.extract(
 <li>Calls <code>Segmenter::add_corpus_with_writer()</code> to process each line</li>
 <li>Writes the label and feature set for each character position to the output file</li>
 </ol>
+<h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_with_pos(
+    &amp;mut self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads a POS-tagged corpus (<code>word/POS word/POS ...</code>, one sentence per line,
+POS tags from the UPOS tagset) and writes POS training features. Each output
+line is <code>label\tfeature1\tfeature2\t...</code> where the label is a <code>SegmentLabel</code>
+string (<code>B-&lt;POS&gt;</code> for a word-initial character, <code>O</code> for a continuation).
+Unlike the boundary pipeline, the first character position of each sentence
+is also emitted, because <code>segment_with_pos</code> predicts there to derive the
+first word’s POS.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+extractor.extract_with_pos(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./features_pos.txt"),
+)?;
+<span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="trainer"><a class="header" href="#trainer">Trainer</a></h1>
 <p>The <code>Trainer</code> struct orchestrates the full model training pipeline.</p>
@@ -1782,6 +1903,51 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 
     Ok(())
 }</code></pre>
+<h2 id="postrainer"><a class="header" href="#postrainer">PosTrainer</a></h2>
+<p><code>PosTrainer</code> is the POS-model counterpart of <code>Trainer</code>: it trains an
+<strong>Averaged Perceptron</strong> for joint word segmentation and POS tagging from a
+POS features file (produced by <code>litsea extract --pos</code>).</p>
+<h3 id="postrainernew"><a class="header" href="#postrainernew"><code>PosTrainer::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(num_epochs: usize, features_path: &amp;Path) -&gt; litsea::Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads the features file (each line is <code>label\tfeature1\tfeature2\t...</code>, where
+labels are <code>SegmentLabel</code> strings such as <code>B-NOUN</code> or <code>O</code>) and registers the
+training instances.</p>
+<h3 id="postrainerload_model"><a class="header" href="#postrainerload_model"><code>PosTrainer::load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, model_uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads an existing POS model for incremental training. Classes already
+registered from the training data are merged with the model’s classes.</p>
+<h3 id="postrainertrain"><a class="header" href="#postrainertrain"><code>PosTrainer::train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(
+    &amp;mut self,
+    running: Arc&lt;AtomicBool&gt;,
+    model_path: &amp;Path,
+) -&gt; litsea::Result&lt;MulticlassMetrics&gt;
+<span class="boring">}</span></code></pre>
+<p>Trains for the configured number of epochs, saves the model, and returns
+multiclass metrics (accuracy, macro precision, macro recall). The <code>running</code>
+flag enables graceful interruption, like <code>Trainer::train</code>.</p>
+<pre class="playground"><code class="language-rust">use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::PosTrainer;
+
+#[tokio::main]
+async fn main() -&gt; litsea::Result&lt;()&gt; {
+    let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
+    let running = Arc::new(AtomicBool::new(true));
+    let metrics = trainer.train(running, Path::new("./japanese_pos.model"))?;
+    println!("Accuracy: {:.2}%", metrics.accuracy);
+    Ok(())
+}</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="adaboost"><a class="header" href="#adaboost">AdaBoost</a></h1>
 <p>The <code>AdaBoost</code> struct implements binary classification for word boundary detection.</p>
@@ -1813,7 +1979,7 @@ let mut learner = AdaBoost::new(0.01, 100);
 </span><span class="boring">fn main() {
 </span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>Loads model weights from a local file, synchronously. This is the preferred method for local files – no async runtime is needed.</p>
+<p>Loads model weights from a local file, synchronously. Malformed files (empty, missing bias line, duplicate bias lines or features, non-finite weights) are rejected with <code>LitseaError::InvalidData</code>. This is the preferred method for local files – no async runtime is needed.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -1897,7 +2063,7 @@ let label = learner.predict(&amp;attrs);
 </span><span class="boring">fn main() {
 </span>pub fn bias(&amp;self) -&gt; f64
 <span class="boring">}</span></code></pre>
-<p>Returns the bias term: <code>-sum(all model weights) / 2.0</code>.</p>
+<p>Returns the bias term: <code>-sum(all model weights) / 2.0</code>. The value is cached and kept in sync by every weight-mutating path, so this is O(1).</p>
 <h2 id="evaluation"><a class="header" href="#evaluation">Evaluation</a></h2>
 <h3 id="metrics"><a class="header" href="#metrics"><code>metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1927,7 +2093,7 @@ let label = learner.predict(&amp;attrs);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AveragedPerceptron {
-    // internal fields: weights, accumulated, timestamps, step, classes, instances
+    // internal fields: slots (feature -&gt; per-class weights + averaging state), step, classes, instances
 }
 <span class="boring">}</span></code></pre>
 <h2 id="constructor-4"><a class="header" href="#constructor-4">Constructor</a></h2>
@@ -2346,8 +2512,8 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 </code></pre>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
 <p>The features file contains one line per character position:</p>
-<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
+-1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
 </code></pre>
 <ul>
 <li><code>1</code> = word boundary</li>
@@ -2370,7 +2536,7 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 <h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
 <p>When the <code>--pos</code> flag is specified, <code>extract</code> expects a <strong>POS corpus</strong> instead of a plain word-separated corpus. Each line contains words annotated with UPOS tags in the format <code>word/POS</code>:</p>
 <h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
-<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="pos-feature-output-format"><a class="header" href="#pos-feature-output-format">POS Feature Output Format</a></h3>
@@ -2416,15 +2582,16 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 </div>
 <h2 id="output"><a class="header" href="#output">Output</a></h2>
 <p>Training metrics are printed to stderr:</p>
+<p>Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate.</p>
 <pre><code class="language-text">Result Metrics:
-  Accuracy: 94.15% ( 564133 / 599198 )
-  Precision: 95.57% ( 330454 / 345758 )
-  Recall: 94.36% ( 330454 / 350215 )
+  Accuracy: 100.00% ( 1075868 / 1075869 )
+  Precision: 100.00% ( 161283 / 161284 )
+  Recall: 100.00% ( 161283 / 161283 )
   Confusion Matrix:
-    True Positives: 330454
-    False Positives: 15304
-    False Negatives: 19761
-    True Negatives: 233679
+    True Positives: 161283
+    False Positives: 1
+    False Negatives: 0
+    True Negatives: 914585
 </code></pre>
 <h2 id="ctrlc-handling"><a class="header" href="#ctrlc-handling">Ctrl+C Handling</a></h2>
 <p>Training supports graceful interruption:</p>
@@ -2480,9 +2647,9 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 <h3 id="output-1"><a class="header" href="#output-1">Output</a></h3>
 <p>POS training metrics are printed to stderr (macro-averaged precision and recall):</p>
 <pre><code class="language-text">Result Metrics:
-  Accuracy: 98.34%
-  Macro Precision: 97.87%
-  Macro Recall: 91.67%
+  Accuracy: 98.23% ( 277213 )
+  Macro Precision: 96.82%
+  Macro Recall: 93.30%
 </code></pre>
 <h3 id="ctrlc-handling-1"><a class="header" href="#ctrlc-handling-1">Ctrl+C Handling</a></h3>
 <p>Same as AdaBoost training, POS training supports graceful interruption. The first Ctrl+C stops training and saves the model at its current state.</p>
@@ -2537,7 +2704,7 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 <h2 id="examples-2"><a class="header" href="#examples-2">Examples</a></h2>
 <p><strong>Japanese:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 </code></pre>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 </code></pre>
@@ -2565,7 +2732,7 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
   | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
-<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+<pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="processing-a-file"><a class="header" href="#processing-a-file">Processing a File</a></h3>
 <pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
@@ -2573,7 +2740,7 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
 <ul>
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
-<li>Model loading is asynchronous and supports HTTP/HTTPS with TLS (rustls)</li>
+<li>The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (<code>load_model_from_path</code>)</li>
 <li>The model URI is not restricted to file paths – any valid URL is accepted</li>
 <li>When using <code>--pos</code>, the model must be a POS model trained with <code>train --pos</code></li>
 </ul>
@@ -2760,8 +2927,8 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </ol>
 <h2 id="feature-file-format"><a class="header" href="#feature-file-format">Feature File Format</a></h2>
 <p>Each line represents one character position:</p>
-<pre><code class="language-text">1	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:は ...
--1	UP1:U UP2:U UP3:B BP1:UB BP2:BU UW1:B1 UW2:は UW3:テ ...
+<pre><code class="language-text">1	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
+-1	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
 </code></pre>
 <ul>
 <li>First column: label (<code>1</code> = boundary, <code>-1</code> = non-boundary)</li>
@@ -2783,9 +2950,9 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </ul>
 <p>The feature template (character n-grams, type n-grams, etc.) is the same as for standard segmentation – only the label scheme differs.</p>
 <h3 id="pos-feature-file-format"><a class="header" href="#pos-feature-file-format">POS Feature File Format</a></h3>
-<pre><code class="language-text">B-NOUN	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:は ...
-O	UP1:U UP2:U UP3:B BP1:UB BP2:BU UW1:B1 UW2:は UW3:テ ...
-B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
+<pre><code class="language-text">B-NOUN	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
+O	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
+B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 </code></pre>
 <ul>
 <li>First column: segment label (e.g., <code>B-NOUN</code>, <code>O</code>)</li>
@@ -2831,15 +2998,16 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 </table>
 </div>
 <h2 id="interpreting-output"><a class="header" href="#interpreting-output">Interpreting Output</a></h2>
+<p>Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate.</p>
 <pre><code class="language-text">Result Metrics:
-  Accuracy: 94.15% ( 564133 / 599198 )
-  Precision: 95.57% ( 330454 / 345758 )
-  Recall: 94.36% ( 330454 / 350215 )
+  Accuracy: 100.00% ( 1075868 / 1075869 )
+  Precision: 100.00% ( 161283 / 161284 )
+  Recall: 100.00% ( 161283 / 161283 )
   Confusion Matrix:
-    True Positives: 330454
-    False Positives: 15304
-    False Negatives: 19761
-    True Negatives: 233679
+    True Positives: 161283
+    False Positives: 1
+    False Negatives: 0
+    True Negatives: 914585
 </code></pre>
 <ul>
 <li><strong>Accuracy</strong> – Percentage of correct predictions (both boundaries and non-boundaries)</li>
@@ -2887,9 +3055,9 @@ B-VERB	UP1:U UP2:U UP3:U BP1:UU BP2:UU UW1:B2 UW2:B1 UW3:い ...
 </div>
 <h3 id="pos-training-output"><a class="header" href="#pos-training-output">POS Training Output</a></h3>
 <pre><code class="language-text">Result Metrics:
-  Accuracy: 98.34%
-  Macro Precision: 97.87%
-  Macro Recall: 91.67%
+  Accuracy: 98.23% ( 277213 )
+  Macro Precision: 96.82%
+  Macro Recall: 93.30%
 </code></pre>
 <ul>
 <li><strong>Accuracy</strong> – Percentage of correct predictions across all classes</li>
@@ -3035,7 +3203,7 @@ otherwise poison every score comparison</li>
 <p>The Averaged Perceptron model loader likewise validates its class-count
 header and rejects non-finite weights.</p>
 <p>During prediction:</p>
-<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0
+<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 </code></pre>
 <h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
@@ -3046,15 +3214,18 @@ score = bias + sum(model[feature] for feature in input_attributes)
 <tr><th>Model</th><th>Size</th><th>Features</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>~2.9 KB</td><td>Wikipedia-trained</td></tr>
-<tr><td>korean.model</td><td>~1.8 KB</td><td>Wikipedia-trained</td></tr>
-<tr><td>chinese.model</td><td>~1.3 KB</td><td>Wikipedia-trained</td></tr>
+<tr><td>japanese.model</td><td>~1.4 KB</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>~1.3 KB</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>~1.1 KB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
+<tr><td>japanese_pos.model</td><td>~11 MB</td><td>UD Japanese-GSD (POS)</td></tr>
+<tr><td>chinese_pos.model</td><td>~19 MB</td><td>UD Chinese-GSD (POS)</td></tr>
+<tr><td>korean_pos.model</td><td>~8.9 MB</td><td>UD Korean-GSD (POS)</td></tr>
 <tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~17 KB</td><td>JEITA corpus</td></tr>
 </tbody>
 </table>
 </div>
-<p>The compact size is a key advantage of Litsea – models can be embedded directly in applications or served over HTTP with minimal overhead.</p>
+<p>The compact size of the word-segmentation models is a key advantage of Litsea – they can be embedded directly in applications or served over HTTP with minimal overhead. The joint segmentation + POS models are larger (megabytes) because they carry per-class weights.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
@@ -3157,6 +3328,12 @@ trailing bias line fails to load; see
 <li>Throughput measurements</li>
 <li>Comparison with previous runs (automatic regression detection)</li>
 </ul>
+<h2 id="release-profile"><a class="header" href="#release-profile">Release Profile</a></h2>
+<p><code>cargo bench</code> inherits the release profile, which enables thin LTO and a
+single codegen unit (see the workspace <code>Cargo.toml</code>). Benchmark numbers
+therefore reflect the optimized configuration that release binaries ship
+with; a plain <code>cargo build</code> (dev profile) is significantly slower and not
+representative.</p>
 <h2 id="interpreting-results"><a class="header" href="#interpreting-results">Interpreting Results</a></h2>
 <p>Key performance factors:</p>
 <ul>
@@ -3181,7 +3358,7 @@ trailing bias line fails to load; see
 <tr><td>Accuracy</td><td>94.15%</td></tr>
 <tr><td>Precision</td><td>95.57%</td></tr>
 <tr><td>Recall</td><td>94.36%</td></tr>
-<tr><td>File Size</td><td>~2.9 KB</td></tr>
+<tr><td>File Size</td><td>~1.4 KB</td></tr>
 </tbody>
 </table>
 </div>
@@ -3195,7 +3372,7 @@ trailing bias line fails to load; see
 <tr><td>Language</td><td>Korean</td></tr>
 <tr><td>Training Corpus</td><td>UD Korean-GSD</td></tr>
 <tr><td>Accuracy</td><td>85.08%</td></tr>
-<tr><td>File Size</td><td>~1.8 KB</td></tr>
+<tr><td>File Size</td><td>~1.3 KB</td></tr>
 </tbody>
 </table>
 </div>
@@ -3209,7 +3386,7 @@ trailing bias line fails to load; see
 <tr><td>Language</td><td>Chinese (Simplified &amp; Traditional)</td></tr>
 <tr><td>Training Corpus</td><td>UD Chinese-GSD</td></tr>
 <tr><td>Accuracy</td><td>80.72%</td></tr>
-<tr><td>File Size</td><td>~1.3 KB</td></tr>
+<tr><td>File Size</td><td>~1.1 KB</td></tr>
 </tbody>
 </table>
 </div>
@@ -3253,9 +3430,9 @@ trailing bias line fails to load; see
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Japanese-GSD (7,050 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>98.34%</td></tr>
-<tr><td>Macro Precision</td><td>97.87%</td></tr>
-<tr><td>Macro Recall</td><td>91.67%</td></tr>
+<tr><td>Accuracy</td><td>98.23%</td></tr>
+<tr><td>Macro Precision</td><td>96.82%</td></tr>
+<tr><td>Macro Recall</td><td>93.30%</td></tr>
 <tr><td>File Size</td><td>~11 MB</td></tr>
 </tbody>
 </table>
@@ -3271,9 +3448,9 @@ trailing bias line fails to load; see
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Chinese-GSD (3,997 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>97.09%</td></tr>
-<tr><td>Macro Precision</td><td>97.31%</td></tr>
-<tr><td>Macro Recall</td><td>96.23%</td></tr>
+<tr><td>Accuracy</td><td>97.04%</td></tr>
+<tr><td>Macro Precision</td><td>97.17%</td></tr>
+<tr><td>Macro Recall</td><td>96.14%</td></tr>
 <tr><td>File Size</td><td>~19 MB</td></tr>
 </tbody>
 </table>
@@ -3289,10 +3466,10 @@ trailing bias line fails to load; see
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Korean-GSD (4,400 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>95.33%</td></tr>
-<tr><td>Macro Precision</td><td>95.30%</td></tr>
-<tr><td>Macro Recall</td><td>87.69%</td></tr>
-<tr><td>File Size</td><td>~8.4 MB</td></tr>
+<tr><td>Accuracy</td><td>95.14%</td></tr>
+<tr><td>Macro Precision</td><td>95.00%</td></tr>
+<tr><td>Macro Recall</td><td>86.15%</td></tr>
+<tr><td>File Size</td><td>~8.9 MB</td></tr>
 </tbody>
 </table>
 </div>

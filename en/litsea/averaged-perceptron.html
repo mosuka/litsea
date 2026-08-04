@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -186,7 +186,7 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AveragedPerceptron {
-    // internal fields: weights, accumulated, timestamps, step, classes, instances
+    // internal fields: slots (feature -&gt; per-class weights + averaging state), step, classes, instances
 }
 <span class="boring">}</span></code></pre>
 <h2 id="constructor"><a class="header" href="#constructor">Constructor</a></h2>

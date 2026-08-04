@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -238,6 +238,8 @@ prediction = +1 if score &gt;= 0, else -1
 <p>The bias is computed as:</p>
 <pre><code class="language-text">bias = -sum(all model weights) / 2.0
 </code></pre>
+<p>The value is cached in the learner and kept in sync by every weight-mutating
+path, so reading it during inference is O(1).</p>
 <p>This centers the decision boundary. The empty-string feature (<code>""</code>) serves as the bias bucket during training.
 It is registered at feature index 0 on every construction path (<code>new()</code>, feature-file initialization, and
 model loading), so models trained through <code>add_instance()</code> train, save, and reload correctly.</p>
@@ -253,7 +255,9 @@ bias_value
 <li>Zero-weight features are omitted</li>
 <li>The last line contains the bias term (a single number)</li>
 </ul>
-<p>See <a href="../advanced/model-file-format.html">Model File Format</a> for details.</p>
+<p>Malformed files (empty, truncated before the bias line, duplicate bias lines or
+features, non-finite weights) are rejected at load time. See
+<a href="../advanced/model-file-format.html">Model File Format</a> for details.</p>
 <h2 id="hyperparameters"><a class="header" href="#hyperparameters">Hyperparameters</a></h2>
 <div class="table-wrapper">
 <table>

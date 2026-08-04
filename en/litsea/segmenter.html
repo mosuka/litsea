@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -198,6 +198,9 @@
 </span><span class="boring">fn main() {
 </span>pub fn new(language: Language, learner: Option&lt;AdaBoost&gt;) -&gt; Self
 <span class="boring">}</span></code></pre>
+<p>The POS learner is left unset; calling <code>segment_with_pos</code> on a segmenter
+built with <code>new()</code> panics. Use <a href="#pos-mode-api"><code>with_pos_learner</code></a> for joint
+segmentation + POS tagging.</p>
 <p>Creates a new segmenter.</p>
 <ul>
 <li><code>language</code> – The language for character type classification</li>
@@ -277,6 +280,58 @@ pub fn pos_learner_mut(&amp;mut self) -&gt; Option&lt;&amp;mut AveragedPerceptro
 <blockquote>
 <p>Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former <code>get_attributes</code> method is now private.</p>
 </blockquote>
+<h2 id="pos-mode-api"><a class="header" href="#pos-mode-api">POS-Mode API</a></h2>
+<p>The segmenter also supports <strong>joint word segmentation and POS tagging</strong> with
+an Averaged Perceptron model.</p>
+<h3 id="with_pos_learner"><a class="header" href="#with_pos_learner"><code>with_pos_learner</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>Creates a segmenter configured for joint segmentation + POS tagging.</p>
+<h3 id="segment_with_pos"><a class="header" href="#segment_with_pos"><code>segment_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn segment_with_pos(&amp;self, sentence: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+<span class="boring">}</span></code></pre>
+<p>Segments a sentence and jointly predicts each word’s UPOS tag. The
+prediction at the first character position determines the first word’s POS.</p>
+<p><strong>Panics</strong> if no POS learner is set — build the segmenter with
+<code>with_pos_learner()</code> or register training data with <code>add_corpus_with_pos()</code>
+first.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+let mut pos_learner = AveragedPerceptron::new();
+pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+let tokens = segmenter.segment_with_pos("これはテストです。");
+// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
+//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus_with_pos"><a class="header" href="#add_corpus_with_pos"><code>add_corpus_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_with_pos(&amp;mut self, corpus: &amp;str)
+<span class="boring">}</span></code></pre>
+<p>Adds a POS-tagged corpus (<code>word/POS word/POS ...</code>) as Averaged Perceptron
+training data, creating the POS learner on first use.</p>
+<h3 id="add_corpus_with_pos_writer"><a class="header" href="#add_corpus_with_pos_writer"><code>add_corpus_with_pos_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_with_pos_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, SegmentLabel)
+<span class="boring">}</span></code></pre>
+<p>Streams the POS training features for each character position (including
+the first one) to a custom writer, without mutating the segmenter. This is
+what <code>Extractor::extract_with_pos</code> builds on.</p>
 
                     </main>
 

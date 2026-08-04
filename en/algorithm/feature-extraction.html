@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -261,11 +261,11 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li><strong>B</strong> – “Boundary” tag (word start)</li>
 <li><strong>O</strong> – “Other” tag (continuation)</li>
 </ul>
-<p>Features are extracted for positions 4 through len-3, where the full window of i-3 to i+2 is available.</p>
+<p>Features are extracted for positions 4 through len-3 for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because <code>segment_with_pos</code> predicts there to derive the first word’s POS (#100). Positions run 4 (or 3) through len-3, where the full window of i-3 to i+2 is available.</p>
 <h2 id="training-data-format"><a class="header" href="#training-data-format">Training Data Format</a></h2>
 <p>The <code>extract</code> command writes features to a file in this format:</p>
-<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
+-1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
 </code></pre>
 <p>Each line contains:</p>
 <ol>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -232,7 +232,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <tr><td>Character types</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
 <tr><td>WC features</td><td>Yes (4 extra)</td><td>Yes (4 extra)</td><td>No</td></tr>
 <tr><td>Total features</td><td>42</td><td>42</td><td>38</td></tr>
-<tr><td>Matching method</td><td>Regex only</td><td>Regex only</td><td>Regex + Closure</td></tr>
+<tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> with a range guard</td></tr>
 </tbody>
 </table>
 </div>

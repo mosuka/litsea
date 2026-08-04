@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -205,13 +205,13 @@
 <ol>
 <li><strong>Model loading</strong> – Load a pre-trained model (from file or URL)</li>
 <li><strong>Character classification</strong> – For each character in the input, determine its type code based on language-specific patterns</li>
-<li><strong>Feature extraction</strong> – Build a feature set for each character position using a sliding window</li>
+<li><strong>Feature extraction</strong> – Stream character n-gram features for each position through a reused buffer using a sliding window</li>
 <li><strong>Prediction</strong> – AdaBoost predicts whether each position is a word boundary</li>
 </ol>
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
 <li><strong>No dictionary dependency</strong> – Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns</li>
-<li><strong>Compact models</strong> – Model files are typically 1-22 KB, containing only the feature weights that matter</li>
+<li><strong>Compact models</strong> – Word-segmentation model files are typically 1-22 KB (the joint segmentation + POS models are ~9-19 MB), containing only the feature weights that matter</li>
 <li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
 </ul>

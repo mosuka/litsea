@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -184,7 +184,7 @@
 <p>Litsea is organized as a <strong>Cargo workspace</strong> with two crates and supporting directories.</p>
 <h2 id="directory-layout"><a class="header" href="#directory-layout">Directory Layout</a></h2>
 <pre><code class="language-text">litsea/
-├── Cargo.toml              # Workspace manifest
+├── Cargo.toml              # Workspace manifest (incl. release profile)
 ├── Cargo.lock              # Dependency lock file
 ├── Makefile                # Build convenience targets
 ├── rustfmt.toml            # Rust formatting configuration
@@ -193,31 +193,45 @@
 ├── litsea/                 # Core library crate
 │   ├── Cargo.toml
 │   ├── src/
-│   │   ├── lib.rs          # Module declarations and version
-│   │   ├── adaboost.rs     # AdaBoost algorithm
-│   │   ├── segmenter.rs    # Word segmentation
+│   │   ├── lib.rs          # Module declarations, re-exports, and version
+│   │   ├── adaboost.rs     # AdaBoost algorithm (word segmentation)
+│   │   ├── perceptron.rs   # Averaged Perceptron (joint segmentation + POS)
+│   │   ├── segmenter.rs    # Segmentation pipeline and feature templates
 │   │   ├── extractor.rs    # Feature extraction from corpus
-│   │   ├── trainer.rs      # Training orchestration
-│   │   ├── language.rs     # Language definitions and char patterns
-│   │   └── util.rs         # URI scheme utilities
-│   └── benches/
-│       └── bench.rs        # Criterion benchmarks
+│   │   ├── trainer.rs      # Training orchestration (Trainer / PosTrainer)
+│   │   ├── language.rs     # Language enum and character classification
+│   │   ├── upos.rs         # UPOS tags and SegmentLabel
+│   │   ├── model_io.rs     # Model URI resolution and download limits
+│   │   ├── metrics.rs      # BinaryMetrics / MulticlassMetrics
+│   │   └── error.rs        # LitseaError / Result
+│   ├── benches/
+│   │   └── bench.rs        # Criterion benchmarks
+│   └── tests/
+│       └── golden.rs       # Golden snapshots for every bundled model
 ├── litsea-cli/             # CLI binary crate
 │   ├── Cargo.toml
-│   └── src/
-│       └── main.rs         # CLI entry point
+│   ├── src/
+│   │   └── main.rs         # CLI entry point
+│   └── tests/
+│       └── cli.rs          # CLI integration tests
 ├── models/                 # Pre-trained models
 │   ├── japanese.model
 │   ├── chinese.model
 │   ├── korean.model
+│   ├── japanese_pos.model
+│   ├── chinese_pos.model
+│   ├── korean_pos.model
 │   ├── RWCP.model
 │   └── JEITA_Genpaku_ChaSen_IPAdic.model
 ├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   ├── download_udtreebank.sh      # Download UD Treebanks (prints CoNLL-U file path)
-│   ├── corpus_udtreebank.sh           # Convert CoNLL-U to Litsea corpus format
-│   └── wikitexts.sh        # Download and prepare Wikipedia text data
+│   ├── download_udtreebank.sh   # Download UD Treebanks (prints CoNLL-U file path)
+│   ├── corpus_udtreebank.sh     # Convert CoNLL-U to Litsea corpus format
+│   ├── download_wikidump.sh     # Download Wikipedia dumps
+│   ├── corpus_wikidump.sh       # Convert Wikipedia dumps to corpus format
+│   ├── split_sentences.sh       # Split text into sentences
+│   └── wikitexts.sh             # Download and prepare Wikipedia text data
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines
@@ -234,11 +248,12 @@
 <tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
 </thead>
 <tbody>
+<tr><td><code>rustc-hash</code></td><td>2.1</td><td>Fast hashing for internal feature maps</td></tr>
 <tr><td><code>thiserror</code></td><td>2.0</td><td>Error type derivation</td></tr>
-<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls)</td></tr>
-<tr><td><code>tokio</code></td><td>1.49</td><td>Async runtime for remote model loading</td></tr>
+<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls, optional <code>remote_model</code> feature)</td></tr>
 <tr><td><code>criterion</code></td><td>0.8</td><td>Benchmarking (dev dependency)</td></tr>
-<tr><td><code>tempfile</code></td><td>3.25</td><td>Temporary files for tests (dev dependency)</td></tr>
+<tr><td><code>tempfile</code></td><td>3.27</td><td>Temporary files for tests (dev dependency)</td></tr>
+<tr><td><code>tokio</code></td><td>1.52+</td><td>Async runtime for tests (dev dependency)</td></tr>
 </tbody>
 </table>
 </div>
@@ -250,23 +265,32 @@
 <tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
 </thead>
 <tbody>
-<tr><td><code>clap</code></td><td>4.5</td><td>Command-line argument parsing</td></tr>
+<tr><td><code>clap</code></td><td>4.6</td><td>Command-line argument parsing</td></tr>
 <tr><td><code>ctrlc</code></td><td>3.5</td><td>Graceful Ctrl+C handling during training</td></tr>
-<tr><td><code>tokio</code></td><td>1.49</td><td>Async runtime</td></tr>
-<tr><td><code>litsea</code></td><td>0.4</td><td>Core library (workspace member)</td></tr>
+<tr><td><code>tokio</code></td><td>1.52+</td><td>Async runtime</td></tr>
+<tr><td><code>litsea</code></td><td>0.5</td><td>Core library (workspace member)</td></tr>
+<tr><td><code>tempfile</code></td><td>3.27</td><td>Temporary files for integration tests (dev dependency)</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="workspace-configuration"><a class="header" href="#workspace-configuration">Workspace Configuration</a></h2>
-<p>The workspace uses Cargo resolver version 3 (Rust Edition 2024):</p>
+<p>The workspace uses Cargo resolver version 3 (Rust Edition 2024). Release
+builds enable thin LTO and a single codegen unit so the per-character
+feature-scoring call chain can be inlined across codegen units
+(<code>panic = "abort"</code> was considered and rejected — it cannot be scoped to the
+CLI binary and would complicate release-profile tests and benches):</p>
 <pre><code class="language-toml">[workspace]
 resolver = "3"
 members = ["litsea", "litsea-cli"]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 rust-version = "1.87"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
 </code></pre>
 <p>Shared dependencies are defined at the workspace level in <code>[workspace.dependencies]</code> and referenced by each crate with <code>{ workspace = true }</code>.</p>
 

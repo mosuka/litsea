@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -270,6 +270,51 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
     println!("Precision: {:.2}%", metrics.precision);
     println!("Recall:    {:.2}%", metrics.recall);
 
+    Ok(())
+}</code></pre>
+<h2 id="postrainer"><a class="header" href="#postrainer">PosTrainer</a></h2>
+<p><code>PosTrainer</code> is the POS-model counterpart of <code>Trainer</code>: it trains an
+<strong>Averaged Perceptron</strong> for joint word segmentation and POS tagging from a
+POS features file (produced by <code>litsea extract --pos</code>).</p>
+<h3 id="postrainernew"><a class="header" href="#postrainernew"><code>PosTrainer::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(num_epochs: usize, features_path: &amp;Path) -&gt; litsea::Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads the features file (each line is <code>label\tfeature1\tfeature2\t...</code>, where
+labels are <code>SegmentLabel</code> strings such as <code>B-NOUN</code> or <code>O</code>) and registers the
+training instances.</p>
+<h3 id="postrainerload_model"><a class="header" href="#postrainerload_model"><code>PosTrainer::load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, model_uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Loads an existing POS model for incremental training. Classes already
+registered from the training data are merged with the model’s classes.</p>
+<h3 id="postrainertrain"><a class="header" href="#postrainertrain"><code>PosTrainer::train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(
+    &amp;mut self,
+    running: Arc&lt;AtomicBool&gt;,
+    model_path: &amp;Path,
+) -&gt; litsea::Result&lt;MulticlassMetrics&gt;
+<span class="boring">}</span></code></pre>
+<p>Trains for the configured number of epochs, saves the model, and returns
+multiclass metrics (accuracy, macro precision, macro recall). The <code>running</code>
+flag enables graceful interruption, like <code>Trainer::train</code>.</p>
+<pre class="playground"><code class="language-rust">use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::PosTrainer;
+
+#[tokio::main]
+async fn main() -&gt; litsea::Result&lt;()&gt; {
+    let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
+    let running = Arc::new(AtomicBool::new(true));
+    let metrics = trainer.train(running, Path::new("./japanese_pos.model"))?;
+    println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }</code></pre>
 

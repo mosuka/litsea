@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -225,7 +225,7 @@ otherwise poison every score comparison</li>
 <p>The Averaged Perceptron model loader likewise validates its class-count
 header and rejects non-finite weights.</p>
 <p>During prediction:</p>
-<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0
+<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 </code></pre>
 <h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
@@ -236,15 +236,18 @@ score = bias + sum(model[feature] for feature in input_attributes)
 <tr><th>Model</th><th>Size</th><th>Features</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>~2.9 KB</td><td>Wikipedia-trained</td></tr>
-<tr><td>korean.model</td><td>~1.8 KB</td><td>Wikipedia-trained</td></tr>
-<tr><td>chinese.model</td><td>~1.3 KB</td><td>Wikipedia-trained</td></tr>
+<tr><td>japanese.model</td><td>~1.4 KB</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>~1.3 KB</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>~1.1 KB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
+<tr><td>japanese_pos.model</td><td>~11 MB</td><td>UD Japanese-GSD (POS)</td></tr>
+<tr><td>chinese_pos.model</td><td>~19 MB</td><td>UD Chinese-GSD (POS)</td></tr>
+<tr><td>korean_pos.model</td><td>~8.9 MB</td><td>UD Korean-GSD (POS)</td></tr>
 <tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~17 KB</td><td>JEITA corpus</td></tr>
 </tbody>
 </table>
 </div>
-<p>The compact size is a key advantage of Litsea – models can be embedded directly in applications or served over HTTP with minimal overhead.</p>
+<p>The compact size of the word-segmentation models is a key advantage of Litsea – they can be embedded directly in applications or served over HTTP with minimal overhead. The joint segmentation + POS models are larger (megabytes) because they carry per-class weights.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>

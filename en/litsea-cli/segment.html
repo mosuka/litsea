@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -219,7 +219,7 @@
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <p><strong>Japanese:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 </code></pre>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 </code></pre>
@@ -247,7 +247,7 @@
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
   | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
-<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+<pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="processing-a-file"><a class="header" href="#processing-a-file">Processing a File</a></h3>
 <pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
@@ -255,7 +255,7 @@
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
 <ul>
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
-<li>Model loading is asynchronous and supports HTTP/HTTPS with TLS (rustls)</li>
+<li>The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (<code>load_model_from_path</code>)</li>
 <li>The model URI is not restricted to file paths – any valid URL is accepted</li>
 <li>When using <code>--pos</code>, the model must be a POS model trained with <code>train --pos</code></li>
 </ul>

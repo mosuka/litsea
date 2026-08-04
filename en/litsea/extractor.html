@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -234,6 +234,31 @@ extractor.extract(
 <li>Calls <code>Segmenter::add_corpus_with_writer()</code> to process each line</li>
 <li>Writes the label and feature set for each character position to the output file</li>
 </ol>
+<h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_with_pos(
+    &amp;mut self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads a POS-tagged corpus (<code>word/POS word/POS ...</code>, one sentence per line,
+POS tags from the UPOS tagset) and writes POS training features. Each output
+line is <code>label\tfeature1\tfeature2\t...</code> where the label is a <code>SegmentLabel</code>
+string (<code>B-&lt;POS&gt;</code> for a word-initial character, <code>O</code> for a continuation).
+Unlike the boundary pipeline, the first character position of each sentence
+is also emitted, because <code>segment_with_pos</code> predicts there to derive the
+first word’s POS.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+extractor.extract_with_pos(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./features_pos.txt"),
+)?;
+<span class="boring">}</span></code></pre>
 
                     </main>
 

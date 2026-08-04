@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -216,6 +216,12 @@
 <li>Throughput measurements</li>
 <li>Comparison with previous runs (automatic regression detection)</li>
 </ul>
+<h2 id="release-profile"><a class="header" href="#release-profile">Release Profile</a></h2>
+<p><code>cargo bench</code> inherits the release profile, which enables thin LTO and a
+single codegen unit (see the workspace <code>Cargo.toml</code>). Benchmark numbers
+therefore reflect the optimized configuration that release binaries ship
+with; a plain <code>cargo build</code> (dev profile) is significantly slower and not
+representative.</p>
 <h2 id="interpreting-results"><a class="header" href="#interpreting-results">Interpreting Results</a></h2>
 <p>Key performance factors:</p>
 <ul>

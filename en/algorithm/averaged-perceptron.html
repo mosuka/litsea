@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -191,8 +191,9 @@
 <p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.</p>
 <h2 id="algorithm"><a class="header" href="#algorithm">Algorithm</a></h2>
 <h3 id="weight-representation"><a class="header" href="#weight-representation">Weight Representation</a></h3>
-<p>The perceptron maintains a <strong>weight vector per class</strong>. Weights are stored as a sparse map:</p>
-<pre><code class="language-text">weights: HashMap&lt;Feature, HashMap&lt;Class, f64&gt;&gt;
+<p>The perceptron maintains a <strong>per-class weight vector for each feature</strong>, stored in a single sparse map so that scoring and weight updates need one hashed lookup per feature (not one per feature x class):</p>
+<pre><code class="language-text">slots: FxHashMap&lt;Feature, FeatureSlot&gt;
+// FeatureSlot { w: Vec&lt;f64&gt;, acc: Vec&lt;f64&gt;, ts: Vec&lt;usize&gt; } -- one entry per class
 </code></pre>
 <p>For example:</p>
 <pre><code class="language-text">weights["UW4:猫"]["B-NOUN"] = 2.5
@@ -224,6 +225,7 @@ At the end of training:
     averaged[feature][class] = cumulative[feature][class] / total_steps
 </code></pre>
 <p>This avoids storing all intermediate weight vectors while producing the same result. The averaging reduces dependence on the order of training data and improves generalization performance.</p>
+<p>The accumulator and timestamp vectors are materialized lazily, the first time training touches a feature – a model loaded for inference only carries live weights and pays nothing for averaging state.</p>
 <h3 id="training-with-epochs"><a class="header" href="#training-with-epochs">Training with Epochs</a></h3>
 <p>Training iterates over the data multiple times (epochs). Each epoch processes all training instances in order:</p>
 <pre><code class="language-text">For each epoch (1 to num_epochs):
@@ -279,7 +281,7 @@ always produces byte-identical files; loading does not depend on the order</li>
 <tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
 <tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>
 <tr><td>Training</td><td>Iterative boosting with sample reweighting</td><td>Online learning with weight averaging</td></tr>
-<tr><td>Model size</td><td>A few KB</td><td>~11 MB (with POS features)</td></tr>
+<tr><td>Model size</td><td>A few KB</td><td>~9-19 MB (bundled POS models)</td></tr>
 <tr><td>Hyperparameters</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>

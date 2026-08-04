@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-dc1e276c.js"></script>
@@ -227,7 +227,7 @@ use litsea::segmenter::Segmenter;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
     let tokens = segmenter.segment("これはテストです。");

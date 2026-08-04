@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -184,12 +184,12 @@
 <h2 id="cli-quick-start"><a class="header" href="#cli-quick-start">CLI Quick Start</a></h2>
 <h3 id="segmenting-text"><a class="header" href="#segmenting-text">Segmenting Text</a></h3>
 <p>Litsea ships with pre-trained models in the <code>models/</code> directory. Pipe text into the <code>segment</code> command:</p>
-<p><strong>Japanese:</strong></p>
+<p><strong>Japanese</strong> (using the bundled <code>RWCP.model</code>, the original TinySegmenter model):</p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 </code></pre>
 <p>Output:</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <p><strong>Chinese:</strong></p>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
@@ -203,7 +203,7 @@
   | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <p>Output:</p>
-<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+<pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p>Each token is annotated with a <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tag.</p>
 <h2 id="library-quick-start"><a class="header" href="#library-quick-start">Library Quick Start</a></h2>
@@ -217,7 +217,7 @@ use litsea::segmenter::Segmenter;
 fn main() -&gt; litsea::Result&lt;()&gt; {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -250,7 +250,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     for (word, pos) in &amp;tokens {
         print!("{}/{} ", word, pos);
     }
-    // Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+    // Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 
     Ok(())
 }</code></pre>

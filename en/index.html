@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-dc1e276c.js"></script>
@@ -196,10 +196,10 @@
 </ul>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
 <p>Litsea treats word segmentation as a <strong>binary classification problem</strong>: for each character position in a sentence, the model predicts whether it is a <strong>word boundary</strong> (+1) or <strong>not a boundary</strong> (-1). The classifier uses character n-gram features and character type information specific to each language.</p>
-<pre><code class="language-text">Input:  "LitseaはRust製です"
-         ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
-         O O O O B O B O B   ← boundary predictions
-Output: ["Litsea", "は", "Rust製", "です"]
+<pre><code class="language-text">Input:  "これはテストです。"
+         こ れ は テ ス ト で す 。
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+Output: ["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
 <p>Litsea also supports <strong>POS (Part-of-Speech) tagging</strong> in addition to word segmentation. Using the <strong>Averaged Perceptron</strong> multiclass classifier, it performs joint segmentation and POS tagging simultaneously.</p>
@@ -210,7 +210,7 @@ Output: ["Litsea", "は", "Rust製", "です"]
 </ul>
 <p>The POS tags follow the <a href="https://universaldependencies.org/">Universal Dependencies</a> <strong>UPOS tagset</strong> (17 POS tags).</p>
 <pre><code class="language-text">Input:  "今日はいい天気ですね。"
-Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
+            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -216,8 +216,8 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 </code></pre>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
 <p>The features file contains one line per character position:</p>
-<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
+-1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
 </code></pre>
 <ul>
 <li><code>1</code> = word boundary</li>
@@ -240,7 +240,7 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 <h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
 <p>When the <code>--pos</code> flag is specified, <code>extract</code> expects a <strong>POS corpus</strong> instead of a plain word-separated corpus. Each line contains words annotated with UPOS tags in the format <code>word/POS</code>:</p>
 <h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
-<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="pos-feature-output-format"><a class="header" href="#pos-feature-output-format">POS Feature Output Format</a></h3>
