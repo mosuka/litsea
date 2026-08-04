@@ -2,6 +2,15 @@
 resolver = "3"
 members = ["litsea", "litsea-cli"]
 
+# CPU-bound hot loops (feature-template scoring per character) benefit from
+# cross-codegen-unit inlining; thin LTO + a single codegen unit trades
+# release compile time for runtime performance (#105). `panic = "abort"` was
+# considered and rejected: it cannot be scoped to the CLI binary alone and
+# would complicate release-profile tests/benches that require unwinding.
+[profile.release]
+lto = "thin"
+codegen-units = 1
+
 [workspace.package]
 version = "0.5.0"
 edition = "2024"

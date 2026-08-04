@@ -101,6 +101,18 @@ compatible: all pre-trained models in `models/` load unchanged.
 
 ### Performance
 
+Release profile tuning (#105): the workspace now sets `lto = "thin"` and
+`codegen-units = 1` for release builds, enabling cross-codegen-unit
+inlining of the per-character feature-scoring call chain. Long-text
+segmentation improved a further 10-13% and short-sentence segmentation up
+to 14% on the bundled criterion suite; a leaf release rebuild grows from
+~2.5 s to ~49 s as the compile-time cost. One nanobenchmark off the
+segmentation hot path (`AdaBoost::predict` on a `HashSet`, ~190 ns →
+~230 ns) regressed from changed inlining decisions and is accepted as a
+trade-off. `panic = "abort"` was considered and rejected: it cannot be
+scoped to the CLI binary alone and would complicate release-profile tests
+and benches that rely on unwinding.
+
 Training and model I/O (#104): the perceptron's three parallel training
 maps (`weights`/`accumulated`/`timestamps`) are merged into one slot map,
 so a weight update costs a single hashed lookup with no allocation on the
