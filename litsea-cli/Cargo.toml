@@ -19,6 +19,9 @@ tokio.workspace = true
 
 litsea.workspace = true
 
+[dev-dependencies]
+tempfile.workspace = true
+
 [[bin]]
 name = "litsea"
 path = "src/main.rs"

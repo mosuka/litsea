@@ -811,6 +811,7 @@ dependencies = [
  "clap",
  "ctrlc",
  "litsea",
+ "tempfile",
  "tokio",
 ]
 

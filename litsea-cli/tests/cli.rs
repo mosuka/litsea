@@ -2,10 +2,195 @@
 
 use std::io::Write;
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::{Command, Output, Stdio};
 
 fn model_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(name)
+}
+
+/// Runs the litsea binary with `args`, feeding `stdin` (if any), and returns
+/// the collected output.
+fn run_litsea(args: &[&str], stdin: Option<&str>) -> Output {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_litsea"))
+        .args(args)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("failed to spawn litsea");
+    if let Some(input) = stdin {
+        let mut handle = child.stdin.take().expect("stdin");
+        handle.write_all(input.as_bytes()).expect("write stdin");
+    }
+    drop(child.stdin.take());
+    child.wait_with_output().expect("wait")
+}
+
+/// Pins the plain word-segmentation output (same expectation as the golden
+/// test suite) and the `--language` wiring.
+#[test]
+fn test_segment_golden_output() {
+    let output = run_litsea(
+        &["segment", "-l", "japanese", model_path("RWCP.model").to_str().unwrap()],
+        Some("これはテストです。\n"),
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "これ は テスト です 。\n");
+}
+
+/// Pins segment's `--pos` routing: the Averaged Perceptron model must be
+/// selected and word/POS pairs printed (same expectation as the golden suite).
+#[test]
+fn test_segment_pos_golden_output() {
+    let output = run_litsea(
+        &[
+            "segment",
+            "--pos",
+            "-l",
+            "japanese",
+            model_path("japanese_pos.model").to_str().unwrap(),
+        ],
+        Some("これはテストです。\n"),
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT\n"
+    );
+}
+
+/// Pins the extract output format: each line is a boundary label (1 / -1)
+/// followed by tab-separated features.
+#[test]
+fn test_extract_features_format() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let corpus = dir.path().join("corpus.txt");
+    std::fs::write(&corpus, "これ は テスト です 。\n").expect("write corpus");
+    let features = dir.path().join("features.txt");
+
+    let output = run_litsea(
+        &[
+            "extract",
+            "-l",
+            "japanese",
+            corpus.to_str().unwrap(),
+            features.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let content = std::fs::read_to_string(&features).expect("read features");
+    assert!(!content.is_empty());
+    for line in content.lines() {
+        let mut fields = line.split('\t');
+        let label = fields.next().expect("label");
+        assert!(label == "1" || label == "-1", "unexpected label {label:?} in {line:?}");
+        assert!(fields.next().is_some(), "line has no features: {line:?}");
+    }
+}
+
+/// Pins extract's `--pos` routing: labels become SegmentLabel strings
+/// (O / B-<UPOS>) instead of boundary labels.
+#[test]
+fn test_extract_pos_features_format() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let corpus = dir.path().join("corpus.txt");
+    std::fs::write(&corpus, "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT\n")
+        .expect("write corpus");
+    let features = dir.path().join("features.txt");
+
+    let output = run_litsea(
+        &[
+            "extract",
+            "--pos",
+            "-l",
+            "japanese",
+            corpus.to_str().unwrap(),
+            features.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let content = std::fs::read_to_string(&features).expect("read features");
+    assert!(!content.is_empty());
+    let mut boundary_labels = 0;
+    for line in content.lines() {
+        let label = line.split('\t').next().expect("label");
+        assert!(
+            label == "O" || label.starts_with("B-"),
+            "unexpected POS label {label:?} in {line:?}"
+        );
+        if label.starts_with("B-") {
+            boundary_labels += 1;
+        }
+    }
+    assert!(boundary_labels > 0, "expected at least one B-<POS> label");
+}
+
+/// Smoke-tests both train modes end to end: metrics are reported on stderr
+/// and a model file is written.
+#[test]
+fn test_train_smoke() {
+    let dir = tempfile::tempdir().expect("tempdir");
+
+    // Plain AdaBoost training on separable data.
+    let features = dir.path().join("features.txt");
+    std::fs::write(&features, "1\tfa\n-1\tfb\n1\tfa\n-1\tfb\n1\tfa\n-1\tfb\n")
+        .expect("write features");
+    let model = dir.path().join("out.model");
+    let output = run_litsea(&["train", features.to_str().unwrap(), model.to_str().unwrap()], None);
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Result Metrics"));
+    assert!(model.exists() && std::fs::metadata(&model).unwrap().len() > 0);
+
+    // POS (Averaged Perceptron) training routes to the other learner.
+    let pos_features = dir.path().join("pos_features.txt");
+    std::fs::write(&pos_features, "B-NOUN\tf1\nO\tf2\nB-VERB\tf3\nO\tf4\n")
+        .expect("write pos features");
+    let pos_model = dir.path().join("out_pos.model");
+    let output = run_litsea(
+        &[
+            "train",
+            "--pos",
+            "--num-epochs",
+            "3",
+            pos_features.to_str().unwrap(),
+            pos_model.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Result Metrics (POS)"));
+    assert!(pos_model.exists() && std::fs::metadata(&pos_model).unwrap().len() > 0);
+}
+
+/// A missing model path must exit non-zero with an `Error:` line on stderr.
+#[test]
+fn test_missing_model_error() {
+    let output = run_litsea(&["segment", "-l", "japanese", "/nonexistent/path.model"], Some("x\n"));
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("Error:"),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+/// An unsupported language must be rejected with the FromStr message.
+#[test]
+fn test_unsupported_language_error() {
+    let output = run_litsea(
+        &["segment", "-l", "french", model_path("RWCP.model").to_str().unwrap()],
+        Some("x\n"),
+    );
+    assert!(!output.status.success());
+    assert!(
+        String::from_utf8_lossy(&output.stderr).contains("Unsupported language: 'french'"),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
 }
 
 /// Regression test for #102: a downstream consumer closing stdout early
