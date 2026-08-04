@@ -1251,6 +1251,38 @@ mod tests {
     }
 
     #[test]
+    fn test_train_stops_at_convergence_threshold() {
+        // Regression test for #106: training must stop via the
+        // `(0.5 - best_error_rate).abs() < threshold` break, not by
+        // exhausting num_iterations.
+        //
+        // Construction (threshold = 0.1): every instance carries the same
+        // feature "f", 11 positive and 9 negative. Baseline error = 0.55 and
+        // feature-f error = 0.45, both |0.5 - e| = 0.05, so h_best stays at
+        // the bias bucket with best_error_rate = 0.55, and 0.05 < 0.1 fires
+        // the break in round 1 BEFORE any model update. Without the break,
+        // alpha = 0.5 * ln(0.45/0.55) ~ -0.10 accumulates on model[0] every
+        // one of the 1000 iterations (~ -100), so the all-zero assertions
+        // below fail loudly.
+        let mut learner = AdaBoost::new(0.1, 1000);
+        for _ in 0..11 {
+            learner.add_instance(attrs_of("f"), 1);
+        }
+        for _ in 0..9 {
+            learner.add_instance(attrs_of("f"), -1);
+        }
+
+        learner.train(Arc::new(AtomicBool::new(true)));
+
+        assert!(
+            learner.model.iter().all(|w| *w == 0.0),
+            "model must stay untouched when the convergence break fires: {:?}",
+            learner.model
+        );
+        assert_eq!(learner.bias(), 0.0);
+    }
+
+    #[test]
     fn test_train_empty_learner_does_not_panic() {
         // Regression test for #98: train() on a learner with no instances
         // must be a no-op instead of panicking via NaN error rates.

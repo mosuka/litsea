@@ -281,6 +281,39 @@ mod tests {
     }
 
     #[test]
+    fn test_trainer_trains_to_completion() -> Result<()> {
+        // Regression test for #106: the file-based pipeline
+        // (initialize_features -> initialize_instances -> train -> save)
+        // must actually learn when running stays true. The existing trainer
+        // tests only stop training before the first iteration.
+        let mut file = NamedTempFile::new().expect("Failed to create temp file");
+        for _ in 0..3 {
+            writeln!(file, "1\tfa").expect("write");
+            writeln!(file, "-1\tfb").expect("write");
+        }
+
+        let mut trainer = Trainer::new(0.01, 100, file.path())?;
+        let model_out = NamedTempFile::new()?;
+        let running = Arc::new(AtomicBool::new(true));
+
+        let metrics = trainer.train(running, model_out.path())?;
+
+        assert!(
+            (metrics.accuracy - 100.0).abs() < 1e-9,
+            "separable data must train to 100%, got {}",
+            metrics.accuracy
+        );
+        assert_eq!(metrics.true_positives, 3);
+        assert_eq!(metrics.true_negatives, 3);
+
+        // The trained model was saved with real content (weight lines plus
+        // the trailing bias line).
+        let saved = std::fs::read_to_string(model_out.path())?;
+        assert!(saved.lines().count() >= 2, "saved model looks empty: {saved:?}");
+        Ok(())
+    }
+
+    #[test]
     fn test_pos_trainer_preserves_trailing_unicode_whitespace() -> Result<()> {
         // Regression test for #99: a feature that ends its line with an
         // ideographic space (U+3000) must not be trimmed away while reading
