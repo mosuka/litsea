@@ -101,6 +101,17 @@ compatible: all pre-trained models in `models/` load unchanged.
 
 ### Performance
 
+Inference hot path, second pass (#103): internal feature maps switched from
+the default SipHash to `rustc_hash::FxHashMap` (keys are internally
+generated, so HashDoS resistance is unnecessary); the AdaBoost bias is
+cached instead of recomputed as an O(model-size) sum per sentence;
+`sentence_context` borrows characters from the input instead of allocating
+a `String` per character; and the perceptron's per-prediction scores vector
+is reused across positions. Short-sentence segmentation improved a further
+21-39% and long-text segmentation ~16% across all three languages on the
+bundled criterion suite, with golden-test outputs unchanged. Adds the
+`rustc-hash` dependency (MIT OR Apache-2.0, no transitive dependencies).
+
 Measured on the bundled models (criterion, medians, vs v0.4.0):
 
 - `segment()`: 65–70% faster (long Japanese text: 611 ms → 215 ms).

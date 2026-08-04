@@ -114,15 +114,19 @@ impl Segmenter {
     ///
     /// Returns `(chars, types)` where the first three entries are the B3/B2/B1
     /// head sentinels and the last three are the E1/E2/E3 tail sentinels, so
-    /// real characters occupy indices `3..chars.len() - 3`.
-    fn sentence_context(&self, text: &str) -> (Vec<String>, Vec<&'static str>) {
-        let mut chars = vec!["B3".to_string(), "B2".to_string(), "B1".to_string()];
-        let mut types: Vec<&'static str> = vec!["O"; 3];
-        for ch in text.chars() {
+    /// real characters occupy indices `3..chars.len() - 3`. Characters borrow
+    /// directly from `text` (no per-character allocation); the byte length is
+    /// used as a capacity upper bound.
+    fn sentence_context<'a>(&self, text: &'a str) -> (Vec<&'a str>, Vec<&'static str>) {
+        let mut chars: Vec<&str> = Vec::with_capacity(text.len() + 6);
+        let mut types: Vec<&'static str> = Vec::with_capacity(text.len() + 6);
+        chars.extend_from_slice(&["B3", "B2", "B1"]);
+        types.extend_from_slice(&["O"; 3]);
+        for (i, ch) in text.char_indices() {
             types.push(self.language.char_type(ch));
-            chars.push(ch.to_string());
+            chars.push(&text[i..i + ch.len_utf8()]);
         }
-        chars.extend_from_slice(&["E1".into(), "E2".into(), "E3".into()]);
+        chars.extend_from_slice(&["E1", "E2", "E3"]);
         types.extend_from_slice(&["O", "O", "O"]);
         (chars, types)
     }
@@ -351,14 +355,15 @@ impl Segmenter {
         let (chars, types) = self.sentence_context(sentence);
         // Padding for lookback: tags[0..3] are fixed "U" (Unknown), and tags[3]
         // is also "U" since there is no boundary decision before the first character.
-        let mut tags: Vec<&'static str> = vec!["U"; 4];
+        let mut tags: Vec<&'static str> = Vec::with_capacity(chars.len());
+        tags.extend_from_slice(&["U"; 4]);
 
         // The bias is a sum over all model weights; compute it once per
         // sentence instead of once per character.
         let bias = learner.bias();
 
         let mut result = Vec::new();
-        let mut word = chars[3].clone();
+        let mut word = chars[3].to_string();
         for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
             // Sum the weights of the attributes directly instead of building
             // a HashSet per position.
@@ -372,7 +377,7 @@ impl Segmenter {
             } else {
                 tags.push("O");
             }
-            word += ch;
+            word.push_str(ch);
         }
         result.push(word);
         result
@@ -405,24 +410,31 @@ impl Segmenter {
             .expect("pos_learner is not set. Use with_pos_learner() or add_corpus_with_pos().");
 
         let (chars, types) = self.sentence_context(sentence);
-        let mut tags: Vec<&'static str> = vec!["U"; 4];
-        // Attribute buffer reused across positions to amortize allocations.
+        let mut tags: Vec<&'static str> = Vec::with_capacity(chars.len());
+        tags.extend_from_slice(&["U"; 4]);
+        // Attribute and score buffers reused across positions to amortize
+        // allocations.
         let mut attrs_buf: Vec<String> = Vec::new();
+        let mut scores_buf: Vec<f64> = Vec::new();
 
         // The first character always starts the first word; its predicted
         // label is used only to determine the first word's POS.
         self.collect_attributes(3, &tags, &chars, &types, &mut attrs_buf);
-        let first_label: SegmentLabel =
-            pos_learner.predict_slice(&attrs_buf).parse().unwrap_or(SegmentLabel::O);
+        let first_label: SegmentLabel = pos_learner
+            .predict_slice(&attrs_buf, &mut scores_buf)
+            .parse()
+            .unwrap_or(SegmentLabel::O);
         let mut current_pos = first_label.pos().unwrap_or(Upos::X);
 
         let mut result: Vec<(String, Upos)> = Vec::new();
-        let mut word = chars[3].clone();
+        let mut word = chars[3].to_string();
 
         for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
             self.collect_attributes(i, &tags, &chars, &types, &mut attrs_buf);
-            let label: SegmentLabel =
-                pos_learner.predict_slice(&attrs_buf).parse().unwrap_or(SegmentLabel::O);
+            let label: SegmentLabel = pos_learner
+                .predict_slice(&attrs_buf, &mut scores_buf)
+                .parse()
+                .unwrap_or(SegmentLabel::O);
             if label.is_boundary() {
                 // Finalize the current word and push it to the result
                 result.push((std::mem::take(&mut word), current_pos));
@@ -431,7 +443,7 @@ impl Segmenter {
             } else {
                 tags.push("O");
             }
-            word += ch;
+            word.push_str(ch);
         }
 
         result.push((word, current_pos));
@@ -444,7 +456,7 @@ impl Segmenter {
         &self,
         i: usize,
         tags: &[&'static str],
-        chars: &[String],
+        chars: &[&str],
         types: &[&'static str],
     ) -> HashSet<String> {
         let mut attrs = HashSet::with_capacity(48);
@@ -460,7 +472,7 @@ impl Segmenter {
         &self,
         i: usize,
         tags: &[&'static str],
-        chars: &[String],
+        chars: &[&str],
         types: &[&'static str],
         out: &mut Vec<String>,
     ) {
@@ -489,7 +501,7 @@ impl Segmenter {
         &self,
         i: usize,
         tags: &[&'static str],
-        chars: &[String],
+        chars: &[&str],
         types: &[&'static str],
         sink: &mut dyn FnMut(&str),
     ) {
@@ -698,13 +710,13 @@ mod tests {
         let tags: Vec<&'static str> = vec!["U"; 7];
 
         let chars = vec![
-            "B3".to_string(), // index 0
-            "B2".to_string(), // index 1
-            "B1".to_string(), // index 2
-            "あ".to_string(), // index 3
-            "い".to_string(), // index 4
-            "う".to_string(), // index 5
-            "E1".to_string(), // index 6
+            "B3", // index 0
+            "B2", // index 1
+            "B1", // index 2
+            "あ", // index 3
+            "い", // index 4
+            "う", // index 5
+            "E1", // index 6
         ];
 
         let types: Vec<&'static str> = vec!["O", "O", "O", "O", "I", "I", "O"];
@@ -726,15 +738,7 @@ mod tests {
     fn test_collect_attributes_reuses_buffer() {
         let segmenter = Segmenter::new(Language::Japanese, None);
         let tags: Vec<&'static str> = vec!["U"; 7];
-        let chars = vec![
-            "B3".to_string(),
-            "B2".to_string(),
-            "B1".to_string(),
-            "あ".to_string(),
-            "い".to_string(),
-            "う".to_string(),
-            "E1".to_string(),
-        ];
+        let chars = vec!["B3", "B2", "B1", "あ", "い", "う", "E1"];
         let types: Vec<&'static str> = vec!["O", "O", "O", "O", "I", "I", "O"];
 
         let mut buf: Vec<String> = Vec::new();
@@ -755,15 +759,7 @@ mod tests {
     fn test_get_attributes_panics_index_too_low() {
         let segmenter = Segmenter::new(Language::Japanese, None);
         let tags: Vec<&'static str> = vec!["U"; 7];
-        let chars = vec![
-            "B3".to_string(),
-            "B2".to_string(),
-            "B1".to_string(),
-            "あ".to_string(),
-            "い".to_string(),
-            "う".to_string(),
-            "E1".to_string(),
-        ];
+        let chars = vec!["B3", "B2", "B1", "あ", "い", "う", "E1"];
         let types: Vec<&'static str> = vec!["O"; 7];
         // i=2 is out of valid range [3, chars.len()-3); should panic on chars[i-3]
         let _ = segmenter.get_attributes(2, &tags, &chars, &types);
@@ -774,15 +770,7 @@ mod tests {
     fn test_get_attributes_panics_index_too_high() {
         let segmenter = Segmenter::new(Language::Japanese, None);
         let tags: Vec<&'static str> = vec!["U"; 7];
-        let chars = vec![
-            "B3".to_string(),
-            "B2".to_string(),
-            "B1".to_string(),
-            "あ".to_string(),
-            "い".to_string(),
-            "う".to_string(),
-            "E1".to_string(),
-        ];
+        let chars = vec!["B3", "B2", "B1", "あ", "い", "う", "E1"];
         let types: Vec<&'static str> = vec!["O"; 7];
         // i=5 means i+2=7 which exceeds chars.len()=7; should panic on chars[i+2]
         let _ = segmenter.get_attributes(5, &tags, &chars, &types);
@@ -795,13 +783,13 @@ mod tests {
         let tags: Vec<&'static str> = vec!["U"; 7];
 
         let chars = vec![
-            "B3".to_string(), // index 0
-            "B2".to_string(), // index 1
-            "B1".to_string(), // index 2
-            "한".to_string(), // index 3
-            "국".to_string(), // index 4
-            "어".to_string(), // index 5
-            "E1".to_string(), // index 6
+            "B3", // index 0
+            "B2", // index 1
+            "B1", // index 2
+            "한", // index 3
+            "국", // index 4
+            "어", // index 5
+            "E1", // index 6
         ];
 
         let types: Vec<&'static str> = vec!["O", "O", "O", "SF", "SF", "SN", "O"];
