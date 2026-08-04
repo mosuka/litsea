@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-519d7101.js";
+            window.path_to_searchindex_js = "../searchindex-5ab9d0e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -263,6 +263,8 @@ feature2\tclass2\tweight2
 <li><strong>Lines 2 to N+1</strong>: Class names, one per line</li>
 <li><strong>Remaining lines</strong>: Feature weights, tab-separated as <code>feature\tclass\tweight</code></li>
 <li>Zero-weight entries are omitted</li>
+<li>Weight lines are written in sorted feature order, so saving the same model
+always produces byte-identical files; loading does not depend on the order</li>
 </ul>
 <h2 id="comparison-with-adaboost"><a class="header" href="#comparison-with-adaboost">Comparison with AdaBoost</a></h2>
 <div class="table-wrapper">
