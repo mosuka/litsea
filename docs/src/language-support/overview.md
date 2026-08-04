@@ -46,7 +46,7 @@ Each language defines its own **character type patterns** that classify characte
 | Character types | 8 (M, H, I, K, P, A, N, O) | 9 (F, C, X, R, P, B, A, N, O) | 10 (E, SN, SF, J, G, H, P, A, N, O) |
 | WC features | Yes (4 extra) | Yes (4 extra) | No |
 | Total features | 42 | 42 | 38 |
-| Matching method | Regex only | Regex only | Regex + Closure |
+| Matching method | `match` on char ranges | `match` on char ranges | `match` with a range guard |
 
 ### Why Korean Has Fewer Features
 

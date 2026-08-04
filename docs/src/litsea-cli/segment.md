@@ -35,7 +35,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 ```
 
 ```text
@@ -88,7 +88,7 @@ echo "今日はいい天気ですね。" \
 ```
 
 ```text
-今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
 ### Processing a File
@@ -100,6 +100,6 @@ cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > o
 ## Notes
 
 - The `--language` flag must match the language the model was trained for
-- Model loading is asynchronous and supports HTTP/HTTPS with TLS (rustls)
+- The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (`load_model_from_path`)
 - The model URI is not restricted to file paths -- any valid URL is accepted
 - When using `--pos`, the model must be a POS model trained with `train --pos`

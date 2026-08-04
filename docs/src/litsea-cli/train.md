@@ -29,16 +29,18 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 
 Training metrics are printed to stderr:
 
+Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate.
+
 ```text
 Result Metrics:
-  Accuracy: 94.15% ( 564133 / 599198 )
-  Precision: 95.57% ( 330454 / 345758 )
-  Recall: 94.36% ( 330454 / 350215 )
+  Accuracy: 100.00% ( 1075868 / 1075869 )
+  Precision: 100.00% ( 161283 / 161284 )
+  Recall: 100.00% ( 161283 / 161283 )
   Confusion Matrix:
-    True Positives: 330454
-    False Positives: 15304
-    False Negatives: 19761
-    True Negatives: 233679
+    True Positives: 161283
+    False Positives: 1
+    False Negatives: 0
+    True Negatives: 914585
 ```
 
 ## Ctrl+C Handling
@@ -108,9 +110,9 @@ POS training metrics are printed to stderr (macro-averaged precision and recall)
 
 ```text
 Result Metrics:
-  Accuracy: 98.34%
-  Macro Precision: 97.87%
-  Macro Recall: 91.67%
+  Accuracy: 98.23% ( 277213 )
+  Macro Precision: 96.82%
+  Macro Recall: 93.30%
 ```
 
 ### Ctrl+C Handling

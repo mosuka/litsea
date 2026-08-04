@@ -6,17 +6,17 @@
 
 Litsea ships with pre-trained models in the `models/` directory. Pipe text into the `segment` command:
 
-**Japanese:**
+**Japanese** (using the bundled `RWCP.model`, the original TinySegmenter model):
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 ```
 
 Output:
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
 **Chinese:**
@@ -43,7 +43,7 @@ echo "今日はいい天気ですね。" \
 Output:
 
 ```text
-今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
 Each token is annotated with a [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tag.
@@ -62,7 +62,7 @@ use litsea::segmenter::Segmenter;
 fn main() -> litsea::Result<()> {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::new(Language::Japanese, Some(learner));
@@ -100,7 +100,7 @@ fn main() -> litsea::Result<()> {
     for (word, pos) in &tokens {
         print!("{}/{} ", word, pos);
     }
-    // Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+    // Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 
     Ok(())
 }

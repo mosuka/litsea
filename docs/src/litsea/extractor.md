@@ -63,3 +63,30 @@ The extractor:
 1. Reads each line from the corpus file
 2. Calls `Segmenter::add_corpus_with_writer()` to process each line
 3. Writes the label and feature set for each character position to the output file
+
+### `extract_with_pos`
+
+```rust
+pub fn extract_with_pos(
+    &mut self,
+    corpus_path: &Path,
+    features_path: &Path,
+) -> litsea::Result<()>
+```
+
+Reads a POS-tagged corpus (`word/POS word/POS ...`, one sentence per line,
+POS tags from the UPOS tagset) and writes POS training features. Each output
+line is `label\tfeature1\tfeature2\t...` where the label is a `SegmentLabel`
+string (`B-<POS>` for a word-initial character, `O` for a continuation).
+Unlike the boundary pipeline, the first character position of each sentence
+is also emitted, because `segment_with_pos` predicts there to derive the
+first word's POS.
+
+```rust
+use std::path::Path;
+
+extractor.extract_with_pos(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./features_pos.txt"),
+)?;
+```

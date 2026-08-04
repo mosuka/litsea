@@ -36,7 +36,7 @@ let mut learner = AdaBoost::new(0.01, 100);
 pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
 ```
 
-Loads model weights from a local file, synchronously. This is the preferred method for local files -- no async runtime is needed.
+Loads model weights from a local file, synchronously. Malformed files (empty, missing bias line, duplicate bias lines or features, non-finite weights) are rejected with `LitseaError::InvalidData`. This is the preferred method for local files -- no async runtime is needed.
 
 ```rust
 use std::path::Path;
@@ -139,7 +139,7 @@ let label = learner.predict(&attrs);
 pub fn bias(&self) -> f64
 ```
 
-Returns the bias term: `-sum(all model weights) / 2.0`.
+Returns the bias term: `-sum(all model weights) / 2.0`. The value is cached and kept in sync by every weight-mutating path, so this is O(1).
 
 ## Evaluation
 
