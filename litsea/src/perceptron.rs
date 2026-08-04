@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -13,6 +13,43 @@ use rustc_hash::FxHashMap;
 use crate::error::{LitseaError, Result};
 use crate::metrics::MulticlassMetrics;
 
+/// Per-feature training state, one entry per class: live weights (`w`),
+/// averaging accumulators (`acc`), and the step at which each weight was
+/// last updated (`ts`).
+///
+/// Keeping the three vectors in one slot means a weight update needs a
+/// single hashed lookup instead of one per map (issue #104). `acc`/`ts`
+/// stay empty until training first touches the feature — model loading for
+/// inference-only use must not pay for averaging state it never needs
+/// (materializing them eagerly doubled the loaded-model memory footprint).
+#[derive(Debug)]
+struct FeatureSlot {
+    w: Vec<f64>,
+    acc: Vec<f64>,
+    ts: Vec<usize>,
+}
+
+impl FeatureSlot {
+    /// Creates a slot with zeroed weights for `n` classes; the averaging
+    /// state stays empty until [`ensure_averaging`](Self::ensure_averaging).
+    fn new(n: usize) -> Self {
+        FeatureSlot {
+            w: vec![0.0; n],
+            acc: Vec::new(),
+            ts: Vec::new(),
+        }
+    }
+
+    /// Materializes the averaging state (all zeros, equivalent to "never
+    /// updated") the first time training touches this slot.
+    fn ensure_averaging(&mut self) {
+        if self.acc.is_empty() {
+            self.acc.resize(self.w.len(), 0.0);
+            self.ts.resize(self.w.len(), 0);
+        }
+    }
+}
+
 /// Multiclass Averaged Perceptron classifier.
 ///
 /// Performs multiclass classification over sparse binary features.
@@ -24,12 +61,9 @@ use crate::metrics::MulticlassMetrics;
 /// features, which makes the inference hot path significantly faster.
 #[derive(Debug)]
 pub struct AveragedPerceptron {
-    /// Per-feature weight vectors: weights\[feature\]\[class_index\] = weight
-    weights: FxHashMap<String, Vec<f64>>,
-    /// Accumulated weights used for averaging
-    accumulated: FxHashMap<String, Vec<f64>>,
-    /// Last-updated timestamp of each weight
-    timestamps: FxHashMap<String, Vec<usize>>,
+    /// Per-feature training state: slots\[feature\] holds the live weights,
+    /// averaging accumulators, and update timestamps for every class.
+    slots: FxHashMap<String, FeatureSlot>,
     /// Current step count (total across all instances)
     step: usize,
     /// Known classes (always kept sorted)
@@ -48,9 +82,7 @@ impl AveragedPerceptron {
     /// Creates a new Averaged Perceptron instance.
     pub fn new() -> Self {
         AveragedPerceptron {
-            weights: FxHashMap::default(),
-            accumulated: FxHashMap::default(),
-            timestamps: FxHashMap::default(),
+            slots: FxHashMap::default(),
             step: 0,
             classes: Vec::new(),
             instances: Vec::new(),
@@ -59,20 +91,20 @@ impl AveragedPerceptron {
 
     /// Registers a class and returns its index.
     /// New classes are inserted in sorted order, and a matching column is
-    /// inserted into every existing weight vector.
+    /// inserted into every existing feature slot.
     fn ensure_class(&mut self, label: &str) -> usize {
         match self.classes.binary_search_by(|c| c.as_str().cmp(label)) {
             Ok(i) => i,
             Err(i) => {
                 self.classes.insert(i, label.to_string());
-                for v in self.weights.values_mut() {
-                    v.insert(i, 0.0);
-                }
-                for v in self.accumulated.values_mut() {
-                    v.insert(i, 0.0);
-                }
-                for v in self.timestamps.values_mut() {
-                    v.insert(i, 0);
+                for slot in self.slots.values_mut() {
+                    slot.w.insert(i, 0.0);
+                    // acc/ts are lazily materialized; only shift them when
+                    // they exist.
+                    if !slot.acc.is_empty() {
+                        slot.acc.insert(i, 0.0);
+                        slot.ts.insert(i, 0);
+                    }
                 }
                 i
             }
@@ -105,8 +137,8 @@ impl AveragedPerceptron {
         scores.clear();
         scores.resize(self.classes.len(), 0.0);
         for feat in features {
-            if let Some(ws) = self.weights.get(feat.as_ref()) {
-                for (s, w) in scores.iter_mut().zip(ws.iter()) {
+            if let Some(slot) = self.slots.get(feat.as_ref()) {
+                for (s, w) in scores.iter_mut().zip(slot.w.iter()) {
                     *s += *w;
                 }
             }
@@ -146,19 +178,24 @@ impl AveragedPerceptron {
 
     /// Updates the weight of a single (feature, class) pair.
     /// Catches the accumulated weight up to the current step before adding
-    /// `delta`.
+    /// `delta`. One hashed lookup, and no allocation when the feature is
+    /// already known (get-then-insert instead of the owned-key entry API).
     fn update_single(&mut self, feat: &str, class_idx: usize, delta: f64) {
-        let n = self.classes.len();
-        let ws = self.weights.entry(feat.to_string()).or_insert_with(|| vec![0.0; n]);
-        let ts = self.timestamps.entry(feat.to_string()).or_insert_with(|| vec![0; n]);
-        let acc = self.accumulated.entry(feat.to_string()).or_insert_with(|| vec![0.0; n]);
+        let slot = match self.slots.get_mut(feat) {
+            Some(slot) => slot,
+            None => {
+                let n = self.classes.len();
+                self.slots.entry(feat.to_string()).or_insert_with(|| FeatureSlot::new(n))
+            }
+        };
+        slot.ensure_averaging();
 
-        let elapsed = self.step - ts[class_idx];
+        let elapsed = self.step - slot.ts[class_idx];
         if elapsed > 0 {
-            acc[class_idx] += ws[class_idx] * elapsed as f64;
+            slot.acc[class_idx] += slot.w[class_idx] * elapsed as f64;
         }
-        ts[class_idx] = self.step;
-        ws[class_idx] += delta;
+        slot.ts[class_idx] = self.step;
+        slot.w[class_idx] += delta;
     }
 
     /// Updates the weights for one instance.
@@ -174,19 +211,24 @@ impl AveragedPerceptron {
     }
 
     /// Writes the averaged weights into the final model.
+    ///
+    /// A single pass over the slots: each (feature, class) accumulator is
+    /// caught up to the current step and the live weight is replaced by the
+    /// average. Pairs are independent, so map iteration order cannot affect
+    /// the result (same math as the previous per-key update_single loop,
+    /// without cloning every key and re-looking each one up).
     fn average_weights(&mut self) {
-        let n = self.classes.len();
+        let step_now = self.step;
         let step = self.step.max(1) as f64;
-        let feats: Vec<String> = self.weights.keys().cloned().collect();
-        for feat in feats {
-            for class_idx in 0..n {
-                // An update with delta 0 catches the accumulated weight up to
-                // the current step
-                self.update_single(&feat, class_idx, 0.0);
-                let acc = self.accumulated[&feat][class_idx];
-                if let Some(ws) = self.weights.get_mut(&feat) {
-                    ws[class_idx] = acc / step;
+        for slot in self.slots.values_mut() {
+            slot.ensure_averaging();
+            for class_idx in 0..slot.w.len() {
+                let elapsed = step_now - slot.ts[class_idx];
+                if elapsed > 0 {
+                    slot.acc[class_idx] += slot.w[class_idx] * elapsed as f64;
                 }
+                slot.ts[class_idx] = step_now;
+                slot.w[class_idx] = slot.acc[class_idx] / step;
             }
         }
     }
@@ -239,6 +281,12 @@ impl AveragedPerceptron {
 
     /// Saves the model to a file as text (class header + TSV).
     ///
+    /// Weight lines are written in sorted feature order, so saving the same
+    /// model always produces byte-identical files (reproducible and
+    /// diffable); loading does not depend on the order. Output is buffered
+    /// (one syscall per line would mean ~half a million syscalls for the
+    /// shipped POS models).
+    ///
     /// Format:
     /// ```text
     /// <number of classes>
@@ -254,7 +302,7 @@ impl AveragedPerceptron {
             return Err(LitseaError::InvalidInput("Cannot save an empty model".to_string()));
         }
 
-        let mut file = File::create(path)?;
+        let mut file = io::BufWriter::new(File::create(path)?);
 
         // Header: the number of classes and the class names
         writeln!(file, "{}", self.classes.len())?;
@@ -262,15 +310,19 @@ impl AveragedPerceptron {
             writeln!(file, "{}", class)?;
         }
 
-        // Weights: only non-zero weights are saved
-        for (feat, ws) in &self.weights {
-            for (class_idx, &w) in ws.iter().enumerate() {
+        // Weights: only non-zero weights are saved, in sorted feature order.
+        let mut feats: Vec<&String> = self.slots.keys().collect();
+        feats.sort_unstable();
+        for feat in feats {
+            let slot = &self.slots[feat];
+            for (class_idx, &w) in slot.w.iter().enumerate() {
                 if w != 0.0 {
                     writeln!(file, "{}\t{}\t{}", feat, self.classes[class_idx], w)?;
                 }
             }
         }
 
+        file.flush()?;
         Ok(())
     }
 
@@ -325,10 +377,9 @@ impl AveragedPerceptron {
         // Read the weights. Reset all learned state: the weights are replaced
         // by the file's, and the averaging accumulators must not survive into
         // a later train() call (they would combine stale timestamps with the
-        // loaded weights and corrupt the averaged model).
-        self.weights.clear();
-        self.accumulated.clear();
-        self.timestamps.clear();
+        // loaded weights and corrupt the averaged model). Fresh slots carry
+        // zeroed accumulators, so replacing the map does exactly that.
+        self.slots.clear();
         self.step = 0;
         let n = self.classes.len();
         for line in lines {
@@ -337,16 +388,21 @@ impl AveragedPerceptron {
             if line.is_empty() {
                 continue;
             }
-            let parts: Vec<&str> = line.split('\t').collect();
-            if parts.len() != 3 {
+            // Parse "feature\tclass\tweight" without collecting into a Vec.
+            let Some((feat, rest)) = line.split_once('\t') else {
+                return Err(LitseaError::InvalidData(format!("Invalid weight line: '{}'", line)));
+            };
+            let Some((class, weight_str)) = rest.split_once('\t') else {
+                return Err(LitseaError::InvalidData(format!("Invalid weight line: '{}'", line)));
+            };
+            if weight_str.contains('\t') {
                 return Err(LitseaError::InvalidData(format!("Invalid weight line: '{}'", line)));
             }
-            let feat = parts[0];
             let class_idx =
-                self.classes.binary_search_by(|c| c.as_str().cmp(parts[1])).map_err(|_| {
+                self.classes.binary_search_by(|c| c.as_str().cmp(class)).map_err(|_| {
                     LitseaError::InvalidData(format!("Unknown class in weight line: '{}'", line))
                 })?;
-            let weight: f64 = parts[2]
+            let weight: f64 = weight_str
                 .parse()
                 .map_err(|e| LitseaError::InvalidData(format!("Invalid weight value: {}", e)))?;
             if !weight.is_finite() {
@@ -355,8 +411,13 @@ impl AveragedPerceptron {
                     line
                 )));
             }
-            self.weights.entry(feat.to_string()).or_insert_with(|| vec![0.0; n])[class_idx] =
-                weight;
+            // Avoid the owned-key allocation when the feature already exists
+            // (each feature appears once per non-zero class in the file).
+            let slot = match self.slots.get_mut(feat) {
+                Some(slot) => slot,
+                None => self.slots.entry(feat.to_string()).or_insert_with(|| FeatureSlot::new(n)),
+            };
+            slot.w[class_idx] = weight;
         }
 
         Ok(())
@@ -432,7 +493,7 @@ mod tests {
     fn test_new() {
         let p = AveragedPerceptron::new();
         assert!(p.classes.is_empty());
-        assert!(p.weights.is_empty());
+        assert!(p.slots.is_empty());
         assert_eq!(p.step, 0);
     }
 
@@ -638,6 +699,37 @@ mod tests {
     }
 
     #[test]
+    fn test_save_model_sorted_order() -> Result<()> {
+        // #104: weight lines are written in sorted feature order so that
+        // saving the same model always produces byte-identical, diffable
+        // files (map iteration order previously leaked into the output).
+        let mut p = AveragedPerceptron::new();
+        for name in ["zeta", "alpha", "mid", "beta", "omega", "kappa", "echo"] {
+            let mut feats = HashSet::new();
+            feats.insert(name.to_string());
+            let label = if name.len() % 2 == 0 { "A" } else { "B" };
+            p.add_instance(feats, label.to_string());
+        }
+        p.train(5, Arc::new(AtomicBool::new(true)));
+
+        let temp = NamedTempFile::new()?;
+        p.save_model(temp.path())?;
+
+        let content = std::fs::read_to_string(temp.path())?;
+        // Skip the class header (count + class names), then check ordering.
+        let feats: Vec<&str> = content
+            .lines()
+            .skip(1 + p.classes.len())
+            .filter_map(|l| l.split('\t').next())
+            .collect();
+        let mut sorted = feats.clone();
+        sorted.sort_unstable();
+        assert_eq!(feats, sorted, "weight lines must be in sorted feature order");
+        assert!(feats.len() > 1, "test needs multiple weight lines");
+        Ok(())
+    }
+
+    #[test]
     fn test_metrics() {
         let mut p = AveragedPerceptron::new();
 
@@ -705,8 +797,9 @@ mod tests {
         let model_content = "2\nA\nB\nf1\tA\t0.5\nf2\tB\t0.5\n";
         p.load_model_from_reader(model_content.as_bytes())?;
         assert_eq!(p.step, 0);
-        assert!(p.accumulated.is_empty());
-        assert!(p.timestamps.is_empty());
+        // Fresh slots after a load carry zeroed averaging state.
+        assert!(p.slots.values().all(|s| s.acc.iter().all(|&a| a == 0.0)));
+        assert!(p.slots.values().all(|s| s.ts.iter().all(|&t| t == 0)));
 
         // Behavioral check: train-after-load on the recycled instance matches
         // load-then-train on a fresh perceptron with the same instances.

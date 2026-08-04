@@ -101,6 +101,22 @@ compatible: all pre-trained models in `models/` load unchanged.
 
 ### Performance
 
+Training and model I/O (#104): the perceptron's three parallel training
+maps (`weights`/`accumulated`/`timestamps`) are merged into one slot map,
+so a weight update costs a single hashed lookup with no allocation on the
+hit path, and the averaging pass no longer clones every feature key —
+`litsea train --pos` on the UD-Japanese-GSD features (277k instances,
+10 epochs) went from 8.7 s to 6.2 s (−29%). Both `save_model`
+implementations now write through a `BufWriter` (previously one syscall
+per line — ~540k for chinese_pos.model), and the perceptron writes weight
+lines in sorted feature order, making saved models byte-reproducible and
+diffable (loading is order-independent; existing models stay compatible).
+Model loading parses lines without per-line vector allocations. The slot
+layout keeps averaging state lazily materialized so inference-only loads
+do not pay for it (loaded-model RSS +18 MB for the 19 MB Chinese POS
+model from the slot struct itself; load time unchanged). AdaBoost's
+training loop also reuses its error buffer across boosting iterations.
+
 Inference hot path, second pass (#103): internal feature maps switched from
 the default SipHash to `rustc_hash::FxHashMap` (keys are internally
 generated, so HashDoS resistance is unnecessary); the AdaBoost bias is

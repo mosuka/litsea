@@ -115,6 +115,8 @@ feature2\tclass2\tweight2
 - **Lines 2 to N+1**: Class names, one per line
 - **Remaining lines**: Feature weights, tab-separated as `feature\tclass\tweight`
 - Zero-weight entries are omitted
+- Weight lines are written in sorted feature order, so saving the same model
+  always produces byte-identical files; loading does not depend on the order
 
 ## Comparison with AdaBoost
 

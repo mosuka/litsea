@@ -250,13 +250,16 @@ impl AdaBoost {
         }
 
         let num_features = self.features.len();
+        // Reused across iterations: num_features is invariant during
+        // training, so one allocation suffices.
+        let mut errors = vec![0.0f64; num_features];
 
         for _t in 0..self.num_iterations {
             if !running.load(Ordering::SeqCst) {
                 break;
             }
 
-            let mut errors = vec![0.0f64; num_features];
+            errors.fill(0.0);
             let mut instance_weight_sum = 0.0;
             let mut positive_weight_sum = 0.0;
 
@@ -359,7 +362,8 @@ impl AdaBoost {
         if !self.features.iter().any(|f| !f.is_empty()) {
             return Err(LitseaError::InvalidInput("Cannot save an empty model".to_string()));
         }
-        let mut file = File::create(filename)?;
+        // Buffered output: one syscall per line would scale with model size.
+        let mut file = std::io::BufWriter::new(File::create(filename)?);
         let mut bias = match self.feature_index.get("") {
             Some(&idx) => -self.model[idx],
             None => 0.0,
@@ -371,6 +375,7 @@ impl AdaBoost {
             }
         }
         writeln!(file, "{}", bias / 2.0)?;
+        file.flush()?;
         Ok(())
     }
 
