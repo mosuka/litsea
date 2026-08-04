@@ -1,9 +1,15 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+
+// Internal maps use FxHashMap: the keys are internally generated feature
+// strings (no HashDoS exposure) and the hot path performs dozens of
+// short-string lookups per character, where FxHash is significantly faster
+// than the default SipHash.
+use rustc_hash::FxHashMap;
 
 use crate::error::{LitseaError, Result};
 use crate::metrics::BinaryMetrics;
@@ -23,11 +29,14 @@ pub struct AdaBoost {
     instance_weights: Vec<f64>,
     model: Vec<f64>,
     features: Vec<String>,
-    feature_index: HashMap<String, usize>,
+    feature_index: FxHashMap<String, usize>,
     labels: Vec<Label>,
     instances_buf: Vec<usize>,
     instances: Vec<(usize, usize)>, // (start, end) index in instances_buf
     num_instances: usize,
+    /// Cached value of `-sum(model) / 2.0`, kept in sync by every
+    /// weight-mutating path so `bias()` is O(1) on the inference hot path.
+    cached_bias: f64,
 }
 
 impl AdaBoost {
@@ -47,19 +56,30 @@ impl AdaBoost {
     /// # Returns
     /// A new instance of [`AdaBoost`].
     pub fn new(threshold: f64, num_iterations: usize) -> Self {
+        // The bias bucket "" always occupies feature index 0.
+        let mut feature_index = FxHashMap::default();
+        feature_index.insert(String::new(), 0);
         AdaBoost {
             threshold,
             num_iterations,
             instance_weights: vec![],
-            // The bias bucket "" always occupies feature index 0.
             model: vec![0.0],
             features: vec![String::new()],
-            feature_index: HashMap::from([(String::new(), 0)]),
+            feature_index,
             labels: vec![],
             instances_buf: vec![],
             instances: vec![],
             num_instances: 0,
+            cached_bias: 0.0,
         }
+    }
+
+    /// Recomputes the cached bias from the current model weights. Must be
+    /// called by every path that changes weight values (summing in model
+    /// order keeps the float result identical to the previous on-demand
+    /// computation).
+    fn recompute_bias(&mut self) {
+        self.cached_bias = -self.model.iter().sum::<f64>() / 2.0;
     }
 
     /// Initializes the features from a file.
@@ -132,6 +152,7 @@ impl AdaBoost {
         self.instances.reserve(self.num_instances);
         self.instances_buf.reserve(buf_size);
 
+        self.recompute_bias();
         Ok(())
     }
 
@@ -309,6 +330,10 @@ impl AdaBoost {
                 }
             }
         }
+
+        // The training loop mutates model weights directly; refresh the
+        // cached bias once at the end.
+        self.recompute_bias();
     }
 
     /// Saves the trained model to a file.
@@ -408,7 +433,7 @@ impl AdaBoost {
     /// the weights preceding the bias line exactly as the historical loader
     /// did.
     pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()> {
-        let mut m: HashMap<String, f64> = HashMap::new();
+        let mut m: FxHashMap<String, f64> = FxHashMap::default();
         let mut weight_sum = 0.0;
         let mut bias_seen = false;
         let mut any_line = false;
@@ -521,6 +546,7 @@ impl AdaBoost {
                 }
             }
         }
+        self.recompute_bias();
         Ok(())
     }
 
@@ -552,6 +578,8 @@ impl AdaBoost {
         self.labels.push(label);
         self.instance_weights.push(1.0);
         self.num_instances += 1;
+        // New features enter with weight 0.0, so the cached bias (the model
+        // weight sum) is unchanged; no recompute needed on this hot-ish path.
     }
 
     /// Predicts the label for a given set of attributes.
@@ -580,13 +608,15 @@ impl AdaBoost {
     }
 
     /// Gets the bias term of the model.
-    /// The bias is calculated as the negative sum of the model weights divided by 2.
+    /// The bias is calculated as the negative sum of the model weights
+    /// divided by 2. The value is cached and kept in sync by every
+    /// weight-mutating path, so this is O(1).
     ///
     /// # Returns
     /// The bias term as a `f64`.
     #[must_use]
     pub fn bias(&self) -> f64 {
-        -self.model.iter().sum::<f64>() / 2.0
+        self.cached_bias
     }
 
     /// Calculates and returns the performance metrics of the model on the training data.
@@ -820,11 +850,39 @@ mod tests {
     fn test_bias() {
         let mut learner = AdaBoost::new(0.01, 10);
 
-        // Set model weights as an example.
+        // Set model weights as an example (direct field assignment bypasses
+        // the mutating APIs, so refresh the cache explicitly).
         learner.model = vec![0.2, 0.3, -0.1];
+        learner.recompute_bias();
 
         // bias = -sum(model)/2 = -(0.2+0.3-0.1)/2 = -0.4/2 = -0.2
         assert!((learner.bias() + 0.2).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_bias_cache_stays_consistent() {
+        // Regression test for #103: bias() is cached; every mutating path
+        // must leave it equal to -sum(model)/2.
+        let expected = |l: &AdaBoost| -l.model.iter().sum::<f64>() / 2.0;
+
+        // After add_instance + train.
+        let mut learner = AdaBoost::new(0.01, 20);
+        learner.add_instance(attrs_of("a"), 1);
+        learner.add_instance(attrs_of("c"), -1);
+        learner.train(Arc::new(AtomicBool::new(true)));
+        assert!((learner.bias() - expected(&learner)).abs() < 1e-12);
+
+        // After a fresh model load.
+        let mut learner = AdaBoost::new(0.01, 10);
+        learner
+            .load_model_from_reader("feat1\t0.5\nfeat2\t-0.25\n0.1\n".as_bytes())
+            .unwrap();
+        assert!((learner.bias() - expected(&learner)).abs() < 1e-12);
+
+        // After an incremental (merge) load on top of training data.
+        learner.add_instance(attrs_of("feat9"), 1);
+        learner.load_model_from_reader("feat9\t0.75\n0.0\n".as_bytes()).unwrap();
+        assert!((learner.bias() - expected(&learner)).abs() < 1e-12);
     }
 
     #[test]
@@ -836,6 +894,7 @@ mod tests {
         learner.model = vec![0.5, -1.0];
         learner.feature_index =
             learner.features.iter().enumerate().map(|(i, f)| (f.clone(), i)).collect();
+        learner.recompute_bias();
 
         // Instance 1: Attribute "A" → score = 0.25 + 0.5 = 0.75 (positive example)
         let mut attrs1 = HashSet::new();
@@ -887,6 +946,7 @@ mod tests {
         // bias = -(0.0 + 1.0) / 2.0 = -0.5
         // score for instance with "A": -0.5 + 1.0 = 0.5 >= 0 → positive prediction
         learner.model = vec![0.0, 1.0];
+        learner.recompute_bias();
 
         let mut attrs = HashSet::new();
         attrs.insert("A".to_string());

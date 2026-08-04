@@ -21,6 +21,7 @@ ctrlc = "3.5.2"
 reqwest = { version = "0.13.4", features = [
     "rustls",
 ], default-features = false } # use rustls instead of native-tls to avoid linking openssl; disables http2, charset, and system-proxy
+rustc-hash = "2.1.1"
 tempfile = "3.27.0"
 thiserror = "2.0.18"
 tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros"] }

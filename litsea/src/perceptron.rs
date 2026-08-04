@@ -5,6 +5,11 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
+// Internal weight maps use FxHashMap: keys are internally generated feature
+// strings (no HashDoS exposure) and prediction probes dozens of short keys
+// per character, where FxHash beats the default SipHash.
+use rustc_hash::FxHashMap;
+
 use crate::error::{LitseaError, Result};
 use crate::metrics::MulticlassMetrics;
 
@@ -20,11 +25,11 @@ use crate::metrics::MulticlassMetrics;
 #[derive(Debug)]
 pub struct AveragedPerceptron {
     /// Per-feature weight vectors: weights\[feature\]\[class_index\] = weight
-    weights: HashMap<String, Vec<f64>>,
+    weights: FxHashMap<String, Vec<f64>>,
     /// Accumulated weights used for averaging
-    accumulated: HashMap<String, Vec<f64>>,
+    accumulated: FxHashMap<String, Vec<f64>>,
     /// Last-updated timestamp of each weight
-    timestamps: HashMap<String, Vec<usize>>,
+    timestamps: FxHashMap<String, Vec<usize>>,
     /// Current step count (total across all instances)
     step: usize,
     /// Known classes (always kept sorted)
@@ -43,9 +48,9 @@ impl AveragedPerceptron {
     /// Creates a new Averaged Perceptron instance.
     pub fn new() -> Self {
         AveragedPerceptron {
-            weights: HashMap::new(),
-            accumulated: HashMap::new(),
-            timestamps: HashMap::new(),
+            weights: FxHashMap::default(),
+            accumulated: FxHashMap::default(),
+            timestamps: FxHashMap::default(),
             step: 0,
             classes: Vec::new(),
             instances: Vec::new(),
@@ -85,9 +90,11 @@ impl AveragedPerceptron {
         self.instances.push((feats, label));
     }
 
-    /// Returns the index of the highest-scoring class for the features.
+    /// Returns the index of the highest-scoring class for the features,
+    /// reusing `scores` as a scratch buffer (cleared and resized here) to
+    /// avoid one heap allocation per prediction on the inference hot path.
     /// Returns None if no classes are registered.
-    fn predict_idx<I>(&self, features: I) -> Option<usize>
+    fn predict_idx_into<I>(&self, features: I, scores: &mut Vec<f64>) -> Option<usize>
     where
         I: IntoIterator,
         I::Item: AsRef<str>,
@@ -95,7 +102,8 @@ impl AveragedPerceptron {
         if self.classes.is_empty() {
             return None;
         }
-        let mut scores = vec![0.0f64; self.classes.len()];
+        scores.clear();
+        scores.resize(self.classes.len(), 0.0);
         for feat in features {
             if let Some(ws) = self.weights.get(feat.as_ref()) {
                 for (s, w) in scores.iter_mut().zip(ws.iter()) {
@@ -120,15 +128,17 @@ impl AveragedPerceptron {
     /// score. Returns an empty string if no classes are registered.
     #[must_use]
     pub fn predict(&self, features: &HashSet<String>) -> String {
-        match self.predict_idx(features.iter()) {
+        let mut scores = Vec::new();
+        match self.predict_idx_into(features.iter(), &mut scores) {
             Some(i) => self.classes[i].clone(),
             None => String::new(),
         }
     }
 
-    /// Predicts the label from a slice (internal allocation-avoiding API).
-    pub(crate) fn predict_slice(&self, features: &[String]) -> &str {
-        match self.predict_idx(features.iter()) {
+    /// Predicts the label from a slice, reusing the caller's scratch buffer
+    /// (internal allocation-avoiding API).
+    pub(crate) fn predict_slice(&self, features: &[String], scores: &mut Vec<f64>) -> &str {
+        match self.predict_idx_into(features.iter(), scores) {
             Some(i) => &self.classes[i],
             None => "",
         }
@@ -194,6 +204,8 @@ impl AveragedPerceptron {
         // Temporarily move the instances out to avoid double borrows during
         // training (previously every instance was cloned).
         let instances = std::mem::take(&mut self.instances);
+        // Scratch buffer reused across every prediction in the epoch loop.
+        let mut scores: Vec<f64> = Vec::new();
 
         for _epoch in 0..num_epochs {
             if !running.load(Ordering::SeqCst) {
@@ -205,7 +217,9 @@ impl AveragedPerceptron {
                     break;
                 }
 
-                let guess_idx = self.predict_idx(features.iter()).expect("classes registered");
+                let guess_idx = self
+                    .predict_idx_into(features.iter(), &mut scores)
+                    .expect("classes registered");
                 let truth_idx = self
                     .classes
                     .binary_search_by(|c| c.as_str().cmp(truth))
@@ -355,9 +369,10 @@ impl AveragedPerceptron {
         let mut predicted_per_class: HashMap<String, usize> = HashMap::new();
         let mut gold_per_class: HashMap<String, usize> = HashMap::new();
         let mut total_correct = 0usize;
+        let mut scores: Vec<f64> = Vec::new();
 
         for (features, truth) in &self.instances {
-            let guess = match self.predict_idx(features.iter()) {
+            let guess = match self.predict_idx_into(features.iter(), &mut scores) {
                 Some(i) => self.classes[i].as_str(),
                 None => "",
             };
@@ -539,10 +554,11 @@ mod tests {
         let running = Arc::new(AtomicBool::new(true));
         p.train(10, running);
 
+        let mut scores: Vec<f64> = Vec::new();
         let slice_a: Vec<String> = feats_a.iter().cloned().collect();
-        assert_eq!(p.predict_slice(&slice_a), p.predict(&feats_a));
+        assert_eq!(p.predict_slice(&slice_a, &mut scores), p.predict(&feats_a));
         let slice_b: Vec<String> = feats_b.iter().cloned().collect();
-        assert_eq!(p.predict_slice(&slice_b), p.predict(&feats_b));
+        assert_eq!(p.predict_slice(&slice_b, &mut scores), p.predict(&feats_b));
     }
 
     #[test]
