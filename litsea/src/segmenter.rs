@@ -6,8 +6,11 @@ use crate::language::Language;
 use crate::perceptron::AveragedPerceptron;
 use crate::upos::{SegmentLabel, Upos};
 
-/// Segmenter struct for text segmentation using AdaBoost
-/// It uses predefined patterns to classify characters and segment sentences into words.
+/// Text segmenter supporting two modes: word segmentation via AdaBoost
+/// binary classification, and joint word segmentation + POS tagging via an
+/// Averaged Perceptron (see [`segment_with_pos`](Self::segment_with_pos)).
+/// Characters are classified into language-specific type codes with direct
+/// `match`-based rules ([`Language::char_type`]).
 pub struct Segmenter {
     language: Language,
     learner: AdaBoost,
@@ -208,7 +211,7 @@ impl Segmenter {
     /// [`segment_with_pos`](Self::segment_with_pos)).
     ///
     /// Corpus format: "word/POS word/POS ..."
-    /// Example: "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT"
+    /// Example: "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT"
     fn process_corpus_with_pos<F>(&self, corpus: &str, callback: F)
     where
         F: FnMut(HashSet<String>, SegmentLabel),
@@ -290,7 +293,7 @@ impl Segmenter {
     /// use litsea::segmenter::Segmenter;
     ///
     /// let mut segmenter = Segmenter::new(Language::Japanese, None);
-    /// segmenter.add_corpus_with_pos("これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT");
+    /// segmenter.add_corpus_with_pos("これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT");
     /// ```
     pub fn add_corpus_with_pos(&mut self, corpus: &str) {
         let mut instances = Vec::new();

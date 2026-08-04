@@ -6,7 +6,7 @@ The `AveragedPerceptron` struct implements multiclass classification for joint w
 
 ```rust
 pub struct AveragedPerceptron {
-    // internal fields: weights, accumulated, timestamps, step, classes, instances
+    // internal fields: slots (feature -> per-class weights + averaging state), step, classes, instances
 }
 ```
 

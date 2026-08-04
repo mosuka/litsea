@@ -59,7 +59,7 @@ header and rejects non-finite weights.
 During prediction:
 
 ```text
-bias = -sum(all_model_weights) / 2.0
+bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 ```
 
@@ -69,13 +69,16 @@ Model files are very compact:
 
 | Model | Size | Features |
 |-------|------|----------|
-| japanese.model | ~2.9 KB | Wikipedia-trained |
-| korean.model | ~1.8 KB | Wikipedia-trained |
-| chinese.model | ~1.3 KB | Wikipedia-trained |
+| japanese.model | ~1.4 KB | UD Japanese-GSD |
+| korean.model | ~1.3 KB | UD Korean-GSD |
+| chinese.model | ~1.1 KB | UD Chinese-GSD |
 | RWCP.model | ~22 KB | Original TinySegmenter |
+| japanese_pos.model | ~11 MB | UD Japanese-GSD (POS) |
+| chinese_pos.model | ~19 MB | UD Chinese-GSD (POS) |
+| korean_pos.model | ~8.9 MB | UD Korean-GSD (POS) |
 | JEITA_Genpaku_ChaSen_IPAdic.model | ~17 KB | JEITA corpus |
 
-The compact size is a key advantage of Litsea -- models can be embedded directly in applications or served over HTTP with minimal overhead.
+The compact size of the word-segmentation models is a key advantage of Litsea -- they can be embedded directly in applications or served over HTTP with minimal overhead. The joint segmentation + POS models are larger (megabytes) because they carry per-class weights.
 
 ## Compatibility
 

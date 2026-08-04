@@ -22,6 +22,10 @@ The fields are private; use the accessor methods `language()`, `learner()`, `lea
 pub fn new(language: Language, learner: Option<AdaBoost>) -> Self
 ```
 
+The POS learner is left unset; calling `segment_with_pos` on a segmenter
+built with `new()` panics. Use [`with_pos_learner`](#pos-mode-api) for joint
+segmentation + POS tagging.
+
 Creates a new segmenter.
 
 - `language` -- The language for character type classification
@@ -110,3 +114,66 @@ pub fn pos_learner_mut(&mut self) -> Option<&mut AveragedPerceptron>
 Provide access to the segmenter's language and its internal learners.
 
 > Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former `get_attributes` method is now private.
+
+## POS-Mode API
+
+The segmenter also supports **joint word segmentation and POS tagging** with
+an Averaged Perceptron model.
+
+### `with_pos_learner`
+
+```rust
+pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -> Self
+```
+
+Creates a segmenter configured for joint segmentation + POS tagging.
+
+### `segment_with_pos`
+
+```rust
+pub fn segment_with_pos(&self, sentence: &str) -> Vec<(String, Upos)>
+```
+
+Segments a sentence and jointly predicts each word's UPOS tag. The
+prediction at the first character position determines the first word's POS.
+
+**Panics** if no POS learner is set — build the segmenter with
+`with_pos_learner()` or register training data with `add_corpus_with_pos()`
+first.
+
+```rust
+use std::path::Path;
+
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+let mut pos_learner = AveragedPerceptron::new();
+pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+let tokens = segmenter.segment_with_pos("これはテストです。");
+// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
+//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
+```
+
+### `add_corpus_with_pos`
+
+```rust
+pub fn add_corpus_with_pos(&mut self, corpus: &str)
+```
+
+Adds a POS-tagged corpus (`word/POS word/POS ...`) as Averaged Perceptron
+training data, creating the POS learner on first use.
+
+### `add_corpus_with_pos_writer`
+
+```rust
+pub fn add_corpus_with_pos_writer<F>(&self, corpus: &str, writer: F)
+where
+    F: FnMut(HashSet<String>, SegmentLabel)
+```
+
+Streams the POS training features for each character position (including
+the first one) to a custom writer, without mutating the segmenter. This is
+what `Extractor::extract_with_pos` builds on.

@@ -1,10 +1,10 @@
 //! Golden tests: snapshot the segmentation output of every pre-trained model
 //! in `models/` so that refactoring can be verified to preserve behavior.
 //!
-//! These snapshots capture the CURRENT behavior of v0.4.0. If a behavior
-//! change is intentional (e.g. fixing the first-word POS handling in
-//! `segment_with_pos`), update the affected expectations in the same PR and
-//! call the change out explicitly in the PR description.
+//! These snapshots capture the current behavior of the bundled models. If a
+//! behavior change is intentional (e.g. fixing the first-word POS handling
+//! or retraining a model), update the affected expectations in the same PR
+//! and call the change out explicitly in the PR description.
 
 use std::path::PathBuf;
 

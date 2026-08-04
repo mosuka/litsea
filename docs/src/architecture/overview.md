@@ -31,12 +31,12 @@ flowchart LR
 
 1. **Model loading** -- Load a pre-trained model (from file or URL)
 2. **Character classification** -- For each character in the input, determine its type code based on language-specific patterns
-3. **Feature extraction** -- Build a feature set for each character position using a sliding window
+3. **Feature extraction** -- Stream character n-gram features for each position through a reused buffer using a sliding window
 4. **Prediction** -- AdaBoost predicts whether each position is a word boundary
 
 ## Design Principles
 
 - **No dictionary dependency** -- Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns
-- **Compact models** -- Model files are typically 1-22 KB, containing only the feature weights that matter
+- **Compact models** -- Word-segmentation model files are typically 1-22 KB (the joint segmentation + POS models are ~9-19 MB), containing only the feature weights that matter
 - **Language-agnostic framework** -- The core algorithm is the same for all languages; only the character type patterns differ
 - **Simple extensibility** -- Adding a new language requires only defining character type patterns and training a model

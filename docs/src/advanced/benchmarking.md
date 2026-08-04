@@ -43,6 +43,14 @@ Open this file in a browser after running benchmarks to view:
 - Throughput measurements
 - Comparison with previous runs (automatic regression detection)
 
+## Release Profile
+
+`cargo bench` inherits the release profile, which enables thin LTO and a
+single codegen unit (see the workspace `Cargo.toml`). Benchmark numbers
+therefore reflect the optimized configuration that release binaries ship
+with; a plain `cargo build` (dev profile) is significantly slower and not
+representative.
+
 ## Interpreting Results
 
 Key performance factors:

@@ -15,10 +15,11 @@ These labels correspond to the 17 [Universal POS (UPOS)](https://universaldepend
 
 ### Weight Representation
 
-The perceptron maintains a **weight vector per class**. Weights are stored as a sparse map:
+The perceptron maintains a **per-class weight vector for each feature**, stored in a single sparse map so that scoring and weight updates need one hashed lookup per feature (not one per feature x class):
 
 ```text
-weights: HashMap<Feature, HashMap<Class, f64>>
+slots: FxHashMap<Feature, FeatureSlot>
+// FeatureSlot { w: Vec<f64>, acc: Vec<f64>, ts: Vec<usize> } -- one entry per class
 ```
 
 For example:
@@ -67,6 +68,8 @@ At the end of training:
 ```
 
 This avoids storing all intermediate weight vectors while producing the same result. The averaging reduces dependence on the order of training data and improves generalization performance.
+
+The accumulator and timestamp vectors are materialized lazily, the first time training touches a feature -- a model loaded for inference only carries live weights and pays nothing for averaging state.
 
 ### Training with Epochs
 
@@ -128,7 +131,7 @@ feature2\tclass2\tweight2
 | Weight management | One weight per feature | Class x feature weight matrix |
 | Generalization | Ensemble | Weight averaging |
 | Training | Iterative boosting with sample reweighting | Online learning with weight averaging |
-| Model size | A few KB | ~11 MB (with POS features) |
+| Model size | A few KB | ~9-19 MB (bundled POS models) |
 | Hyperparameters | `threshold`, `num_iterations` | `num_epochs` |
 
 ## Hyperparameters

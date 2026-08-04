@@ -83,32 +83,32 @@ Train the features output by the above command using AdaBoost. Use `-t` to set t
 ./target/release/litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
 ```
 
-The output from the `train` command is similar to:
+The `train` command reports metrics computed on the training data (with enough iterations the model can fit the training corpus almost perfectly; evaluate on held-out text for a realistic quality estimate):
 
 ```text
 Result Metrics:
-  Accuracy: 94.15% ( 564133 / 599198 )
-  Precision: 95.57% ( 330454 / 345758 )
-  Recall: 94.36% ( 330454 / 350215 )
+  Accuracy: 100.00% ( 1075868 / 1075869 )
+  Precision: 100.00% ( 161283 / 161284 )
+  Recall: 100.00% ( 161283 / 161283 )
   Confusion Matrix:
-    True Positives: 330454
-    False Positives: 15304
-    False Negatives: 19761
-    True Negatives: 233679
+    True Positives: 161283
+    False Positives: 1
+    False Negatives: 0
+    True Negatives: 914585
 ```
 
 ## How to segment sentences into words
 
-Use the trained model to segment sentences. Specify the language with `-l` and the model file:
+Use a trained model to segment sentences. Specify the language with `-l` and the model file. Here we use the bundled `RWCP.model` (the original TinySegmenter model):
 
 ```sh
-echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment -l japanese ./models/japanese.model
+echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment -l japanese ./models/RWCP.model
 ```
 
-The output will look like:
+The output is:
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
 For Korean and Chinese:
@@ -128,10 +128,10 @@ Use the pre-trained POS model to segment sentences with POS tags:
 echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment --pos -l japanese ./models/japanese_pos.model
 ```
 
-The output will look like:
+The output is:
 
 ```text
-Litsea/PROPN は/ADP TinySegmenter/PROPN を/ADP 参考/NOUN に/ADP 開発/VERB さ/AUX れ/AUX た/AUX 、/PUNCT Rust/PROPN で/ADP 実装/VERB さ/AUX れ/AUX た/AUX 極めて/ADV コンパクト/ADJ な/AUX 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+Litsea/NOUN は/ADP Tiny/PROPN Segmenter/NOUN を/ADP 参考/NOUN に/ADP 開発/VERB さ/AUX れ/AUX た/AUX 、/PUNCT Rust/NOUN で/ADP 実装/VERB さ/AUX れ/AUX た/AUX 極めて/NOUN コンパクト/NOUN な/AUX 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
 ```
 
 ## How to train POS models
@@ -175,9 +175,9 @@ The output from the `train` command is similar to:
 
 ```text
 Result Metrics (POS):
-  Accuracy: 98.34% ( 12486 )
-  Macro Precision: 93.21%
-  Macro Recall: 89.45%
+  Accuracy: 98.23% ( 277213 )
+  Macro Precision: 96.82%
+  Macro Recall: 93.30%
 ```
 
 ## How to split text into sentences
@@ -198,16 +198,22 @@ The output will look like:
 ## Pre-trained models
 
 - **japanese.model**
-  Trained on Japanese Wikipedia corpus using Lindera (UniDic) tokenization. Accuracy: 94.15%.
+  Trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank. Accuracy: 94.15%.
 
 - **korean.model**
-  Trained on Korean Wikipedia corpus using Lindera (ko-dic) tokenization. Accuracy: 85.08%.
+  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank. Accuracy: 85.08%.
 
 - **chinese.model**
-  Trained on Chinese Wikipedia corpus using Lindera (CC-CEDICT) tokenization. Accuracy: 80.72%.
+  Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank. Accuracy: 80.72%.
 
 - **japanese_pos.model**
-  Joint word segmentation and POS tagging model trained on [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank using Averaged Perceptron. Accuracy: 98.34%.
+  Joint word segmentation and POS tagging model trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank using Averaged Perceptron. Training accuracy: 98.23%.
+
+- **chinese_pos.model**
+  Joint word segmentation and POS tagging model trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank using Averaged Perceptron. Training accuracy: 97.04%.
+
+- **korean_pos.model**
+  Joint word segmentation and POS tagging model trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank using Averaged Perceptron. Training accuracy: 95.14%.
 
 - **JEITA_Genpaku_ChaSen_IPAdic.model**
   This model is trained using the morphologically analyzed corpus published by the Japan Electronics and Information Technology Industries Association (JEITA). It employs data from Project Sugita Genpaku analyzed with ChaSen+IPAdic.

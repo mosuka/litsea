@@ -33,6 +33,8 @@ pub use upos::{SegmentLabel, Upos};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+/// Returns the version of the litsea crate (the `CARGO_PKG_VERSION` it was
+/// built with), e.g. `"0.5.0"`.
 #[must_use]
 pub fn version() -> &'static str {
     VERSION

@@ -91,6 +91,9 @@ The bias is computed as:
 bias = -sum(all model weights) / 2.0
 ```
 
+The value is cached in the learner and kept in sync by every weight-mutating
+path, so reading it during inference is O(1).
+
 This centers the decision boundary. The empty-string feature (`""`) serves as the bias bucket during training.
 It is registered at feature index 0 on every construction path (`new()`, feature-file initialization, and
 model loading), so models trained through `add_instance()` train, save, and reload correctly.
@@ -110,7 +113,9 @@ bias_value
 - Zero-weight features are omitted
 - The last line contains the bias term (a single number)
 
-See [Model File Format](../advanced/model-file-format.md) for details.
+Malformed files (empty, truncated before the bias line, duplicate bias lines or
+features, non-finite weights) are rejected at load time. See
+[Model File Format](../advanced/model-file-format.md) for details.
 
 ## Hyperparameters
 

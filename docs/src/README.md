@@ -20,10 +20,10 @@ Unlike traditional morphological analyzers such as [MeCab](https://taku910.githu
 Litsea treats word segmentation as a **binary classification problem**: for each character position in a sentence, the model predicts whether it is a **word boundary** (+1) or **not a boundary** (-1). The classifier uses character n-gram features and character type information specific to each language.
 
 ```text
-Input:  "LitseaはRust製です"
-         ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
-         O O O O B O B O B   ← boundary predictions
-Output: ["Litsea", "は", "Rust製", "です"]
+Input:  "これはテストです。"
+         こ れ は テ ス ト で す 。
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+Output: ["これ", "は", "テスト", "です", "。"]
 ```
 
 ### POS Tagging
@@ -39,7 +39,7 @@ The POS tags follow the [Universal Dependencies](https://universaldependencies.o
 
 ```text
 Input:  "今日はいい天気ですね。"
-Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
 ## Name Origin

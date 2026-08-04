@@ -13,7 +13,7 @@ Litsea ships with several pre-trained models in the `models/` directory.
 | Accuracy | 94.15% |
 | Precision | 95.57% |
 | Recall | 94.36% |
-| File Size | ~2.9 KB |
+| File Size | ~1.4 KB |
 
 ### korean.model
 
@@ -22,7 +22,7 @@ Litsea ships with several pre-trained models in the `models/` directory.
 | Language | Korean |
 | Training Corpus | UD Korean-GSD |
 | Accuracy | 85.08% |
-| File Size | ~1.8 KB |
+| File Size | ~1.3 KB |
 
 ### chinese.model
 
@@ -31,7 +31,7 @@ Litsea ships with several pre-trained models in the `models/` directory.
 | Language | Chinese (Simplified & Traditional) |
 | Training Corpus | UD Chinese-GSD |
 | Accuracy | 80.72% |
-| File Size | ~1.3 KB |
+| File Size | ~1.1 KB |
 
 ### RWCP.model
 
@@ -61,9 +61,9 @@ Litsea ships with several pre-trained models in the `models/` directory.
 | Algorithm | Averaged Perceptron |
 | Training Corpus | UD Japanese-GSD (7,050 sentences) |
 | Epochs | 10 |
-| Accuracy | 98.34% |
-| Macro Precision | 97.87% |
-| Macro Recall | 91.67% |
+| Accuracy | 98.23% |
+| Macro Precision | 96.82% |
+| Macro Recall | 93.30% |
 | File Size | ~11 MB |
 
 ### chinese_pos.model
@@ -74,9 +74,9 @@ Litsea ships with several pre-trained models in the `models/` directory.
 | Algorithm | Averaged Perceptron |
 | Training Corpus | UD Chinese-GSD (3,997 sentences) |
 | Epochs | 10 |
-| Accuracy | 97.09% |
-| Macro Precision | 97.31% |
-| Macro Recall | 96.23% |
+| Accuracy | 97.04% |
+| Macro Precision | 97.17% |
+| Macro Recall | 96.14% |
 | File Size | ~19 MB |
 
 ### korean_pos.model
@@ -87,10 +87,10 @@ Litsea ships with several pre-trained models in the `models/` directory.
 | Algorithm | Averaged Perceptron |
 | Training Corpus | UD Korean-GSD (4,400 sentences) |
 | Epochs | 10 |
-| Accuracy | 95.33% |
-| Macro Precision | 95.30% |
-| Macro Recall | 87.69% |
-| File Size | ~8.4 MB |
+| Accuracy | 95.14% |
+| Macro Precision | 95.00% |
+| Macro Recall | 86.15% |
+| File Size | ~8.9 MB |
 
 #### Usage
 

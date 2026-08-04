@@ -36,8 +36,8 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 The features file contains one line per character position:
 
 ```text
-1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
+-1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
 ```
 
 - `1` = word boundary
@@ -70,7 +70,7 @@ When the `--pos` flag is specified, `extract` expects a **POS corpus** instead o
 ### POS Corpus Format
 
 ```text
-これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
+これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 

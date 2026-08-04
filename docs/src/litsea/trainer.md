@@ -106,3 +106,59 @@ async fn main() -> litsea::Result<()> {
     Ok(())
 }
 ```
+
+## PosTrainer
+
+`PosTrainer` is the POS-model counterpart of `Trainer`: it trains an
+**Averaged Perceptron** for joint word segmentation and POS tagging from a
+POS features file (produced by `litsea extract --pos`).
+
+### `PosTrainer::new`
+
+```rust
+pub fn new(num_epochs: usize, features_path: &Path) -> litsea::Result<Self>
+```
+
+Reads the features file (each line is `label\tfeature1\tfeature2\t...`, where
+labels are `SegmentLabel` strings such as `B-NOUN` or `O`) and registers the
+training instances.
+
+### `PosTrainer::load_model`
+
+```rust
+pub async fn load_model(&mut self, model_uri: &str) -> litsea::Result<()>
+```
+
+Loads an existing POS model for incremental training. Classes already
+registered from the training data are merged with the model's classes.
+
+### `PosTrainer::train`
+
+```rust
+pub fn train(
+    &mut self,
+    running: Arc<AtomicBool>,
+    model_path: &Path,
+) -> litsea::Result<MulticlassMetrics>
+```
+
+Trains for the configured number of epochs, saves the model, and returns
+multiclass metrics (accuracy, macro precision, macro recall). The `running`
+flag enables graceful interruption, like `Trainer::train`.
+
+```rust
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::PosTrainer;
+
+#[tokio::main]
+async fn main() -> litsea::Result<()> {
+    let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
+    let running = Arc::new(AtomicBool::new(true));
+    let metrics = trainer.train(running, Path::new("./japanese_pos.model"))?;
+    println!("Accuracy: {:.2}%", metrics.accuracy);
+    Ok(())
+}
+```

@@ -16,10 +16,12 @@ use crate::metrics::BinaryMetrics;
 
 type Label = i8;
 
-/// AdaBoost implementation for binary classification
-/// This implementation uses a simple feature extraction method
-/// and is designed for educational purposes.
-/// It is not optimized for performance or large datasets.
+/// AdaBoost binary classifier used for word-boundary prediction.
+///
+/// Weak hypotheses are presence stumps over string features. The learner
+/// stores the model as a dense weight vector with an `FxHashMap` feature
+/// index and a cached bias term, so single-feature lookups on the inference
+/// hot path are O(1).
 #[derive(Debug)]
 pub struct AdaBoost {
     /// The threshold for stopping the training.
@@ -102,14 +104,15 @@ impl AdaBoost {
     /// It also counts the number of instances and reserves space in the vectors for efficient memory usage.
     ///
     /// # Note
-    /// The features are stored in a `BTreeMap` to preserve the order of insertion.
-    /// The last feature is an empty string, which is used as a bias term.
+    /// The features are collected in a `BTreeMap`, so they end up sorted by
+    /// name; the bias feature (the empty string) sorts first and therefore
+    /// keeps its reserved slot at index 0.
     /// The model is initialized with zeros for each feature.
     /// The number of instances is counted to ensure that the model can handle the data efficiently.
     pub fn initialize_features(&mut self, filename: &Path) -> Result<()> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
-        let mut map = BTreeMap::new(); // preserve order
+        let mut map = BTreeMap::new(); // sorted keys: "" (the bias) sorts first
 
         let mut buf_size = 0;
         self.num_instances = 0;
@@ -353,7 +356,8 @@ impl AdaBoost {
     /// Returns an error if the file cannot be created or written to.
     ///
     /// This method writes the model to a file in a tab-separated format,
-    /// where each line contains a feature and its corresponding weight.
+    /// where each line contains a feature and its corresponding weight,
+    /// in the learner's (deterministic) feature order.
     /// The last line contains the bias term, which is calculated as the negative sum of the model weights divided by 2.
     /// The bias bucket (the empty-string feature `""`) is identified by name
     /// and folded into the bias line instead of being written as a feature.
