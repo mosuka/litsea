@@ -65,7 +65,7 @@ fn main() -> litsea::Result<()> {
     learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
     // Create a segmenter
-    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
     // Segment text
     let tokens = segmenter.segment("これはテストです。");
@@ -96,7 +96,7 @@ fn main() -> litsea::Result<()> {
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
 
     // Segment text with POS tags
-    let tokens = segmenter.segment_with_pos("今日はいい天気ですね。");
+    let tokens = segmenter.segment_with_pos("今日はいい天気ですね。")?;
     for (word, pos) in &tokens {
         print!("{}/{} ", word, pos);
     }

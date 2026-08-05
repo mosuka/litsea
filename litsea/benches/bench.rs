@@ -55,7 +55,7 @@ fn bench_segment_short(c: &mut Criterion) {
 
         // AdaBoost (word segmentation only)
         let ada_learner = load_adaboost_model(ada_model);
-        let ada_segmenter = Segmenter::new(*language, Some(ada_learner));
+        let ada_segmenter = Segmenter::with_learner(*language, ada_learner);
         group.bench_with_input(BenchmarkId::new("adaboost", lang), &input, |b, &text| {
             b.iter(|| black_box(ada_segmenter.segment(black_box(text))));
         });
@@ -67,7 +67,7 @@ fn bench_segment_short(c: &mut Criterion) {
             BenchmarkId::new("averaged_perceptron", lang),
             &input,
             |b, &text| {
-                b.iter(|| black_box(pos_segmenter.segment_with_pos(black_box(text))));
+                b.iter(|| black_box(pos_segmenter.segment_with_pos(black_box(text)).unwrap()));
             },
         );
     }
@@ -89,7 +89,7 @@ fn bench_segment_long(c: &mut Criterion) {
 
     // AdaBoost
     let ada_learner = load_adaboost_model("japanese.model");
-    let ada_segmenter = Segmenter::new(Language::Japanese, Some(ada_learner));
+    let ada_segmenter = Segmenter::with_learner(Language::Japanese, ada_learner);
     group.bench_function("adaboost", |b| {
         b.iter(|| {
             for line in &lines {
@@ -104,7 +104,7 @@ fn bench_segment_long(c: &mut Criterion) {
     group.bench_function("averaged_perceptron", |b| {
         b.iter(|| {
             for line in &lines {
-                black_box(pos_segmenter.segment_with_pos(black_box(line)));
+                black_box(pos_segmenter.segment_with_pos(black_box(line)).unwrap());
             }
         });
     });
@@ -117,7 +117,7 @@ fn bench_segment_long(c: &mut Criterion) {
 // ---------------------------------------------------------------------------
 
 fn bench_char_type(c: &mut Criterion) {
-    let segmenter = Segmenter::new(Language::Japanese, None);
+    let segmenter = Segmenter::new(Language::Japanese);
     c.bench_function("get_type_hiragana", |b| {
         b.iter(|| black_box(segmenter.char_type(black_box("あ"))));
     });
@@ -126,7 +126,7 @@ fn bench_char_type(c: &mut Criterion) {
 fn bench_add_corpus(c: &mut Criterion) {
     c.bench_function("add_corpus", |b| {
         b.iter_batched(
-            || Segmenter::new(Language::Japanese, None),
+            || Segmenter::new(Language::Japanese),
             |mut segmenter| segmenter.add_corpus(black_box("これ は テスト です 。")),
             criterion::BatchSize::SmallInput,
         );
@@ -135,7 +135,7 @@ fn bench_add_corpus(c: &mut Criterion) {
 
 fn bench_predict_adaboost(c: &mut Criterion) {
     let learner = load_adaboost_model("japanese.model");
-    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
     // Capture a realistic attribute set from the corpus pipeline.
     let mut attrs = None;

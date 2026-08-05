@@ -136,7 +136,7 @@ fn test_thai_char_types() {
 // In segmenter.rs tests
 #[test]
 fn test_char_type_thai() {
-    let segmenter = Segmenter::new(Language::Thai, None);
+    let segmenter = Segmenter::new(Language::Thai);
     assert_eq!(segmenter.char_type("ก"), "T");
 }
 ```

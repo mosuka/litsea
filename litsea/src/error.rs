@@ -22,6 +22,13 @@ pub enum LitseaError {
     #[error("unsupported: {0}")]
     Unsupported(&'static str),
 
+    /// `segment_with_pos` was called on a segmenter without a POS learner.
+    #[error(
+        "POS learner is not set; build the segmenter with with_pos_learner() \
+         or add training data with add_corpus_with_pos()"
+    )]
+    PosLearnerNotSet,
+
     /// Downloading a remote model failed.
     #[cfg(feature = "remote_model")]
     #[error("failed to download model: {0}")]

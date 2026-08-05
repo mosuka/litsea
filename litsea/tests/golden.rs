@@ -23,7 +23,7 @@ fn adaboost_segmenter(language: Language, model: &str) -> Segmenter {
     learner
         .load_model_from_path(&model_path(model))
         .unwrap_or_else(|e| panic!("failed to load {}: {}", model, e));
-    Segmenter::new(language, Some(learner))
+    Segmenter::with_learner(language, learner)
 }
 
 fn pos_segmenter(language: Language, model: &str) -> Segmenter {
@@ -43,7 +43,8 @@ fn assert_segment(segmenter: &Segmenter, cases: &[(&str, &[&str])]) {
 
 fn assert_segment_with_pos(segmenter: &Segmenter, cases: &[(&str, &[(&str, &str)])]) {
     for (input, expected) in cases {
-        let actual: Vec<(String, Upos)> = segmenter.segment_with_pos(input);
+        let actual: Vec<(String, Upos)> =
+            segmenter.segment_with_pos(input).expect("POS learner is set");
         let actual_str: Vec<(String, String)> =
             actual.into_iter().map(|(w, p)| (w, p.to_string())).collect();
         let expected_owned: Vec<(String, String)> =
@@ -234,7 +235,7 @@ fn golden_segment_with_pos_japanese() {
             ),
         ],
     );
-    assert!(segmenter.segment_with_pos("").is_empty());
+    assert!(segmenter.segment_with_pos("").expect("POS learner is set").is_empty());
 }
 
 #[test]
@@ -287,7 +288,7 @@ fn golden_segment_with_pos_chinese() {
             ),
         ],
     );
-    assert!(segmenter.segment_with_pos("").is_empty());
+    assert!(segmenter.segment_with_pos("").expect("POS learner is set").is_empty());
 }
 
 #[test]
@@ -335,7 +336,7 @@ fn golden_segment_with_pos_korean() {
             ),
         ],
     );
-    assert!(segmenter.segment_with_pos("").is_empty());
+    assert!(segmenter.segment_with_pos("").expect("POS learner is set").is_empty());
 }
 
 // ---------------------------------------------------------------------------
@@ -356,8 +357,8 @@ fn roundtrip_adaboost_model() {
     let mut reloaded = AdaBoost::new(0.01, 100);
     reloaded.load_model_from_path(temp.path()).unwrap();
 
-    let seg_original = Segmenter::new(Language::Japanese, Some(original));
-    let seg_reloaded = Segmenter::new(Language::Japanese, Some(reloaded));
+    let seg_original = Segmenter::with_learner(Language::Japanese, original);
+    let seg_reloaded = Segmenter::with_learner(Language::Japanese, reloaded);
     for s in sentences {
         assert_eq!(
             seg_original.segment(s),
@@ -385,8 +386,8 @@ fn roundtrip_perceptron_model() {
     let seg_reloaded = Segmenter::with_pos_learner(Language::Japanese, reloaded);
     for s in sentences {
         assert_eq!(
-            seg_original.segment_with_pos(s),
-            seg_reloaded.segment_with_pos(s),
+            seg_original.segment_with_pos(s).expect("POS learner is set"),
+            seg_reloaded.segment_with_pos(s).expect("POS learner is set"),
             "round-tripped Perceptron model diverged on {:?}",
             s
         );

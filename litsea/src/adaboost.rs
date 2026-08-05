@@ -41,6 +41,14 @@ pub struct AdaBoost {
     cached_bias: f64,
 }
 
+impl Default for AdaBoost {
+    /// Creates a learner with the default hyperparameters used across the
+    /// library and CLI: `threshold = 0.01`, `num_iterations = 100`.
+    fn default() -> Self {
+        AdaBoost::new(0.01, 100)
+    }
+}
+
 impl AdaBoost {
     /// Creates a new instance of [`AdaBoost`].
     /// This method initializes the AdaBoost parameters such as threshold
@@ -853,6 +861,14 @@ mod tests {
         // When the same attribute is passed to predict, score returns 1 based on the initial model value (0.0) (because score>=0).
         let prediction = learner.predict(&attrs);
         assert_eq!(prediction, 1);
+    }
+
+    #[test]
+    fn test_adaboost_default_params() {
+        // #127: Default must match the documented library/CLI defaults.
+        let learner = AdaBoost::default();
+        assert!((learner.threshold - 0.01).abs() < f64::EPSILON);
+        assert_eq!(learner.num_iterations, 100);
     }
 
     #[test]
