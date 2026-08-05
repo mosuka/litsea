@@ -263,7 +263,7 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
             if line.is_empty() {
                 continue;
             }
-            let tokens = segmenter.segment_with_pos(line);
+            let tokens = segmenter.segment_with_pos(line)?;
             let formatted: Vec<String> =
                 tokens.iter().map(|(word, pos)| format!("{}/{}", word, pos)).collect();
             if !write_output_line(&mut writer, &formatted.join(" "))? {
@@ -275,7 +275,7 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
         let mut learner = AdaBoost::new(0.01, 100);
         learner.load_model(args.model_uri.as_str()).await?;
 
-        let segmenter = Segmenter::new(language, Some(learner));
+        let segmenter = Segmenter::with_learner(language, learner);
 
         for line in stdin.lock().lines() {
             let line = line?;

@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fmt::Write as _;
 
 use crate::adaboost::AdaBoost;
+use crate::error::{LitseaError, Result};
 use crate::language::Language;
 use crate::perceptron::AveragedPerceptron;
 use crate::upos::{SegmentLabel, Upos};
@@ -19,31 +20,54 @@ pub struct Segmenter {
 }
 
 impl Segmenter {
-    /// Creates a new instance of [`Segmenter`].
+    /// Creates a new instance of [`Segmenter`] with a default (untrained)
+    /// AdaBoost learner.
+    ///
+    /// The default learner has no trained weights, so [`segment`](Self::segment)
+    /// returns one word per character until a model is loaded (via
+    /// [`learner_mut`](Self::learner_mut)) or training data is added with
+    /// [`add_corpus`](Self::add_corpus). To start from a trained learner, use
+    /// [`with_learner`](Self::with_learner).
     ///
     /// # Arguments
     /// * `language` - The language to use for character type classification.
-    /// * `learner` - An optional AdaBoost instance. If None, a default AdaBoost instance is created.
     ///
     /// # Returns
-    /// A new Segmenter instance with the specified language and AdaBoost learner.
+    /// A new Segmenter instance with the specified language.
     ///
     /// # Example
     /// ```
     /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let segmenter = Segmenter::new(Language::Japanese, None);
+    /// let segmenter = Segmenter::new(Language::Japanese);
     /// ```
-    pub fn new(language: Language, learner: Option<AdaBoost>) -> Self {
+    pub fn new(language: Language) -> Self {
+        Self::with_learner(language, AdaBoost::default())
+    }
+
+    /// Creates a new instance of [`Segmenter`] with the given AdaBoost
+    /// learner (typically one that has loaded a trained model).
+    ///
+    /// # Arguments
+    /// * `language` - The language to use for character type classification.
+    /// * `learner` - The AdaBoost learner to segment with.
+    ///
+    /// # Returns
+    /// A new Segmenter instance with the specified language and learner.
+    pub fn with_learner(language: Language, learner: AdaBoost) -> Self {
         Segmenter {
             language,
-            learner: learner.unwrap_or_else(|| AdaBoost::new(0.01, 100)),
+            learner,
             pos_learner: None,
         }
     }
 
     /// Creates a new instance of [`Segmenter`] with a POS learner.
+    ///
+    /// The AdaBoost learner is the untrained default: use
+    /// [`segment_with_pos`](Self::segment_with_pos) with this constructor;
+    /// [`segment`](Self::segment) would return one word per character.
     ///
     /// # Arguments
     /// * `language` - The language to use for character type classification.
@@ -54,7 +78,7 @@ impl Segmenter {
     pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -> Self {
         Segmenter {
             language,
-            learner: AdaBoost::new(0.01, 100),
+            learner: AdaBoost::default(),
             pos_learner: Some(pos_learner),
         }
     }
@@ -101,7 +125,7 @@ impl Segmenter {
     /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let segmenter = Segmenter::new(Language::Japanese, None);
+    /// let segmenter = Segmenter::new(Language::Japanese);
     /// let char_type = segmenter.char_type("あ");
     /// assert_eq!(char_type, "I"); // Hiragana
     /// ```
@@ -241,7 +265,7 @@ impl Segmenter {
     /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let segmenter = Segmenter::new(Language::Japanese, None);
+    /// let segmenter = Segmenter::new(Language::Japanese);
     /// segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
     ///    println!("Attributes: {:?}, Label: {}", attrs, label);
     /// });
@@ -268,7 +292,7 @@ impl Segmenter {
     /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let mut segmenter = Segmenter::new(Language::Japanese, None);
+    /// let mut segmenter = Segmenter::new(Language::Japanese);
     /// segmenter.add_corpus("テスト です");
     /// ```
     /// This will process the corpus and add instances to the segmenter.
@@ -292,7 +316,7 @@ impl Segmenter {
     /// use litsea::language::Language;
     /// use litsea::segmenter::Segmenter;
     ///
-    /// let mut segmenter = Segmenter::new(Language::Japanese, None);
+    /// let mut segmenter = Segmenter::new(Language::Japanese);
     /// segmenter.add_corpus_with_pos("これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT");
     /// ```
     pub fn add_corpus_with_pos(&mut self, corpus: &str) {
@@ -344,7 +368,7 @@ impl Segmenter {
     /// let mut learner = AdaBoost::new(0.01, 100);
     /// learner.load_model_from_path(&model_file).unwrap();
     ///
-    /// let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    /// let segmenter = Segmenter::with_learner(Language::Japanese, learner);
     /// let result = segmenter.segment("これはテストです。");
     /// assert_eq!(result, vec!["これ", "は", "テスト", "です", "。"]);
     /// ```
@@ -397,20 +421,18 @@ impl Segmenter {
     /// * `sentence` - The sentence to segment
     ///
     /// # Returns
-    /// `Vec<(String, Upos)>` - Pairs of words and their POS tags
+    /// `Result<Vec<(String, Upos)>>` - Pairs of words and their POS tags.
+    /// An empty sentence yields `Ok` with an empty vector.
     ///
-    /// # Panics
-    /// Panics if `pos_learner` is not set. Set it beforehand with
-    /// `with_pos_learner()` or `add_corpus_with_pos()`.
-    #[must_use]
-    pub fn segment_with_pos(&self, sentence: &str) -> Vec<(String, Upos)> {
+    /// # Errors
+    /// Returns [`LitseaError::PosLearnerNotSet`] if no POS learner is set.
+    /// Set one beforehand with [`with_pos_learner`](Self::with_pos_learner)
+    /// or [`add_corpus_with_pos`](Self::add_corpus_with_pos).
+    pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>> {
         if sentence.is_empty() {
-            return Vec::new();
+            return Ok(Vec::new());
         }
-        let pos_learner = self
-            .pos_learner
-            .as_ref()
-            .expect("pos_learner is not set. Use with_pos_learner() or add_corpus_with_pos().");
+        let pos_learner = self.pos_learner.as_ref().ok_or(LitseaError::PosLearnerNotSet)?;
 
         let (chars, types) = self.sentence_context(sentence);
         let mut tags: Vec<&'static str> = Vec::with_capacity(chars.len());
@@ -450,7 +472,7 @@ impl Segmenter {
         }
 
         result.push((word, current_pos));
-        result
+        Ok(result)
     }
 
     /// Builds the attribute set for a specific index (used by the corpus
@@ -596,7 +618,7 @@ mod tests {
 
     #[test]
     fn test_char_type_japanese() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
 
         assert_eq!(segmenter.char_type("あ"), "I"); // Hiragana
         assert_eq!(segmenter.char_type("漢"), "H"); // Kanji
@@ -609,7 +631,7 @@ mod tests {
 
     #[test]
     fn test_char_type_chinese() {
-        let segmenter = Segmenter::new(Language::Chinese, None);
+        let segmenter = Segmenter::new(Language::Chinese);
 
         assert_eq!(segmenter.char_type("的"), "F"); // Function word
         assert_eq!(segmenter.char_type("中"), "C"); // CJK Unified
@@ -622,7 +644,7 @@ mod tests {
 
     #[test]
     fn test_char_type_korean() {
-        let segmenter = Segmenter::new(Language::Korean, None);
+        let segmenter = Segmenter::new(Language::Korean);
 
         assert_eq!(segmenter.char_type("는"), "E"); // Particle (topic marker)
         assert_eq!(segmenter.char_type("가"), "SN"); // Hangul Syllable without 받침
@@ -636,7 +658,7 @@ mod tests {
 
     #[test]
     fn test_add_corpus_with_writer() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
         let sentence = "テスト です";
         let mut collected = Vec::new();
 
@@ -662,7 +684,7 @@ mod tests {
 
     #[test]
     fn test_add_corpus() {
-        let mut segmenter = Segmenter::new(Language::Japanese, None);
+        let mut segmenter = Segmenter::new(Language::Japanese);
         let sentence = "テスト です";
         segmenter.add_corpus(sentence);
         // Should not panic or add anything, just a smoke test
@@ -677,7 +699,7 @@ mod tests {
         let mut learner = AdaBoost::new(0.01, 100);
         learner.load_model_from_path(&model_file).unwrap();
 
-        let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+        let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
         let result = segmenter.segment(sentence);
 
@@ -694,21 +716,21 @@ mod tests {
 
     #[test]
     fn test_add_sentence_empty() {
-        let mut segmenter = Segmenter::new(Language::Japanese, None);
+        let mut segmenter = Segmenter::new(Language::Japanese);
         segmenter.add_corpus("");
         // Should not panic or add anything
     }
 
     #[test]
     fn test_segment_empty_sentence() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
         let result = segmenter.segment("");
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_get_attributes() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
 
         let tags: Vec<&'static str> = vec!["U"; 7];
 
@@ -739,7 +761,7 @@ mod tests {
 
     #[test]
     fn test_collect_attributes_reuses_buffer() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
         let tags: Vec<&'static str> = vec!["U"; 7];
         let chars = vec!["B3", "B2", "B1", "あ", "い", "う", "E1"];
         let types: Vec<&'static str> = vec!["O", "O", "O", "O", "I", "I", "O"];
@@ -760,7 +782,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_attributes_panics_index_too_low() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
         let tags: Vec<&'static str> = vec!["U"; 7];
         let chars = vec!["B3", "B2", "B1", "あ", "い", "う", "E1"];
         let types: Vec<&'static str> = vec!["O"; 7];
@@ -771,7 +793,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_get_attributes_panics_index_too_high() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
         let tags: Vec<&'static str> = vec!["U"; 7];
         let chars = vec!["B3", "B2", "B1", "あ", "い", "う", "E1"];
         let types: Vec<&'static str> = vec!["O"; 7];
@@ -781,7 +803,7 @@ mod tests {
 
     #[test]
     fn test_get_attributes_korean() {
-        let segmenter = Segmenter::new(Language::Korean, None);
+        let segmenter = Segmenter::new(Language::Korean);
 
         let tags: Vec<&'static str> = vec!["U"; 7];
 
@@ -811,7 +833,7 @@ mod tests {
 
     #[test]
     fn test_add_corpus_with_pos() {
-        let mut segmenter = Segmenter::new(Language::Japanese, None);
+        let mut segmenter = Segmenter::new(Language::Japanese);
         segmenter.add_corpus_with_pos("これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT");
         // pos_learner is initialized
         assert!(segmenter.pos_learner.is_some());
@@ -819,7 +841,7 @@ mod tests {
 
     #[test]
     fn test_add_corpus_with_pos_writer() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
         let corpus = "テスト/NOUN です/AUX";
         let mut collected = Vec::new();
 
@@ -848,7 +870,7 @@ mod tests {
         // segment_with_pos predicts at inference), while the AdaBoost
         // boundary pipeline keeps skipping it (the boundary label at the
         // first position is degenerate — always a word start).
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
 
         let mut pos_labels = Vec::new();
         segmenter.add_corpus_with_pos_writer("テスト/NOUN です/AUX", |_, label| {
@@ -866,7 +888,7 @@ mod tests {
 
     #[test]
     fn test_segment_with_pos() {
-        let mut segmenter = Segmenter::new(Language::Japanese, None);
+        let mut segmenter = Segmenter::new(Language::Japanese);
 
         // Add the training data multiple times and train
         for _ in 0..20 {
@@ -879,7 +901,7 @@ mod tests {
         segmenter.pos_learner.as_mut().unwrap().train(10, running);
 
         // Segmentation + POS tagging
-        let result = segmenter.segment_with_pos("これはテストです。");
+        let result = segmenter.segment_with_pos("これはテストです。").unwrap();
         assert!(!result.is_empty());
 
         // Verify the result is (word, POS) pairs
@@ -891,15 +913,26 @@ mod tests {
     }
 
     #[test]
+    fn test_segment_with_pos_without_learner_errors() {
+        // #127: calling segment_with_pos without a POS learner returns a
+        // recoverable error instead of panicking.
+        let segmenter = Segmenter::new(Language::Japanese);
+        let result = segmenter.segment_with_pos("これはテストです。");
+        assert!(matches!(result, Err(LitseaError::PosLearnerNotSet)));
+        // The empty sentence stays Ok regardless of learner state.
+        assert!(segmenter.segment_with_pos("").unwrap().is_empty());
+    }
+
+    #[test]
     fn test_segment_with_pos_empty() {
         let segmenter = Segmenter::with_pos_learner(Language::Japanese, AveragedPerceptron::new());
-        let result = segmenter.segment_with_pos("");
+        let result = segmenter.segment_with_pos("").unwrap();
         assert!(result.is_empty());
     }
 
     #[test]
     fn test_process_corpus_with_pos_empty() {
-        let segmenter = Segmenter::new(Language::Japanese, None);
+        let segmenter = Segmenter::new(Language::Japanese);
         let mut called = false;
         segmenter.add_corpus_with_pos_writer("", |_, _| {
             called = true;

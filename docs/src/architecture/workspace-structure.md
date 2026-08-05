@@ -103,7 +103,7 @@ resolver = "3"
 members = ["litsea", "litsea-cli"]
 
 [workspace.package]
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 rust-version = "1.87"
 

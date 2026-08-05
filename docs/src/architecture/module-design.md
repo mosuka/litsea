@@ -50,7 +50,7 @@ The main user-facing module.
   - `new(language, learner)` -- Create a segmenter with an optional pre-trained model
   - `with_pos_learner(language, pos_learner)` -- Create a segmenter for joint segmentation + POS tagging
   - `segment(sentence)` -- Segment text into words, returns `Vec<String>`
-  - `segment_with_pos(sentence)` -- Segment and tag, returns `Vec<(String, Upos)>`
+  - `segment_with_pos(sentence)` -- Segment and tag, returns `Result<Vec<(String, Upos)>>` (`PosLearnerNotSet` without a POS learner)
   - `char_type(ch)` -- Classify a single character into its type code
   - `add_corpus(corpus)` / `add_corpus_with_pos(corpus)` -- Add training data
   - `add_corpus_with_writer(corpus, callback)` / `add_corpus_with_pos_writer(corpus, callback)` -- Process a corpus with a custom callback

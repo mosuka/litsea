@@ -6,7 +6,7 @@ The `litsea` crate provides a Rust API for word segmentation, model training, an
 
 ```toml
 [dependencies]
-litsea = "0.5.0"
+litsea = "0.6.0"
 ```
 
 Loading models from local files is synchronous and needs no async runtime. An async runtime such as `tokio` is only required when loading models over HTTP/HTTPS with the async `load_model` method.
@@ -53,7 +53,7 @@ fn main() -> litsea::Result<()> {
     let mut learner = AdaBoost::new(0.01, 100);
     learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
-    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let segmenter = Segmenter::with_learner(Language::Japanese, learner);
     let tokens = segmenter.segment("これはテストです。");
 
     assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
@@ -75,7 +75,7 @@ fn main() -> litsea::Result<()> {
     pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-    let tokens = segmenter.segment_with_pos("これはテストです。");
+    let tokens = segmenter.segment_with_pos("これはテストです。")?;
 
     for (word, pos) in &tokens {
         print!("{}/{} ", word, pos);

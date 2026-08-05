@@ -35,7 +35,7 @@ impl Extractor {
     /// Returns a new instance of `Extractor` with a new `Segmenter` for the specified language.
     pub fn new(language: Language) -> Self {
         Extractor {
-            segmenter: Segmenter::new(language, None),
+            segmenter: Segmenter::new(language),
         }
     }
 

@@ -14,32 +14,38 @@ pub struct Segmenter {
 
 The fields are private; use the accessor methods `language()`, `learner()`, `learner_mut()`, `pos_learner()`, and `pos_learner_mut()` to reach them.
 
-## Constructor
+## Constructors
 
 ### `Segmenter::new`
 
 ```rust
-pub fn new(language: Language, learner: Option<AdaBoost>) -> Self
+pub fn new(language: Language) -> Self
 ```
 
-The POS learner is left unset; calling `segment_with_pos` on a segmenter
-built with `new()` panics. Use [`with_pos_learner`](#pos-mode-api) for joint
-segmentation + POS tagging.
+Creates a segmenter with a default (untrained) `AdaBoost` learner — suitable
+for training or feature extraction. Until a model is loaded or training data
+is added, `segment` returns one word per character. The POS learner is left
+unset; `segment_with_pos` returns `Err(LitseaError::PosLearnerNotSet)` — use
+[`with_pos_learner`](#pos-mode-api) for joint segmentation + POS tagging.
 
-Creates a new segmenter.
+### `Segmenter::with_learner`
 
-- `language` -- The language for character type classification
-- `learner` -- An optional pre-trained `AdaBoost` model. If `None`, a default (untrained) instance is created.
+```rust
+pub fn with_learner(language: Language, learner: AdaBoost) -> Self
+```
+
+Creates a segmenter with the given learner, typically one that has loaded a
+pre-trained model.
 
 ```rust
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
 // With a pre-trained model
-let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
 // Without a model (for training or feature extraction)
-let segmenter = Segmenter::new(Language::Japanese, None);
+let segmenter = Segmenter::new(Language::Japanese);
 ```
 
 ## Methods
@@ -66,7 +72,7 @@ pub fn char_type(&self, ch: &str) -> &str
 Classifies a single character into its type code using language-specific rules. The first character of the `&str` is classified; an empty string returns `"O"`.
 
 ```rust
-let segmenter = Segmenter::new(Language::Japanese, None);
+let segmenter = Segmenter::new(Language::Japanese);
 assert_eq!(segmenter.char_type("あ"), "I");  // Hiragana
 assert_eq!(segmenter.char_type("漢"), "H");  // Kanji
 assert_eq!(segmenter.char_type("A"), "A");   // ASCII
@@ -81,7 +87,7 @@ pub fn add_corpus(&mut self, corpus: &str)
 Processes a space-separated corpus and adds instances to the internal AdaBoost learner.
 
 ```rust
-let mut segmenter = Segmenter::new(Language::Japanese, None);
+let mut segmenter = Segmenter::new(Language::Japanese);
 segmenter.add_corpus("テスト です");
 ```
 
@@ -131,15 +137,16 @@ Creates a segmenter configured for joint segmentation + POS tagging.
 ### `segment_with_pos`
 
 ```rust
-pub fn segment_with_pos(&self, sentence: &str) -> Vec<(String, Upos)>
+pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>>
 ```
 
 Segments a sentence and jointly predicts each word's UPOS tag. The
 prediction at the first character position determines the first word's POS.
+An empty sentence yields `Ok` with an empty vector.
 
-**Panics** if no POS learner is set — build the segmenter with
-`with_pos_learner()` or register training data with `add_corpus_with_pos()`
-first.
+**Errors** with `LitseaError::PosLearnerNotSet` if no POS learner is set —
+build the segmenter with `with_pos_learner()` or register training data with
+`add_corpus_with_pos()` first.
 
 ```rust
 use std::path::Path;
@@ -152,7 +159,7 @@ let mut pos_learner = AveragedPerceptron::new();
 pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
 let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-let tokens = segmenter.segment_with_pos("これはテストです。");
+let tokens = segmenter.segment_with_pos("これはテストです。")?;
 // [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
 //  ("です", Upos::AUX), ("。", Upos::PUNCT)]
 ```

@@ -1,10 +1,13 @@
 # Changelog
 
-## 0.5.0 (unreleased)
+## 0.6.0 (unreleased)
 
-This release contains the breaking API changes from Phase 3 of the
-refactoring plan (`REFACTORING_PLAN.md`). Model files remain fully
-compatible: all pre-trained models in `models/` load unchanged.
+Note: crates.io already has 0.5.0 published, so the accumulated unreleased
+changes below (originally drafted under a "0.5.0 (unreleased)" heading)
+will ship as 0.6.0. This release contains the breaking API changes from
+Phase 3 of the refactoring plan (`REFACTORING_PLAN.md`) plus the #97
+quality campaign. Model files remain fully compatible: all pre-trained
+models in `models/` load unchanged.
 
 ### Added
 
@@ -82,6 +85,16 @@ compatible: all pre-trained models in `models/` load unchanged.
 
 ### Changed (breaking)
 
+- `Segmenter::new(language, Option<AdaBoost>)` is now
+  `Segmenter::new(language)` (default learner) plus
+  `Segmenter::with_learner(language, learner)`; the 0.01/100 default lives
+  in `impl Default for AdaBoost`. Migration:
+  `Segmenter::new(lang, None)` → `Segmenter::new(lang)`;
+  `Segmenter::new(lang, Some(l))` → `Segmenter::with_learner(lang, l)` (#127).
+- `Segmenter::segment_with_pos` returns
+  `litsea::Result<Vec<(String, Upos)>>` instead of panicking when no POS
+  learner is set (`LitseaError::PosLearnerNotSet`). Migration: append `?`
+  or `unwrap()` at call sites that previously relied on the panic (#127).
 - All fallible APIs now return `litsea::Result<T>` instead of
   `std::io::Result<T>` / `Result<T, Box<dyn Error>>`.
 - `AdaBoost::predict` takes `&HashSet<String>` instead of consuming the set.
