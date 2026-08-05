@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
+            window.path_to_searchindex_js = "../searchindex-62c24e46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -202,7 +202,7 @@ cargo build --release
 <h2 id="using-as-a-library"><a class="header" href="#using-as-a-library">Using as a Library</a></h2>
 <p>Add Litsea to your project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.5.0"
+litsea = "0.6.0"
 </code></pre>
 <blockquote>
 <p><strong>Note:</strong> Loading models from local files (<code>load_model_from_path</code>) is synchronous, so no async runtime is needed. An async runtime such as <code>tokio</code> is only required if you load models over HTTP/HTTPS with the async <code>load_model</code> method (enabled by the <code>remote_model</code> feature, which is on by default).</p>

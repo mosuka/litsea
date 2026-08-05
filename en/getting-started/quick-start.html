@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
+            window.path_to_searchindex_js = "../searchindex-62c24e46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -220,7 +220,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
     // Create a segmenter
-    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
     // Segment text
     let tokens = segmenter.segment("これはテストです。");
@@ -246,7 +246,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
 
     // Segment text with POS tags
-    let tokens = segmenter.segment_with_pos("今日はいい天気ですね。");
+    let tokens = segmenter.segment_with_pos("今日はいい天気ですね。")?;
     for (word, pos) in &amp;tokens {
         print!("{}/{} ", word, pos);
     }

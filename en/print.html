@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3f9055c8.js";
+            window.path_to_searchindex_js = "searchindex-62c24e46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-dc1e276c.js"></script>
@@ -213,7 +213,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>
 <h2 id="current-version"><a class="header" href="#current-version">Current Version</a></h2>
-<p>Litsea v0.5.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
+<p>Litsea v0.6.0 (unreleased) – Rust Edition 2024, minimum Rust version 1.87.</p>
 <h2 id="links"><a class="header" href="#links">Links</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub Repository</a></li>
@@ -253,7 +253,7 @@ cargo build --release
 <h2 id="using-as-a-library"><a class="header" href="#using-as-a-library">Using as a Library</a></h2>
 <p>Add Litsea to your project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.5.0"
+litsea = "0.6.0"
 </code></pre>
 <blockquote>
 <p><strong>Note:</strong> Loading models from local files (<code>load_model_from_path</code>) is synchronous, so no async runtime is needed. An async runtime such as <code>tokio</code> is only required if you load models over HTTP/HTTPS with the async <code>load_model</code> method (enabled by the <code>remote_model</code> feature, which is on by default).</p>
@@ -313,7 +313,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
     // Create a segmenter
-    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
     // Segment text
     let tokens = segmenter.segment("これはテストです。");
@@ -339,7 +339,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
 
     // Segment text with POS tags
-    let tokens = segmenter.segment_with_pos("今日はいい天気ですね。");
+    let tokens = segmenter.segment_with_pos("今日はいい天気ですね。")?;
     for (word, pos) in &amp;tokens {
         print!("{}/{} ", word, pos);
     }
@@ -494,7 +494,7 @@ resolver = "3"
 members = ["litsea", "litsea-cli"]
 
 [workspace.package]
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 rust-version = "1.87"
 
@@ -552,7 +552,7 @@ codegen-units = 1
 <li><code>new(language, learner)</code> – Create a segmenter with an optional pre-trained model</li>
 <li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
-<li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Vec&lt;(String, Upos)&gt;</code></li>
+<li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> without a POS learner)</li>
 <li><code>char_type(ch)</code> – Classify a single character into its type code</li>
 <li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – Add training data</li>
 <li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – Process a corpus with a custom callback</li>
@@ -1491,7 +1491,7 @@ fn test_thai_char_types() {
 // In segmenter.rs tests
 #[test]
 fn test_char_type_thai() {
-    let segmenter = Segmenter::new(Language::Thai, None);
+    let segmenter = Segmenter::new(Language::Thai);
     assert_eq!(segmenter.char_type("ก"), "T");
 }
 <span class="boring">}</span></code></pre>
@@ -1503,7 +1503,7 @@ fn test_char_type_thai() {
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.5.0"
+litsea = "0.6.0"
 </code></pre>
 <p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method.</p>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
@@ -1548,7 +1548,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
     learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
-    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let segmenter = Segmenter::with_learner(Language::Japanese, learner);
     let tokens = segmenter.segment("これはテストです。");
 
     assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
@@ -1566,7 +1566,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-    let tokens = segmenter.segment_with_pos("これはテストです。");
+    let tokens = segmenter.segment_with_pos("これはテストです。")?;
 
     for (word, pos) in &amp;tokens {
         print!("{}/{} ", word, pos);
@@ -1590,30 +1590,34 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 }
 <span class="boring">}</span></code></pre>
 <p>The fields are private; use the accessor methods <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, and <code>pos_learner_mut()</code> to reach them.</p>
-<h2 id="constructor"><a class="header" href="#constructor">Constructor</a></h2>
+<h2 id="constructors"><a class="header" href="#constructors">Constructors</a></h2>
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn new(language: Language, learner: Option&lt;AdaBoost&gt;) -&gt; Self
+</span>pub fn new(language: Language) -&gt; Self
 <span class="boring">}</span></code></pre>
-<p>The POS learner is left unset; calling <code>segment_with_pos</code> on a segmenter
-built with <code>new()</code> panics. Use <a href="#pos-mode-api"><code>with_pos_learner</code></a> for joint
-segmentation + POS tagging.</p>
-<p>Creates a new segmenter.</p>
-<ul>
-<li><code>language</code> – The language for character type classification</li>
-<li><code>learner</code> – An optional pre-trained <code>AdaBoost</code> model. If <code>None</code>, a default (untrained) instance is created.</li>
-</ul>
+<p>Creates a segmenter with a default (untrained) <code>AdaBoost</code> learner — suitable
+for training or feature extraction. Until a model is loaded or training data
+is added, <code>segment</code> returns one word per character. The POS learner is left
+unset; <code>segment_with_pos</code> returns <code>Err(LitseaError::PosLearnerNotSet)</code> — use
+<a href="#pos-mode-api"><code>with_pos_learner</code></a> for joint segmentation + POS tagging.</p>
+<h3 id="segmenterwith_learner"><a class="header" href="#segmenterwith_learner"><code>Segmenter::with_learner</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_learner(language: Language, learner: AdaBoost) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>Creates a segmenter with the given learner, typically one that has loaded a
+pre-trained model.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
 // With a pre-trained model
-let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
 // Without a model (for training or feature extraction)
-let segmenter = Segmenter::new(Language::Japanese, None);
+let segmenter = Segmenter::new(Language::Japanese);
 <span class="boring">}</span></code></pre>
 <h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
 <h3 id="segment"><a class="header" href="#segment"><code>segment</code></a></h3>
@@ -1635,7 +1639,7 @@ let segmenter = Segmenter::new(Language::Japanese, None);
 <p>Classifies a single character into its type code using language-specific rules. The first character of the <code>&amp;str</code> is classified; an empty string returns <code>"O"</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let segmenter = Segmenter::new(Language::Japanese, None);
+</span>let segmenter = Segmenter::new(Language::Japanese);
 assert_eq!(segmenter.char_type("あ"), "I");  // Hiragana
 assert_eq!(segmenter.char_type("漢"), "H");  // Kanji
 assert_eq!(segmenter.char_type("A"), "A");   // ASCII
@@ -1648,7 +1652,7 @@ assert_eq!(segmenter.char_type("A"), "A");   // ASCII
 <p>Processes a space-separated corpus and adds instances to the internal AdaBoost learner.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let mut segmenter = Segmenter::new(Language::Japanese, None);
+</span>let mut segmenter = Segmenter::new(Language::Japanese);
 segmenter.add_corpus("テスト です");
 <span class="boring">}</span></code></pre>
 <h3 id="add_corpus_with_writer"><a class="header" href="#add_corpus_with_writer"><code>add_corpus_with_writer</code></a></h3>
@@ -1690,13 +1694,14 @@ an Averaged Perceptron model.</p>
 <h3 id="segment_with_pos"><a class="header" href="#segment_with_pos"><code>segment_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn segment_with_pos(&amp;self, sentence: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+</span>pub fn segment_with_pos(&amp;self, sentence: &amp;str) -&gt; Result&lt;Vec&lt;(String, Upos)&gt;&gt;
 <span class="boring">}</span></code></pre>
 <p>Segments a sentence and jointly predicts each word’s UPOS tag. The
-prediction at the first character position determines the first word’s POS.</p>
-<p><strong>Panics</strong> if no POS learner is set — build the segmenter with
-<code>with_pos_learner()</code> or register training data with <code>add_corpus_with_pos()</code>
-first.</p>
+prediction at the first character position determines the first word’s POS.
+An empty sentence yields <code>Ok</code> with an empty vector.</p>
+<p><strong>Errors</strong> with <code>LitseaError::PosLearnerNotSet</code> if no POS learner is set —
+build the segmenter with <code>with_pos_learner()</code> or register training data with
+<code>add_corpus_with_pos()</code> first.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -1709,7 +1714,7 @@ let mut pos_learner = AveragedPerceptron::new();
 pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
 let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-let tokens = segmenter.segment_with_pos("これはテストです。");
+let tokens = segmenter.segment_with_pos("これはテストです。")?;
 // [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
 //  ("です", Upos::AUX), ("。", Upos::PUNCT)]
 <span class="boring">}</span></code></pre>
@@ -1740,7 +1745,7 @@ what <code>Extractor::extract_with_pos</code> builds on.</p>
     segmenter: Segmenter,
 }
 <span class="boring">}</span></code></pre>
-<h2 id="constructor-1"><a class="header" href="#constructor-1">Constructor</a></h2>
+<h2 id="constructor"><a class="header" href="#constructor">Constructor</a></h2>
 <h3 id="extractornew"><a class="header" href="#extractornew"><code>Extractor::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1820,7 +1825,7 @@ extractor.extract_with_pos(
     learner: AdaBoost,
 }
 <span class="boring">}</span></code></pre>
-<h2 id="constructor-2"><a class="header" href="#constructor-2">Constructor</a></h2>
+<h2 id="constructor-1"><a class="header" href="#constructor-1">Constructor</a></h2>
 <h3 id="trainernew"><a class="header" href="#trainernew"><code>Trainer::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1960,7 +1965,7 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
     // internal fields: model weights, features, instances, etc.
 }
 <span class="boring">}</span></code></pre>
-<h2 id="constructor-3"><a class="header" href="#constructor-3">Constructor</a></h2>
+<h2 id="constructor-2"><a class="header" href="#constructor-2">Constructor</a></h2>
 <h3 id="adaboostnew"><a class="header" href="#adaboostnew"><code>AdaBoost::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2096,7 +2101,7 @@ let label = learner.predict(&amp;attrs);
     // internal fields: slots (feature -&gt; per-class weights + averaging state), step, classes, instances
 }
 <span class="boring">}</span></code></pre>
-<h2 id="constructor-4"><a class="header" href="#constructor-4">Constructor</a></h2>
+<h2 id="constructor-3"><a class="header" href="#constructor-3">Constructor</a></h2>
 <h3 id="averagedperceptronnew"><a class="header" href="#averagedperceptronnew"><code>AveragedPerceptron::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

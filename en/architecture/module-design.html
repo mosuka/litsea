@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3f9055c8.js";
+            window.path_to_searchindex_js = "../searchindex-62c24e46.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -228,7 +228,7 @@
 <li><code>new(language, learner)</code> – Create a segmenter with an optional pre-trained model</li>
 <li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
-<li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Vec&lt;(String, Upos)&gt;</code></li>
+<li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> without a POS learner)</li>
 <li><code>char_type(ch)</code> – Classify a single character into its type code</li>
 <li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – Add training data</li>
 <li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – Process a corpus with a custom callback</li>
