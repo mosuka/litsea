@@ -7,7 +7,7 @@
 | Code | Name | Pattern | Examples |
 |------|------|---------|----------|
 | **M** | 漢数字 | `[一二三四五六七八九十百千万億兆]` | 一, 三, 千, 億 |
-| **H** | 漢字 / CJK | `[一-龠々〆ヵヶ]` | 漢, 字, 学, 々 |
+| **H** | 漢字 / CJK | U+4E00--U+9FFF, plus 々〆ヵヶ | 漢, 字, 学, 々 |
 | **I** | ひらがな | `[ぁ-ん]` | あ, い, う, を |
 | **K** | カタカナ | `[ァ-ヴーｱ-ﾝﾞﾟ]` | ア, カ, ー, ﾊ |
 | **P** | 句読点 | CJK記号 + 全角 | 。, 、, 「, 」 |
@@ -47,11 +47,11 @@
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 ```
 
 出力:
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```

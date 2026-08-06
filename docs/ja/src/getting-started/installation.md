@@ -35,11 +35,16 @@ cargo build --release
 
 ```toml
 [dependencies]
-litsea = "0.4.0"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+litsea = "0.6.0"
 ```
 
-> **注意:** モデルの読み込み（`load_model`）は HTTP/HTTPS URL をサポートする非同期操作のため、`tokio` が必要です。
+http(s) 経由のリモートモデル読み込みはオプトイン（opt-in）です。必要な場合は `remote_model` フィーチャーを有効にしてください:
+
+```toml
+litsea = { version = "0.6.0", features = ["remote_model"] }
+```
+
+> **注意:** ローカルファイルからのモデル読み込み（`load_model_from_path`）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（`tokio` など）が必要になるのは、非同期の `load_model` メソッドを使って HTTP/HTTPS 経由でモデルを読み込む場合のみです（`remote_model` フィーチャーで有効化され、このフィーチャーはデフォルトで有効です）。
 
 ## サポートプラットフォーム
 

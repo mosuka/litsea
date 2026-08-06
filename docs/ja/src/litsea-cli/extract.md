@@ -20,6 +20,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `--pos` | off | 品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です |
 
 ## コーパスの形式
 
@@ -35,8 +36,8 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 特徴量ファイルには、文字位置ごとに1行が含まれます。
 
 ```text
-1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
+-1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
 ```
 
 - `1` = 語境界
@@ -64,31 +65,26 @@ Feature extraction completed successfully.
 
 ## 品詞付き特徴量抽出（`--pos`）
 
-`--pos` フラグを指定すると、品詞付きコーパスから Averaged Perceptron 用の特徴量を抽出します。
+`--pos` フラグを指定すると、`extract` は通常の単語区切りコーパスの代わりに **品詞付きコーパス** を入力として受け取ります。各行には、`単語/品詞` の形式で UPOS タグが付与された単語が含まれます。
 
 ### 品詞付きコーパスの形式
 
-品詞付きコーパスは、`単語/品詞` をスペースで区切り、1行に1文とする形式です。品詞タグは UPOS タグセット（ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X）を使用します。
-
 ```text
-これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
-私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT
+これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
-> **ヒント**: `scripts/download_udtreebank.sh` で UD Treebank をダウンロードし、`scripts/corpus_udtreebank.sh -p` で CoNLL-U ファイルからこの形式に自動変換できます。詳しくは[コーパスの準備](../training-guide/preparing-corpus.md)を参照してください。
+### 品詞付き特徴量の出力形式
 
-### 使い方
+POSモードでは、ラベル列は二値の `1`/`-1` の代わりにセグメントラベル（`B-NOUN`, `B-VERB`, ..., `B-X`, `O`）を使用します。
+
+```text
+B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
+O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
+```
+
+### 品詞付き特徴量抽出の例
 
 ```sh
-litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
-```
-
-### 出力形式
-
-品詞付き特徴量ファイルでは、ラベルが `SegmentLabel`（`B-NOUN`, `B-VERB`, ..., `B-X`, `O`）の18クラスとなります。
-
-```text
-B-NOUN	UW1:B2 UW2:B1 UW3:テ UW4:ス UC1:O UC2:O UC3:K UC4:K ...
-O	UW1:B1 UW2:テ UW3:ス UW4:ト UC1:O UC2:K UC3:K UC4:K ...
-B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
 ```

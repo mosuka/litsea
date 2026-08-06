@@ -15,10 +15,12 @@ Litsea は、単語分割と品詞推定を同時に行うために **Averaged P
 
 ### 重み表現
 
-各クラスは独立した重みベクトルを持ちます。重みは疎なマップとして格納されます:
+パーセプトロンは**特徴量ごとにクラス別の重みベクトル**を保持し、単一の疎なマップに格納します。これにより、スコア計算と重みの更新は
+特徴量ごとに 1 回のハッシュ検索で済みます（特徴量 × クラスごとに 1 回ではありません）:
 
 ```text
-weights: HashMap<Feature, HashMap<Class, f64>>
+slots: FxHashMap<Feature, FeatureSlot>
+// FeatureSlot { w: Vec<f64>, acc: Vec<f64>, ts: Vec<usize> } -- one entry per class
 ```
 
 例:
@@ -30,10 +32,10 @@ weights["UW4:猫"]["O"]      = -0.3
 ...
 ```
 
-特徴量の集合に対し、各クラスのスコアは特徴量の重みを合算して計算し、最大スコアのクラスを予測ラベルとします:
+ある特徴量集合に対し、各クラスのスコアはその特徴量の重みの合計です:
 
 ```text
-score(class) = sum(weights[feature][class] for feature in input_features)
+score(class) = sum(weights[feature][class] for each feature in input)
 prediction = argmax(score(class) for all classes)
 ```
 
@@ -47,8 +49,8 @@ For each training instance (features, truth):
 
     if guess != truth:
         For each feature f in features:
-            weights[f][truth] += 1.0   # 正解クラスの重みを増加
-            weights[f][guess] -= 1.0   # 誤予測クラスの重みを減少
+            weights[f][truth] += 1.0   # increase weight for correct class
+            weights[f][guess] -= 1.0   # decrease weight for predicted class
 ```
 
 この単純な更新規則により、正解クラスの特徴量が強化され、誤予測クラスの特徴量が弱められます。これにより、将来の類似入力に対して正しい予測がより起こりやすくなります。
@@ -60,14 +62,16 @@ For each training instance (features, truth):
 実装では効率のために**累積和**アプローチを使用します:
 
 ```text
-# 各ステップの重みを累積
 cumulative[feature][class] += weights[feature][class] * elapsed_steps
 
-# 学習終了時に平均化
-averaged[feature][class] = cumulative[feature][class] / total_steps
+At the end of training:
+    averaged[feature][class] = cumulative[feature][class] / total_steps
 ```
 
 これにより、すべての中間重みベクトルを保存することなく同じ結果が得られます。この平均化により、学習データの順序への依存が軽減され、汎化性能が向上します。
+
+累積和とタイムスタンプのベクトルは、学習がその特徴量に初めて触れた時点で遅延生成されます。そのため、推論専用に読み込まれたモデルは
+現在の重みのみを保持し、平均化用の状態には一切コストがかかりません。
 
 ### エポックによる学習
 
@@ -86,37 +90,37 @@ For each epoch (1 to num_epochs):
 `AtomicBool` フラグにより、Ctrl+C などで学習を中断し、その時点でのモデルを保存することも可能です。
 
 ```rust
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use litsea::perceptron::AveragedPerceptron;
 
 let mut perceptron = AveragedPerceptron::new();
-// ... インスタンスを追加 ...
-let running = Arc::new(AtomicBool::new(true));
-perceptron.train(10, running);  // 10エポック
+// ... add instances ...
+let running = AtomicBool::new(true);
+perceptron.train(10, &running);  // 10 epochs
 ```
 
 ## モデルファイル形式
 
-学習されたモデルはテキストファイルとして保存されます:
+Averaged Perceptron のモデルは、以下の構造を持つテキストファイルとして保存されます:
 
 ```text
 18
+O
 B-ADJ
 B-ADP
-B-ADV
 ...
-O
-UW4:猫	B-NOUN	2.5
-UC4:H	B-NOUN	1.8
-UW4:猫	O	-0.3
+B-X
+feature1\tclass1\tweight1
+feature2\tclass2\tweight2
 ...
 ```
 
 - **1行目**: クラス数（18）
-- **続くN行**: クラス名（1行に1つ）
-- **残りの行**: 特徴量の重み、タブ区切り `特徴名\tクラス名\t重み`
-- 重みがゼロの特徴量は省略
+- **2 行目から N+1 行目**: クラス名（1行に1つ）
+- **残りの行**: 特徴量の重み、タブ区切り `feature\tclass\tweight`
+- 重みがゼロのエントリは省略される
+- 重みの行は特徴量のソート順で書き出されるため、同じモデルを保存すると常にバイト単位で同一のファイルになる。
+  読み込み時は順序に依存しない
 
 ## AdaBoost との比較
 
@@ -128,7 +132,7 @@ UW4:猫	O	-0.3
 | 重みの管理 | 特徴量ごとに1つの重み | クラス×特徴量の重み行列 |
 | 汎化手法 | アンサンブル | 重みの平均化 |
 | 学習方式 | サンプル再重み付けによる反復ブースティング | 重み平均化によるオンライン学習 |
-| モデルサイズ | 数 KB | 約 11 MB（品詞特徴量含む） |
+| モデルサイズ | 数 KB | 約 9-19 MB（同梱の品詞モデル） |
 | ハイパーパラメータ | `threshold`, `num_iterations` | `num_epochs` |
 
 ## ハイパーパラメータ

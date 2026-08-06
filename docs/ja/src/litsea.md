@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-litsea = "0.5.0"
+litsea = "0.6.0"
 ```
 
 ローカルファイルからのモデル読み込みは同期 API（`load_model_from_path`）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（`load_model`）を使う場合のみ、非同期ランタイムを追加してください。
@@ -38,20 +38,22 @@ graph LR
 | `litsea::error` | `LitseaError`, `Result` | エラー型と `Result` エイリアス |
 | `litsea::metrics` | `BinaryMetrics`, `MulticlassMetrics` | 学習結果の評価指標 |
 
-主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::{AdaBoost, Language, Segmenter};` のように短いパスで利用できます。
+主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::Segmenter;` は `use litsea::segmenter::Segmenter;` の短縮形として使えます。
 
 ## クイックスタート
 
 ```rust
 use std::path::Path;
 
-use litsea::{AdaBoost, Language, Segmenter};
+use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
 
 fn main() -> litsea::Result<()> {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
-    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let segmenter = Segmenter::with_learner(Language::Japanese, learner);
     let tokens = segmenter.segment("これはテストです。");
 
     assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
@@ -73,7 +75,7 @@ fn main() -> litsea::Result<()> {
     pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-    let tokens = segmenter.segment_with_pos("これはテストです。");
+    let tokens = segmenter.segment_with_pos("これはテストです。")?;
 
     for (word, pos) in &tokens {
         print!("{}/{} ", word, pos);

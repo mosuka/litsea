@@ -207,6 +207,13 @@ Measured on the bundled models (criterion, medians, vs v0.4.0):
   in the `docs/ja` mdbook).
 - The mdbook documentation (English and Japanese) and README are updated to
   the v0.5.0 API; README model paths now point at `models/`.
+- Re-synced the Japanese documentation mirror (`docs/ja/src/`, 34 of 41
+  pages) with `docs/src/`, which had drifted since 2026-06-13 through the
+  entire #97 quality campaign (#98-#130): stale API signatures (the old
+  `Segmenter::new(language, Option<AdaBoost>)` constructor, `char_type(&str)`,
+  `Arc<AtomicBool>`), stale benchmark/accuracy numbers, and missing sections
+  (POS-mode API, `PosTrainer`, `extract_with_pos`, model validation, feature
+  hygiene) are now current (#124).
 
 ### Migration notes
 

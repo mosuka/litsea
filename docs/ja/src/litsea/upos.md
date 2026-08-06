@@ -9,23 +9,23 @@
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Upos {
-    ADJ,    // 形容詞 (Adjective)
-    ADP,    // 接置詞 (Adposition)
-    ADV,    // 副詞 (Adverb)
-    AUX,    // 助動詞 (Auxiliary)
-    CCONJ,  // 等位接続詞 (Coordinating conjunction)
-    DET,    // 限定詞 (Determiner)
-    INTJ,   // 間投詞 (Interjection)
-    NOUN,   // 名詞 (Noun)
-    NUM,    // 数詞 (Numeral)
-    PART,   // 助詞・小辞 (Particle)
-    PRON,   // 代名詞 (Pronoun)
-    PROPN,  // 固有名詞 (Proper noun)
-    PUNCT,  // 句読点 (Punctuation)
-    SCONJ,  // 従属接続詞 (Subordinating conjunction)
-    SYM,    // 記号 (Symbol)
-    VERB,   // 動詞 (Verb)
-    X,      // その他 (Other)
+    ADJ,    // Adjective
+    ADP,    // Adposition
+    ADV,    // Adverb
+    AUX,    // Auxiliary
+    CCONJ,  // Coordinating conjunction
+    DET,    // Determiner
+    INTJ,   // Interjection
+    NOUN,   // Noun
+    NUM,    // Numeral
+    PART,   // Particle
+    PRON,   // Pronoun
+    PROPN,  // Proper noun
+    PUNCT,  // Punctuation
+    SCONJ,  // Subordinating conjunction
+    SYM,    // Symbol
+    VERB,   // Verb
+    X,      // Other
 }
 ```
 
@@ -85,18 +85,18 @@ assert_eq!(pos.to_string(), "NOUN");
 ```rust
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum SegmentLabel {
-    B(Upos),  // 単語の先頭文字（境界）。品詞情報を持つ
-    O,        // 単語の継続文字（非境界）
+    B(Upos),  // Start of a word (boundary). Carries POS information.
+    O,        // Continuation of a word (non-boundary).
 }
 ```
 
 ```rust
 use litsea::upos::SegmentLabel;
 
-// "今日は" の分割ラベル
-// 今 → B-NOUN  （"今日" の先頭、NOUN としてタグ付け）
-// 日 → O       （"今日" の継続）
-// は → B-ADP   （"は" の先頭、ADP としてタグ付け）
+// Segment labels for "今日は" (kyou wa)
+// 今 → B-NOUN  (start of "今日", tagged as NOUN)
+// 日 → O       (continuation of "今日")
+// は → B-ADP   (start of "は", tagged as ADP)
 ```
 
 ### メソッド

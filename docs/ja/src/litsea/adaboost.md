@@ -6,8 +6,8 @@
 
 ```rust
 pub struct AdaBoost {
-    pub threshold: f64,
-    pub num_iterations: usize,
+    // private: threshold: f64, num_iterations: usize
+    // (read via threshold() / num_iterations())
     // internal fields: model weights, features, instances, etc.
 }
 ```
@@ -36,7 +36,7 @@ let mut learner = AdaBoost::new(0.01, 100);
 pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
 ```
 
-ローカルファイルからモデルの重みを同期的に読み込みます。ローカルファイルにはこのメソッドが推奨されます -- 非同期ランタイムは不要です。
+ローカルファイルからモデルの重みを同期的に読み込みます。不正な形式のファイル（空、bias 行の欠落、bias 行や特徴量の重複、非有限の重み）は `LitseaError::InvalidData` で拒否されます。ローカルファイルにはこのメソッドが推奨されます -- 非同期ランタイムは不要です。
 
 ```rust
 use std::path::Path;
@@ -98,7 +98,7 @@ pub fn initialize_instances(&mut self, filename: &Path) -> litsea::Result<()>
 ### `train`
 
 ```rust
-pub fn train(&mut self, running: Arc<AtomicBool>)
+pub fn train(&mut self, running: &AtomicBool)
 ```
 
 AdaBoost の学習ループを実行します。`running` を `false` に設定すると早期終了します。
@@ -127,10 +127,10 @@ use std::collections::HashSet;
 let mut attrs = HashSet::new();
 attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
-// ... その他の特徴量
+// ... more features
 
 let label = learner.predict(&attrs);
-// label == 1 (境界) or -1 (非境界)
+// label == 1 (boundary) or -1 (non-boundary)
 ```
 
 ### `bias`
@@ -139,7 +139,7 @@ let label = learner.predict(&attrs);
 pub fn bias(&self) -> f64
 ```
 
-バイアス項を返します: `-sum(all model weights) / 2.0`
+バイアス項を返します: `-sum(all model weights) / 2.0`。この値はキャッシュされ、重みを変更するすべての経路で同期されるため、この呼び出しは O(1) です。
 
 ## 評価
 
@@ -157,9 +157,9 @@ pub fn metrics(&self) -> BinaryMetrics
 
 ```rust
 pub struct BinaryMetrics {
-    pub accuracy: f64,          // 正解率（パーセント）
-    pub precision: f64,         // 適合率（パーセント）
-    pub recall: f64,            // 再現率（パーセント）
+    pub accuracy: f64,          // Accuracy in percentage
+    pub precision: f64,         // Precision in percentage
+    pub recall: f64,            // Recall in percentage
     pub num_instances: usize,
     pub true_positives: usize,
     pub false_positives: usize,

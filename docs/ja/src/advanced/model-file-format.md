@@ -31,13 +31,33 @@ UC4:I	0.2345
 モデルの読み込み時に、バイアスは以下の式で復元されます:
 
 ```text
-bias_bucket_weight = -bias_value * 2 - sum(all_feature_weights)
+bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
 ```
+
+`save_model` で書き出されたファイルは常にバイアス行を最終行に置くため、この値は
+すべての特徴量の重みの合計と等しくなります。レガシーモデル（例: `RWCP.model`）は
+バイアス行をファイルの途中に置いており、それ以降の重み行も受け入れられます。バイアス
+バケットはバイアス行より前の重みから計算され、従来のローダーの挙動と一致します。
+
+## バリデーション
+
+ローダーは、不正な形式のファイルを黙って読み込まず、明示的なエラーとして拒否します:
+
+- **空のファイル**
+- **バイアス行を持たない**ファイル（ダウンロードの途中切断やコピーの中断で
+  典型的に発生する症状）
+- バイアス行が **2 行以上**あるファイル
+- **重複した**特徴量行
+- **非有限（non-finite）**な重みまたはバイアス値（`NaN`、`inf`、`-inf`）。これらは
+  放置するとすべてのスコア比較を汚染してしまいます
+
+Averaged Perceptron モデルのローダーも同様に、クラス数ヘッダーを検証し、非有限な
+重みを拒否します。
 
 予測時:
 
 ```text
-bias = -sum(all_model_weights) / 2.0
+bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 ```
 
@@ -47,13 +67,16 @@ score = bias + sum(model[feature] for feature in input_attributes)
 
 | モデル | サイズ | 特徴量 |
 |-------|------|----------|
-| japanese.model | 約 2.9 KB | Wikipedia で学習 |
-| korean.model | 約 1.8 KB | Wikipedia で学習 |
-| chinese.model | 約 1.3 KB | Wikipedia で学習 |
+| japanese.model | 約 1.4 KB | UD Japanese-GSD |
+| korean.model | 約 1.3 KB | UD Korean-GSD |
+| chinese.model | 約 1.1 KB | UD Chinese-GSD |
 | RWCP.model | 約 22 KB | オリジナルの TinySegmenter |
+| japanese_pos.model | 約 11 MB | UD Japanese-GSD（品詞） |
+| chinese_pos.model | 約 19 MB | UD Chinese-GSD（品詞） |
+| korean_pos.model | 約 8.9 MB | UD Korean-GSD（品詞） |
 | JEITA_Genpaku_ChaSen_IPAdic.model | 約 17 KB | JEITA コーパス |
 
-コンパクトなサイズは Litsea の主要な利点の一つです。モデルはアプリケーションに直接埋め込んだり、最小限のオーバーヘッドで HTTP 経由で配信したりできます。
+単語分割モデルのコンパクトなサイズは Litsea の主要な利点の一つであり、アプリケーションに直接埋め込んだり、最小限のオーバーヘッドで HTTP 経由で配信したりできます。単語分割と品詞推定を同時に行う結合モデルは、クラスごとの重みを保持するためサイズが大きくなります（数メガバイト）。
 
 ## 互換性
 

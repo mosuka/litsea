@@ -22,16 +22,7 @@ Litsea は単語分割と品詞推定の両方のデータソースとして UD 
 conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 ```
 
-オプション:
-
-- `-l`: 言語コード（`ja`, `ko`, `zh`。デフォルト: `ja`）
-- `-o`: 出力ディレクトリ（デフォルト: カレントディレクトリ）
-
-手動でクローンする場合:
-
-```sh
-git clone https://github.com/UniversalDependencies/UD_Japanese-GSD
-```
+対応言語: `ja`（日本語、デフォルト）、`ko`（韓国語）、`zh`（中国語）。`-o` で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。
 
 ## 単語分割用コーパス
 
@@ -54,7 +45,7 @@ conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 ```
 
-`scripts/corpus_udtreebank.sh` は CoNLL-U ファイルから品詞タグを除去し、スペース区切りの単語のみを1行1文で出力します。
+これにより、CoNLL-U データがスペース区切りの単語（1行1文）に変換されます。
 
 ## 品詞推定用コーパス
 
@@ -80,11 +71,14 @@ conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-`-p` オプションにより品詞付き形式で出力されます。複合語トークンや空ノードは変換時に自動的に処理されます。
+複合語トークンや空ノードは変換時に自動的に処理されます。
 
 ## コーパスの自動作成
 
 Litsea には、UD Treebank のダウンロードと変換を自動化するヘルパースクリプトが `scripts/` ディレクトリに用意されています:
+
+- **`scripts/download_udtreebank.sh`** -- UD Treebank をダウンロードし、学習用 CoNLL-U ファイルのパスを出力します
+- **`scripts/corpus_udtreebank.sh`** -- CoNLL-U ファイルを Litsea のコーパス形式に変換します
 
 ```sh
 # UD Treebank をダウンロードして CoNLL-U ファイルのパスを取得
@@ -97,17 +91,7 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-`scripts/download_udtreebank.sh` は以下の処理を行います:
-
-1. 指定された言語に対応する UD Treebank リポジトリをクローン
-2. 学習用 CoNLL-U ファイルのパスを標準出力に出力
-
-`scripts/corpus_udtreebank.sh` は以下の処理を行います:
-
-1. CoNLL-U ファイルを単語分割用コーパス形式に変換（デフォルト）
-2. `-p` オプション指定時は品詞付きコーパス形式に変換
-
-サポート言語: `ja`（日本語）、`ko`（韓国語）、`zh`（中国語）。
+`download_udtreebank.sh` の対応言語: `ja`（日本語、デフォルト）、`ko`（韓国語）、`zh`（中国語）。
 
 ## Wikipedia ダンプからのコーパス作成
 

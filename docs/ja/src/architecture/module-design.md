@@ -50,7 +50,7 @@ graph TD
   - `new(language, learner)` -- 学習済みモデル（任意）付きでセグメンターを作成
   - `with_pos_learner(language, pos_learner)` -- 分割+品詞付与用のセグメンターを作成
   - `segment(sentence)` -- テキストを単語に分割し `Vec<String>` を返す
-  - `segment_with_pos(sentence)` -- 分割と品詞付与を行い `Vec<(String, Upos)>` を返す
+  - `segment_with_pos(sentence)` -- 分割と品詞付与を行い `Result<Vec<(String, Upos)>>` を返す（POS 学習器が未設定の場合は `PosLearnerNotSet`）
   - `char_type(ch)` -- 1文字を種別コードに分類
   - `add_corpus(corpus)` / `add_corpus_with_pos(corpus)` -- 学習データを追加
   - `add_corpus_with_writer(corpus, callback)` / `add_corpus_with_pos_writer(corpus, callback)` -- カスタムコールバックでコーパスを処理

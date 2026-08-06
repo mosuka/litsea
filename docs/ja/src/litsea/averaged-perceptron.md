@@ -1,12 +1,12 @@
 # Averaged Perceptron
 
-`AveragedPerceptron` 構造体は、品詞推定のための多クラス分類を実装しています。
+`AveragedPerceptron` 構造体は、単語分割と品詞タグ付けを同時に行うための多クラス分類を実装しています。
 
 ## 定義
 
 ```rust
 pub struct AveragedPerceptron {
-    // internal fields: weights, accumulated, timestamps, step, classes, instances
+    // internal fields: slots (feature -> per-class weights + averaging state), step, classes, instances
 }
 ```
 
@@ -52,16 +52,15 @@ learner.add_instance(feats, "B-NOUN".to_string());
 ### `train`
 
 ```rust
-pub fn train(&mut self, num_epochs: usize, running: Arc<AtomicBool>)
+pub fn train(&mut self, num_epochs: usize, running: &AtomicBool)
 ```
 
 指定されたエポック数でモデルを学習します。`running` を `false` に設定すると早期終了します。学習終了時に重みの平均化が自動的に行われます。
 
 ```rust
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-let running = Arc::new(AtomicBool::new(true));
+let running = AtomicBool::new(true);
 learner.train(10, running);
 ```
 
@@ -79,11 +78,12 @@ pub fn predict(&self, features: &HashSet<String>) -> String
 use std::collections::HashSet;
 
 let mut attrs = HashSet::new();
-attrs.insert("UW4:猫".to_string());
-attrs.insert("UC4:H".to_string());
+attrs.insert("UW4:は".to_string());
+attrs.insert("UC4:I".to_string());
+// ... more features
 
 let label = learner.predict(&attrs);
-// label == "B-NOUN" など
+// label == "B-ADP", "O", etc.
 ```
 
 ## モデルの入出力
@@ -151,12 +151,12 @@ pub fn metrics(&self) -> MulticlassMetrics
 
 ```rust
 pub struct MulticlassMetrics {
-    pub accuracy: f64,                            // 正解率（パーセント）
-    pub macro_precision: f64,                     // マクロ平均適合率（パーセント）
-    pub macro_recall: f64,                        // マクロ平均再現率（パーセント）
-    pub num_instances: usize,                     // インスタンス数
-    pub correct_per_class: HashMap<String, usize>,   // クラスごとの正解数
-    pub predicted_per_class: HashMap<String, usize>,  // クラスごとの予測数
-    pub gold_per_class: HashMap<String, usize>,       // クラスごとの正解ラベル数
+    pub accuracy: f64,                            // Overall accuracy in percentage
+    pub macro_precision: f64,                     // Macro-averaged precision in percentage
+    pub macro_recall: f64,                        // Macro-averaged recall in percentage
+    pub num_instances: usize,                     // Number of instances
+    pub correct_per_class: HashMap<String, usize>,   // Correct count per class
+    pub predicted_per_class: HashMap<String, usize>,  // Predicted count per class
+    pub gold_per_class: HashMap<String, usize>,       // Gold label count per class
 }
 ```

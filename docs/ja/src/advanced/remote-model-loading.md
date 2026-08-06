@@ -22,11 +22,19 @@ echo "テスト" | litsea segment -l japanese https://example.com/japanese.model
 ```rust
 let mut learner = AdaBoost::new(0.01, 100);
 
-// ローカルファイル
-learner.load_model_from_path(Path::new("./models/japanese.model"))?; // ローカルは同期
+// Local file
+learner.load_model_from_path(Path::new("./models/japanese.model"))?; // local, synchronous
 
 // HTTP URL
 learner.load_model("https://example.com/models/japanese.model").await?;
+```
+
+## フィーチャーの有効化
+
+0.6.0 以降、`remote_model` フィーチャーは**オプトイン**です（ライブラリのデフォルトはローカル読み込みのみとし、依存関係のツリーをコンパクトに保っています）。CLI ではこのフィーチャーが有効化されているため、`litsea segment https://...` はそのまま動作します。ライブラリ利用者は以下が必要です:
+
+```toml
+litsea = { version = "0.6.0", features = ["remote_model"] }
 ```
 
 ## 実装の詳細
@@ -35,6 +43,18 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 - カスタム User-Agent: `Litsea/<version>`
 - `load_model` メソッドが**非同期（async）**なのは、HTTP 読み込みに非同期ランタイムが必要なため
 - CLI では `tokio` が非同期ランタイムを提供
+
+## 制限とエラー処理
+
+- **接続タイムアウト**: 10 秒、**リクエスト全体のタイムアウト**: 60 秒 --
+  応答が止まったサーバーによってモデル読み込みが無期限にブロックされることはありません
+- **モデルサイズの上限**: 256 MiB。`Content-Length` がこれより大きい場合は本文を
+  読み込む前に拒否され、実際の本文サイズが上限を超えた場合も拒否されます
+- **不完全なダウンロード**: サーバーが `Content-Length` を送信している場合、
+  受信した本文がそれより短ければ不完全なダウンロードとして報告されます
+- 2xx 以外のレスポンスは、HTTP ステータスとともにダウンロードエラーとして報告されます
+- モデルパーサーはさらに、末尾が欠けたファイルも拒否します（バイアス行を持たない
+  モデルは読み込みに失敗します。[モデルファイル形式](model-file-format.md) を参照）
 
 ## WASM に関する注意事項
 
