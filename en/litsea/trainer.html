@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-702e7f6e.js";
+            window.path_to_searchindex_js = "../searchindex-e8b004b3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -228,7 +228,7 @@ let mut trainer = Trainer::new(
 </span><span class="boring">fn main() {
 </span>pub fn train(
     &amp;mut self,
-    running: Arc&lt;AtomicBool&gt;,
+    running: &amp;AtomicBool,
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;BinaryMetrics&gt;
 <span class="boring">}</span></code></pre>
@@ -236,18 +236,16 @@ let mut trainer = Trainer::new(
 <p>The <code>running</code> flag enables graceful interruption – set it to <code>false</code> to stop training early.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
-let running = Arc::new(AtomicBool::new(true));
-let metrics = trainer.train(running, Path::new("./model.model"))?;
+let running = AtomicBool::new(true);
+let metrics = trainer.train(&amp;running, Path::new("./model.model"))?;
 
 println!("Accuracy: {:.2}%", metrics.accuracy);
 <span class="boring">}</span></code></pre>
 <h2 id="full-training-example"><a class="header" href="#full-training-example">Full Training Example</a></h2>
-<pre class="playground"><code class="language-rust">use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+<pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
 use litsea::trainer::Trainer;
@@ -263,8 +261,8 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
     // Optionally resume from an existing model
     // trainer.load_model("./models/japanese.model").await?;
 
-    let running = Arc::new(AtomicBool::new(true));
-    let metrics = trainer.train(running, Path::new("./model.model"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&amp;running, Path::new("./model.model"))?;
 
     println!("Accuracy:  {:.2}%", metrics.accuracy);
     println!("Precision: {:.2}%", metrics.precision);
@@ -296,15 +294,14 @@ registered from the training data are merged with the model’s classes.</p>
 </span><span class="boring">fn main() {
 </span>pub fn train(
     &amp;mut self,
-    running: Arc&lt;AtomicBool&gt;,
+    running: &amp;AtomicBool,
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;MulticlassMetrics&gt;
 <span class="boring">}</span></code></pre>
 <p>Trains for the configured number of epochs, saves the model, and returns
 multiclass metrics (accuracy, macro precision, macro recall). The <code>running</code>
 flag enables graceful interruption, like <code>Trainer::train</code>.</p>
-<pre class="playground"><code class="language-rust">use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+<pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
 use litsea::trainer::PosTrainer;
@@ -312,8 +309,8 @@ use litsea::trainer::PosTrainer;
 #[tokio::main]
 async fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
-    let running = Arc::new(AtomicBool::new(true));
-    let metrics = trainer.train(running, Path::new("./japanese_pos.model"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&amp;running, Path::new("./japanese_pos.model"))?;
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }</code></pre>

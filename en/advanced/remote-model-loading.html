@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-702e7f6e.js";
+            window.path_to_searchindex_js = "../searchindex-e8b004b3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -210,6 +210,13 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?; // local, s
 // HTTP URL
 learner.load_model("https://example.com/models/japanese.model").await?;
 <span class="boring">}</span></code></pre>
+<h2 id="enabling-the-feature"><a class="header" href="#enabling-the-feature">Enabling the Feature</a></h2>
+<p>Since 0.6.0 the <code>remote_model</code> feature is <strong>opt-in</strong> (the library default is
+local loading only, keeping the dependency tree compact). The CLI enables it,
+so <code>litsea segment https://...</code> keeps working out of the box; library users
+need:</p>
+<pre><code class="language-toml">litsea = { version = "0.6.0", features = ["remote_model"] }
+</code></pre>
 <h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
 <ul>
 <li>HTTP client: <strong>reqwest</strong> with <strong>rustls</strong> (no OpenSSL dependency)</li>

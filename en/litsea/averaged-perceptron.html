@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-702e7f6e.js";
+            window.path_to_searchindex_js = "../searchindex-e8b004b3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -224,15 +224,14 @@ learner.add_instance(feats, "B-NOUN".to_string());
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn train(&amp;mut self, num_epochs: usize, running: Arc&lt;AtomicBool&gt;)
+</span>pub fn train(&amp;mut self, num_epochs: usize, running: &amp;AtomicBool)
 <span class="boring">}</span></code></pre>
 <p>Runs the Averaged Perceptron training loop for the given number of epochs. Set <code>running</code> to <code>false</code> to stop early. Weights are automatically averaged at the end of training.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 
-let running = Arc::new(AtomicBool::new(true));
+let running = AtomicBool::new(true);
 learner.train(10, running);
 <span class="boring">}</span></code></pre>
 <h2 id="prediction"><a class="header" href="#prediction">Prediction</a></h2>

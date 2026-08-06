@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-702e7f6e.js";
+            window.path_to_searchindex_js = "../searchindex-e8b004b3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -186,8 +186,8 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AdaBoost {
-    pub threshold: f64,
-    pub num_iterations: usize,
+    // private: threshold: f64, num_iterations: usize
+    // (read via threshold() / num_iterations())
     // internal fields: model weights, features, instances, etc.
 }
 <span class="boring">}</span></code></pre>
@@ -261,7 +261,7 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn train(&amp;mut self, running: Arc&lt;AtomicBool&gt;)
+</span>pub fn train(&amp;mut self, running: &amp;AtomicBool)
 <span class="boring">}</span></code></pre>
 <p>Runs the AdaBoost training loop. Set <code>running</code> to <code>false</code> to stop early.</p>
 <h3 id="add_instance"><a class="header" href="#add_instance"><code>add_instance</code></a></h3>

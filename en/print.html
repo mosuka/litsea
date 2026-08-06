@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-702e7f6e.js";
+            window.path_to_searchindex_js = "searchindex-e8b004b3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-dc1e276c.js"></script>
@@ -189,7 +189,7 @@
 <li><strong>POS tagging</strong> – joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron</li>
 <li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), and Korean</li>
 <li><strong>Model training capabilities</strong> – train custom models using AdaBoost or Averaged Perceptron with your own corpora</li>
-<li><strong>Remote model loading</strong> – load models from HTTP/HTTPS URLs or local files</li>
+<li><strong>Remote model loading</strong> – load models from HTTP/HTTPS URLs (opt-in <code>remote_model</code> feature) or local files</li>
 <li><strong>Simple and extensible API</strong> – easy to integrate into Rust projects as a library</li>
 </ul>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
@@ -254,6 +254,10 @@ cargo build --release
 <p>Add Litsea to your project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
 litsea = "0.6.0"
+</code></pre>
+<p>Remote model loading over http(s) is opt-in; enable the <code>remote_model</code>
+feature if you need it:</p>
+<pre><code class="language-toml">litsea = { version = "0.6.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
 <p><strong>Note:</strong> Loading models from local files (<code>load_model_from_path</code>) is synchronous, so no async runtime is needed. An async runtime such as <code>tokio</code> is only required if you load models over HTTP/HTTPS with the async <code>load_model</code> method (enabled by the <code>remote_model</code> feature, which is on by default).</p>
@@ -460,7 +464,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <tbody>
 <tr><td><code>rustc-hash</code></td><td>2.1</td><td>Fast hashing for internal feature maps</td></tr>
 <tr><td><code>thiserror</code></td><td>2.0</td><td>Error type derivation</td></tr>
-<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls, optional <code>remote_model</code> feature)</td></tr>
+<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls, opt-in <code>remote_model</code> feature)</td></tr>
 <tr><td><code>criterion</code></td><td>0.8</td><td>Benchmarking (dev dependency)</td></tr>
 <tr><td><code>tempfile</code></td><td>3.27</td><td>Temporary files for tests (dev dependency)</td></tr>
 <tr><td><code>tokio</code></td><td>1.52+</td><td>Async runtime for tests (dev dependency)</td></tr>
@@ -478,7 +482,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <tr><td><code>clap</code></td><td>4.6</td><td>Command-line argument parsing</td></tr>
 <tr><td><code>ctrlc</code></td><td>3.5</td><td>Graceful Ctrl+C handling during training</td></tr>
 <tr><td><code>tokio</code></td><td>1.52+</td><td>Async runtime</td></tr>
-<tr><td><code>litsea</code></td><td>0.6</td><td>Core library (workspace member)</td></tr>
+<tr><td><code>litsea</code></td><td>0.6</td><td>Core library (workspace member, <code>remote_model</code> enabled)</td></tr>
 <tr><td><code>tempfile</code></td><td>3.27</td><td>Temporary files for integration tests (dev dependency)</td></tr>
 </tbody>
 </table>
@@ -581,7 +585,7 @@ codegen-units = 1
 <li><strong><code>AveragedPerceptron</code></strong>
 <ul>
 <li><code>add_instance(features, label)</code> – Add a training instance</li>
-<li><code>train(num_epochs, running)</code> – Train with weight averaging</li>
+<li><code>train(num_epochs, running)</code> – Train with weight averaging (<code>running: &amp;AtomicBool</code>)</li>
 <li><code>predict(&amp;features)</code> – Predict the best class label</li>
 <li><code>load_model(uri)</code> (async) / <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – Load model weights</li>
 <li><code>save_model(path)</code> – Save model weights</li>
@@ -812,14 +816,13 @@ At the end of training:
 <p>Training supports graceful interruption via <code>AtomicBool</code> – a Ctrl+C signal stops training and saves the model at its current state.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 use litsea::perceptron::AveragedPerceptron;
 
 let mut perceptron = AveragedPerceptron::new();
 // ... add instances ...
-let running = Arc::new(AtomicBool::new(true));
-perceptron.train(10, running);  // 10 epochs
+let running = AtomicBool::new(true);
+perceptron.train(10, &amp;running);  // 10 epochs
 <span class="boring">}</span></code></pre>
 <h2 id="model-file-format-1"><a class="header" href="#model-file-format-1">Model File Format</a></h2>
 <p>The Averaged Perceptron model is saved as a text file with the following structure:</p>
@@ -1634,15 +1637,15 @@ let segmenter = Segmenter::new(Language::Japanese);
 <h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str
 <span class="boring">}</span></code></pre>
-<p>Classifies a single character into its type code using language-specific rules. The first character of the <code>&amp;str</code> is classified; an empty string returns <code>"O"</code>.</p>
+<p>Classifies a character into its language-specific type code (delegates to <code>Language::char_type</code>).</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let segmenter = Segmenter::new(Language::Japanese);
-assert_eq!(segmenter.char_type("あ"), "I");  // Hiragana
-assert_eq!(segmenter.char_type("漢"), "H");  // Kanji
-assert_eq!(segmenter.char_type("A"), "A");   // ASCII
+assert_eq!(segmenter.char_type('あ'), "I");  // Hiragana
+assert_eq!(segmenter.char_type('漢'), "H");  // Kanji
+assert_eq!(segmenter.char_type('A'), "A");   // ASCII
 <span class="boring">}</span></code></pre>
 <h3 id="add_corpus"><a class="header" href="#add_corpus"><code>add_corpus</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1764,7 +1767,7 @@ let mut extractor = Extractor::new(Language::Japanese);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn extract(
-    &amp;mut self,
+    &amp;self,
     corpus_path: &amp;Path,
     features_path: &amp;Path,
 ) -&gt; litsea::Result&lt;()&gt;
@@ -1794,7 +1797,7 @@ extractor.extract(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn extract_with_pos(
-    &amp;mut self,
+    &amp;self,
     corpus_path: &amp;Path,
     features_path: &amp;Path,
 ) -&gt; litsea::Result&lt;()&gt;
@@ -1864,7 +1867,7 @@ let mut trainer = Trainer::new(
 </span><span class="boring">fn main() {
 </span>pub fn train(
     &amp;mut self,
-    running: Arc&lt;AtomicBool&gt;,
+    running: &amp;AtomicBool,
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;BinaryMetrics&gt;
 <span class="boring">}</span></code></pre>
@@ -1872,18 +1875,16 @@ let mut trainer = Trainer::new(
 <p>The <code>running</code> flag enables graceful interruption – set it to <code>false</code> to stop training early.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
-let running = Arc::new(AtomicBool::new(true));
-let metrics = trainer.train(running, Path::new("./model.model"))?;
+let running = AtomicBool::new(true);
+let metrics = trainer.train(&amp;running, Path::new("./model.model"))?;
 
 println!("Accuracy: {:.2}%", metrics.accuracy);
 <span class="boring">}</span></code></pre>
 <h2 id="full-training-example"><a class="header" href="#full-training-example">Full Training Example</a></h2>
-<pre class="playground"><code class="language-rust">use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+<pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
 use litsea::trainer::Trainer;
@@ -1899,8 +1900,8 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
     // Optionally resume from an existing model
     // trainer.load_model("./models/japanese.model").await?;
 
-    let running = Arc::new(AtomicBool::new(true));
-    let metrics = trainer.train(running, Path::new("./model.model"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&amp;running, Path::new("./model.model"))?;
 
     println!("Accuracy:  {:.2}%", metrics.accuracy);
     println!("Precision: {:.2}%", metrics.precision);
@@ -1932,15 +1933,14 @@ registered from the training data are merged with the model’s classes.</p>
 </span><span class="boring">fn main() {
 </span>pub fn train(
     &amp;mut self,
-    running: Arc&lt;AtomicBool&gt;,
+    running: &amp;AtomicBool,
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;MulticlassMetrics&gt;
 <span class="boring">}</span></code></pre>
 <p>Trains for the configured number of epochs, saves the model, and returns
 multiclass metrics (accuracy, macro precision, macro recall). The <code>running</code>
 flag enables graceful interruption, like <code>Trainer::train</code>.</p>
-<pre class="playground"><code class="language-rust">use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+<pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
 use litsea::trainer::PosTrainer;
@@ -1948,8 +1948,8 @@ use litsea::trainer::PosTrainer;
 #[tokio::main]
 async fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
-    let running = Arc::new(AtomicBool::new(true));
-    let metrics = trainer.train(running, Path::new("./japanese_pos.model"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&amp;running, Path::new("./japanese_pos.model"))?;
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }</code></pre>
@@ -1960,8 +1960,8 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AdaBoost {
-    pub threshold: f64,
-    pub num_iterations: usize,
+    // private: threshold: f64, num_iterations: usize
+    // (read via threshold() / num_iterations())
     // internal fields: model weights, features, instances, etc.
 }
 <span class="boring">}</span></code></pre>
@@ -2035,7 +2035,7 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 <h3 id="train-1"><a class="header" href="#train-1"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn train(&amp;mut self, running: Arc&lt;AtomicBool&gt;)
+</span>pub fn train(&amp;mut self, running: &amp;AtomicBool)
 <span class="boring">}</span></code></pre>
 <p>Runs the AdaBoost training loop. Set <code>running</code> to <code>false</code> to stop early.</p>
 <h3 id="add_instance"><a class="header" href="#add_instance"><code>add_instance</code></a></h3>
@@ -2136,15 +2136,14 @@ learner.add_instance(feats, "B-NOUN".to_string());
 <h3 id="train-2"><a class="header" href="#train-2"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn train(&amp;mut self, num_epochs: usize, running: Arc&lt;AtomicBool&gt;)
+</span>pub fn train(&amp;mut self, num_epochs: usize, running: &amp;AtomicBool)
 <span class="boring">}</span></code></pre>
 <p>Runs the Averaged Perceptron training loop for the given number of epochs. Set <code>running</code> to <code>false</code> to stop early. Weights are automatically averaged at the end of training.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 
-let running = Arc::new(AtomicBool::new(true));
+let running = AtomicBool::new(true);
 learner.train(10, running);
 <span class="boring">}</span></code></pre>
 <h2 id="prediction-2"><a class="header" href="#prediction-2">Prediction</a></h2>
@@ -3268,6 +3267,13 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?; // local, s
 // HTTP URL
 learner.load_model("https://example.com/models/japanese.model").await?;
 <span class="boring">}</span></code></pre>
+<h2 id="enabling-the-feature"><a class="header" href="#enabling-the-feature">Enabling the Feature</a></h2>
+<p>Since 0.6.0 the <code>remote_model</code> feature is <strong>opt-in</strong> (the library default is
+local loading only, keeping the dependency tree compact). The CLI enables it,
+so <code>litsea segment https://...</code> keeps working out of the box; library users
+need:</p>
+<pre><code class="language-toml">litsea = { version = "0.6.0", features = ["remote_model"] }
+</code></pre>
 <h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
 <ul>
 <li>HTTP client: <strong>reqwest</strong> with <strong>rustls</strong> (no OpenSSL dependency)</li>

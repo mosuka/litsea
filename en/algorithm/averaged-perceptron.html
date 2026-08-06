@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-702e7f6e.js";
+            window.path_to_searchindex_js = "../searchindex-e8b004b3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -239,14 +239,13 @@ At the end of training:
 <p>Training supports graceful interruption via <code>AtomicBool</code> – a Ctrl+C signal stops training and saves the model at its current state.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 use litsea::perceptron::AveragedPerceptron;
 
 let mut perceptron = AveragedPerceptron::new();
 // ... add instances ...
-let running = Arc::new(AtomicBool::new(true));
-perceptron.train(10, running);  // 10 epochs
+let running = AtomicBool::new(true);
+perceptron.train(10, &amp;running);  // 10 epochs
 <span class="boring">}</span></code></pre>
 <h2 id="model-file-format"><a class="header" href="#model-file-format">Model File Format</a></h2>
 <p>The Averaged Perceptron model is saved as a text file with the following structure:</p>

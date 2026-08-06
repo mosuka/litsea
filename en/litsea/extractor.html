@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-702e7f6e.js";
+            window.path_to_searchindex_js = "../searchindex-e8b004b3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -208,7 +208,7 @@ let mut extractor = Extractor::new(Language::Japanese);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn extract(
-    &amp;mut self,
+    &amp;self,
     corpus_path: &amp;Path,
     features_path: &amp;Path,
 ) -&gt; litsea::Result&lt;()&gt;
@@ -238,7 +238,7 @@ extractor.extract(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn extract_with_pos(
-    &amp;mut self,
+    &amp;self,
     corpus_path: &amp;Path,
     features_path: &amp;Path,
 ) -&gt; litsea::Result&lt;()&gt;

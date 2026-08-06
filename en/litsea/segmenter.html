@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-702e7f6e.js";
+            window.path_to_searchindex_js = "../searchindex-e8b004b3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -236,15 +236,15 @@ let segmenter = Segmenter::new(Language::Japanese);
 <h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str
 <span class="boring">}</span></code></pre>
-<p>Classifies a single character into its type code using language-specific rules. The first character of the <code>&amp;str</code> is classified; an empty string returns <code>"O"</code>.</p>
+<p>Classifies a character into its language-specific type code (delegates to <code>Language::char_type</code>).</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let segmenter = Segmenter::new(Language::Japanese);
-assert_eq!(segmenter.char_type("あ"), "I");  // Hiragana
-assert_eq!(segmenter.char_type("漢"), "H");  // Kanji
-assert_eq!(segmenter.char_type("A"), "A");   // ASCII
+assert_eq!(segmenter.char_type('あ'), "I");  // Hiragana
+assert_eq!(segmenter.char_type('漢'), "H");  // Kanji
+assert_eq!(segmenter.char_type('A'), "A");   // ASCII
 <span class="boring">}</span></code></pre>
 <h3 id="add_corpus"><a class="header" href="#add_corpus"><code>add_corpus</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
