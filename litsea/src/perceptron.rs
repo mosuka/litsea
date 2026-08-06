@@ -259,13 +259,17 @@ impl AveragedPerceptron {
                     break;
                 }
 
-                let guess_idx = self
-                    .predict_idx_into(features.iter(), &mut scores)
-                    .expect("classes registered");
-                let truth_idx = self
-                    .classes
-                    .binary_search_by(|c| c.as_str().cmp(truth))
-                    .expect("truth class registered by add_instance");
+                // Invariant: instances are non-empty here, and add_instance
+                // registers a class for every instance, so classes cannot be
+                // empty; degrade gracefully instead of panicking if the
+                // invariant is ever broken.
+                let Some(guess_idx) = self.predict_idx_into(features.iter(), &mut scores) else {
+                    break;
+                };
+                // Invariant: add_instance registered the gold class.
+                let Ok(truth_idx) = self.classes.binary_search_by(|c| c.as_str().cmp(truth)) else {
+                    continue;
+                };
                 if guess_idx != truth_idx {
                     self.update(truth_idx, guess_idx, features);
                 }

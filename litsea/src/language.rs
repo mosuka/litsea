@@ -1,8 +1,28 @@
 use std::fmt;
 use std::str::FromStr;
 
+/// Error returned when parsing a [`Language`] from a string fails.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("Unsupported language: '{input}'. Supported: japanese (ja), chinese (zh), korean (ko)")]
+pub struct ParseLanguageError {
+    input: String,
+}
+
+impl ParseLanguageError {
+    /// Returns the string that failed to parse.
+    #[must_use]
+    pub fn input(&self) -> &str {
+        &self.input
+    }
+}
+
 /// Supported languages for word segmentation.
+///
+/// Marked `#[non_exhaustive]`: new languages are expected to be added (the
+/// language-support guide documents the extension procedure), so external
+/// matches must carry a wildcard arm.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     /// Japanese (日本語)
     #[default]
@@ -24,17 +44,16 @@ impl fmt::Display for Language {
 }
 
 impl FromStr for Language {
-    type Err = String;
+    type Err = ParseLanguageError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
             "japanese" | "ja" => Ok(Language::Japanese),
             "chinese" | "zh" => Ok(Language::Chinese),
             "korean" | "ko" => Ok(Language::Korean),
-            _ => Err(format!(
-                "Unsupported language: '{}'. Supported: japanese (ja), chinese (zh), korean (ko)",
-                s
-            )),
+            _ => Err(ParseLanguageError {
+                input: s.to_string(),
+            }),
         }
     }
 }
@@ -175,6 +194,18 @@ mod tests {
         assert_eq!("KOREAN".parse::<Language>().unwrap(), Language::Korean);
         assert!("french".parse::<Language>().is_err());
         assert!("".parse::<Language>().is_err());
+    }
+
+    #[test]
+    fn test_parse_language_error_message() {
+        // #128: the typed parse error must render the exact message the CLI
+        // shows through clap (pinned end-to-end by the CLI integration test).
+        let err = "french".parse::<Language>().unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)"
+        );
+        assert_eq!(err.input(), "french");
     }
 
     #[test]

@@ -86,7 +86,7 @@ The CLI provides a command-line interface to Litsea's functionality.
 | `clap` | 4.6 | Command-line argument parsing |
 | `ctrlc` | 3.5 | Graceful Ctrl+C handling during training |
 | `tokio` | 1.52+ | Async runtime |
-| `litsea` | 0.5 | Core library (workspace member) |
+| `litsea` | 0.6 | Core library (workspace member) |
 | `tempfile` | 3.27 | Temporary files for integration tests (dev dependency) |
 
 ## Workspace Configuration
