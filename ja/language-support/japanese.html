@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -190,7 +190,7 @@
 </thead>
 <tbody>
 <tr><td><strong>M</strong></td><td>漢数字</td><td><code>[一二三四五六七八九十百千万億兆]</code></td><td>一, 三, 千, 億</td></tr>
-<tr><td><strong>H</strong></td><td>漢字 / CJK</td><td><code>[一-龠々〆ヵヶ]</code></td><td>漢, 字, 学, 々</td></tr>
+<tr><td><strong>H</strong></td><td>漢字 / CJK</td><td>U+4E00–U+9FFF, plus 々〆ヵヶ</td><td>漢, 字, 学, 々</td></tr>
 <tr><td><strong>I</strong></td><td>ひらがな</td><td><code>[ぁ-ん]</code></td><td>あ, い, う, を</td></tr>
 <tr><td><strong>K</strong></td><td>カタカナ</td><td><code>[ァ-ヴーｱ-ﾝﾞﾟ]</code></td><td>ア, カ, ー, ﾊ</td></tr>
 <tr><td><strong>P</strong></td><td>句読点</td><td>CJK記号 + 全角</td><td>。, 、, 「, 」</td></tr>
@@ -228,10 +228,10 @@
 </ul>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 </code></pre>
 <p>出力:</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 
                     </main>

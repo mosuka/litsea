@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -205,13 +205,13 @@
 <ol>
 <li><strong>モデル読み込み</strong> – 学習済みモデルを読み込み（ファイルまたは URL から）</li>
 <li><strong>文字分類</strong> – 入力の各文字について、言語固有のパターンに基づいて文字種コードを決定</li>
-<li><strong>特徴量抽出</strong> – スライディングウィンドウを使用して各文字位置の特徴量セットを構築</li>
+<li><strong>特徴量抽出</strong> – スライディングウィンドウを使用し、再利用するバッファを通して各文字位置の文字 n-gram 特徴量をストリーム処理</li>
 <li><strong>予測</strong> – AdaBoost が各位置が単語境界かどうかを予測</li>
 </ol>
 <h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
 <ul>
 <li><strong>辞書不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルのみに依存</li>
-<li><strong>コンパクトなモデル</strong> – モデルファイルは通常 1-22 KB で、重要な特徴量の重みのみを含む</li>
+<li><strong>コンパクトなモデル</strong> – 単語分割モデルファイルは通常 1-22 KB（分割 + 品詞付与の統合モデルは約 9-19 MB）で、重要な特徴量の重みのみを含む</li>
 <li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
 <li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
 </ul>

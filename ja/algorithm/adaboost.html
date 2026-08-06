@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -238,7 +238,10 @@ prediction = +1 if score &gt;= 0, else -1
 <p>バイアスは以下のように計算されます:</p>
 <pre><code class="language-text">bias = -sum(all model weights) / 2.0
 </code></pre>
-<p>これにより決定境界が中心化されます。空文字列特徴量（<code>""</code>）は学習中のバイアスバケットとして機能します。</p>
+<p>値は学習器内にキャッシュされ、重みを変更するすべての経路で同期が保たれるため、推論時の読み取りは O(1) です。</p>
+<p>これにより決定境界が中心化されます。空文字列特徴量（<code>""</code>）は学習中のバイアスバケットとして機能します。
+この特徴量はすべての構築経路（<code>new()</code>、特徴量ファイルからの初期化、モデルの読み込み）で特徴量インデックス 0 に登録されるため、
+<code>add_instance()</code> を通じて学習されたモデルも正しく学習・保存・再読み込みできます。</p>
 <h2 id="モデルファイル形式"><a class="header" href="#モデルファイル形式">モデルファイル形式</a></h2>
 <p>学習されたモデルはシンプルなテキストファイルとして保存されます:</p>
 <pre><code class="language-text">feature1\tweight1
@@ -251,7 +254,9 @@ bias_value
 <li>重みがゼロの特徴量は省略される</li>
 <li>最終行にはバイアス項（単一の数値）が含まれる</li>
 </ul>
-<p>詳細は<a href="../advanced/model-file-format.html">モデルファイル形式</a>を参照してください。</p>
+<p>不正な形式のファイル（空、バイアス行より前で切り詰められている、バイアス行や特徴量が重複している、
+有限でない重みを含む、など）は読み込み時に拒否されます。詳細は
+<a href="../advanced/model-file-format.html">モデルファイル形式</a>を参照してください。</p>
 <h2 id="ハイパーパラメータ"><a class="header" href="#ハイパーパラメータ">ハイパーパラメータ</a></h2>
 <div class="table-wrapper">
 <table>

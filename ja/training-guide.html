@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-007a5c4f.js"></script>
@@ -192,7 +192,7 @@
 <h2 id="品詞推定averaged-perceptron"><a class="header" href="#品詞推定averaged-perceptron">品詞推定（Averaged Perceptron）</a></h2>
 <ol>
 <li>UD Treebank をダウンロードして<a href="training-guide/preparing-corpus.html">品詞付きコーパスを準備</a>: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) &amp;&amp; bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
-<li><a href="training-guide/extracting-features.html">品詞付き特徴量を抽出</a>: <code>litsea extract --pos -l japanese corpus.txt features.txt</code></li>
+<li><a href="training-guide/extracting-features.html">品詞付き特徴量を抽出</a>: <code>litsea extract --pos -l japanese pos_corpus.txt features.txt</code></li>
 <li><a href="training-guide/training-models.html">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
 </ol>
 <h2 id="その他のトピック"><a class="header" href="#その他のトピック">その他のトピック</a></h2>

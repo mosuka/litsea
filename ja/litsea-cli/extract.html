@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -205,6 +205,7 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です</td></tr>
 </tbody>
 </table>
 </div>
@@ -215,8 +216,8 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 </code></pre>
 <h2 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h2>
 <p>特徴量ファイルには、文字位置ごとに1行が含まれます。</p>
-<pre><code class="language-text">1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
+-1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
 </code></pre>
 <ul>
 <li><code>1</code> = 語境界</li>
@@ -237,23 +238,18 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 <pre><code class="language-text">Feature extraction completed successfully.
 </code></pre>
 <h2 id="品詞付き特徴量抽出--pos"><a class="header" href="#品詞付き特徴量抽出--pos">品詞付き特徴量抽出（<code>--pos</code>）</a></h2>
-<p><code>--pos</code> フラグを指定すると、品詞付きコーパスから Averaged Perceptron 用の特徴量を抽出します。</p>
+<p><code>--pos</code> フラグを指定すると、<code>extract</code> は通常の単語区切りコーパスの代わりに <strong>品詞付きコーパス</strong> を入力として受け取ります。各行には、<code>単語/品詞</code> の形式で UPOS タグが付与された単語が含まれます。</p>
 <h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>
-<p>品詞付きコーパスは、<code>単語/品詞</code> をスペースで区切り、1行に1文とする形式です。品詞タグは UPOS タグセット（ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X）を使用します。</p>
-<pre><code class="language-text">これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT
-私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT
+<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
-<blockquote>
-<p><strong>ヒント</strong>: <code>scripts/download_udtreebank.sh</code> で UD Treebank をダウンロードし、<code>scripts/corpus_udtreebank.sh -p</code> で CoNLL-U ファイルからこの形式に自動変換できます。詳しくは<a href="../training-guide/preparing-corpus.html">コーパスの準備</a>を参照してください。</p>
-</blockquote>
-<h3 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
+<h3 id="品詞付き特徴量の出力形式"><a class="header" href="#品詞付き特徴量の出力形式">品詞付き特徴量の出力形式</a></h3>
+<p>POSモードでは、ラベル列は二値の <code>1</code>/<code>-1</code> の代わりにセグメントラベル（<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>）を使用します。</p>
+<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
+O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 </code></pre>
-<h3 id="出力形式-1"><a class="header" href="#出力形式-1">出力形式</a></h3>
-<p>品詞付き特徴量ファイルでは、ラベルが <code>SegmentLabel</code>（<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>）の18クラスとなります。</p>
-<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:テ UW4:ス UC1:O UC2:O UC3:K UC4:K ...
-O	UW1:B1 UW2:テ UW3:ス UW4:ト UC1:O UC2:K UC3:K UC4:K ...
-B-AUX	UW1:ト UW2:で UW3:す UW4:。 UC1:K UC2:I UC3:I UC4:P ...
+<h3 id="品詞付き特徴量抽出の例"><a class="header" href="#品詞付き特徴量抽出の例">品詞付き特徴量抽出の例</a></h3>
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
 </code></pre>
 
                     </main>

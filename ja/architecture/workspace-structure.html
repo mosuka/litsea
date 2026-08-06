@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -184,7 +184,7 @@
 <p>Litsea は 2 つのクレートとサポートディレクトリで構成される <strong>Cargo ワークスペース</strong>として組織されています。</p>
 <h2 id="ディレクトリ構成"><a class="header" href="#ディレクトリ構成">ディレクトリ構成</a></h2>
 <pre><code class="language-text">litsea/
-├── Cargo.toml              # Workspace manifest
+├── Cargo.toml              # Workspace manifest (incl. release profile)
 ├── Cargo.lock              # Dependency lock file
 ├── Makefile                # Build convenience targets
 ├── rustfmt.toml            # Rust formatting configuration
@@ -193,30 +193,45 @@
 ├── litsea/                 # Core library crate
 │   ├── Cargo.toml
 │   ├── src/
-│   │   ├── lib.rs          # Module declarations and version
-│   │   ├── adaboost.rs     # AdaBoost algorithm
-│   │   ├── segmenter.rs    # Word segmentation
+│   │   ├── lib.rs          # Module declarations, re-exports, and version
+│   │   ├── adaboost.rs     # AdaBoost algorithm (word segmentation)
+│   │   ├── perceptron.rs   # Averaged Perceptron (joint segmentation + POS)
+│   │   ├── segmenter.rs    # Segmentation pipeline and feature templates
 │   │   ├── extractor.rs    # Feature extraction from corpus
-│   │   ├── trainer.rs      # Training orchestration
-│   │   ├── language.rs     # Language definitions and char patterns
-│   │   └── util.rs         # URI scheme utilities
-│   └── benches/
-│       └── bench.rs        # Criterion benchmarks
+│   │   ├── trainer.rs      # Training orchestration (Trainer / PosTrainer)
+│   │   ├── language.rs     # Language enum and character classification
+│   │   ├── upos.rs         # UPOS tags and SegmentLabel
+│   │   ├── model_io.rs     # Model URI resolution and download limits
+│   │   ├── metrics.rs      # BinaryMetrics / MulticlassMetrics
+│   │   └── error.rs        # LitseaError / Result
+│   ├── benches/
+│   │   └── bench.rs        # Criterion benchmarks
+│   └── tests/
+│       └── golden.rs       # Golden snapshots for every bundled model
 ├── litsea-cli/             # CLI binary crate
 │   ├── Cargo.toml
-│   └── src/
-│       └── main.rs         # CLI entry point
+│   ├── src/
+│   │   └── main.rs         # CLI entry point
+│   └── tests/
+│       └── cli.rs          # CLI integration tests
 ├── models/                 # Pre-trained models
 │   ├── japanese.model
 │   ├── chinese.model
 │   ├── korean.model
+│   ├── japanese_pos.model
+│   ├── chinese_pos.model
+│   ├── korean_pos.model
 │   ├── RWCP.model
 │   └── JEITA_Genpaku_ChaSen_IPAdic.model
 ├── resources/              # Sample data and test fixtures
 │   └── bocchan.txt         # Sample corpus
 ├── scripts/                # Corpus preparation utilities
-│   ├── download_udtreebank.sh      # Download UD Treebanks and output CoNLL-U file path
-│   └── corpus_udtreebank.sh           # Convert CoNLL-U files to Litsea corpus format
+│   ├── download_udtreebank.sh   # Download UD Treebanks (prints CoNLL-U file path)
+│   ├── corpus_udtreebank.sh     # Convert CoNLL-U to Litsea corpus format
+│   ├── download_wikidump.sh     # Download Wikipedia dumps
+│   ├── corpus_wikidump.sh       # Convert Wikipedia dumps to corpus format
+│   ├── split_sentences.sh       # Split text into sentences
+│   └── wikitexts.sh             # Download and prepare Wikipedia text data
 ├── docs/                   # mdbook documentation (this book)
 └── .github/
     └── workflows/          # CI/CD pipelines
@@ -233,11 +248,12 @@
 <tr><th>Dependency</th><th>Version</th><th>用途</th></tr>
 </thead>
 <tbody>
+<tr><td><code>rustc-hash</code></td><td>2.1</td><td>内部の特徴量マップ用の高速ハッシュ</td></tr>
 <tr><td><code>thiserror</code></td><td>2.0</td><td>エラー型の導出</td></tr>
-<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS モデル読み込み（rustls）</td></tr>
-<tr><td><code>tokio</code></td><td>1.49</td><td>リモートモデル読み込み用非同期ランタイム</td></tr>
+<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS モデル読み込み（rustls、任意の <code>remote_model</code> フィーチャー）</td></tr>
 <tr><td><code>criterion</code></td><td>0.8</td><td>ベンチマーク（開発依存）</td></tr>
-<tr><td><code>tempfile</code></td><td>3.25</td><td>テスト用一時ファイル（開発依存）</td></tr>
+<tr><td><code>tempfile</code></td><td>3.27</td><td>テスト用一時ファイル（開発依存）</td></tr>
+<tr><td><code>tokio</code></td><td>1.52+</td><td>テスト用非同期ランタイム（開発依存）</td></tr>
 </tbody>
 </table>
 </div>
@@ -249,23 +265,32 @@
 <tr><th>Dependency</th><th>Version</th><th>用途</th></tr>
 </thead>
 <tbody>
-<tr><td><code>clap</code></td><td>4.5</td><td>コマンドライン引数の解析</td></tr>
+<tr><td><code>clap</code></td><td>4.6</td><td>コマンドライン引数の解析</td></tr>
 <tr><td><code>ctrlc</code></td><td>3.5</td><td>学習中の Ctrl+C のグレースフルハンドリング</td></tr>
-<tr><td><code>tokio</code></td><td>1.49</td><td>非同期ランタイム</td></tr>
-<tr><td><code>litsea</code></td><td>0.4</td><td>コアライブラリ（ワークスペースメンバー）</td></tr>
+<tr><td><code>tokio</code></td><td>1.52+</td><td>非同期ランタイム</td></tr>
+<tr><td><code>litsea</code></td><td>0.6</td><td>コアライブラリ（ワークスペースメンバー、<code>remote_model</code> 有効化）</td></tr>
+<tr><td><code>tempfile</code></td><td>3.27</td><td>統合テスト用一時ファイル（開発依存）</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="ワークスペース設定"><a class="header" href="#ワークスペース設定">ワークスペース設定</a></h2>
-<p>ワークスペースは Cargo resolver バージョン 3（Rust Edition 2024）を使用します:</p>
+<p>ワークスペースは Cargo resolver バージョン 3（Rust Edition 2024）を使用します。リリースビルドでは
+thin LTO と単一のコード生成ユニット（codegen unit）を有効にし、文字単位の特徴量スコアリングの
+呼び出しチェーンをコード生成ユニットをまたいでインライン化できるようにしています
+（<code>panic = "abort"</code> も検討しましたが、CLI バイナリだけに適用範囲を限定できず、リリースプロファイルの
+テストやベンチマークが複雑になるため見送りました）:</p>
 <pre><code class="language-toml">[workspace]
 resolver = "3"
 members = ["litsea", "litsea-cli"]
 
 [workspace.package]
-version = "0.4.0"
+version = "0.6.0"
 edition = "2024"
 rust-version = "1.87"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
 </code></pre>
 <p>共有依存関係はワークスペースレベルの <code>[workspace.dependencies]</code> で定義され、各クレートから <code>{ workspace = true }</code> で参照されます。</p>
 

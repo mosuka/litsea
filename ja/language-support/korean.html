@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -219,7 +219,7 @@
 </div>
 <p>これらの助詞は語境界に頻繁に出現するため、分割精度を向上させるために独自のタイプコードが割り当てられています。</p>
 <h3 id="ハングル音節構造받침検出"><a class="header" href="#ハングル音節構造받침検出">ハングル音節構造（받침検出）</a></h3>
-<p>韓国語では、SNとSFタイプに正規表現ではなく<strong>クロージャベースのマッチング</strong>を使用します。これはUnicodeハングルエンコーディングの体系的な構造を活用しています。</p>
+<p>韓国語では、SNとSFタイプに<strong>範囲ガード付きの <code>match</code> アーム</strong>を使用します。これはUnicodeハングルエンコーディングの体系的な構造を活用しています。</p>
 <ul>
 <li>ハングル音節: U+AC00–U+D7AF（11,172音節）</li>
 <li>各音節 = <code>(初声 * 21 + 中声) * 28 + 終声 + 0xAC00</code></li>

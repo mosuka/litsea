@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -212,11 +212,14 @@
 <ul>
 <li><strong>入力</strong>: stdinから読み取り、1行に1文。空行はスキップされます。</li>
 <li><strong>出力</strong>: stdoutに書き込み、スペース区切りのトークン、入力行ごとに1行。</li>
+<li><strong>パイプライン</strong>: 後段の処理がパイプを早期に閉じた場合（例:
+<code>litsea segment model | head -1</code>）、コマンドは正常終了します（終了コード0）。
+そのため <code>segment</code> はシェルのパイプライン内で問題なく連携できます。</li>
 </ul>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <p><strong>日本語:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 </code></pre>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 </code></pre>
@@ -244,7 +247,7 @@
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
   | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
-<pre><code class="language-text">今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+<pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="ファイルの処理"><a class="header" href="#ファイルの処理">ファイルの処理</a></h3>
 <pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
@@ -252,7 +255,7 @@
 <h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
 <ul>
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
-<li>モデルの読み込みは非同期で行われ、TLS（rustls）を使用したHTTP/HTTPSをサポートしています</li>
+<li>CLIは非同期のURI APIを通じてモデルを読み込み、TLS（rustls）を使用したHTTP/HTTPSをサポートしています。ライブラリには同期的なローカル読み込み（<code>load_model_from_path</code>）も用意されています</li>
 <li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
 <li><code>--pos</code> を使用する場合、モデルは <code>train --pos</code> で学習したPOSモデルである必要があります</li>
 </ul>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -216,6 +216,8 @@
 <li>スループット測定</li>
 <li>前回実行との比較（自動回帰検出）</li>
 </ul>
+<h2 id="リリースプロファイル"><a class="header" href="#リリースプロファイル">リリースプロファイル</a></h2>
+<p><code>cargo bench</code> はリリースプロファイルを継承します。このプロファイルでは thin LTO と単一のコード生成ユニット（single codegen unit）が有効になっています（ワークスペースの <code>Cargo.toml</code> を参照）。そのため、ベンチマーク結果はリリースバイナリが実際に使用する最適化済みの構成を反映しています。単なる <code>cargo build</code>（開発プロファイル）は大幅に低速であり、代表的な数値にはなりません。</p>
 <h2 id="結果の解釈"><a class="header" href="#結果の解釈">結果の解釈</a></h2>
 <p>パフォーマンスに影響する主な要因:</p>
 <ul>

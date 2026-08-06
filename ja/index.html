@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-007a5c4f.js"></script>
@@ -191,15 +191,15 @@
 <li><strong>品詞推定（POS Tagging）</strong> – Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定</li>
 <li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
 <li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
-<li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL またはローカルファイルからモデルを読み込み</li>
+<li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL（オプトインの <code>remote_model</code> フィーチャー）またはローカルファイルからモデルを読み込み</li>
 <li><strong>シンプルで拡張性の高い API</strong> – Rust プロジェクトへのライブラリとしての統合が容易</li>
 </ul>
 <h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
 <p>Litsea は単語分割を<strong>二値分類問題</strong>として扱います。文中の各文字位置について、モデルがその位置が<strong>単語境界</strong>（+1）か<strong>非境界</strong>（-1）かを予測します。分類器は、各言語固有の文字 n-gram 特徴量と文字種情報を使用します。</p>
-<pre><code class="language-text">Input:  "LitseaはRust製です"
-         ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
-         O O O O B O B O B   ← boundary predictions
-Output: ["Litsea", "は", "Rust製", "です"]
+<pre><code class="language-text">Input:  "これはテストです。"
+         こ れ は テ ス ト で す 。
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+Output: ["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h3 id="品詞推定pos-tagging"><a class="header" href="#品詞推定pos-tagging">品詞推定（POS Tagging）</a></h3>
 <p>Litsea は単語分割に加えて、<strong>品詞推定</strong>（Part-of-Speech Tagging）もサポートしています。<strong>Averaged Perceptron</strong> 多クラス分類器を使用し、単語分割と品詞推定を同時に（Joint方式で）行います。</p>
@@ -210,12 +210,12 @@ Output: ["Litsea", "は", "Rust製", "です"]
 </ul>
 <p>品詞タグには <a href="https://universaldependencies.org/">Universal Dependencies</a> の <strong>UPOS タグセット</strong>（17 品詞）を採用しています。</p>
 <pre><code class="language-text">Input:  "今日はいい天気ですね。"
-Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h2 id="名前の由来"><a class="header" href="#名前の由来">名前の由来</a></h2>
 <p>クスノキ科には <em>Lindera</em>（クロモジ）と同じ科に属する <em>Litsea cubeba</em>（アオモジ）という小さな植物があります。これが <strong>Litsea</strong> という名前の由来です。</p>
 <h2 id="現在のバージョン"><a class="header" href="#現在のバージョン">現在のバージョン</a></h2>
-<p>Litsea v0.4.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
+<p>Litsea v0.6.0（未リリース） – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
 <h2 id="リンク"><a class="header" href="#リンク">リンク</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub リポジトリ</a></li>

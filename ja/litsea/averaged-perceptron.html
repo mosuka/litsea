@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -181,12 +181,12 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="averaged-perceptron"><a class="header" href="#averaged-perceptron">Averaged Perceptron</a></h1>
-<p><code>AveragedPerceptron</code> 構造体は、品詞推定のための多クラス分類を実装しています。</p>
+<p><code>AveragedPerceptron</code> 構造体は、単語分割と品詞タグ付けを同時に行うための多クラス分類を実装しています。</p>
 <h2 id="定義"><a class="header" href="#定義">定義</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AveragedPerceptron {
-    // internal fields: weights, accumulated, timestamps, step, classes, instances
+    // internal fields: slots (feature -&gt; per-class weights + averaging state), step, classes, instances
 }
 <span class="boring">}</span></code></pre>
 <h2 id="コンストラクタ"><a class="header" href="#コンストラクタ">コンストラクタ</a></h2>
@@ -224,15 +224,14 @@ learner.add_instance(feats, "B-NOUN".to_string());
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn train(&amp;mut self, num_epochs: usize, running: Arc&lt;AtomicBool&gt;)
+</span>pub fn train(&amp;mut self, num_epochs: usize, running: &amp;AtomicBool)
 <span class="boring">}</span></code></pre>
 <p>指定されたエポック数でモデルを学習します。<code>running</code> を <code>false</code> に設定すると早期終了します。学習終了時に重みの平均化が自動的に行われます。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 
-let running = Arc::new(AtomicBool::new(true));
+let running = AtomicBool::new(true);
 learner.train(10, running);
 <span class="boring">}</span></code></pre>
 <h2 id="予測"><a class="header" href="#予測">予測</a></h2>
@@ -247,11 +246,12 @@ learner.train(10, running);
 </span>use std::collections::HashSet;
 
 let mut attrs = HashSet::new();
-attrs.insert("UW4:猫".to_string());
-attrs.insert("UC4:H".to_string());
+attrs.insert("UW4:は".to_string());
+attrs.insert("UC4:I".to_string());
+// ... more features
 
 let label = learner.predict(&amp;attrs);
-// label == "B-NOUN" など
+// label == "B-ADP", "O", etc.
 <span class="boring">}</span></code></pre>
 <h2 id="モデルの入出力"><a class="header" href="#モデルの入出力">モデルの入出力</a></h2>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
@@ -306,13 +306,13 @@ learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct MulticlassMetrics {
-    pub accuracy: f64,                            // 正解率（パーセント）
-    pub macro_precision: f64,                     // マクロ平均適合率（パーセント）
-    pub macro_recall: f64,                        // マクロ平均再現率（パーセント）
-    pub num_instances: usize,                     // インスタンス数
-    pub correct_per_class: HashMap&lt;String, usize&gt;,   // クラスごとの正解数
-    pub predicted_per_class: HashMap&lt;String, usize&gt;,  // クラスごとの予測数
-    pub gold_per_class: HashMap&lt;String, usize&gt;,       // クラスごとの正解ラベル数
+    pub accuracy: f64,                            // Overall accuracy in percentage
+    pub macro_precision: f64,                     // Macro-averaged precision in percentage
+    pub macro_recall: f64,                        // Macro-averaged recall in percentage
+    pub num_instances: usize,                     // Number of instances
+    pub correct_per_class: HashMap&lt;String, usize&gt;,   // Correct count per class
+    pub predicted_per_class: HashMap&lt;String, usize&gt;,  // Predicted count per class
+    pub gold_per_class: HashMap&lt;String, usize&gt;,       // Gold label count per class
 }
 <span class="boring">}</span></code></pre>
 

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -206,9 +206,9 @@
 use litsea::trainer::Trainer;
 
 let mut trainer = Trainer::new(
-    0.005,                           // 閾値
-    1000,                            // 最大反復回数
-    Path::new("./features.txt"),     // 特徴量ファイル
+    0.005,                           // threshold
+    1000,                            // max iterations
+    Path::new("./features.txt"),     // features file
 )?;
 <span class="boring">}</span></code></pre>
 <h2 id="メソッド"><a class="header" href="#メソッド">メソッド</a></h2>
@@ -228,7 +228,7 @@ let mut trainer = Trainer::new(
 </span><span class="boring">fn main() {
 </span>pub fn train(
     &amp;mut self,
-    running: Arc&lt;AtomicBool&gt;,
+    running: &amp;AtomicBool,
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;BinaryMetrics&gt;
 <span class="boring">}</span></code></pre>
@@ -236,18 +236,16 @@ let mut trainer = Trainer::new(
 <p><code>running</code> フラグにより、学習の途中停止が可能です。<code>false</code> に設定すると学習を早期終了します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
-let running = Arc::new(AtomicBool::new(true));
-let metrics = trainer.train(running, Path::new("./model.model"))?;
+let running = AtomicBool::new(true);
+let metrics = trainer.train(&amp;running, Path::new("./model.model"))?;
 
 println!("Accuracy: {:.2}%", metrics.accuracy);
 <span class="boring">}</span></code></pre>
 <h2 id="学習の完全な例"><a class="header" href="#学習の完全な例">学習の完全な例</a></h2>
-<pre class="playground"><code class="language-rust">use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+<pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
 use litsea::trainer::Trainer;
@@ -260,16 +258,53 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
         Path::new("./features.txt"),
     )?;
 
-    // 必要に応じて既存モデルから再開
+    // Optionally resume from an existing model
     // trainer.load_model("./models/japanese.model").await?;
 
-    let running = Arc::new(AtomicBool::new(true));
-    let metrics = trainer.train(running, Path::new("./model.model"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&amp;running, Path::new("./model.model"))?;
 
     println!("Accuracy:  {:.2}%", metrics.accuracy);
     println!("Precision: {:.2}%", metrics.precision);
     println!("Recall:    {:.2}%", metrics.recall);
 
+    Ok(())
+}</code></pre>
+<h2 id="postrainer"><a class="header" href="#postrainer">PosTrainer</a></h2>
+<p><code>PosTrainer</code> は <code>Trainer</code> の POS モデル版です。POS 特徴量ファイル（<code>litsea extract --pos</code> で生成）から、単語分割と品詞タグ付けを同時に行うための <strong>Averaged Perceptron</strong> を学習します。</p>
+<h3 id="postrainernew"><a class="header" href="#postrainernew"><code>PosTrainer::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(num_epochs: usize, features_path: &amp;Path) -&gt; litsea::Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p>特徴量ファイル（各行が <code>label\tfeature1\tfeature2\t...</code> の形式で、ラベルは <code>B-NOUN</code> や <code>O</code> のような <code>SegmentLabel</code> 文字列）を読み込み、学習インスタンスを登録します。</p>
+<h3 id="postrainerload_model"><a class="header" href="#postrainerload_model"><code>PosTrainer::load_model</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub async fn load_model(&amp;mut self, model_uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>既存の POS モデルを読み込み、増分学習を行います。学習データからすでに登録済みのクラスは、モデルのクラスとマージされます。</p>
+<h3 id="postrainertrain"><a class="header" href="#postrainertrain"><code>PosTrainer::train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(
+    &amp;mut self,
+    running: &amp;AtomicBool,
+    model_path: &amp;Path,
+) -&gt; litsea::Result&lt;MulticlassMetrics&gt;
+<span class="boring">}</span></code></pre>
+<p>設定されたエポック数だけ学習を行い、モデルを保存して、多クラス評価メトリクス（正解率、マクロ平均適合率、マクロ平均再現率）を返します。<code>running</code> フラグは <code>Trainer::train</code> と同様に、学習の途中停止を可能にします。</p>
+<pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::PosTrainer;
+
+#[tokio::main]
+async fn main() -&gt; litsea::Result&lt;()&gt; {
+    let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&amp;running, Path::new("./japanese_pos.model"))?;
+    println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }</code></pre>
 

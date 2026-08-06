@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -218,11 +218,11 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <p>各位置 <em>i</em> で、セグメンタは以下を実行します:</p>
 <ol>
 <li>
-<p><strong>特徴量の抽出</strong> – <code>get_attributes(i, tags, chars, types)</code> を呼び出し、38-42 個の特徴量からなる <code>HashSet&lt;String&gt;</code> を構築</p>
+<p><strong>特徴量のストリーミング</strong> – <code>write_attributes(i, tags, chars, types, sink)</code> を呼び出し、38–42 個の特徴量文字列をそれぞれ再利用可能なバッファに整形して sink クロージャに渡す。この経路では位置ごとの集合やベクタは構築されない</p>
 </li>
 <li>
-<p><strong>スコアの計算</strong> – AdaBoost 学習器がマッチするすべての特徴量のモデル重みとバイアスを合計:</p>
-<pre><code class="language-text">score = bias + sum(model[feature] for feature in attributes)
+<p><strong>スコアの計算</strong> – sink は <code>learner.weight(feature)</code>（モデル重みの <code>FxHashMap</code> 検索、未知の特徴量には 0.0）をバイアスから始まる累積スコアに加算する。バイアス自体はキャッシュされたフィールド（<code>-sum(model) / 2.0</code>、重みを変更するすべての経路で同期される）であり、文ごとに 1 回読み取られるだけで、位置ごとに再計算されることはない:</p>
+<pre><code class="language-text">score = bias + sum(weight(feature) for each streamed feature)
 </code></pre>
 </li>
 <li>
@@ -231,6 +231,15 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <li>
 <p><strong>タグの更新</strong> – tags 配列に “B” または “O” をプッシュし、後続の位置での特徴量抽出に影響を与える</p>
 </li>
+</ol>
+<p>パディングされた文字/種別コンテキスト（<code>sentence_context</code>）は、文字ごとに <code>String</code> を確保するのではなく、入力から直接文字列スライスを借用します。また、センチネルエントリ（<code>B3</code>…<code>E3</code>）は静的リテラルです。</p>
+<h2 id="単語分割と品詞タグ付けの同時実行segment_with_pos"><a class="header" href="#単語分割と品詞タグ付けの同時実行segment_with_pos">単語分割と品詞タグ付けの同時実行（<code>segment_with_pos</code>）</a></h2>
+<p><code>segment_with_pos</code> は、AdaBoost の代わりに Averaged Perceptron を使用して同じ左から右へのパイプラインを実行します:</p>
+<ol>
+<li>各位置の特徴量は再利用可能な <code>Vec&lt;String&gt;</code>（<code>collect_attributes</code>）に収集され、パーセプトロンのクラス別スコアベクタも再利用可能なバッファです。</li>
+<li>パーセプトロンは、特徴量ごとに 1 回の <code>FxHashMap</code> 検索（特徴量 → クラス別重みベクタというレイアウト）で、各位置の <code>SegmentLabel</code>（<code>B-&lt;POS&gt;</code> または <code>O</code>）を予測します。</li>
+<li><strong>最初の文字位置</strong>での予測が最初の単語の品詞を決定します。#100 以降、POS 学習パイプラインもこの位置を出力するため、学習と推論は対称になります（境界（AdaBoost）パイプラインは、最初の位置のラベルが自明であるため、依然としてこの位置をスキップします）。</li>
+<li><code>B-&lt;POS&gt;</code> ラベルは現在の単語を確定させ、その品詞を持つ新しい単語を開始します。<code>O</code> は現在の単語を延長します。</li>
 </ol>
 <h2 id="学習と予測の比較"><a class="header" href="#学習と予測の比較">学習と予測の比較</a></h2>
 <div class="table-wrapper">
@@ -241,6 +250,7 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <tbody>
 <tr><td>タグの情報源</td><td>アノテーション済みコーパスから事前計算</td><td>モデルにより動的に生成</td></tr>
 <tr><td>最初のタグ</td><td>“U”（位置 3 の “B” を上書き）</td><td>“U”（先行する判定なし）</td></tr>
+<tr><td>最初の位置</td><td>境界パイプラインはスキップ、POS パイプラインは出力する（#100）</td><td>POS モードは最初の単語の品詞を予測するためにこの位置を予測する</td></tr>
 <tr><td>ラベル</td><td>コーパスから既知（+1 または -1）</td><td>AdaBoost による予測</td></tr>
 <tr><td>特徴量</td><td>コールバックを通じてファイルに書き出し</td><td><code>predict()</code> に直接渡される</td></tr>
 </tbody>
@@ -251,9 +261,10 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <p>分割アルゴリズムは入力長に対して<strong>線形</strong>です:</p>
 <ul>
 <li>各文字位置を 1 回ずつ訪問: O(n)</li>
-<li>各位置での特徴量抽出: O(1)（固定数の特徴量）</li>
-<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42）</li>
+<li>各位置での特徴量抽出: O(1)（固定数の特徴量を、再利用可能なバッファでストリーミング）</li>
+<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42）で、それぞれ 1 回の <code>FxHashMap</code> 検索</li>
 <li>合計: O(n * f)、実質的に O(n)</li>
+<li>アロケーションの特性: 文コンテキストは入力から借用し、バイアスはキャッシュされ、属性/スコアバッファは位置間で再利用される</li>
 </ul>
 
                     </main>

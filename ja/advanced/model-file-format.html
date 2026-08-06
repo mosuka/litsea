@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -203,10 +203,27 @@ UC4:I	0.2345
 </code></pre>
 <h2 id="バイアスの復元"><a class="header" href="#バイアスの復元">バイアスの復元</a></h2>
 <p>モデルの読み込み時に、バイアスは以下の式で復元されます:</p>
-<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(all_feature_weights)
+<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
 </code></pre>
+<p><code>save_model</code> で書き出されたファイルは常にバイアス行を最終行に置くため、この値は
+すべての特徴量の重みの合計と等しくなります。レガシーモデル（例: <code>RWCP.model</code>）は
+バイアス行をファイルの途中に置いており、それ以降の重み行も受け入れられます。バイアス
+バケットはバイアス行より前の重みから計算され、従来のローダーの挙動と一致します。</p>
+<h2 id="バリデーション"><a class="header" href="#バリデーション">バリデーション</a></h2>
+<p>ローダーは、不正な形式のファイルを黙って読み込まず、明示的なエラーとして拒否します:</p>
+<ul>
+<li><strong>空のファイル</strong></li>
+<li><strong>バイアス行を持たない</strong>ファイル（ダウンロードの途中切断やコピーの中断で
+典型的に発生する症状）</li>
+<li>バイアス行が <strong>2 行以上</strong>あるファイル</li>
+<li><strong>重複した</strong>特徴量行</li>
+<li>**非有限（non-finite）**な重みまたはバイアス値（<code>NaN</code>、<code>inf</code>、<code>-inf</code>）。これらは
+放置するとすべてのスコア比較を汚染してしまいます</li>
+</ul>
+<p>Averaged Perceptron モデルのローダーも同様に、クラス数ヘッダーを検証し、非有限な
+重みを拒否します。</p>
 <p>予測時:</p>
-<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0
+<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 </code></pre>
 <h2 id="ファイルサイズ"><a class="header" href="#ファイルサイズ">ファイルサイズ</a></h2>
@@ -217,15 +234,18 @@ score = bias + sum(model[feature] for feature in input_attributes)
 <tr><th>モデル</th><th>サイズ</th><th>特徴量</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>約 2.9 KB</td><td>Wikipedia で学習</td></tr>
-<tr><td>korean.model</td><td>約 1.8 KB</td><td>Wikipedia で学習</td></tr>
-<tr><td>chinese.model</td><td>約 1.3 KB</td><td>Wikipedia で学習</td></tr>
+<tr><td>japanese.model</td><td>約 1.4 KB</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>約 1.3 KB</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>約 1.1 KB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>RWCP.model</td><td>約 22 KB</td><td>オリジナルの TinySegmenter</td></tr>
+<tr><td>japanese_pos.model</td><td>約 11 MB</td><td>UD Japanese-GSD（品詞）</td></tr>
+<tr><td>chinese_pos.model</td><td>約 19 MB</td><td>UD Chinese-GSD（品詞）</td></tr>
+<tr><td>korean_pos.model</td><td>約 8.9 MB</td><td>UD Korean-GSD（品詞）</td></tr>
 <tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 17 KB</td><td>JEITA コーパス</td></tr>
 </tbody>
 </table>
 </div>
-<p>コンパクトなサイズは Litsea の主要な利点の一つです。モデルはアプリケーションに直接埋め込んだり、最小限のオーバーヘッドで HTTP 経由で配信したりできます。</p>
+<p>単語分割モデルのコンパクトなサイズは Litsea の主要な利点の一つであり、アプリケーションに直接埋め込んだり、最小限のオーバーヘッドで HTTP 経由で配信したりできます。単語分割と品詞推定を同時に行う結合モデルは、クラスごとの重みを保持するためサイズが大きくなります（数メガバイト）。</p>
 <h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
 <ul>
 <li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>

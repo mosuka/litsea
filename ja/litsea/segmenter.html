@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -196,23 +196,25 @@
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn new(language: Language, learner: Option&lt;AdaBoost&gt;) -&gt; Self
+</span>pub fn new(language: Language) -&gt; Self
 <span class="boring">}</span></code></pre>
-<p>新しい Segmenter を作成します。</p>
-<ul>
-<li><code>language</code> – 文字種分類に使用する言語</li>
-<li><code>learner</code> – 学習済みの <code>AdaBoost</code> モデル（オプション）。<code>None</code> の場合、デフォルト（未学習）のインスタンスが作成されます。</li>
-</ul>
+<p>デフォルト（未学習）の <code>AdaBoost</code> 学習器を持つ Segmenter を作成します。学習や特徴量抽出に適しています。モデルが読み込まれるか学習データが追加されるまでは、<code>segment</code> は文字ごとに1単語を返します。POS 学習器は未設定のままで、<code>segment_with_pos</code> は <code>Err(LitseaError::PosLearnerNotSet)</code> を返します — 単語分割と品詞タグ付けを同時に行うには <a href="#pos-mode-api"><code>with_pos_learner</code></a> を使用してください。</p>
+<h3 id="segmenterwith_learner"><a class="header" href="#segmenterwith_learner"><code>Segmenter::with_learner</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_learner(language: Language, learner: AdaBoost) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>指定した学習器を使って Segmenter を作成します。通常は学習済みモデルを読み込んだ学習器を渡します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-// 学習済みモデルを使用する場合
-let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+// With a pre-trained model
+let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
-// モデルなし（学習や特徴量抽出用）
-let segmenter = Segmenter::new(Language::Japanese, None);
+// Without a model (for training or feature extraction)
+let segmenter = Segmenter::new(Language::Japanese);
 <span class="boring">}</span></code></pre>
 <h2 id="メソッド"><a class="header" href="#メソッド">メソッド</a></h2>
 <h3 id="segment"><a class="header" href="#segment"><code>segment</code></a></h3>
@@ -229,15 +231,15 @@ let segmenter = Segmenter::new(Language::Japanese, None);
 <h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type(&amp;self, ch: &amp;str) -&gt; &amp;str
+</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str
 <span class="boring">}</span></code></pre>
-<p>言語固有のルールを使用して、1文字をその文字種コードに分類します。<code>&amp;str</code> の先頭の文字が分類対象になります。空文字列の場合は <code>"O"</code> を返します。</p>
+<p>文字を言語固有の文字種コードに分類します（<code>Language::char_type</code> に委譲します）。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let segmenter = Segmenter::new(Language::Japanese, None);
-assert_eq!(segmenter.char_type("あ"), "I");  // ひらがな
-assert_eq!(segmenter.char_type("漢"), "H");  // 漢字
-assert_eq!(segmenter.char_type("A"), "A");   // ASCII
+</span>let segmenter = Segmenter::new(Language::Japanese);
+assert_eq!(segmenter.char_type('あ'), "I");  // Hiragana
+assert_eq!(segmenter.char_type('漢'), "H");  // Kanji
+assert_eq!(segmenter.char_type('A'), "A");   // ASCII
 <span class="boring">}</span></code></pre>
 <h3 id="add_corpus"><a class="header" href="#add_corpus"><code>add_corpus</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -247,7 +249,7 @@ assert_eq!(segmenter.char_type("A"), "A");   // ASCII
 <p>スペース区切りのコーパスを処理し、内部の AdaBoost 学習器にインスタンスを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let mut segmenter = Segmenter::new(Language::Japanese, None);
+</span>let mut segmenter = Segmenter::new(Language::Japanese);
 segmenter.add_corpus("テスト です");
 <span class="boring">}</span></code></pre>
 <h3 id="add_corpus_with_writer"><a class="header" href="#add_corpus_with_writer"><code>add_corpus_with_writer</code></a></h3>
@@ -277,6 +279,51 @@ pub fn pos_learner_mut(&amp;mut self) -&gt; Option&lt;&amp;mut AveragedPerceptro
 <blockquote>
 <p>文字位置ごとの特徴量抽出（韓国語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の <code>get_attributes</code> メソッドは非公開になりました。</p>
 </blockquote>
+<h2 id="pos-mode-api"><a class="header" href="#pos-mode-api">POS-Mode API</a></h2>
+<p>Segmenter は、Averaged Perceptron モデルを使った <strong>単語分割と品詞タグ付けの同時実行</strong> もサポートしています。</p>
+<h3 id="with_pos_learner"><a class="header" href="#with_pos_learner"><code>with_pos_learner</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>単語分割と品詞タグ付けを同時に行うように設定された Segmenter を作成します。</p>
+<h3 id="segment_with_pos"><a class="header" href="#segment_with_pos"><code>segment_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn segment_with_pos(&amp;self, sentence: &amp;str) -&gt; Result&lt;Vec&lt;(String, Upos)&gt;&gt;
+<span class="boring">}</span></code></pre>
+<p>文を単語に分割すると同時に、各単語の UPOS タグを予測します。最初の文字位置での予測結果が最初の単語の品詞を決定します。空の文に対しては、空のベクターを持つ <code>Ok</code> を返します。</p>
+<p><strong>エラー</strong>: POS 学習器が設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を返します — <code>with_pos_learner()</code> で Segmenter を作成するか、事前に <code>add_corpus_with_pos()</code> で学習データを登録してください。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+let mut pos_learner = AveragedPerceptron::new();
+pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+let tokens = segmenter.segment_with_pos("これはテストです。")?;
+// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
+//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus_with_pos"><a class="header" href="#add_corpus_with_pos"><code>add_corpus_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_with_pos(&amp;mut self, corpus: &amp;str)
+<span class="boring">}</span></code></pre>
+<p>POS タグ付きコーパス（<code>word/POS word/POS ...</code>）を Averaged Perceptron の学習データとして追加します。初回呼び出し時に POS 学習器が作成されます。</p>
+<h3 id="add_corpus_with_pos_writer"><a class="header" href="#add_corpus_with_pos_writer"><code>add_corpus_with_pos_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_with_pos_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, SegmentLabel)
+<span class="boring">}</span></code></pre>
+<p>各文字位置（最初の位置を含む）の POS 学習用特徴量を、Segmenter を変更することなくカスタムライターへストリーミングします。これは <code>Extractor::extract_with_pos</code> の基盤となっています。</p>
 
                     </main>
 

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -208,7 +208,7 @@ let mut extractor = Extractor::new(Language::Japanese);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn extract(
-    &amp;mut self,
+    &amp;self,
     corpus_path: &amp;Path,
     features_path: &amp;Path,
 ) -&gt; litsea::Result&lt;()&gt;
@@ -234,6 +234,25 @@ extractor.extract(
 <li><code>Segmenter::add_corpus_with_writer()</code> を呼び出して各行を処理する</li>
 <li>各文字位置のラベルと特徴量セットを出力ファイルに書き込む</li>
 </ol>
+<h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_with_pos(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>POS タグ付きコーパス（<code>word/POS word/POS ...</code>、1行1文、POS タグは UPOS タグセット）を読み込み、POS 学習用の特徴量を書き込みます。各出力行は <code>label\tfeature1\tfeature2\t...</code> の形式で、ラベルは <code>SegmentLabel</code> 文字列です（単語先頭文字には <code>B-&lt;POS&gt;</code>、継続文字には <code>O</code>）。境界検出用パイプラインとは異なり、各文の最初の文字位置も出力されます。これは、<code>segment_with_pos</code> がその位置で予測を行い、最初の単語の品詞を求めるためです。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+extractor.extract_with_pos(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./features_pos.txt"),
+)?;
+<span class="boring">}</span></code></pre>
 
                     </main>
 

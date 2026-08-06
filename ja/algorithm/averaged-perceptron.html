@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -191,8 +191,10 @@
 <p>これらのラベルは Universal Dependencies プロジェクトの 17 個の <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグに対応し、<code>B-</code> プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。</p>
 <h2 id="アルゴリズム"><a class="header" href="#アルゴリズム">アルゴリズム</a></h2>
 <h3 id="重み表現"><a class="header" href="#重み表現">重み表現</a></h3>
-<p>各クラスは独立した重みベクトルを持ちます。重みは疎なマップとして格納されます:</p>
-<pre><code class="language-text">weights: HashMap&lt;Feature, HashMap&lt;Class, f64&gt;&gt;
+<p>パーセプトロンは<strong>特徴量ごとにクラス別の重みベクトル</strong>を保持し、単一の疎なマップに格納します。これにより、スコア計算と重みの更新は
+特徴量ごとに 1 回のハッシュ検索で済みます（特徴量 × クラスごとに 1 回ではありません）:</p>
+<pre><code class="language-text">slots: FxHashMap&lt;Feature, FeatureSlot&gt;
+// FeatureSlot { w: Vec&lt;f64&gt;, acc: Vec&lt;f64&gt;, ts: Vec&lt;usize&gt; } -- one entry per class
 </code></pre>
 <p>例:</p>
 <pre><code class="language-text">weights["UW4:猫"]["B-NOUN"] = 2.5
@@ -200,8 +202,8 @@ weights["UC4:H"]["B-NOUN"]  = 1.8
 weights["UW4:猫"]["O"]      = -0.3
 ...
 </code></pre>
-<p>特徴量の集合に対し、各クラスのスコアは特徴量の重みを合算して計算し、最大スコアのクラスを予測ラベルとします:</p>
-<pre><code class="language-text">score(class) = sum(weights[feature][class] for feature in input_features)
+<p>ある特徴量集合に対し、各クラスのスコアはその特徴量の重みの合計です:</p>
+<pre><code class="language-text">score(class) = sum(weights[feature][class] for each feature in input)
 prediction = argmax(score(class) for all classes)
 </code></pre>
 <h3 id="更新規則"><a class="header" href="#更新規則">更新規則</a></h3>
@@ -211,20 +213,21 @@ prediction = argmax(score(class) for all classes)
 
     if guess != truth:
         For each feature f in features:
-            weights[f][truth] += 1.0   # 正解クラスの重みを増加
-            weights[f][guess] -= 1.0   # 誤予測クラスの重みを減少
+            weights[f][truth] += 1.0   # increase weight for correct class
+            weights[f][guess] -= 1.0   # decrease weight for predicted class
 </code></pre>
 <p>この単純な更新規則により、正解クラスの特徴量が強化され、誤予測クラスの特徴量が弱められます。これにより、将来の類似入力に対して正しい予測がより起こりやすくなります。</p>
 <h3 id="平均化"><a class="header" href="#平均化">平均化</a></h3>
 <p>基本的なパーセプトロンに対する重要な改善点が<strong>重みの平均化</strong>です。最終的な重みは学習データの末尾に過適合する傾向があるため、学習中に観測されたすべての重みベクトルの平均を最終モデルとして使用します。これにより、未知データへの汎化性能が向上します。</p>
 <p>実装では効率のために<strong>累積和</strong>アプローチを使用します:</p>
-<pre><code class="language-text"># 各ステップの重みを累積
-cumulative[feature][class] += weights[feature][class] * elapsed_steps
+<pre><code class="language-text">cumulative[feature][class] += weights[feature][class] * elapsed_steps
 
-# 学習終了時に平均化
-averaged[feature][class] = cumulative[feature][class] / total_steps
+At the end of training:
+    averaged[feature][class] = cumulative[feature][class] / total_steps
 </code></pre>
 <p>これにより、すべての中間重みベクトルを保存することなく同じ結果が得られます。この平均化により、学習データの順序への依存が軽減され、汎化性能が向上します。</p>
+<p>累積和とタイムスタンプのベクトルは、学習がその特徴量に初めて触れた時点で遅延生成されます。そのため、推論専用に読み込まれたモデルは
+現在の重みのみを保持し、平均化用の状態には一切コストがかかりません。</p>
 <h3 id="エポックによる学習"><a class="header" href="#エポックによる学習">エポックによる学習</a></h3>
 <p>学習は指定されたエポック数だけ学習データを繰り返します。各エポックでは、すべての学習インスタンスを順に処理します:</p>
 <pre><code class="language-text">For each epoch (1 to num_epochs):
@@ -238,33 +241,33 @@ averaged[feature][class] = cumulative[feature][class] / total_steps
 <p><code>AtomicBool</code> フラグにより、Ctrl+C などで学習を中断し、その時点でのモデルを保存することも可能です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+</span>use std::sync::atomic::AtomicBool;
 use litsea::perceptron::AveragedPerceptron;
 
 let mut perceptron = AveragedPerceptron::new();
-// ... インスタンスを追加 ...
-let running = Arc::new(AtomicBool::new(true));
-perceptron.train(10, running);  // 10エポック
+// ... add instances ...
+let running = AtomicBool::new(true);
+perceptron.train(10, &amp;running);  // 10 epochs
 <span class="boring">}</span></code></pre>
 <h2 id="モデルファイル形式"><a class="header" href="#モデルファイル形式">モデルファイル形式</a></h2>
-<p>学習されたモデルはテキストファイルとして保存されます:</p>
+<p>Averaged Perceptron のモデルは、以下の構造を持つテキストファイルとして保存されます:</p>
 <pre><code class="language-text">18
+O
 B-ADJ
 B-ADP
-B-ADV
 ...
-O
-UW4:猫	B-NOUN	2.5
-UC4:H	B-NOUN	1.8
-UW4:猫	O	-0.3
+B-X
+feature1\tclass1\tweight1
+feature2\tclass2\tweight2
 ...
 </code></pre>
 <ul>
 <li><strong>1行目</strong>: クラス数（18）</li>
-<li><strong>続くN行</strong>: クラス名（1行に1つ）</li>
-<li><strong>残りの行</strong>: 特徴量の重み、タブ区切り <code>特徴名\tクラス名\t重み</code></li>
-<li>重みがゼロの特徴量は省略</li>
+<li><strong>2 行目から N+1 行目</strong>: クラス名（1行に1つ）</li>
+<li><strong>残りの行</strong>: 特徴量の重み、タブ区切り <code>feature\tclass\tweight</code></li>
+<li>重みがゼロのエントリは省略される</li>
+<li>重みの行は特徴量のソート順で書き出されるため、同じモデルを保存すると常にバイト単位で同一のファイルになる。
+読み込み時は順序に依存しない</li>
 </ul>
 <h2 id="adaboost-との比較"><a class="header" href="#adaboost-との比較">AdaBoost との比較</a></h2>
 <div class="table-wrapper">
@@ -279,7 +282,7 @@ UW4:猫	O	-0.3
 <tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
 <tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
 <tr><td>学習方式</td><td>サンプル再重み付けによる反復ブースティング</td><td>重み平均化によるオンライン学習</td></tr>
-<tr><td>モデルサイズ</td><td>数 KB</td><td>約 11 MB（品詞特徴量含む）</td></tr>
+<tr><td>モデルサイズ</td><td>数 KB</td><td>約 9-19 MB（同梱の品詞モデル）</td></tr>
 <tr><td>ハイパーパラメータ</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>

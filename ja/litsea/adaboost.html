@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -186,8 +186,8 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AdaBoost {
-    pub threshold: f64,
-    pub num_iterations: usize,
+    // private: threshold: f64, num_iterations: usize
+    // (read via threshold() / num_iterations())
     // internal fields: model weights, features, instances, etc.
 }
 <span class="boring">}</span></code></pre>
@@ -210,7 +210,7 @@ let mut learner = AdaBoost::new(0.01, 100);
 </span><span class="boring">fn main() {
 </span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>ローカルファイルからモデルの重みを同期的に読み込みます。ローカルファイルにはこのメソッドが推奨されます – 非同期ランタイムは不要です。</p>
+<p>ローカルファイルからモデルの重みを同期的に読み込みます。不正な形式のファイル（空、bias 行の欠落、bias 行や特徴量の重複、非有限の重み）は <code>LitseaError::InvalidData</code> で拒否されます。ローカルファイルにはこのメソッドが推奨されます – 非同期ランタイムは不要です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -261,7 +261,7 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn train(&amp;mut self, running: Arc&lt;AtomicBool&gt;)
+</span>pub fn train(&amp;mut self, running: &amp;AtomicBool)
 <span class="boring">}</span></code></pre>
 <p>AdaBoost の学習ループを実行します。<code>running</code> を <code>false</code> に設定すると早期終了します。</p>
 <h3 id="add_instance"><a class="header" href="#add_instance"><code>add_instance</code></a></h3>
@@ -284,17 +284,17 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 let mut attrs = HashSet::new();
 attrs.insert("UW4:は".to_string());
 attrs.insert("UC4:I".to_string());
-// ... その他の特徴量
+// ... more features
 
 let label = learner.predict(&amp;attrs);
-// label == 1 (境界) or -1 (非境界)
+// label == 1 (boundary) or -1 (non-boundary)
 <span class="boring">}</span></code></pre>
 <h3 id="bias"><a class="header" href="#bias"><code>bias</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn bias(&amp;self) -&gt; f64
 <span class="boring">}</span></code></pre>
-<p>バイアス項を返します: <code>-sum(all model weights) / 2.0</code></p>
+<p>バイアス項を返します: <code>-sum(all model weights) / 2.0</code>。この値はキャッシュされ、重みを変更するすべての経路で同期されるため、この呼び出しは O(1) です。</p>
 <h2 id="評価"><a class="header" href="#評価">評価</a></h2>
 <h3 id="metrics"><a class="header" href="#metrics"><code>metrics</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -307,9 +307,9 @@ let label = learner.predict(&amp;attrs);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct BinaryMetrics {
-    pub accuracy: f64,          // 正解率（パーセント）
-    pub precision: f64,         // 適合率（パーセント）
-    pub recall: f64,            // 再現率（パーセント）
+    pub accuracy: f64,          // Accuracy in percentage
+    pub precision: f64,         // Precision in percentage
+    pub recall: f64,            // Recall in percentage
     pub num_instances: usize,
     pub true_positives: usize,
     pub false_positives: usize,

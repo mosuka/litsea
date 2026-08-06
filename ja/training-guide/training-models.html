@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -217,15 +217,16 @@
 </table>
 </div>
 <h2 id="出力の解釈"><a class="header" href="#出力の解釈">出力の解釈</a></h2>
+<p>メトリクスは学習データに対して計算されます。反復回数が十分であれば、モデルは学習コーパスにほぼ完全に適合できてしまうため、現実的な品質を見積もるにはホールドアウトされたテキストで評価してください。</p>
 <pre><code class="language-text">Result Metrics:
-  Accuracy: 94.15% ( 564133 / 599198 )
-  Precision: 95.57% ( 330454 / 345758 )
-  Recall: 94.36% ( 330454 / 350215 )
+  Accuracy: 100.00% ( 1075868 / 1075869 )
+  Precision: 100.00% ( 161283 / 161284 )
+  Recall: 100.00% ( 161283 / 161283 )
   Confusion Matrix:
-    True Positives: 330454
-    False Positives: 15304
-    False Negatives: 19761
-    True Negatives: 233679
+    True Positives: 161283
+    False Positives: 1
+    False Negatives: 0
+    True Negatives: 914585
 </code></pre>
 <ul>
 <li><strong>Accuracy（正解率）</strong> – 正しい予測の割合（境界と非境界の両方を含む）</li>
@@ -273,9 +274,9 @@
 </div>
 <h3 id="品詞学習の出力"><a class="header" href="#品詞学習の出力">品詞学習の出力</a></h3>
 <pre><code class="language-text">Result Metrics:
-  Accuracy: 98.34%
-  Macro Precision: 97.87%
-  Macro Recall: 91.67%
+  Accuracy: 98.23% ( 277213 )
+  Macro Precision: 96.82%
+  Macro Recall: 93.30%
 </code></pre>
 <ul>
 <li><strong>Accuracy（正解率）</strong> – 全クラスにわたる正しい予測の割合</li>

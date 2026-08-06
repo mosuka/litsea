@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -236,7 +236,8 @@ Language::Thai =&gt; write!(f, "thai"),
 <li>語境界パターンと相関する<strong>言語学的に異なるカテゴリ</strong>を特定する</li>
 <li><strong>順序は重要</strong> – 最初にマッチしたものが優先されるため、より具体的なパターンを汎用的なパターンの前に配置する</li>
 <li>中国語の「F」のように、<strong>高頻度の機能語</strong>を別のタイプとして検討する</li>
-<li>単一の正規表現では表現できない複雑なロジックには<strong>クロージャ</strong>を使用する</li>
+<li>単純な範囲比較では対応できないロジックには<strong>matchガード</strong>を使用する（韓国語が받침の有無で音節を分割する際に使用しているように）</li>
+<li>共通の「P」/「A」/「N」クラスには、共有ヘルパー <code>punct_latin_digit()</code> を再利用する</li>
 </ul>
 <h2 id="手順4-パターン関数を登録"><a class="header" href="#手順4-パターン関数を登録">手順4: パターン関数を登録</a></h2>
 <p><code>Language::char_type()</code> にmatchアームを追加します。</p>
@@ -252,16 +253,16 @@ Language::Thai =&gt; write!(f, "thai"),
 }
 <span class="boring">}</span></code></pre>
 <h2 id="手順5-wc特徴量の有無を決定"><a class="header" href="#手順5-wc特徴量の有無を決定">手順5: WC特徴量の有無を決定</a></h2>
-<p><code>segmenter.rs</code> の <code>get_attributes()</code> では、WC特徴量を含めるかどうかを言語に基づいて <code>match</code> で判定しています。</p>
+<p><code>segmenter.rs</code> の内部属性ビルダー（<code>write_attributes()</code>）には、WC特徴量を含めるかどうかを言語に基づいて判定する <code>match</code> があります。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match self.language {
     Language::Japanese | Language::Chinese =&gt; {
         // Include WC features
-        attrs.insert(format!("WC1:{}{}", w3, c4));
-        attrs.insert(format!("WC2:{}{}", c3, w4));
-        attrs.insert(format!("WC3:{}{}", w3, c3));
-        attrs.insert(format!("WC4:{}{}", w4, c4));
+        attr!("WC1:{}{}", w3, c4);
+        attr!("WC2:{}{}", c3, w4);
+        attr!("WC3:{}{}", w3, c3);
+        attr!("WC4:{}{}", w4, c4);
     }
     _ =&gt; {}
 }
@@ -291,7 +292,7 @@ Language::Thai =&gt; write!(f, "thai"),
 </span><span class="boring">fn main() {
 </span>// In language.rs tests
 #[test]
-fn test_thai_patterns() {
+fn test_thai_char_types() {
     let lang = Language::Thai;
     assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
     assert_eq!(lang.char_type('A'), "A");   // ASCII
@@ -301,7 +302,7 @@ fn test_thai_patterns() {
 // In segmenter.rs tests
 #[test]
 fn test_char_type_thai() {
-    let segmenter = Segmenter::new(Language::Thai, None);
+    let segmenter = Segmenter::new(Language::Thai);
     assert_eq!(segmenter.char_type("ก"), "T");
 }
 <span class="boring">}</span></code></pre>

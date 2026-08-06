@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b8ef7d10.js";
+            window.path_to_searchindex_js = "searchindex-e98366a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-007a5c4f.js"></script>
@@ -184,7 +184,7 @@
 <p><code>litsea</code> クレートは、単語分割、モデル学習、特徴量抽出のための Rust API を提供します。</p>
 <h2 id="インストール"><a class="header" href="#インストール">インストール</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.5.0"
+litsea = "0.6.0"
 </code></pre>
 <p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（<code>load_model</code>）を使う場合のみ、非同期ランタイムを追加してください。</p>
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
@@ -217,17 +217,19 @@ litsea = "0.5.0"
 </tbody>
 </table>
 </div>
-<p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::{AdaBoost, Language, Segmenter};</code> のように短いパスで利用できます。</p>
+<p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::Segmenter;</code> は <code>use litsea::segmenter::Segmenter;</code> の短縮形として使えます。</p>
 <h2 id="クイックスタート"><a class="header" href="#クイックスタート">クイックスタート</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;
 
-use litsea::{AdaBoost, Language, Segmenter};
+use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
 
-    let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+    let segmenter = Segmenter::with_learner(Language::Japanese, learner);
     let tokens = segmenter.segment("これはテストです。");
 
     assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
@@ -245,7 +247,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-    let tokens = segmenter.segment_with_pos("これはテストです。");
+    let tokens = segmenter.segment_with_pos("これはテストです。")?;
 
     for (word, pos) in &amp;tokens {
         print!("{}/{} ", word, pos);
