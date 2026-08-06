@@ -12,7 +12,7 @@
 - **品詞推定（POS Tagging）** -- Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定
 - **多言語対応** -- 日本語、中国語（簡体字/繁体字）、韓国語
 - **モデル学習機能** -- AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能
-- **リモートモデル読み込み** -- HTTP/HTTPS URL またはローカルファイルからモデルを読み込み
+- **リモートモデル読み込み** -- HTTP/HTTPS URL（オプトインの `remote_model` フィーチャー）またはローカルファイルからモデルを読み込み
 - **シンプルで拡張性の高い API** -- Rust プロジェクトへのライブラリとしての統合が容易
 
 ## 仕組み
@@ -20,10 +20,10 @@
 Litsea は単語分割を**二値分類問題**として扱います。文中の各文字位置について、モデルがその位置が**単語境界**（+1）か**非境界**（-1）かを予測します。分類器は、各言語固有の文字 n-gram 特徴量と文字種情報を使用します。
 
 ```text
-Input:  "LitseaはRust製です"
-         ↓ ↓ ↓ ↓ ↓ ↓ ↓ ↓
-         O O O O B O B O B   ← boundary predictions
-Output: ["Litsea", "は", "Rust製", "です"]
+Input:  "これはテストです。"
+         こ れ は テ ス ト で す 。
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+Output: ["これ", "は", "テスト", "です", "。"]
 ```
 
 ### 品詞推定（POS Tagging）
@@ -39,7 +39,7 @@ Litsea は単語分割に加えて、**品詞推定**（Part-of-Speech Tagging�
 
 ```text
 Input:  "今日はいい天気ですね。"
-Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
 ## 名前の由来
@@ -48,7 +48,7 @@ Output: 今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 
 ## 現在のバージョン
 
-Litsea v0.4.0 -- Rust Edition 2024、最低 Rust バージョン 1.87。
+Litsea v0.6.0（未リリース） -- Rust Edition 2024、最低 Rust バージョン 1.87。
 
 ## リンク
 

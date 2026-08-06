@@ -62,7 +62,8 @@ fn thai_char_type(c: char) -> &'static str {
 - 語境界パターンと相関する**言語学的に異なるカテゴリ**を特定する
 - **順序は重要** -- 最初にマッチしたものが優先されるため、より具体的なパターンを汎用的なパターンの前に配置する
 - 中国語の「F」のように、**高頻度の機能語**を別のタイプとして検討する
-- 単一の正規表現では表現できない複雑なロジックには**クロージャ**を使用する
+- 単純な範囲比較では対応できないロジックには**matchガード**を使用する（韓国語が받침の有無で音節を分割する際に使用しているように）
+- 共通の「P」/「A」/「N」クラスには、共有ヘルパー `punct_latin_digit()` を再利用する
 
 ## 手順4: パターン関数を登録
 
@@ -81,16 +82,16 @@ pub fn char_type(&self, c: char) -> &'static str {
 
 ## 手順5: WC特徴量の有無を決定
 
-`segmenter.rs` の `get_attributes()` では、WC特徴量を含めるかどうかを言語に基づいて `match` で判定しています。
+`segmenter.rs` の内部属性ビルダー（`write_attributes()`）には、WC特徴量を含めるかどうかを言語に基づいて判定する `match` があります。
 
 ```rust
 match self.language {
     Language::Japanese | Language::Chinese => {
         // Include WC features
-        attrs.insert(format!("WC1:{}{}", w3, c4));
-        attrs.insert(format!("WC2:{}{}", c3, w4));
-        attrs.insert(format!("WC3:{}{}", w3, c3));
-        attrs.insert(format!("WC4:{}{}", w4, c4));
+        attr!("WC1:{}{}", w3, c4);
+        attr!("WC2:{}{}", c3, w4);
+        attr!("WC3:{}{}", w3, c3);
+        attr!("WC4:{}{}", w4, c4);
     }
     _ => {}
 }
@@ -125,7 +126,7 @@ match self.language {
 ```rust
 // In language.rs tests
 #[test]
-fn test_thai_patterns() {
+fn test_thai_char_types() {
     let lang = Language::Thai;
     assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
     assert_eq!(lang.char_type('A'), "A");   // ASCII
@@ -135,7 +136,7 @@ fn test_thai_patterns() {
 // In segmenter.rs tests
 #[test]
 fn test_char_type_thai() {
-    let segmenter = Segmenter::new(Language::Thai, None);
+    let segmenter = Segmenter::new(Language::Thai);
     assert_eq!(segmenter.char_type("ก"), "T");
 }
 ```

@@ -25,6 +25,9 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 
 - **入力**: stdinから読み取り、1行に1文。空行はスキップされます。
 - **出力**: stdoutに書き込み、スペース区切りのトークン、入力行ごとに1行。
+- **パイプライン**: 後段の処理がパイプを早期に閉じた場合（例:
+  `litsea segment model | head -1`）、コマンドは正常終了します（終了コード0）。
+  そのため `segment` はシェルのパイプライン内で問題なく連携できます。
 
 ## 使用例
 
@@ -32,7 +35,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./models/japanese.model
+  | litsea segment -l japanese ./models/RWCP.model
 ```
 
 ```text
@@ -85,7 +88,7 @@ echo "今日はいい天気ですね。" \
 ```
 
 ```text
-今日/X は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
+今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
 ### ファイルの処理
@@ -97,6 +100,6 @@ cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > o
 ## 注意事項
 
 - `--language` フラグは、モデルが学習された言語と一致する必要があります
-- モデルの読み込みは非同期で行われ、TLS（rustls）を使用したHTTP/HTTPSをサポートしています
+- CLIは非同期のURI APIを通じてモデルを読み込み、TLS（rustls）を使用したHTTP/HTTPSをサポートしています。ライブラリには同期的なローカル読み込み（`load_model_from_path`）も用意されています
 - モデルURIはファイルパスに限定されません -- 有効なURLであれば使用可能です
 - `--pos` を使用する場合、モデルは `train --pos` で学習したPOSモデルである必要があります

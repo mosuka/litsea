@@ -19,23 +19,28 @@ pub struct Segmenter {
 ### `Segmenter::new`
 
 ```rust
-pub fn new(language: Language, learner: Option<AdaBoost>) -> Self
+pub fn new(language: Language) -> Self
 ```
 
-新しい Segmenter を作成します。
+デフォルト（未学習）の `AdaBoost` 学習器を持つ Segmenter を作成します。学習や特徴量抽出に適しています。モデルが読み込まれるか学習データが追加されるまでは、`segment` は文字ごとに1単語を返します。POS 学習器は未設定のままで、`segment_with_pos` は `Err(LitseaError::PosLearnerNotSet)` を返します — 単語分割と品詞タグ付けを同時に行うには [`with_pos_learner`](#pos-mode-api) を使用してください。
 
-- `language` -- 文字種分類に使用する言語
-- `learner` -- 学習済みの `AdaBoost` モデル（オプション）。`None` の場合、デフォルト（未学習）のインスタンスが作成されます。
+### `Segmenter::with_learner`
+
+```rust
+pub fn with_learner(language: Language, learner: AdaBoost) -> Self
+```
+
+指定した学習器を使って Segmenter を作成します。通常は学習済みモデルを読み込んだ学習器を渡します。
 
 ```rust
 use litsea::language::Language;
 use litsea::segmenter::Segmenter;
 
-// 学習済みモデルを使用する場合
-let segmenter = Segmenter::new(Language::Japanese, Some(learner));
+// With a pre-trained model
+let segmenter = Segmenter::with_learner(Language::Japanese, learner);
 
-// モデルなし（学習や特徴量抽出用）
-let segmenter = Segmenter::new(Language::Japanese, None);
+// Without a model (for training or feature extraction)
+let segmenter = Segmenter::new(Language::Japanese);
 ```
 
 ## メソッド
@@ -56,16 +61,16 @@ let tokens = segmenter.segment("これはテストです。");
 ### `char_type`
 
 ```rust
-pub fn char_type(&self, ch: &str) -> &str
+pub fn char_type(&self, c: char) -> &'static str
 ```
 
-言語固有のルールを使用して、1文字をその文字種コードに分類します。`&str` の先頭の文字が分類対象になります。空文字列の場合は `"O"` を返します。
+文字を言語固有の文字種コードに分類します（`Language::char_type` に委譲します）。
 
 ```rust
-let segmenter = Segmenter::new(Language::Japanese, None);
-assert_eq!(segmenter.char_type("あ"), "I");  // ひらがな
-assert_eq!(segmenter.char_type("漢"), "H");  // 漢字
-assert_eq!(segmenter.char_type("A"), "A");   // ASCII
+let segmenter = Segmenter::new(Language::Japanese);
+assert_eq!(segmenter.char_type('あ'), "I");  // Hiragana
+assert_eq!(segmenter.char_type('漢'), "H");  // Kanji
+assert_eq!(segmenter.char_type('A'), "A");   // ASCII
 ```
 
 ### `add_corpus`
@@ -77,7 +82,7 @@ pub fn add_corpus(&mut self, corpus: &str)
 スペース区切りのコーパスを処理し、内部の AdaBoost 学習器にインスタンスを追加します。
 
 ```rust
-let mut segmenter = Segmenter::new(Language::Japanese, None);
+let mut segmenter = Segmenter::new(Language::Japanese);
 segmenter.add_corpus("テスト です");
 ```
 
@@ -110,3 +115,59 @@ pub fn pos_learner_mut(&mut self) -> Option<&mut AveragedPerceptron>
 Segmenter の言語と内部の学習器へのアクセスを提供します。
 
 > 文字位置ごとの特徴量抽出（韓国語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の `get_attributes` メソッドは非公開になりました。
+
+## POS-Mode API
+
+Segmenter は、Averaged Perceptron モデルを使った **単語分割と品詞タグ付けの同時実行** もサポートしています。
+
+### `with_pos_learner`
+
+```rust
+pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -> Self
+```
+
+単語分割と品詞タグ付けを同時に行うように設定された Segmenter を作成します。
+
+### `segment_with_pos`
+
+```rust
+pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>>
+```
+
+文を単語に分割すると同時に、各単語の UPOS タグを予測します。最初の文字位置での予測結果が最初の単語の品詞を決定します。空の文に対しては、空のベクターを持つ `Ok` を返します。
+
+**エラー**: POS 学習器が設定されていない場合は `LitseaError::PosLearnerNotSet` を返します — `with_pos_learner()` で Segmenter を作成するか、事前に `add_corpus_with_pos()` で学習データを登録してください。
+
+```rust
+use std::path::Path;
+
+use litsea::language::Language;
+use litsea::perceptron::AveragedPerceptron;
+use litsea::segmenter::Segmenter;
+
+let mut pos_learner = AveragedPerceptron::new();
+pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+let tokens = segmenter.segment_with_pos("これはテストです。")?;
+// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
+//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
+```
+
+### `add_corpus_with_pos`
+
+```rust
+pub fn add_corpus_with_pos(&mut self, corpus: &str)
+```
+
+POS タグ付きコーパス（`word/POS word/POS ...`）を Averaged Perceptron の学習データとして追加します。初回呼び出し時に POS 学習器が作成されます。
+
+### `add_corpus_with_pos_writer`
+
+```rust
+pub fn add_corpus_with_pos_writer<F>(&self, corpus: &str, writer: F)
+where
+    F: FnMut(HashSet<String>, SegmentLabel)
+```
+
+各文字位置（最初の位置を含む）の POS 学習用特徴量を、Segmenter を変更することなくカスタムライターへストリーミングします。これは `Extractor::extract_with_pos` の基盤となっています。

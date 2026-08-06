@@ -73,15 +73,17 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 - **B** -- 「Boundary」タグ（単語の開始）
 - **O** -- 「Other」タグ（継続）
 
-特徴量は位置 4 から len-3 まで抽出され、i-3 から i+2 の完全なウィンドウが利用可能です。
+境界（AdaBoost）パイプラインでは、特徴量は位置 4 から len-3 まで抽出されます。POS パイプラインでは、`segment_with_pos`
+が最初の単語の品詞を導出するために位置 3（最初の実際の文字）でも予測を行うため、位置 3 でも特徴量が出力されます（#100）。
+位置は 4（または 3）から len-3 まで実行され、i-3 から i+2 の完全なウィンドウが利用可能です。
 
 ## 学習データの形式
 
 `extract` コマンドは以下の形式で特徴量をファイルに書き出します:
 
 ```text
-1	UW1:B2 UW2:B1 UW3:L UW4:i UW5:t UC1:O UC2:O UC3:A UC4:A ...
--1	UW1:B1 UW2:L UW3:i UW4:t UW5:s UC1:O UC2:A UC3:A UC4:A ...
+1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
+-1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
 ```
 
 各行には以下が含まれます:

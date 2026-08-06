@@ -25,20 +25,20 @@ pub enum Language {
 ```rust
 use litsea::language::Language;
 
-// 完全名
+// Full names
 let ja: Language = "japanese".parse().unwrap();
 let zh: Language = "chinese".parse().unwrap();
 let ko: Language = "korean".parse().unwrap();
 
-// ISO 639-1 コード
+// ISO 639-1 codes
 let ja: Language = "ja".parse().unwrap();
 let zh: Language = "zh".parse().unwrap();
 let ko: Language = "ko".parse().unwrap();
 
-// 大文字・小文字を区別しない
+// Case-insensitive
 let ko: Language = "KOREAN".parse().unwrap();
 
-// 無効な値
+// Invalid
 assert!("french".parse::<Language>().is_err());
 ```
 
