@@ -2,7 +2,6 @@ use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // Internal maps use FxHashMap: the keys are internally generated feature
@@ -25,9 +24,9 @@ type Label = i8;
 #[derive(Debug)]
 pub struct AdaBoost {
     /// The threshold for stopping the training.
-    pub threshold: f64,
+    threshold: f64,
     /// The maximum number of iterations for training.
-    pub num_iterations: usize,
+    num_iterations: usize,
     instance_weights: Vec<f64>,
     model: Vec<f64>,
     features: Vec<String>,
@@ -82,6 +81,18 @@ impl AdaBoost {
             num_instances: 0,
             cached_bias: 0.0,
         }
+    }
+
+    /// Returns the early-stopping threshold this learner was created with.
+    #[must_use]
+    pub fn threshold(&self) -> f64 {
+        self.threshold
+    }
+
+    /// Returns the maximum number of boosting iterations.
+    #[must_use]
+    pub fn num_iterations(&self) -> usize {
+        self.num_iterations
     }
 
     /// Recomputes the cached bias from the current model weights. Must be
@@ -234,7 +245,7 @@ impl AdaBoost {
     /// This method iteratively updates the model based on the training data.
     ///
     /// # Arguments
-    /// * `running`: An `Arc<AtomicBool>` to control the running state of the training process.
+    /// * `running`: An `AtomicBool` flag to control the running state of the training process.
     ///
     /// # Returns
     /// This method does not return a value.
@@ -253,7 +264,7 @@ impl AdaBoost {
     ///
     /// Training is a no-op when no instances have been added, and stops early
     /// if the instance weight sum degenerates (non-positive or non-finite).
-    pub fn train(&mut self, running: Arc<AtomicBool>) {
+    pub fn train(&mut self, running: &AtomicBool) {
         // Without instances (or features) there is nothing to learn; the
         // error-rate computation below would divide by zero.
         if self.num_instances == 0 || self.features.is_empty() {
@@ -691,7 +702,6 @@ mod tests {
 
     use std::collections::HashSet;
     use std::io::Write;
-    use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
 
     use tempfile::NamedTempFile;
@@ -759,8 +769,8 @@ mod tests {
         learner.initialize_instances(instance_file.path())?;
 
         // Set running to false to immediately exit the learning loop.
-        let running = Arc::new(AtomicBool::new(false));
-        learner.train(running.clone());
+        let running = AtomicBool::new(false);
+        learner.train(&running);
 
         // If normalization of model or instance_weights is performed after learning, it should be OK.
         let weight_sum: f64 = learner.instance_weights.iter().sum();
@@ -894,7 +904,7 @@ mod tests {
         let mut learner = AdaBoost::new(0.01, 20);
         learner.add_instance(attrs_of("a"), 1);
         learner.add_instance(attrs_of("c"), -1);
-        learner.train(Arc::new(AtomicBool::new(true)));
+        learner.train(&AtomicBool::new(true));
         assert!((learner.bias() - expected(&learner)).abs() < 1e-12);
 
         // After a fresh model load.
@@ -1147,7 +1157,7 @@ mod tests {
                 learner.add_instance(attrs_of("c"), -1);
             }
 
-            learner.train(Arc::new(AtomicBool::new(true)));
+            learner.train(&AtomicBool::new(true));
 
             assert_eq!(learner.predict(&attrs_of("a")), 1, "order {:?}", order);
             assert_eq!(learner.predict(&both), 1, "order {:?}", order);
@@ -1175,7 +1185,7 @@ mod tests {
         for _ in 0..3 {
             learner.add_instance(attrs_of("A"), -1);
         }
-        learner.train(Arc::new(AtomicBool::new(true)));
+        learner.train(&AtomicBool::new(true));
 
         let temp = NamedTempFile::new()?;
         learner.save_model(temp.path())?;
@@ -1227,7 +1237,7 @@ mod tests {
         corpus_file.as_file().sync_all()?;
 
         let features_file = NamedTempFile::new()?;
-        let mut extractor = Extractor::default();
+        let extractor = Extractor::default();
         extractor.extract(corpus_file.path(), features_file.path())?;
 
         // The extractor emitted at least one feature embedding U+3000.
@@ -1292,7 +1302,7 @@ mod tests {
             learner.add_instance(attrs_of("f"), -1);
         }
 
-        learner.train(Arc::new(AtomicBool::new(true)));
+        learner.train(&AtomicBool::new(true));
 
         assert!(
             learner.model.iter().all(|w| *w == 0.0),
@@ -1307,7 +1317,7 @@ mod tests {
         // Regression test for #98: train() on a learner with no instances
         // must be a no-op instead of panicking via NaN error rates.
         let mut learner = AdaBoost::new(0.01, 10);
-        learner.train(Arc::new(AtomicBool::new(true)));
+        learner.train(&AtomicBool::new(true));
         assert!(learner.instance_weights.is_empty());
     }
 }

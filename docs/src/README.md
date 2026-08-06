@@ -12,7 +12,7 @@ Unlike traditional morphological analyzers such as [MeCab](https://taku910.githu
 - **POS tagging** -- joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron
 - **Multilingual support** -- Japanese, Chinese (Simplified/Traditional), and Korean
 - **Model training capabilities** -- train custom models using AdaBoost or Averaged Perceptron with your own corpora
-- **Remote model loading** -- load models from HTTP/HTTPS URLs or local files
+- **Remote model loading** -- load models from HTTP/HTTPS URLs (opt-in `remote_model` feature) or local files
 - **Simple and extensible API** -- easy to integrate into Rust projects as a library
 
 ## How It Works

@@ -29,5 +29,7 @@ name = "bench"
 harness = false
 
 [features]
-default = ["remote_model"]
+# The library default is local model loading only, keeping the dependency
+# tree compact; enable `remote_model` for http(s):// model URIs.
+default = []
 remote_model = ["dep:reqwest"]

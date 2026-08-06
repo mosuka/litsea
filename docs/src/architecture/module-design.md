@@ -75,7 +75,7 @@ The multiclass classifier used for joint segmentation + POS tagging.
 
 - **`AveragedPerceptron`**
   - `add_instance(features, label)` -- Add a training instance
-  - `train(num_epochs, running)` -- Train with weight averaging
+  - `train(num_epochs, running)` -- Train with weight averaging (`running: &AtomicBool`)
   - `predict(&features)` -- Predict the best class label
   - `load_model(uri)` (async) / `load_model_from_path(path)` / `load_model_from_reader(reader)` -- Load model weights
   - `save_model(path)` -- Save model weights

@@ -29,6 +29,17 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?; // local, s
 learner.load_model("https://example.com/models/japanese.model").await?;
 ```
 
+## Enabling the Feature
+
+Since 0.6.0 the `remote_model` feature is **opt-in** (the library default is
+local loading only, keeping the dependency tree compact). The CLI enables it,
+so `litsea segment https://...` keeps working out of the box; library users
+need:
+
+```toml
+litsea = { version = "0.6.0", features = ["remote_model"] }
+```
+
 ## Implementation Details
 
 - HTTP client: **reqwest** with **rustls** (no OpenSSL dependency)

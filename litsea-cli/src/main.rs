@@ -12,17 +12,13 @@ use litsea::{AdaBoost, AveragedPerceptron, Extractor, Language, PosTrainer, Segm
 
 /// Arguments for the extract command.
 #[derive(Debug, Args)]
-#[command(
-    author,
-    about = "Extract features from a corpus",
-    version = version(),
-)]
+#[command(about = "Extract features from a corpus")]
 struct ExtractArgs {
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
-    /// 品詞付きコーパスから特徴量を抽出する（コーパスフォーマット: "単語/品詞 単語/品詞 ..."）
-    #[arg(long, default_value = "false")]
+    /// Extract features from a POS-tagged corpus (format: "word/POS word/POS ...")
+    #[arg(long)]
     pos: bool,
 
     corpus_file: PathBuf,
@@ -31,10 +27,7 @@ struct ExtractArgs {
 
 /// Arguments for the train command.
 #[derive(Debug, Args)]
-#[command(author,
-    about = "Train a segmenter",
-    version = version(),
-)]
+#[command(about = "Train a segmenter")]
 struct TrainArgs {
     #[arg(short, long, default_value = "0.01")]
     threshold: f64,
@@ -45,11 +38,11 @@ struct TrainArgs {
     #[arg(short = 'm', long)]
     load_model_uri: Option<String>,
 
-    /// Averaged Perceptronで品詞推定モデルを学習する
-    #[arg(long, default_value = "false")]
+    /// Train a POS tagging model with the Averaged Perceptron
+    #[arg(long)]
     pos: bool,
 
-    /// 品詞モデル学習時のエポック数
+    /// Number of training epochs for the POS model
     #[arg(long, default_value = "10")]
     num_epochs: usize,
 
@@ -59,16 +52,13 @@ struct TrainArgs {
 
 /// Arguments for the segment command.
 #[derive(Debug, Args)]
-#[command(author,
-    about = "Segment a sentence",
-    version = version(),
-)]
+#[command(about = "Segment a sentence")]
 struct SegmentArgs {
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
-    /// 品詞推定付きで分割する（Averaged Perceptronモデルを使用）
-    #[arg(long, default_value = "false")]
+    /// Segment with POS tagging (requires an Averaged Perceptron model)
+    #[arg(long)]
     pos: bool,
 
     model_uri: String,
@@ -89,6 +79,7 @@ enum Commands {
     author,
     about = "A morphological analysis command line interface",
     version = version(),
+    propagate_version = true,
 )]
 struct CommandArgs {
     #[command(subcommand)]
@@ -105,7 +96,7 @@ struct CommandArgs {
 /// # Returns
 /// Returns a Result indicating success or failure.
 fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
-    let mut extractor = Extractor::new(args.language);
+    let extractor = Extractor::new(args.language);
 
     if args.pos {
         extractor.extract_with_pos(args.corpus_file.as_path(), args.features_file.as_path())?;
@@ -139,21 +130,21 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
     })?;
 
     if args.pos {
-        // Averaged Perceptronによる品詞推定モデルの学習
+        // Train the POS tagging model with the Averaged Perceptron
         let mut trainer = PosTrainer::new(args.num_epochs, args.features_file.as_path())?;
 
         if let Some(model_uri) = &args.load_model_uri {
             trainer.load_model(model_uri).await?;
         }
 
-        let metrics = trainer.train(running, args.model_file.as_path())?;
+        let metrics = trainer.train(&running, args.model_file.as_path())?;
 
         eprintln!("Result Metrics (POS):");
         eprintln!("  Accuracy: {:.2}% ( {} )", metrics.accuracy, metrics.num_instances);
         eprintln!("  Macro Precision: {:.2}%", metrics.macro_precision);
         eprintln!("  Macro Recall: {:.2}%", metrics.macro_recall);
     } else {
-        // 既存のAdaBoostによる単語分割モデルの学習
+        // Train the word segmentation model with AdaBoost
         let mut trainer =
             Trainer::new(args.threshold, args.num_iterations, args.features_file.as_path())?;
 
@@ -161,7 +152,7 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
             trainer.load_model(model_uri).await?;
         }
 
-        let metrics = trainer.train(running, args.model_file.as_path())?;
+        let metrics = trainer.train(&running, args.model_file.as_path())?;
 
         eprintln!("Result Metrics:");
         eprintln!(
@@ -251,7 +242,7 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     let mut writer = io::BufWriter::new(stdout.lock());
 
     if args.pos {
-        // Averaged Perceptronモデルで品詞推定付き分割
+        // Joint segmentation + POS tagging with an Averaged Perceptron model
         let mut pos_learner = AveragedPerceptron::new();
         pos_learner.load_model(args.model_uri.as_str()).await?;
 
@@ -271,7 +262,7 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
             }
         }
     } else {
-        // 既存のAdaBoostモデルで単語分割のみ
+        // Word segmentation only, with an AdaBoost model
         let mut learner = AdaBoost::new(0.01, 100);
         learner.load_model(args.model_uri.as_str()).await?;
 

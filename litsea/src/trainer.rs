@@ -2,7 +2,6 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use crate::adaboost::AdaBoost;
@@ -14,12 +13,14 @@ use crate::perceptron::AveragedPerceptron;
 /// It initializes the AdaBoost learner with the specified parameters,
 /// loads the model from a file, and provides methods to train the model
 /// and save the trained model.
+#[derive(Debug)]
 pub struct Trainer {
     learner: AdaBoost,
 }
 
 /// Trainer for the POS tagging model.
 /// Manages multiclass classification training with the Averaged Perceptron.
+#[derive(Debug)]
 pub struct PosTrainer {
     learner: AveragedPerceptron,
     num_epochs: usize,
@@ -64,7 +65,7 @@ impl Trainer {
     /// Train the AdaBoost model.
     ///
     /// # Arguments
-    /// * `running` - An `Arc<AtomicBool>` to control the running state of the training process.
+    /// * `running` - An `AtomicBool` flag to control the running state of the training process.
     /// * `model_path` - The path to save the trained model.
     ///
     /// # Returns
@@ -72,7 +73,7 @@ impl Trainer {
     ///
     /// # Errors
     /// Returns an error if the training fails or if the model cannot be saved.
-    pub fn train(&mut self, running: Arc<AtomicBool>, model_path: &Path) -> Result<BinaryMetrics> {
+    pub fn train(&mut self, running: &AtomicBool, model_path: &Path) -> Result<BinaryMetrics> {
         self.learner.train(running);
 
         // Save the trained model to the specified file
@@ -133,11 +134,7 @@ impl PosTrainer {
     /// # Arguments
     /// * `running` - A flag for interrupting the training
     /// * `model_path` - The path to save the model to
-    pub fn train(
-        &mut self,
-        running: Arc<AtomicBool>,
-        model_path: &Path,
-    ) -> Result<MulticlassMetrics> {
+    pub fn train(&mut self, running: &AtomicBool, model_path: &Path) -> Result<MulticlassMetrics> {
         self.learner.train(self.num_epochs, running);
         self.learner.save_model(model_path)?;
         Ok(self.learner.metrics())
@@ -149,7 +146,6 @@ mod tests {
     use super::*;
 
     use std::io::Write;
-    use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
 
     use tempfile::NamedTempFile;
@@ -220,10 +216,10 @@ mod tests {
         let model_out = NamedTempFile::new()?;
 
         // Set AtomicBool to false and immediately exit the learning loop
-        let running = Arc::new(AtomicBool::new(false));
+        let running = AtomicBool::new(false);
 
         // Execute the train method.
-        let metrics: BinaryMetrics = trainer.train(running, model_out.path())?;
+        let metrics: BinaryMetrics = trainer.train(&running, model_out.path())?;
 
         // Check if the metrics are valid.
         // Since metrics are dummy data, we will consider anything 0 or above to be OK here.
@@ -259,9 +255,9 @@ mod tests {
         let mut trainer = PosTrainer::new(5, features_file.path())?;
 
         let model_out = NamedTempFile::new()?;
-        let running = Arc::new(AtomicBool::new(true));
+        let running = AtomicBool::new(true);
 
-        let metrics = trainer.train(running, model_out.path())?;
+        let metrics = trainer.train(&running, model_out.path())?;
         assert!(metrics.accuracy >= 0.0);
         assert_eq!(metrics.num_instances, 4);
         Ok(())
@@ -273,10 +269,22 @@ mod tests {
         let mut trainer = PosTrainer::new(5, features_file.path())?;
 
         let model_out = NamedTempFile::new()?;
-        let running = Arc::new(AtomicBool::new(false));
+        let running = AtomicBool::new(false);
 
-        let metrics = trainer.train(running, model_out.path())?;
+        let metrics = trainer.train(&running, model_out.path())?;
         assert_eq!(metrics.num_instances, 4);
+        Ok(())
+    }
+
+    #[test]
+    fn test_debug_impls() -> Result<()> {
+        // #129: trainer types are debuggable.
+        let features_file = create_dummy_features_file();
+        let trainer = Trainer::new(0.01, 10, features_file.path())?;
+        assert!(!format!("{:?}", trainer).is_empty());
+        let pos_features = create_dummy_pos_features_file();
+        let pos_trainer = PosTrainer::new(3, pos_features.path())?;
+        assert!(!format!("{:?}", pos_trainer).is_empty());
         Ok(())
     }
 
@@ -294,9 +302,9 @@ mod tests {
 
         let mut trainer = Trainer::new(0.01, 100, file.path())?;
         let model_out = NamedTempFile::new()?;
-        let running = Arc::new(AtomicBool::new(true));
+        let running = AtomicBool::new(true);
 
-        let metrics = trainer.train(running, model_out.path())?;
+        let metrics = trainer.train(&running, model_out.path())?;
 
         assert!(
             (metrics.accuracy - 100.0).abs() < 1e-9,
@@ -329,8 +337,8 @@ mod tests {
 
         let mut trainer = PosTrainer::new(5, file.path())?;
         let model_out = NamedTempFile::new()?;
-        let running = Arc::new(AtomicBool::new(true));
-        trainer.train(running, model_out.path())?;
+        let running = AtomicBool::new(true);
+        trainer.train(&running, model_out.path())?;
 
         let saved = std::fs::read_to_string(model_out.path())?;
         assert!(

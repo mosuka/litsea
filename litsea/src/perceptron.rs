@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // Internal weight maps use FxHashMap: keys are internally generated feature
@@ -238,7 +237,7 @@ impl AveragedPerceptron {
     /// # Arguments
     /// * `num_epochs` - The number of epochs
     /// * `running` - A flag for interrupting the training
-    pub fn train(&mut self, num_epochs: usize, running: Arc<AtomicBool>) {
+    pub fn train(&mut self, num_epochs: usize, running: &AtomicBool) {
         if self.instances.is_empty() {
             return;
         }
@@ -488,7 +487,6 @@ impl AveragedPerceptron {
 mod tests {
     use super::*;
 
-    use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
 
     use tempfile::NamedTempFile;
@@ -545,8 +543,8 @@ mod tests {
         feats_b.insert("f4".to_string());
         p.add_instance(feats_b.clone(), "B".to_string());
 
-        let running = Arc::new(AtomicBool::new(true));
-        p.train(10, running);
+        let running = AtomicBool::new(true);
+        p.train(10, &running);
 
         // After training, instances are classified correctly
         assert_eq!(p.predict(&feats_a), "A");
@@ -560,8 +558,8 @@ mod tests {
         feats.insert("f1".to_string());
         p.add_instance(feats, "A".to_string());
 
-        let running = Arc::new(AtomicBool::new(false));
-        p.train(10, running);
+        let running = AtomicBool::new(false);
+        p.train(10, &running);
 
         // Stopping immediately must not panic
         assert_eq!(p.step, 0);
@@ -591,8 +589,8 @@ mod tests {
             p.add_instance(fc, "CLASS_C".to_string());
         }
 
-        let running = Arc::new(AtomicBool::new(true));
-        p.train(20, running);
+        let running = AtomicBool::new(true);
+        p.train(20, &running);
 
         // Distinctive features classify correctly
         let mut test_a = HashSet::new();
@@ -616,8 +614,8 @@ mod tests {
         feats_b.insert("f2".to_string());
         p.add_instance(feats_b.clone(), "B".to_string());
 
-        let running = Arc::new(AtomicBool::new(true));
-        p.train(10, running);
+        let running = AtomicBool::new(true);
+        p.train(10, &running);
 
         let mut scores: Vec<f64> = Vec::new();
         let slice_a: Vec<String> = feats_a.iter().cloned().collect();
@@ -637,8 +635,8 @@ mod tests {
         feats_b.insert("f2".to_string());
         p.add_instance(feats_b.clone(), "B".to_string());
 
-        let running = Arc::new(AtomicBool::new(true));
-        p.train(5, running);
+        let running = AtomicBool::new(true);
+        p.train(5, &running);
 
         // Save
         let temp = NamedTempFile::new()?;
@@ -664,8 +662,8 @@ mod tests {
         let mut feats = HashSet::new();
         feats.insert("f1".to_string());
         p.add_instance(feats, "A".to_string());
-        let running = Arc::new(AtomicBool::new(true));
-        p.train(5, running);
+        let running = AtomicBool::new(true);
+        p.train(5, &running);
 
         let temp = NamedTempFile::new()?;
         p.save_model(temp.path())?;
@@ -714,7 +712,7 @@ mod tests {
             let label = if name.len() % 2 == 0 { "A" } else { "B" };
             p.add_instance(feats, label.to_string());
         }
-        p.train(5, Arc::new(AtomicBool::new(true)));
+        p.train(5, &AtomicBool::new(true));
 
         let temp = NamedTempFile::new()?;
         p.save_model(temp.path())?;
@@ -745,8 +743,8 @@ mod tests {
         feats_b.insert("f2".to_string());
         p.add_instance(feats_b, "B".to_string());
 
-        let running = Arc::new(AtomicBool::new(true));
-        p.train(10, running);
+        let running = AtomicBool::new(true);
+        p.train(10, &running);
 
         let metrics = p.metrics();
         assert_eq!(metrics.num_instances, 2);
@@ -795,7 +793,7 @@ mod tests {
         let mut p = AveragedPerceptron::new();
         p.add_instance(feats_a.clone(), "A".to_string());
         p.add_instance(feats_b.clone(), "B".to_string());
-        p.train(5, Arc::new(AtomicBool::new(true)));
+        p.train(5, &AtomicBool::new(true));
         assert!(p.step > 0);
 
         let model_content = "2\nA\nB\nf1\tA\t0.5\nf2\tB\t0.5\n";
@@ -807,13 +805,13 @@ mod tests {
 
         // Behavioral check: train-after-load on the recycled instance matches
         // load-then-train on a fresh perceptron with the same instances.
-        p.train(5, Arc::new(AtomicBool::new(true)));
+        p.train(5, &AtomicBool::new(true));
 
         let mut q = AveragedPerceptron::new();
         q.add_instance(feats_a.clone(), "A".to_string());
         q.add_instance(feats_b.clone(), "B".to_string());
         q.load_model_from_reader(model_content.as_bytes())?;
-        q.train(5, Arc::new(AtomicBool::new(true)));
+        q.train(5, &AtomicBool::new(true));
 
         assert_eq!(p.predict(&feats_a), q.predict(&feats_a));
         assert_eq!(p.predict(&feats_b), q.predict(&feats_b));

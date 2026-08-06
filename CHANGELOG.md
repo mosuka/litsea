@@ -27,6 +27,10 @@ models in `models/` load unchanged.
   Trainer, Upos, BinaryMetrics, MulticlassMetrics}`.
 - `Segmenter` accessors: `language()`, `learner()`, `learner_mut()`,
   `pos_learner()`, `pos_learner_mut()`.
+- `Debug` implementations for `Segmenter`, `Extractor`, `Trainer`, and
+  `PosTrainer`; `Extractor::extract` / `extract_with_pos` take `&self`
+  (they never mutate); CLI help texts are in English and subcommands
+  inherit the version via `propagate_version` (#129).
 
 ### Fixed
 
@@ -85,6 +89,17 @@ models in `models/` load unchanged.
 
 ### Changed (breaking)
 
+- `AdaBoost::threshold` / `num_iterations` are private; read them via the
+  new `threshold()` / `num_iterations()` accessors (set them via `new`) (#129).
+- All `train` methods take `running: &AtomicBool` instead of
+  `Arc<AtomicBool>`. Migration: pass `&running` (keep the `Arc` only if you
+  share the flag with e.g. a signal handler) (#129).
+- `Segmenter::char_type` takes `char` and returns `&'static str`, aligned
+  with `Language::char_type`; the empty-string case no longer exists (#129).
+- The `remote_model` feature is no longer a default feature: the library
+  default is local model loading only. Enable it explicitly for
+  `http(s)://` model URIs (`features = ["remote_model"]`); the CLI enables
+  it and is unchanged (#129).
 - `FromStr` for `Language`, `Upos`, and `SegmentLabel` now uses dedicated
   thiserror-derived error types (`ParseLanguageError`, `ParseUposError`,
   `ParseSegmentLabelError`, re-exported at the crate root) instead of
