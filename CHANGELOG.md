@@ -86,6 +86,15 @@ models in `models/` load unchanged.
   were retrained: first-word POS accuracy on the UD-GSD dev sets improved
   from 85.6% to 91.8% (Japanese), 85.2% to 90.9% (Chinese), and 73.2% to
   85.2% (Korean), with first-word boundary accuracy unchanged (#100).
+- `japanese_char_type` classified kanji as `'\u{4E00}'..='\u{9FA0}'`, 95 code
+  points short of the full CJK Unified Ideographs block
+  (`'\u{4E00}'..='\u{9FFF}'`) already used by `chinese_char_type` and
+  `korean_char_type`. Characters in U+9FA1..U+9FFF were classified as `"O"`
+  (Other) for Japanese only. The range is now unified across all three
+  languages. The UD Japanese-GSD corpus that trained `japanese.model` and
+  `japanese_pos.model` contains no characters in the affected range, so this
+  introduces no train/inference asymmetry; the shipped models are unchanged
+  (#130).
 
 ### Changed (breaking)
 
