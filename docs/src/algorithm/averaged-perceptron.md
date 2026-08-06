@@ -88,14 +88,13 @@ For each epoch (1 to num_epochs):
 Training supports graceful interruption via `AtomicBool` -- a Ctrl+C signal stops training and saves the model at its current state.
 
 ```rust
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use litsea::perceptron::AveragedPerceptron;
 
 let mut perceptron = AveragedPerceptron::new();
 // ... add instances ...
-let running = Arc::new(AtomicBool::new(true));
-perceptron.train(10, running);  // 10 epochs
+let running = AtomicBool::new(true);
+perceptron.train(10, &running);  // 10 epochs
 ```
 
 ## Model File Format

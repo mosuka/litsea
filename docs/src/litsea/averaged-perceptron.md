@@ -52,16 +52,15 @@ learner.add_instance(feats, "B-NOUN".to_string());
 ### `train`
 
 ```rust
-pub fn train(&mut self, num_epochs: usize, running: Arc<AtomicBool>)
+pub fn train(&mut self, num_epochs: usize, running: &AtomicBool)
 ```
 
 Runs the Averaged Perceptron training loop for the given number of epochs. Set `running` to `false` to stop early. Weights are automatically averaged at the end of training.
 
 ```rust
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-let running = Arc::new(AtomicBool::new(true));
+let running = AtomicBool::new(true);
 learner.train(10, running);
 ```
 

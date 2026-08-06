@@ -33,7 +33,7 @@ let mut extractor = Extractor::new(Language::Japanese);
 
 ```rust
 pub fn extract(
-    &mut self,
+    &self,
     corpus_path: &Path,
     features_path: &Path,
 ) -> litsea::Result<()>
@@ -68,7 +68,7 @@ The extractor:
 
 ```rust
 pub fn extract_with_pos(
-    &mut self,
+    &self,
     corpus_path: &Path,
     features_path: &Path,
 ) -> litsea::Result<()>

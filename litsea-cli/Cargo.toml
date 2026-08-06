@@ -17,7 +17,7 @@ clap.workspace = true
 ctrlc.workspace = true
 tokio.workspace = true
 
-litsea.workspace = true
+litsea = { workspace = true, features = ["remote_model"] }
 
 [dev-dependencies]
 tempfile.workspace = true

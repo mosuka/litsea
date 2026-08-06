@@ -12,6 +12,7 @@ use crate::upos::{SegmentLabel, Upos};
 /// Averaged Perceptron (see [`segment_with_pos`](Self::segment_with_pos)).
 /// Characters are classified into language-specific type codes with direct
 /// `match`-based rules ([`Language::char_type`]).
+#[derive(Debug)]
 pub struct Segmenter {
     language: Language,
     learner: AdaBoost,
@@ -111,14 +112,15 @@ impl Segmenter {
         self.pos_learner.as_mut()
     }
 
-    /// Gets the type of a character based on language-specific patterns.
+    /// Gets the type of a character based on language-specific rules
+    /// (delegates to [`Language::char_type`]).
     ///
     /// # Arguments
-    /// * `ch` - A string slice representing a single character.
+    /// * `c` - The character to classify.
     ///
     /// # Returns
-    /// A string slice representing the type code of the character.
-    /// The type codes are language-specific. Returns "O" (Other) if no pattern matches.
+    /// The language-specific type code of the character. Returns "O"
+    /// (Other) if no rule matches.
     ///
     /// # Example
     /// ```
@@ -126,15 +128,12 @@ impl Segmenter {
     /// use litsea::segmenter::Segmenter;
     ///
     /// let segmenter = Segmenter::new(Language::Japanese);
-    /// let char_type = segmenter.char_type("あ");
+    /// let char_type = segmenter.char_type('あ');
     /// assert_eq!(char_type, "I"); // Hiragana
     /// ```
     #[must_use]
-    pub fn char_type(&self, ch: &str) -> &str {
-        match ch.chars().next() {
-            Some(c) => self.language.char_type(c),
-            None => "O",
-        }
+    pub fn char_type(&self, c: char) -> &'static str {
+        self.language.char_type(c)
     }
 
     /// Builds the padded character and character-type arrays for a text.
@@ -613,47 +612,45 @@ mod tests {
     use super::*;
 
     use std::path::PathBuf;
-    use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
 
     #[test]
     fn test_char_type_japanese() {
         let segmenter = Segmenter::new(Language::Japanese);
 
-        assert_eq!(segmenter.char_type("あ"), "I"); // Hiragana
-        assert_eq!(segmenter.char_type("漢"), "H"); // Kanji
-        assert_eq!(segmenter.char_type("。"), "P"); // Punctuation
-        assert_eq!(segmenter.char_type("A"), "A"); // Latin
-        assert_eq!(segmenter.char_type("1"), "N"); // Digit
-        assert_eq!(segmenter.char_type("@"), "O"); // Not matching any pattern
-        assert_eq!(segmenter.char_type(""), "O"); // Empty string
+        assert_eq!(segmenter.char_type('あ'), "I"); // Hiragana
+        assert_eq!(segmenter.char_type('漢'), "H"); // Kanji
+        assert_eq!(segmenter.char_type('。'), "P"); // Punctuation
+        assert_eq!(segmenter.char_type('A'), "A"); // Latin
+        assert_eq!(segmenter.char_type('1'), "N"); // Digit
+        assert_eq!(segmenter.char_type('@'), "O"); // Not matching any pattern
     }
 
     #[test]
     fn test_char_type_chinese() {
         let segmenter = Segmenter::new(Language::Chinese);
 
-        assert_eq!(segmenter.char_type("的"), "F"); // Function word
-        assert_eq!(segmenter.char_type("中"), "C"); // CJK Unified
-        assert_eq!(segmenter.char_type("国"), "C"); // CJK Unified
-        assert_eq!(segmenter.char_type("。"), "P"); // Punctuation
-        assert_eq!(segmenter.char_type("A"), "A"); // Latin
-        assert_eq!(segmenter.char_type("5"), "N"); // Digit
-        assert_eq!(segmenter.char_type("@"), "O"); // Other
+        assert_eq!(segmenter.char_type('的'), "F"); // Function word
+        assert_eq!(segmenter.char_type('中'), "C"); // CJK Unified
+        assert_eq!(segmenter.char_type('国'), "C"); // CJK Unified
+        assert_eq!(segmenter.char_type('。'), "P"); // Punctuation
+        assert_eq!(segmenter.char_type('A'), "A"); // Latin
+        assert_eq!(segmenter.char_type('5'), "N"); // Digit
+        assert_eq!(segmenter.char_type('@'), "O"); // Other
     }
 
     #[test]
     fn test_char_type_korean() {
         let segmenter = Segmenter::new(Language::Korean);
 
-        assert_eq!(segmenter.char_type("는"), "E"); // Particle (topic marker)
-        assert_eq!(segmenter.char_type("가"), "SN"); // Hangul Syllable without 받침
-        assert_eq!(segmenter.char_type("한"), "SF"); // Hangul Syllable with 받침
-        assert_eq!(segmenter.char_type("ㄱ"), "G"); // Compatibility Jamo
-        assert_eq!(segmenter.char_type("漢"), "H"); // Hanja
-        assert_eq!(segmenter.char_type("A"), "A"); // Latin
-        assert_eq!(segmenter.char_type("5"), "N"); // Digit
-        assert_eq!(segmenter.char_type("@"), "O"); // Other
+        assert_eq!(segmenter.char_type('는'), "E"); // Particle (topic marker)
+        assert_eq!(segmenter.char_type('가'), "SN"); // Hangul Syllable without 받침
+        assert_eq!(segmenter.char_type('한'), "SF"); // Hangul Syllable with 받침
+        assert_eq!(segmenter.char_type('ㄱ'), "G"); // Compatibility Jamo
+        assert_eq!(segmenter.char_type('漢'), "H"); // Hanja
+        assert_eq!(segmenter.char_type('A'), "A"); // Latin
+        assert_eq!(segmenter.char_type('5'), "N"); // Digit
+        assert_eq!(segmenter.char_type('@'), "O"); // Other
     }
 
     #[test]
@@ -897,8 +894,8 @@ mod tests {
         }
 
         // Train the perceptron
-        let running = Arc::new(AtomicBool::new(true));
-        segmenter.pos_learner.as_mut().unwrap().train(10, running);
+        let running = AtomicBool::new(true);
+        segmenter.pos_learner.as_mut().unwrap().train(10, &running);
 
         // Segmentation + POS tagging
         let result = segmenter.segment_with_pos("これはテストです。").unwrap();
@@ -910,6 +907,15 @@ mod tests {
             // The POS is one of the Upos variants
             let _ = pos.to_string();
         }
+    }
+
+    #[test]
+    fn test_debug_impls() {
+        // #129: user-facing types are debuggable.
+        let segmenter = Segmenter::new(Language::Japanese);
+        assert!(!format!("{:?}", segmenter).is_empty());
+        let extractor = crate::extractor::Extractor::new(Language::Japanese);
+        assert!(!format!("{:?}", extractor).is_empty());
     }
 
     #[test]

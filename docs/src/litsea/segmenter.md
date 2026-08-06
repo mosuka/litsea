@@ -66,16 +66,16 @@ let tokens = segmenter.segment("これはテストです。");
 ### `char_type`
 
 ```rust
-pub fn char_type(&self, ch: &str) -> &str
+pub fn char_type(&self, c: char) -> &'static str
 ```
 
-Classifies a single character into its type code using language-specific rules. The first character of the `&str` is classified; an empty string returns `"O"`.
+Classifies a character into its language-specific type code (delegates to `Language::char_type`).
 
 ```rust
 let segmenter = Segmenter::new(Language::Japanese);
-assert_eq!(segmenter.char_type("あ"), "I");  // Hiragana
-assert_eq!(segmenter.char_type("漢"), "H");  // Kanji
-assert_eq!(segmenter.char_type("A"), "A");   // ASCII
+assert_eq!(segmenter.char_type('あ'), "I");  // Hiragana
+assert_eq!(segmenter.char_type('漢'), "H");  // Kanji
+assert_eq!(segmenter.char_type('A'), "A");   // ASCII
 ```
 
 ### `add_corpus`

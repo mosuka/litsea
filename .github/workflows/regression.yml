@@ -109,5 +109,10 @@ jobs:
       - name: Check without default features
         run: cargo check -p litsea --no-default-features
 
+      - name: Test with default (local-only) features
+        # The platform matrix tests --all-features; this lane covers the
+        # lean default configuration (remote_model is opt-in since #129).
+        run: cargo test -p litsea
+
       - name: Check wasm32 target
         run: cargo check -p litsea --target wasm32-unknown-unknown --no-default-features

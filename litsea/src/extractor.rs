@@ -11,6 +11,7 @@ use crate::segmenter::Segmenter;
 /// Extractor struct for processing text data and extracting features.
 /// It reads sentences from a corpus file, segments them into words,
 /// and writes the extracted features to a specified output file.
+#[derive(Debug)]
 pub struct Extractor {
     segmenter: Segmenter,
 }
@@ -47,7 +48,7 @@ impl Extractor {
     ///
     /// # Returns
     /// Returns a Result indicating success or failure.
-    pub fn extract(&mut self, corpus_path: &Path, features_path: &Path) -> Result<()> {
+    pub fn extract(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
             segmenter.add_corpus_with_writer(line, |attrs, label| {
@@ -65,7 +66,7 @@ impl Extractor {
     /// # Arguments
     /// * `corpus_path` - The path to the POS-tagged corpus file
     /// * `features_path` - The path to the features output file
-    pub fn extract_with_pos(&mut self, corpus_path: &Path, features_path: &Path) -> Result<()> {
+    pub fn extract_with_pos(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
             segmenter.add_corpus_with_pos_writer(line, |attrs, label| {
@@ -145,7 +146,7 @@ mod tests {
         let features_file = NamedTempFile::new()?;
 
         // Create an instance of Extractor and extract features
-        let mut extractor = Extractor::default();
+        let extractor = Extractor::default();
         extractor.extract(corpus_file.path(), features_file.path())?;
 
         // Read the output from the features file
@@ -182,7 +183,7 @@ mod tests {
 
         let features_file = NamedTempFile::new()?;
 
-        let mut extractor = Extractor::default();
+        let extractor = Extractor::default();
         extractor.extract_with_pos(corpus_file.path(), features_file.path())?;
 
         let mut output = String::new();

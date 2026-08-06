@@ -6,8 +6,8 @@ The `AdaBoost` struct implements binary classification for word boundary detecti
 
 ```rust
 pub struct AdaBoost {
-    pub threshold: f64,
-    pub num_iterations: usize,
+    // private: threshold: f64, num_iterations: usize
+    // (read via threshold() / num_iterations())
     // internal fields: model weights, features, instances, etc.
 }
 ```
@@ -98,7 +98,7 @@ Reads the same features file and initializes labeled instances with their weight
 ### `train`
 
 ```rust
-pub fn train(&mut self, running: Arc<AtomicBool>)
+pub fn train(&mut self, running: &AtomicBool)
 ```
 
 Runs the AdaBoost training loop. Set `running` to `false` to stop early.

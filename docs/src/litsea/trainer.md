@@ -56,7 +56,7 @@ trainer.load_model("./models/japanese.model").await?;
 ```rust
 pub fn train(
     &mut self,
-    running: Arc<AtomicBool>,
+    running: &AtomicBool,
     model_path: &Path,
 ) -> litsea::Result<BinaryMetrics>
 ```
@@ -66,12 +66,11 @@ Trains the model and saves it to the specified path. Returns evaluation metrics.
 The `running` flag enables graceful interruption -- set it to `false` to stop training early.
 
 ```rust
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
-let running = Arc::new(AtomicBool::new(true));
-let metrics = trainer.train(running, Path::new("./model.model"))?;
+let running = AtomicBool::new(true);
+let metrics = trainer.train(&running, Path::new("./model.model"))?;
 
 println!("Accuracy: {:.2}%", metrics.accuracy);
 ```
@@ -79,7 +78,6 @@ println!("Accuracy: {:.2}%", metrics.accuracy);
 ## Full Training Example
 
 ```rust
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
@@ -96,8 +94,8 @@ async fn main() -> litsea::Result<()> {
     // Optionally resume from an existing model
     // trainer.load_model("./models/japanese.model").await?;
 
-    let running = Arc::new(AtomicBool::new(true));
-    let metrics = trainer.train(running, Path::new("./model.model"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&running, Path::new("./model.model"))?;
 
     println!("Accuracy:  {:.2}%", metrics.accuracy);
     println!("Precision: {:.2}%", metrics.precision);
@@ -137,7 +135,7 @@ registered from the training data are merged with the model's classes.
 ```rust
 pub fn train(
     &mut self,
-    running: Arc<AtomicBool>,
+    running: &AtomicBool,
     model_path: &Path,
 ) -> litsea::Result<MulticlassMetrics>
 ```
@@ -147,7 +145,6 @@ multiclass metrics (accuracy, macro precision, macro recall). The `running`
 flag enables graceful interruption, like `Trainer::train`.
 
 ```rust
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
@@ -156,8 +153,8 @@ use litsea::trainer::PosTrainer;
 #[tokio::main]
 async fn main() -> litsea::Result<()> {
     let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
-    let running = Arc::new(AtomicBool::new(true));
-    let metrics = trainer.train(running, Path::new("./japanese_pos.model"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&running, Path::new("./japanese_pos.model"))?;
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }

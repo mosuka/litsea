@@ -72,7 +72,7 @@ The core library provides all segmentation, training, and model I/O functionalit
 |-----------|---------|---------|
 | `rustc-hash` | 2.1 | Fast hashing for internal feature maps |
 | `thiserror` | 2.0 | Error type derivation |
-| `reqwest` | 0.13 | HTTP/HTTPS model loading (rustls, optional `remote_model` feature) |
+| `reqwest` | 0.13 | HTTP/HTTPS model loading (rustls, opt-in `remote_model` feature) |
 | `criterion` | 0.8 | Benchmarking (dev dependency) |
 | `tempfile` | 3.27 | Temporary files for tests (dev dependency) |
 | `tokio` | 1.52+ | Async runtime for tests (dev dependency) |
@@ -86,7 +86,7 @@ The CLI provides a command-line interface to Litsea's functionality.
 | `clap` | 4.6 | Command-line argument parsing |
 | `ctrlc` | 3.5 | Graceful Ctrl+C handling during training |
 | `tokio` | 1.52+ | Async runtime |
-| `litsea` | 0.6 | Core library (workspace member) |
+| `litsea` | 0.6 | Core library (workspace member, `remote_model` enabled) |
 | `tempfile` | 3.27 | Temporary files for integration tests (dev dependency) |
 
 ## Workspace Configuration
