@@ -85,6 +85,16 @@ models in `models/` load unchanged.
 
 ### Changed (breaking)
 
+- `FromStr` for `Language`, `Upos`, and `SegmentLabel` now uses dedicated
+  thiserror-derived error types (`ParseLanguageError`, `ParseUposError`,
+  `ParseSegmentLabelError`, re-exported at the crate root) instead of
+  `type Err = String`. Display messages are unchanged (including the
+  clap-rendered CLI message), so only code that relied on the error being a
+  `String` needs updating (#128).
+- `Language` and `LitseaError` are now `#[non_exhaustive]`: external
+  exhaustive matches need a wildcard arm. `Upos` (fixed 17-tag UD standard)
+  and `SegmentLabel` (structurally complete) deliberately stay exhaustive
+  (#128).
 - `Segmenter::new(language, Option<AdaBoost>)` is now
   `Segmenter::new(language)` (default learner) plus
   `Segmenter::with_learner(language, learner)`; the 0.01/100 default lives

@@ -24,17 +24,17 @@ pub mod upos;
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
 pub use extractor::Extractor;
-pub use language::Language;
+pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
 pub use trainer::{PosTrainer, Trainer};
-pub use upos::{SegmentLabel, Upos};
+pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Returns the version of the litsea crate (the `CARGO_PKG_VERSION` it was
-/// built with), e.g. `"0.5.0"`.
+/// built with), e.g. `"0.6.0"`.
 #[must_use]
 pub fn version() -> &'static str {
     VERSION

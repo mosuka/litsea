@@ -1,7 +1,12 @@
 //! Error types for the litsea library.
 
 /// Errors returned by litsea operations.
+///
+/// Marked `#[non_exhaustive]`: new variants are added as the library grows
+/// (e.g. `Download` and `PosLearnerNotSet` were later additions), so
+/// external matches must carry a wildcard arm.
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum LitseaError {
     /// I/O failure while reading or writing files.
     #[error(transparent)]
@@ -19,6 +24,10 @@ pub enum LitseaError {
     /// The operation is not supported in this build or environment
     /// (e.g. remote models without the `remote_model` feature, or file
     /// system access on wasm32).
+    ///
+    /// Holds `&'static str` (unlike the owned `String` variants) on
+    /// purpose: every message is a compile-time constant, so an owned
+    /// string would allocate for no benefit.
     #[error("unsupported: {0}")]
     Unsupported(&'static str),
 

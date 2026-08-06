@@ -90,8 +90,23 @@ impl fmt::Display for Upos {
     }
 }
 
+/// Error returned when parsing a [`Upos`] tag from a string fails.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("Unknown UPOS tag: '{input}'")]
+pub struct ParseUposError {
+    input: String,
+}
+
+impl ParseUposError {
+    /// Returns the string that failed to parse.
+    #[must_use]
+    pub fn input(&self) -> &str {
+        &self.input
+    }
+}
+
 impl FromStr for Upos {
-    type Err = String;
+    type Err = ParseUposError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -112,7 +127,9 @@ impl FromStr for Upos {
             "SYM" => Ok(Upos::SYM),
             "VERB" => Ok(Upos::VERB),
             "X" => Ok(Upos::X),
-            _ => Err(format!("Unknown UPOS tag: '{}'", s)),
+            _ => Err(ParseUposError {
+                input: s.to_string(),
+            }),
         }
     }
 }
@@ -135,8 +152,23 @@ impl fmt::Display for SegmentLabel {
     }
 }
 
+/// Error returned when parsing a [`SegmentLabel`] from a string fails.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum ParseSegmentLabelError {
+    /// The input is neither `O` nor of the form `B-<UPOS>`.
+    #[error("Invalid segment label: '{input}'. Expected 'O' or 'B-<UPOS>'")]
+    InvalidFormat {
+        /// The string that failed to parse.
+        input: String,
+    },
+    /// The `B-` prefix carried an unknown UPOS tag; the inner error message
+    /// is propagated unchanged.
+    #[error(transparent)]
+    InvalidPos(#[from] ParseUposError),
+}
+
 impl FromStr for SegmentLabel {
-    type Err = String;
+    type Err = ParseSegmentLabelError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if s == "O" {
@@ -145,7 +177,9 @@ impl FromStr for SegmentLabel {
             let pos: Upos = pos_str.parse()?;
             Ok(SegmentLabel::B(pos))
         } else {
-            Err(format!("Invalid segment label: '{}'. Expected 'O' or 'B-<UPOS>'", s))
+            Err(ParseSegmentLabelError::InvalidFormat {
+                input: s.to_string(),
+            })
         }
     }
 }
@@ -184,6 +218,26 @@ mod tests {
             let parsed: Upos = s.parse().unwrap();
             assert_eq!(parsed, pos);
         }
+    }
+
+    #[test]
+    fn test_parse_upos_error_message() {
+        // #128: message identical to the former String error.
+        let err = "FOO".parse::<Upos>().unwrap_err();
+        assert_eq!(err.to_string(), "Unknown UPOS tag: 'FOO'");
+        assert_eq!(err.input(), "FOO");
+    }
+
+    #[test]
+    fn test_parse_segment_label_error_messages() {
+        // #128: the invalid-format case keeps its own message...
+        let err = "Z-NOUN".parse::<SegmentLabel>().unwrap_err();
+        assert_eq!(err.to_string(), "Invalid segment label: 'Z-NOUN'. Expected 'O' or 'B-<UPOS>'");
+        // ...and B-<invalid> transparently propagates the Upos message, as
+        // the former `?` on a String error did.
+        let err = "B-FOO".parse::<SegmentLabel>().unwrap_err();
+        assert_eq!(err.to_string(), "Unknown UPOS tag: 'FOO'");
+        assert!(matches!(err, ParseSegmentLabelError::InvalidPos(_)));
     }
 
     #[test]
