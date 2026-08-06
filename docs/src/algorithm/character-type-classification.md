@@ -13,7 +13,7 @@ Each language has its own classification function (`japanese_char_type`, `chines
 | Code | Name | Pattern / Range | Examples |
 |------|------|----------------|----------|
 | **M** | Kanji Numbers | `[一二三四五六七八九十百千万億兆]` | 一, 千, 億 |
-| **H** | Kanji / CJK Ideographs | `[一-龠々〆ヵヶ]` | 漢, 字, 学 |
+| **H** | Kanji / CJK Ideographs | U+4E00--U+9FFF, plus 々〆ヵヶ | 漢, 字, 学 |
 | **I** | Hiragana | `[ぁ-ん]` | あ, い, う |
 | **K** | Katakana | `[ァ-ヴーｱ-ﾝﾞﾟ]` | ア, カ, ー |
 | **P** | Punctuation | CJK Symbols (U+3000-303F), Full-width (U+FF01-FF65) | 。, 、, 「 |

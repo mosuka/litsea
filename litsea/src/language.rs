@@ -95,7 +95,7 @@ fn punct_latin_digit(c: char) -> Option<&'static str> {
 ///
 /// Type codes:
 /// - "M": Kanji numbers (一二三四五六七八九十百千万億兆)
-/// - "H": Kanji (CJK ideographs, 々〆ヵヶ)
+/// - "H": Kanji (CJK Unified Ideographs, U+4E00..=U+9FFF, plus 々〆ヵヶ)
 /// - "I": Hiragana
 /// - "K": Katakana (full-width and half-width)
 /// - "P" / "A" / "N": see [`punct_latin_digit`]
@@ -104,8 +104,8 @@ fn japanese_char_type(c: char) -> &'static str {
     match c {
         '一' | '二' | '三' | '四' | '五' | '六' | '七' | '八' | '九' | '十' | '百' | '千'
         | '万' | '億' | '兆' => "M",
-        // 一-龠 plus 々〆ヵヶ
-        '\u{4E00}'..='\u{9FA0}' | '々' | '〆' | 'ヵ' | 'ヶ' => "H",
+        // CJK Unified Ideographs (U+4E00..=U+9FFF) plus 々〆ヵヶ
+        '\u{4E00}'..='\u{9FFF}' | '々' | '〆' | 'ヵ' | 'ヶ' => "H",
         // ぁ-ん
         '\u{3041}'..='\u{3093}' => "I",
         // ァ-ヴ, ー, half-width ｱ-ﾝ and ﾞﾟ
@@ -243,6 +243,20 @@ mod tests {
         assert_eq!(lang.char_type('5'), "N"); // Digit
         assert_eq!(lang.char_type('５'), "N"); // Full-width digit
         assert_eq!(lang.char_type('@'), "O"); // Other
+    }
+
+    #[test]
+    fn test_japanese_kanji_range_covers_full_cjk_block() {
+        // #130: the Japanese classifier previously stopped at U+9FA0 while
+        // Chinese and Korean already covered the full CJK Unified
+        // Ideographs block (U+4E00..=U+9FFF). Pin the full range for all
+        // three languages so they can't drift apart again.
+        assert_eq!(Language::Japanese.char_type('\u{9FA0}'), "H"); // old upper bound
+        assert_eq!(Language::Japanese.char_type('\u{9FA1}'), "H"); // 龡, first newly-included
+        assert_eq!(Language::Japanese.char_type('\u{9FFF}'), "H"); // 鿿, block end
+
+        assert_eq!(Language::Chinese.char_type('\u{9FA1}'), "C");
+        assert_eq!(Language::Korean.char_type('\u{9FA1}'), "H");
     }
 
     // --- Chinese pattern tests ---
