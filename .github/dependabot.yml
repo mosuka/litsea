@@ -5,11 +5,18 @@
 
 version: 2
 updates:
-  - package-ecosystem: cargo
-    directory: /
+  - package-ecosystem: "cargo"
+    directory: "/"
     schedule:
-      interval: daily
-  - package-ecosystem: github-actions
-    directory: /
-    schedule:
-      interval: daily
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      # Minor/patch bumps are low-risk and numerous in a workspace this
+      # size — batch them into one PR. Major bumps (potential breaking
+      # changes) stay as individual PRs so each can be reviewed on its own.
+      cargo-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
