@@ -62,20 +62,24 @@ segmenter compiles the learner's string-keyed weights into **packed `u64`
 feature keys** once (see below); the hot loop then works entirely on
 integers. At each position *i*, the segmenter:
 
-1. **Packs features** -- For each of the 38--42 templates, packs the
-   template id (top byte) together with the relevant boundary-tag ids,
-   character type ids, and character code points (8 bits per tag/type, 24
-   bits per character; the padding sentinels `B3`...`E3` map to code points
-   just above the Unicode scalar range) into a single `u64` key on the
-   stack. No allocation, no string formatting.
-2. **Computes score** -- Each packed key is looked up in an
-   `FxHashMap<u64, f64>` (0.0 for unknown features) and added to a running
-   score that starts at the bias. The bias itself is a cached field
-   (`-sum(model) / 2.0`, kept in sync by every weight-mutating path) and is
-   read once per sentence, not recomputed per position:
+1. **Indexes features** -- For each of the 38--42 templates, derives an
+   integer key from the relevant boundary-tag ids, character type ids, and
+   character code points, entirely on the stack. Tag/type-only templates
+   (29 of 42) compute a small mixed-radix index; char-bearing templates
+   (`UW*`, `BW*`, `WC*`) pack a `u64` key (template id in the top byte,
+   8 bits per tag/type, 24 bits per character; the padding sentinels
+   `B3`...`E3` map to code points just above the Unicode scalar range).
+   No allocation, no string formatting, and for dense templates no hashing.
+2. **Computes score** -- Tag/type-only templates load their weight from a
+   per-template dense array by the mixed-radix index (a single array load);
+   char-bearing templates probe an `FxHashMap<u64, f64>`. Either way an
+   unknown feature contributes 0.0 to a running score that starts at the
+   bias. The bias itself is a cached field (`-sum(model) / 2.0`, kept in
+   sync by every weight-mutating path) and is read once per sentence, not
+   recomputed per position:
 
    ```text
-   score = bias + sum(packed_weights[key(template, context)] for each template)
+   score = bias + sum(weight(template, context) for each template)
    ```
 
 3. **Makes decision** -- If `score >= 0`, the character starts a new word (boundary); otherwise, it continues the current word
@@ -89,17 +93,29 @@ type-id arrays; the sentinel entries (`B3`...`E3`) are static values.
 
 The feature template is defined once as a declarative table
 (`packed_model::TEMPLATES`), from which three consumers derive: the string
-writer used by training/extraction/POS paths, the packed-key writer used by
-`segment()`, and the load-time parser that converts each model feature
-string into its packed key. Compilation happens eagerly in
+writer used by training/extraction/POS paths, the integer-key writers used
+by `segment()`, and the load-time parser that converts each model feature
+string into its integer key. Compilation happens eagerly in
 `Segmenter::with_learner` and is invalidated whenever the learner is
 mutated (`learner_mut()` / `add_corpus`), then rebuilt lazily on the next
-`segment()` call. Model features that the segmenter's language could never
-generate (for example Korean type codes in a Japanese segmenter) are
-omitted from the table; they are unreachable at scoring time, so scores are
-unaffected. A lookup miss adds `0.0`, so the floating-point accumulation
-sequence -- and therefore the segmentation output -- is bit-for-bit
-identical to the historical string-keyed implementation.
+`segment()` call.
+
+The compiled model is a hybrid of two lookup structures, split by key-space
+size. The 29 tag/type-only templates (`UP*`, `BP*`, `UC*`, `BC*`, `TC*`,
+`UQ*`, `BQ*`, `TQ*`) have tiny domains -- 3 boundary tags and 8--10 type
+codes per language -- so each gets a **direct-indexed dense array** sized
+by the exact mixed-radix product (about 74 KB total for Japanese), and
+scoring is a single array load with no hashing. The 13 char-bearing
+templates (`UW*`, `BW*`, `WC*`) embed 21-bit code points, so their weights
+stay in an `FxHashMap<u64, f64>` probed by packed key.
+
+Model features that the segmenter's language could never generate (for
+example Korean type codes in a Japanese segmenter) are omitted from both
+structures; they are unreachable at scoring time, so scores are unaffected.
+A map miss adds `0.0` and unset dense entries hold `0.0`, so the
+floating-point accumulation sequence -- and therefore the segmentation
+output -- is bit-for-bit identical to the historical string-keyed
+implementation.
 
 ## Joint Segmentation and POS Tagging (`segment_with_pos`)
 
@@ -128,6 +144,6 @@ The segmentation algorithm is **linear** in the length of the input:
 
 - Each character position is visited once: O(n)
 - Feature extraction at each position: O(1) (fixed number of templates, each packed into a `u64` on the stack)
-- Prediction at each position: O(f) where f is the number of active features (~38-42), each a single integer-keyed `FxHashMap` probe
+- Prediction at each position: O(f) where f is the number of active features (~38-42) -- a direct dense-array load for the 29 tag/type-only templates, a single integer-keyed `FxHashMap` probe for the 13 char-bearing ones
 - Total: O(n * f) which is effectively O(n)
 - Allocation profile: the packed context borrows word slices from the input and carries flat `u32`/`u8` arrays, the bias is cached, and no strings are built anywhere in the hot loop (the packed table itself is compiled once per model load, off the hot path)
