@@ -51,13 +51,13 @@ it:
 
 - the **string form** below, used for training data extraction, corpus
   processing, model files, and the POS path;
-- the **packed `u64` integer form** used by `segment()`'s hot loop, into
-  which model files are compiled at load time (see
-  [Prediction Pipeline](prediction-pipeline.md#the-packed-scoring-table)).
+- the **integer-indexed scoring tables** used by `segment()`'s two-pass
+  scorer, into which model files are compiled at load time (see
+  [Prediction Pipeline](prediction-pipeline.md#the-compiled-scoring-tables)).
 
 Adding or reordering a template therefore changes every consumer
-consistently -- but note the order is load-bearing for reproducibility,
-because scores are accumulated in emission order.
+consistently. The table order defines the string writer's emission
+sequence, which model files and training data depend on.
 
 ## Feature Format
 
