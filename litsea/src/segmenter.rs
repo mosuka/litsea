@@ -757,6 +757,56 @@ mod tests {
     }
 
     #[test]
+    fn test_write_attributes_exact_strings_japanese() {
+        // Pin test for issue #136: the exact attribute strings AND their
+        // emission order are load-bearing. The strings are the model's feature
+        // keys, and segment() sums f64 weights in emission order (float
+        // addition is not associative), so neither may change. Every slot in
+        // the fixture holds a distinct value so that any slot-mapping mistake
+        // changes the output.
+        let segmenter = Segmenter::new(Language::Japanese);
+        let tags: Vec<&'static str> = vec!["U", "B", "O", "U", "B", "O", "U"];
+        let chars = vec!["B3", "B2", "B1", "あ", "い", "う", "E1"];
+        let types: Vec<&'static str> = vec!["O", "P", "A", "N", "I", "H", "K"];
+
+        let mut attrs: Vec<String> = Vec::new();
+        segmenter.collect_attributes(4, &tags, &chars, &types, &mut attrs);
+
+        let expected = [
+            "UP1:B", "UP2:O", "UP3:U", "BP1:BO", "BP2:OU", "UW1:B2", "UW2:B1", "UW3:あ",
+            "UW4:い", "UW5:う", "UW6:E1", "BW1:B1あ", "BW2:あい", "BW3:いう", "UC1:P", "UC2:A",
+            "UC3:N", "UC4:I", "UC5:H", "UC6:K", "BC1:AN", "BC2:NI", "BC3:IH", "TC1:PAN",
+            "TC2:ANI", "TC3:NIH", "TC4:IHK", "UQ1:BP", "UQ2:OA", "UQ3:UN", "BQ1:OAN",
+            "BQ2:ONI", "BQ3:UAN", "BQ4:UNI", "TQ1:OPAN", "TQ2:OANI", "TQ3:UPAN", "TQ4:UANI",
+            "WC1:あI", "WC2:Nい", "WC3:あN", "WC4:いI",
+        ];
+        assert_eq!(attrs, expected);
+    }
+
+    #[test]
+    fn test_write_attributes_exact_strings_korean() {
+        // Korean counterpart of the pin test above: 38 features (no WC*), and
+        // the two-character type codes SN/SF concatenate without separators.
+        let segmenter = Segmenter::new(Language::Korean);
+        let tags: Vec<&'static str> = vec!["U", "B", "O", "U", "B", "O", "U"];
+        let chars = vec!["B3", "B2", "B1", "한", "국", "어", "E1"];
+        let types: Vec<&'static str> = vec!["O", "E", "SN", "SF", "J", "G", "H"];
+
+        let mut attrs: Vec<String> = Vec::new();
+        segmenter.collect_attributes(4, &tags, &chars, &types, &mut attrs);
+
+        let expected = [
+            "UP1:B", "UP2:O", "UP3:U", "BP1:BO", "BP2:OU", "UW1:B2", "UW2:B1", "UW3:한",
+            "UW4:국", "UW5:어", "UW6:E1", "BW1:B1한", "BW2:한국", "BW3:국어", "UC1:E",
+            "UC2:SN", "UC3:SF", "UC4:J", "UC5:G", "UC6:H", "BC1:SNSF", "BC2:SFJ", "BC3:JG",
+            "TC1:ESNSF", "TC2:SNSFJ", "TC3:SFJG", "TC4:JGH", "UQ1:BE", "UQ2:OSN", "UQ3:USF",
+            "BQ1:OSNSF", "BQ2:OSFJ", "BQ3:USNSF", "BQ4:USFJ", "TQ1:OESNSF", "TQ2:OSNSFJ",
+            "TQ3:UESNSF", "TQ4:USNSFJ",
+        ];
+        assert_eq!(attrs, expected);
+    }
+
+    #[test]
     fn test_collect_attributes_reuses_buffer() {
         let segmenter = Segmenter::new(Language::Japanese);
         let tags: Vec<&'static str> = vec!["U"; 7];
