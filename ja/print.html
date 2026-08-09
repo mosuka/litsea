@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-289bd82d.js";
+            window.path_to_searchindex_js = "searchindex-2be6e582.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-007a5c4f.js"></script>
@@ -1129,19 +1129,24 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 実行します:</p>
 <ol>
 <li>
-<p><strong>特徴量のパック</strong> – 38–42 個のテンプレートそれぞれについて、テンプレート ID
-（最上位バイト）と、関連する境界タグ ID・文字種 ID・文字コードポイント
-（タグ/種別は 8 ビット、文字は 24 ビット。パディングセンチネル <code>B3</code>…<code>E3</code> は
-Unicode スカラー範囲の直上のコードにマップ）をスタック上の単一の <code>u64</code> キーに
-パックする。アロケーションも文字列整形も発生しない</p>
+<p><strong>特徴量のインデックス化</strong> – 38–42 個のテンプレートそれぞれについて、関連する
+境界タグ ID・文字種 ID・文字コードポイントから整数キーをスタック上で導出する。
+タグ/文字種のみのテンプレート（42 中 29 個）は小さな mixed-radix インデックスを
+計算し、文字を含むテンプレート（<code>UW*</code>, <code>BW*</code>, <code>WC*</code>）は <code>u64</code> キーにパックする
+（テンプレート ID が最上位バイト、タグ/種別は 8 ビット、文字は 24 ビット。
+パディングセンチネル <code>B3</code>…<code>E3</code> は Unicode スカラー範囲の直上のコードにマップ）。
+アロケーションも文字列整形も発生せず、dense テンプレートではハッシュ計算も
+発生しない</p>
 </li>
 <li>
-<p><strong>スコアの計算</strong> – 各 packed キーを <code>FxHashMap&lt;u64, f64&gt;</code> で検索し
-（未知の特徴量には 0.0）、バイアスから始まる累積スコアに加算する。バイアス自体は
+<p><strong>スコアの計算</strong> – タグ/文字種のみのテンプレートは、テンプレートごとの密配列から
+mixed-radix インデックスで重みをロードする（単一の配列ロード）。文字を含む
+テンプレートは <code>FxHashMap&lt;u64, f64&gt;</code> を検索する。どちらの場合も未知の特徴量は
+0.0 を加算し、バイアスから始まる累積スコアに足し込む。バイアス自体は
 キャッシュされたフィールド（<code>-sum(model) / 2.0</code>、重みを変更するすべての経路で
 同期される）であり、文ごとに 1 回読み取られるだけで、位置ごとに再計算されることは
 ない:</p>
-<pre><code class="language-text">score = bias + sum(packed_weights[key(template, context)] for each template)
+<pre><code class="language-text">score = bias + sum(weight(template, context) for each template)
 </code></pre>
 </li>
 <li>
@@ -1157,14 +1162,24 @@ Unicode スカラー範囲の直上のコードにマップ）をスタック上
 <h3 id="packed-スコアリングテーブル"><a class="header" href="#packed-スコアリングテーブル">Packed スコアリングテーブル</a></h3>
 <p>特徴テンプレートは宣言的なテーブル（<code>packed_model::TEMPLATES</code>）として一度だけ
 定義され、そこから 3 つの消費者が導出されます: 学習・抽出・POS パスで使用される
-文字列ライター、<code>segment()</code> が使用する packed キーライター、そしてモデルの各特徴量
-文字列を packed キーへ変換するロード時パーサです。コンパイルは
+文字列ライター、<code>segment()</code> が使用する整数キーライター、そしてモデルの各特徴量
+文字列を整数キーへ変換するロード時パーサです。コンパイルは
 <code>Segmenter::with_learner</code> で先行して行われ、学習器が変更されると
 （<code>learner_mut()</code> / <code>add_corpus</code>）無効化され、次の <code>segment()</code> 呼び出しで遅延
-再構築されます。セグメンタの言語では生成し得ないモデル特徴量（例: 日本語セグメンタに
-おける韓国語の文字種コード）はテーブルから除外されます。それらはスコアリング時に
-到達不能なので、スコアには影響しません。検索ミスは <code>0.0</code> を加算するため、浮動小数点の
-累積順序 – したがって分割出力 – は従来の文字列キー実装とビット単位で一致します。</p>
+再構築されます。</p>
+<p>コンパイル済みモデルは、キー空間のサイズで使い分ける 2 つのルックアップ構造の
+ハイブリッドです。タグ/文字種のみの 29 テンプレート（<code>UP*</code>, <code>BP*</code>, <code>UC*</code>, <code>BC*</code>,
+<code>TC*</code>, <code>UQ*</code>, <code>BQ*</code>, <code>TQ*</code>）はドメインが極小（境界タグ 3 種、文字種コード
+8–10 種/言語）なので、mixed-radix 積の厳密サイズで確保した<strong>直接インデックスの
+密配列</strong>（日本語で合計約 74KB）を持ち、スコアリングはハッシュ計算なしの単一の
+配列ロードになります。文字を含む 13 テンプレート（<code>UW*</code>, <code>BW*</code>, <code>WC*</code>）は
+21 ビットのコードポイントを含むため、重みは packed キーで検索する
+<code>FxHashMap&lt;u64, f64&gt;</code> に残ります。</p>
+<p>セグメンタの言語では生成し得ないモデル特徴量（例: 日本語セグメンタにおける
+韓国語の文字種コード）は両構造から除外されます。それらはスコアリング時に
+到達不能なので、スコアには影響しません。マップの検索ミスは <code>0.0</code> を加算し、
+密配列の未設定エントリは <code>0.0</code> を保持するため、浮動小数点の累積順序 –
+したがって分割出力 – は従来の文字列キー実装とビット単位で一致します。</p>
 <h2 id="単語分割と品詞タグ付けの同時実行segment_with_pos"><a class="header" href="#単語分割と品詞タグ付けの同時実行segment_with_pos">単語分割と品詞タグ付けの同時実行（<code>segment_with_pos</code>）</a></h2>
 <p><code>segment_with_pos</code> は、AdaBoost の代わりに Averaged Perceptron を使用して同じ左から右へのパイプラインを実行します:</p>
 <ol>
@@ -1194,7 +1209,7 @@ Unicode スカラー範囲の直上のコードにマップ）をスタック上
 <ul>
 <li>各文字位置を 1 回ずつ訪問: O(n)</li>
 <li>各位置での特徴量抽出: O(1)（固定数のテンプレートを、それぞれスタック上の <code>u64</code> にパック）</li>
-<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42）で、それぞれ 1 回の整数キー <code>FxHashMap</code> 検索</li>
+<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42）。タグ/文字種のみの 29 テンプレートは密配列の直接ロード、文字を含む 13 テンプレートは 1 回の整数キー <code>FxHashMap</code> 検索</li>
 <li>合計: O(n * f)、実質的に O(n)</li>
 <li>アロケーションの特性: packed コンテキストは単語スライスを入力から借用し、フラットな <code>u32</code>/<code>u8</code> 配列を保持する。バイアスはキャッシュされ、ホットループ内では文字列を一切構築しない（packed テーブル自体はモデルロードごとに 1 回、ホットパス外でコンパイルされる）</li>
 </ul>

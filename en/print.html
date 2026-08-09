@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8880907b.js";
+            window.path_to_searchindex_js = "searchindex-e6c3a9b0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-dc1e276c.js"></script>
@@ -1130,20 +1130,24 @@ feature keys</strong> once (see below); the hot loop then works entirely on
 integers. At each position <em>i</em>, the segmenter:</p>
 <ol>
 <li>
-<p><strong>Packs features</strong> – For each of the 38–42 templates, packs the
-template id (top byte) together with the relevant boundary-tag ids,
-character type ids, and character code points (8 bits per tag/type, 24
-bits per character; the padding sentinels <code>B3</code>…<code>E3</code> map to code points
-just above the Unicode scalar range) into a single <code>u64</code> key on the
-stack. No allocation, no string formatting.</p>
+<p><strong>Indexes features</strong> – For each of the 38–42 templates, derives an
+integer key from the relevant boundary-tag ids, character type ids, and
+character code points, entirely on the stack. Tag/type-only templates
+(29 of 42) compute a small mixed-radix index; char-bearing templates
+(<code>UW*</code>, <code>BW*</code>, <code>WC*</code>) pack a <code>u64</code> key (template id in the top byte,
+8 bits per tag/type, 24 bits per character; the padding sentinels
+<code>B3</code>…<code>E3</code> map to code points just above the Unicode scalar range).
+No allocation, no string formatting, and for dense templates no hashing.</p>
 </li>
 <li>
-<p><strong>Computes score</strong> – Each packed key is looked up in an
-<code>FxHashMap&lt;u64, f64&gt;</code> (0.0 for unknown features) and added to a running
-score that starts at the bias. The bias itself is a cached field
-(<code>-sum(model) / 2.0</code>, kept in sync by every weight-mutating path) and is
-read once per sentence, not recomputed per position:</p>
-<pre><code class="language-text">score = bias + sum(packed_weights[key(template, context)] for each template)
+<p><strong>Computes score</strong> – Tag/type-only templates load their weight from a
+per-template dense array by the mixed-radix index (a single array load);
+char-bearing templates probe an <code>FxHashMap&lt;u64, f64&gt;</code>. Either way an
+unknown feature contributes 0.0 to a running score that starts at the
+bias. The bias itself is a cached field (<code>-sum(model) / 2.0</code>, kept in
+sync by every weight-mutating path) and is read once per sentence, not
+recomputed per position:</p>
+<pre><code class="language-text">score = bias + sum(weight(template, context) for each template)
 </code></pre>
 </li>
 <li>
@@ -1159,17 +1163,27 @@ type-id arrays; the sentinel entries (<code>B3</code>…<code>E3</code>) are sta
 <h3 id="the-packed-scoring-table"><a class="header" href="#the-packed-scoring-table">The Packed Scoring Table</a></h3>
 <p>The feature template is defined once as a declarative table
 (<code>packed_model::TEMPLATES</code>), from which three consumers derive: the string
-writer used by training/extraction/POS paths, the packed-key writer used by
-<code>segment()</code>, and the load-time parser that converts each model feature
-string into its packed key. Compilation happens eagerly in
+writer used by training/extraction/POS paths, the integer-key writers used
+by <code>segment()</code>, and the load-time parser that converts each model feature
+string into its integer key. Compilation happens eagerly in
 <code>Segmenter::with_learner</code> and is invalidated whenever the learner is
 mutated (<code>learner_mut()</code> / <code>add_corpus</code>), then rebuilt lazily on the next
-<code>segment()</code> call. Model features that the segmenter’s language could never
-generate (for example Korean type codes in a Japanese segmenter) are
-omitted from the table; they are unreachable at scoring time, so scores are
-unaffected. A lookup miss adds <code>0.0</code>, so the floating-point accumulation
-sequence – and therefore the segmentation output – is bit-for-bit
-identical to the historical string-keyed implementation.</p>
+<code>segment()</code> call.</p>
+<p>The compiled model is a hybrid of two lookup structures, split by key-space
+size. The 29 tag/type-only templates (<code>UP*</code>, <code>BP*</code>, <code>UC*</code>, <code>BC*</code>, <code>TC*</code>,
+<code>UQ*</code>, <code>BQ*</code>, <code>TQ*</code>) have tiny domains – 3 boundary tags and 8–10 type
+codes per language – so each gets a <strong>direct-indexed dense array</strong> sized
+by the exact mixed-radix product (about 74 KB total for Japanese), and
+scoring is a single array load with no hashing. The 13 char-bearing
+templates (<code>UW*</code>, <code>BW*</code>, <code>WC*</code>) embed 21-bit code points, so their weights
+stay in an <code>FxHashMap&lt;u64, f64&gt;</code> probed by packed key.</p>
+<p>Model features that the segmenter’s language could never generate (for
+example Korean type codes in a Japanese segmenter) are omitted from both
+structures; they are unreachable at scoring time, so scores are unaffected.
+A map miss adds <code>0.0</code> and unset dense entries hold <code>0.0</code>, so the
+floating-point accumulation sequence – and therefore the segmentation
+output – is bit-for-bit identical to the historical string-keyed
+implementation.</p>
 <h2 id="joint-segmentation-and-pos-tagging-segment_with_pos"><a class="header" href="#joint-segmentation-and-pos-tagging-segment_with_pos">Joint Segmentation and POS Tagging (<code>segment_with_pos</code>)</a></h2>
 <p><code>segment_with_pos</code> runs the same left-to-right pipeline with the Averaged Perceptron instead of AdaBoost:</p>
 <ol>
@@ -1199,7 +1213,7 @@ identical to the historical string-keyed implementation.</p>
 <ul>
 <li>Each character position is visited once: O(n)</li>
 <li>Feature extraction at each position: O(1) (fixed number of templates, each packed into a <code>u64</code> on the stack)</li>
-<li>Prediction at each position: O(f) where f is the number of active features (~38-42), each a single integer-keyed <code>FxHashMap</code> probe</li>
+<li>Prediction at each position: O(f) where f is the number of active features (~38-42) – a direct dense-array load for the 29 tag/type-only templates, a single integer-keyed <code>FxHashMap</code> probe for the 13 char-bearing ones</li>
 <li>Total: O(n * f) which is effectively O(n)</li>
 <li>Allocation profile: the packed context borrows word slices from the input and carries flat <code>u32</code>/<code>u8</code> arrays, the bias is cached, and no strings are built anywhere in the hot loop (the packed table itself is compiled once per model load, off the hot path)</li>
 </ul>
