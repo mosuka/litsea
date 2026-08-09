@@ -57,19 +57,49 @@ Push the remaining word "。" to the result.
 
 ## How Prediction Works at Each Position
 
-At each position *i*, the segmenter:
+`segment()` never builds feature strings. When a model is loaded, the
+segmenter compiles the learner's string-keyed weights into **packed `u64`
+feature keys** once (see below); the hot loop then works entirely on
+integers. At each position *i*, the segmenter:
 
-1. **Streams features** -- Calls `write_attributes(i, tags, chars, types, sink)`, which formats each of the 38--42 feature strings into a reused buffer and passes it to a sink closure. No per-position set or vector is built on this path.
-2. **Computes score** -- The sink adds `learner.weight(feature)` (an `FxHashMap` lookup of the model weight, 0.0 for unknown features) to a running score that starts at the bias. The bias itself is a cached field (`-sum(model) / 2.0`, kept in sync by every weight-mutating path) and is read once per sentence, not recomputed per position:
+1. **Packs features** -- For each of the 38--42 templates, packs the
+   template id (top byte) together with the relevant boundary-tag ids,
+   character type ids, and character code points (8 bits per tag/type, 24
+   bits per character; the padding sentinels `B3`...`E3` map to code points
+   just above the Unicode scalar range) into a single `u64` key on the
+   stack. No allocation, no string formatting.
+2. **Computes score** -- Each packed key is looked up in an
+   `FxHashMap<u64, f64>` (0.0 for unknown features) and added to a running
+   score that starts at the bias. The bias itself is a cached field
+   (`-sum(model) / 2.0`, kept in sync by every weight-mutating path) and is
+   read once per sentence, not recomputed per position:
 
    ```text
-   score = bias + sum(weight(feature) for each streamed feature)
+   score = bias + sum(packed_weights[key(template, context)] for each template)
    ```
 
 3. **Makes decision** -- If `score >= 0`, the character starts a new word (boundary); otherwise, it continues the current word
-4. **Updates tags** -- Pushes "B" or "O" to the tags array, which affects feature extraction for subsequent positions
+4. **Updates tags** -- Pushes the B or O tag id to the tags array, which affects feature extraction for subsequent positions
 
-The padded character/type context (`sentence_context`) borrows string slices directly from the input instead of allocating a `String` per character, and the sentinel entries (`B3`...`E3`) are static literals.
+The packed context (`packed_context`) borrows word-assembly string slices
+directly from the input and carries parallel `u32` char-code and `u8`
+type-id arrays; the sentinel entries (`B3`...`E3`) are static values.
+
+### The Packed Scoring Table
+
+The feature template is defined once as a declarative table
+(`packed_model::TEMPLATES`), from which three consumers derive: the string
+writer used by training/extraction/POS paths, the packed-key writer used by
+`segment()`, and the load-time parser that converts each model feature
+string into its packed key. Compilation happens eagerly in
+`Segmenter::with_learner` and is invalidated whenever the learner is
+mutated (`learner_mut()` / `add_corpus`), then rebuilt lazily on the next
+`segment()` call. Model features that the segmenter's language could never
+generate (for example Korean type codes in a Japanese segmenter) are
+omitted from the table; they are unreachable at scoring time, so scores are
+unaffected. A lookup miss adds `0.0`, so the floating-point accumulation
+sequence -- and therefore the segmentation output -- is bit-for-bit
+identical to the historical string-keyed implementation.
 
 ## Joint Segmentation and POS Tagging (`segment_with_pos`)
 
@@ -88,7 +118,7 @@ The padded character/type context (`sentence_context`) borrows string slices dir
 | First tag | "U" (overrides "B" at position 3) | "U" (no prior decision) |
 | First position | Boundary pipeline skips it; POS pipeline emits it (#100) | POS mode predicts it for the first word's POS |
 | Labels | Known from corpus (+1 or -1) | Predicted by AdaBoost |
-| Features | Written to file via callback | Passed directly to `predict()` |
+| Features | Written to file via callback (string form) | Packed `u64` keys, no strings |
 
 During training, tags are derived from the ground-truth corpus segmentation, so the model learns from correct boundary decisions. During prediction, tags are generated on-the-fly, meaning each decision depends on all previous predictions -- this is a **left-to-right greedy** approach.
 
@@ -97,7 +127,7 @@ During training, tags are derived from the ground-truth corpus segmentation, so 
 The segmentation algorithm is **linear** in the length of the input:
 
 - Each character position is visited once: O(n)
-- Feature extraction at each position: O(1) (fixed number of features, streamed through a reused buffer)
-- Prediction at each position: O(f) where f is the number of active features (~38-42), each a single `FxHashMap` probe
+- Feature extraction at each position: O(1) (fixed number of templates, each packed into a `u64` on the stack)
+- Prediction at each position: O(f) where f is the number of active features (~38-42), each a single integer-keyed `FxHashMap` probe
 - Total: O(n * f) which is effectively O(n)
-- Allocation profile: the sentence context borrows from the input, the bias is cached, and attribute/score buffers are reused across positions
+- Allocation profile: the packed context borrows word slices from the input and carries flat `u32`/`u8` arrays, the bias is cached, and no strings are built anywhere in the hot loop (the packed table itself is compiled once per model load, off the hot path)

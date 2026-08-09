@@ -63,6 +63,15 @@ bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 ```
 
+The on-disk format is string-keyed and unchanged, but the segmenter does
+not score against the strings directly: at load time each feature line is
+parsed and compiled into a packed `u64` integer key for the hot loop (see
+[Prediction Pipeline](../algorithm/prediction-pipeline.md#the-packed-scoring-table)).
+Features that the segmenter's language could never generate (for example
+type codes of another language) are ignored by that compilation -- exactly
+as they could never match an input attribute before -- while the bias is
+always computed over every weight in the file.
+
 ## File Size
 
 Model files are very compact:

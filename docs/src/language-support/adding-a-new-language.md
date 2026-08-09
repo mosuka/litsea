@@ -40,19 +40,19 @@ Language::Thai => write!(f, "thai"),
 
 ## Step 3: Create a Character Classification Function
 
-Define a function that classifies a `char` into a type code for the new language. Classification is a direct `match` on character ranges (no regex), so each class is an arm; the **first matching arm wins**:
+Define a function that classifies a `char` into a **type id** for the new language. Ids are indices into the language's ordered `type_codes()` table (Step 4): the shared classes occupy fixed indices ("O" = 0, "P" = 1, "A" = 2, "N" = 3) and language-specific classes follow from 4. Classification is a direct `match` on character ranges (no regex), so each class is an arm; the **first matching arm wins**:
 
 ```rust
-fn thai_char_type(c: char) -> &'static str {
+fn thai_char_type_id(c: char) -> u8 {
     match c {
         // Thai consonants and sequential vowels (U+0E01-U+0E3A)
-        '\u{0E01}'..='\u{0E3A}' => "T",
+        '\u{0E01}'..='\u{0E3A}' => 4, // "T"
         // Thai vowels and tone marks (U+0E40-U+0E4E)
-        '\u{0E40}'..='\u{0E4E}' => "V",
+        '\u{0E40}'..='\u{0E4E}' => 5, // "V"
         // Thai digits (U+0E50-U+0E59)
-        '\u{0E50}'..='\u{0E59}' => "N",
+        '\u{0E50}'..='\u{0E59}' => DIGIT_TYPE_ID, // "N"
         // Shared classes: "P" (punctuation), "A" (Latin), "N" (digits)
-        _ => punct_latin_digit(c).unwrap_or("O"),
+        _ => punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 ```
@@ -64,40 +64,42 @@ fn thai_char_type(c: char) -> &'static str {
 - **Consider high-frequency function words** as a separate type (as Chinese does with "F")
 - **Use match guards** for logic beyond plain ranges (as Korean does to split syllables with/without 받침)
 - Reuse the shared `punct_latin_digit()` helper for the common "P"/"A"/"N" classes
+- **Keep the code set prefix-free** -- no code may be a prefix of another (Korean's `SN`/`SF` work because `S` alone is not a code). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous (a unit test pins this per language)
 
-## Step 4: Register the Classification Function
+## Step 4: Register the Type-Code Table and Classification Function
 
-Add a match arm in `Language::char_type()`:
+Add the language's ordered code table to `Language::type_codes()` (index = type id; shared codes first) and a dispatch arm in `Language::char_type_id()`. `char_type()` itself is derived from these two, so string codes and numeric ids cannot drift apart:
 
 ```rust
-pub fn char_type(&self, c: char) -> &'static str {
+pub(crate) fn type_codes(self) -> &'static [&'static str] {
     match self {
-        Language::Japanese => japanese_char_type(c),
-        Language::Chinese => chinese_char_type(c),
-        Language::Korean => korean_char_type(c),
-        Language::Thai => thai_char_type(c),    // ← new
+        // ...
+        Language::Thai => &["O", "P", "A", "N", "T", "V"],    // ← new
+    }
+}
+
+pub(crate) fn char_type_id(self, c: char) -> u8 {
+    match self {
+        // ...
+        Language::Thai => thai_char_type_id(c),    // ← new
     }
 }
 ```
 
 ## Step 5: Decide on WC Feature Inclusion
 
-In `segmenter.rs`, the internal attribute builder (`write_attributes()`) has a `match` on the language to decide whether to include WC features:
+The feature template is defined once in `packed_model.rs` (`TEMPLATES`), and `templates_for()` decides whether a language uses the trailing `WC1`--`WC4` char/type mixed templates:
 
 ```rust
-match self.language {
-    Language::Japanese | Language::Chinese => {
-        // Include WC features
-        attr!("WC1:{}{}", w3, c4);
-        attr!("WC2:{}{}", c3, w4);
-        attr!("WC3:{}{}", w3, c3);
-        attr!("WC4:{}{}", w4, c4);
+pub(crate) fn templates_for(language: Language) -> &'static [Template] {
+    match language {
+        Language::Japanese | Language::Chinese => &TEMPLATES[..],
+        _ => &TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 base templates
     }
-    _ => {}
 }
 ```
 
-If your language's character types have enough variety to make WC features informative, add it to the match arm. If your type system is low-entropy (like Korean's SN/SF), it is better to exclude WC features.
+If your language's character types have enough variety to make WC features informative, add it to the first match arm. If your type system is low-entropy (like Korean's SN/SF), it is better to exclude WC features.
 
 ## Step 6: Prepare Corpus and Train a Model
 
