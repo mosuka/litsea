@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e6c3a9b0.js";
+            window.path_to_searchindex_js = "../searchindex-38d9a5cd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -243,15 +243,15 @@ path, so reading it during inference is O(1).</p>
 <p>This centers the decision boundary. The empty-string feature (<code>""</code>) serves as the bias bucket during training.
 It is registered at feature index 0 on every construction path (<code>new()</code>, feature-file initialization, and
 model loading), so models trained through <code>add_instance()</code> train, save, and reload correctly.</p>
-<h3 id="packed-scoring-in-the-segmenter"><a class="header" href="#packed-scoring-in-the-segmenter">Packed Scoring in the Segmenter</a></h3>
+<h3 id="compiled-scoring-in-the-segmenter"><a class="header" href="#compiled-scoring-in-the-segmenter">Compiled Scoring in the Segmenter</a></h3>
 <p><code>predict()</code> itself looks features up by string, and its semantics are
 unchanged. The <code>Segmenter</code>, however, does not call it on the hot path:
 after a model (re)load it compiles the learner’s <code>(feature, weight)</code> pairs
-into packed <code>u64</code> integer keys and scores each position with integer map
-probes instead (see
-<a href="prediction-pipeline.html#the-packed-scoring-table">Prediction Pipeline</a>).
-The compiled table mirrors the model exactly, so both paths produce the
-same scores.</p>
+into integer-indexed tables and scores each sentence in two passes (see
+<a href="prediction-pipeline.html#the-compiled-scoring-tables">Prediction Pipeline</a>).
+The compiled tables mirror the model exactly; only the floating-point
+accumulation order differs, and the differential test suite pins that the
+segmentation output stays identical in practice.</p>
 <h2 id="model-file-format"><a class="header" href="#model-file-format">Model File Format</a></h2>
 <p>The trained model is saved as a simple text file:</p>
 <pre><code class="language-text">feature1\tweight1

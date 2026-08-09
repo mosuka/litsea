@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e6c3a9b0.js";
+            window.path_to_searchindex_js = "../searchindex-38d9a5cd.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -231,7 +231,7 @@ score = bias + sum(model[feature] for feature in input_attributes)
 <p>The on-disk format is string-keyed and unchanged, but the segmenter does
 not score against the strings directly: at load time each feature line is
 parsed and compiled into a packed <code>u64</code> integer key for the hot loop (see
-<a href="../algorithm/prediction-pipeline.html#the-packed-scoring-table">Prediction Pipeline</a>).
+<a href="../algorithm/prediction-pipeline.html#the-compiled-scoring-tables">Prediction Pipeline</a>).
 Features that the segmenter’s language could never generate (for example
 type codes of another language) are ignored by that compilation – exactly
 as they could never match an input attribute before – while the bias is

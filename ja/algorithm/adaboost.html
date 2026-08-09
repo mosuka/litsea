@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2be6e582.js";
+            window.path_to_searchindex_js = "../searchindex-db3f3bf1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -242,13 +242,15 @@ prediction = +1 if score &gt;= 0, else -1
 <p>これにより決定境界が中心化されます。空文字列特徴量（<code>""</code>）は学習中のバイアスバケットとして機能します。
 この特徴量はすべての構築経路（<code>new()</code>、特徴量ファイルからの初期化、モデルの読み込み）で特徴量インデックス 0 に登録されるため、
 <code>add_instance()</code> を通じて学習されたモデルも正しく学習・保存・再読み込みできます。</p>
-<h3 id="セグメンタにおける-packed-スコアリング"><a class="header" href="#セグメンタにおける-packed-スコアリング">セグメンタにおける Packed スコアリング</a></h3>
+<h3 id="セグメンタにおけるコンパイル済みスコアリング"><a class="header" href="#セグメンタにおけるコンパイル済みスコアリング">セグメンタにおけるコンパイル済みスコアリング</a></h3>
 <p><code>predict()</code> 自体は文字列で特徴量を検索し、そのセマンティクスは変わっていません。
 ただし <code>Segmenter</code> はホットパスでこれを呼び出しません: モデルの（再）ロード後、
-学習器の <code>(特徴量, 重み)</code> ペアを packed <code>u64</code> 整数キーへコンパイルし、各位置を
-整数マップ検索でスコアリングします（<a href="prediction-pipeline.html#packed-スコアリングテーブル">予測パイプライン</a>
-を参照）。コンパイル済みテーブルはモデルを正確にミラーするため、両経路は同じ
-スコアを生成します。</p>
+学習器の <code>(特徴量, 重み)</code> ペアを整数インデックスのテーブル群へコンパイルし、
+各文を 2 パスでスコアリングします
+（<a href="prediction-pipeline.html#コンパイル済みスコアリングテーブル">予測パイプライン</a>
+を参照）。コンパイル済みテーブルはモデルを正確にミラーします。異なるのは
+浮動小数点の累積順序のみであり、差分テストスイートが分割出力の実質的な同一性を
+固定しています。</p>
 <h2 id="モデルファイル形式"><a class="header" href="#モデルファイル形式">モデルファイル形式</a></h2>
 <p>学習されたモデルはシンプルなテキストファイルとして保存されます:</p>
 <pre><code class="language-text">feature1\tweight1
