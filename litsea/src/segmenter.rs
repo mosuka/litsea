@@ -4,7 +4,9 @@ use std::sync::{PoisonError, RwLock};
 use crate::adaboost::AdaBoost;
 use crate::error::{LitseaError, Result};
 use crate::language::{Language, OTHER_TYPE_ID};
-use crate::packed_model::{PackedModel, SENTINEL_BASE, Slot, TAG_B, TAG_O, TAG_U, templates_for};
+use crate::packed_model::{
+    PackedModel, SENTINEL_BASE, Slot, TAG_B, TAG_O, TAG_U, TEMPLATES, templates_for, wc_key,
+};
 use crate::perceptron::AveragedPerceptron;
 use crate::upos::{SegmentLabel, Upos};
 
@@ -89,13 +91,16 @@ impl Segmenter {
     /// # Returns
     /// A new Segmenter instance configured for joint segmentation + POS tagging.
     pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -> Self {
+        let learner = AdaBoost::default();
+        // The default learner has no features; compiling it yields all-zero
+        // tables (correctly sized for the language), so segment() stays
+        // well-defined even though this constructor targets the POS path.
+        let packed = RwLock::new(Some(PackedModel::build(language, &learner)));
         Segmenter {
             language,
-            learner: AdaBoost::default(),
+            learner,
             pos_learner: Some(pos_learner),
-            // The default learner has no features; an empty table is its
-            // correct compilation.
-            packed: RwLock::new(Some(PackedModel::default())),
+            packed,
         }
     }
 
@@ -454,32 +459,124 @@ impl Segmenter {
         let bias = self.learner.bias();
 
         self.with_packed(|packed| {
-            let templates = templates_for(self.language);
             let type_radix = self.language.type_codes().len();
-            // Padding for lookback: tags[0..3] are fixed U (unknown), and tags[3]
-            // is also U since there is no boundary decision before the first
-            // character.
-            let mut tags: Vec<u8> = Vec::with_capacity(chars.len());
-            tags.extend_from_slice(&[TAG_U; 4]);
+            let n = chars.len();
+            // Decision positions: lo..=hi (position 3 is the first real
+            // character and always starts the first word).
+            let lo = 4usize;
+            let hi = n - 4;
 
+            // ---- Static pass: everything that does not depend on boundary
+            // tags is accumulated into a per-position buffer in one sweep.
+            // The f64 accumulation order differs from the string-keyed
+            // reference here (see the module docs of packed_model); output
+            // equality is pinned empirically by the differential tests.
+            let mut static_scores = vec![0.0f64; n];
+            // Unigram families: the char/type at context position q feeds
+            // template UW(k+1)/UC(k+1) at decision position i = q + 3 - k
+            // (their slot delta k reads context index i - 3 + k). UW is one
+            // merged probe; UC is a direct index into its scatter vector.
+            for (q, code) in char_codes.iter().enumerate() {
+                if let Some(v) = packed.uw.get(code) {
+                    for (k, w) in v.iter().enumerate() {
+                        let i = (q + 3).wrapping_sub(k);
+                        if (lo..=hi).contains(&i) {
+                            static_scores[i] += w;
+                        }
+                    }
+                }
+                for (k, w) in packed.uc[type_ids[q] as usize].iter().enumerate() {
+                    let i = (q + 3).wrapping_sub(k);
+                    if (lo..=hi).contains(&i) {
+                        static_scores[i] += w;
+                    }
+                }
+            }
+            // Bigram families: the adjacent pair (q, q+1) feeds BW(k+1)/
+            // BC(k+1) at i = q + 2 - k; the triple (q, q+1, q+2) feeds
+            // TC(k+1) at i = q + 3 - k.
+            for q in 0..n - 1 {
+                let key = (u64::from(char_codes[q]) << 24) | u64::from(char_codes[q + 1]);
+                if let Some(v) = packed.bw.get(&key) {
+                    for (k, w) in v.iter().enumerate() {
+                        let i = q + 2 - k;
+                        if (lo..=hi).contains(&i) {
+                            static_scores[i] += w;
+                        }
+                    }
+                }
+                let pair = type_ids[q] as usize * type_radix + type_ids[q + 1] as usize;
+                for (k, w) in packed.bc[pair].iter().enumerate() {
+                    let i = q + 2 - k;
+                    if (lo..=hi).contains(&i) {
+                        static_scores[i] += w;
+                    }
+                }
+                if q + 2 < n {
+                    let triple = pair * type_radix + type_ids[q + 2] as usize;
+                    for (k, w) in packed.tc[triple].iter().enumerate() {
+                        let i = (q + 3).wrapping_sub(k);
+                        if (lo..=hi).contains(&i) {
+                            static_scores[i] += w;
+                        }
+                    }
+                }
+            }
+            // WC probes (Japanese/Chinese only), gathered per position with
+            // the slot layout of WC1..WC4: (w3,c4), (c3,w4), (w3,c3),
+            // (w4,c4) — pinned against TEMPLATES by a unit test.
+            if templates_for(self.language).len() == TEMPLATES.len() && !packed.wc.is_empty() {
+                for i in lo..=hi {
+                    let w = |idx: usize, chr: u32, typ: u8| {
+                        packed.wc.get(&wc_key(idx, chr, typ)).copied().unwrap_or(0.0)
+                    };
+                    static_scores[i] += w(0, char_codes[i - 1], type_ids[i])
+                        + w(1, char_codes[i], type_ids[i - 1])
+                        + w(2, char_codes[i - 1], type_ids[i - 1])
+                        + w(3, char_codes[i], type_ids[i]);
+                }
+            }
+
+            // ---- Sequential pass: only the 16 tag-dependent templates
+            // (all dense loads, indexed directly with the mixed-radix
+            // layout of Template::dense_index — pinned by a unit test)
+            // plus the boundary decision remain.
+            // Padding for lookback: tags[0..3] are fixed U (unknown), and
+            // tags[3] is also U since there is no boundary decision before
+            // the first character.
+            let t = type_radix;
+            let d = &packed.dense;
+            let mut tags: Vec<u8> = Vec::with_capacity(n);
+            tags.extend_from_slice(&[TAG_U; 4]);
             let mut result = Vec::new();
             let mut word = chars[3].to_string();
-            for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
-                // Sum the weights in template order; every miss adds 0.0 so
-                // the f64 accumulation sequence matches the string-keyed
-                // reference bit for bit. Tag/type-only templates read a
-                // direct-indexed dense table; char-bearing ones probe the map
-                // by packed key.
-                let mut score = bias;
-                for template in templates {
-                    let dense = &packed.dense[template.id as usize];
-                    score += if dense.is_empty() {
-                        let key = template.pack(i, &tags, &char_codes, &type_ids);
-                        packed.weights.get(&key).copied().unwrap_or(0.0)
-                    } else {
-                        dense[template.dense_index(i, &tags, &type_ids, type_radix)]
-                    };
-                }
+            for (i, ch) in chars.iter().enumerate().take(n - 3).skip(4) {
+                let (p1, p2, p3) =
+                    (tags[i - 3] as usize, tags[i - 2] as usize, tags[i - 1] as usize);
+                let (c1, c2, c3, c4) = (
+                    type_ids[i - 3] as usize,
+                    type_ids[i - 2] as usize,
+                    type_ids[i - 1] as usize,
+                    type_ids[i] as usize,
+                );
+                let score = bias
+                    + static_scores[i]
+                    + d[0][p1]
+                    + d[1][p2]
+                    + d[2][p3]
+                    + d[3][p1 * 3 + p2]
+                    + d[4][p2 * 3 + p3]
+                    + d[27][p1 * t + c1]
+                    + d[28][p2 * t + c2]
+                    + d[29][p3 * t + c3]
+                    + d[30][(p2 * t + c2) * t + c3]
+                    + d[31][(p2 * t + c3) * t + c4]
+                    + d[32][(p3 * t + c2) * t + c3]
+                    + d[33][(p3 * t + c3) * t + c4]
+                    + d[34][((p2 * t + c1) * t + c2) * t + c3]
+                    + d[35][((p2 * t + c2) * t + c3) * t + c4]
+                    + d[36][((p3 * t + c1) * t + c2) * t + c3]
+                    + d[37][((p3 * t + c2) * t + c3) * t + c4];
                 if score >= 0.0 {
                     result.push(std::mem::take(&mut word));
                     tags.push(TAG_B);
@@ -1179,6 +1276,45 @@ mod tests {
         learner.load_model_from_reader(model.as_bytes()).unwrap();
         let segmenter = Segmenter::with_learner(Language::Japanese, learner);
         assert_segment_matches_reference(&segmenter, &["xyz", "B1x", "xB1", "B1", "x"]);
+    }
+
+    #[test]
+    fn test_segment_scatter_offsets_per_template() {
+        // One synthetic model per UW/BW template, each with a single strong
+        // feature, segmented over strings where that feature fires at the
+        // head/tail sentinel boundaries. An off-by-one in the scatter-add
+        // offsets flips a boundary decision and diverges from the
+        // string-keyed reference, so each template's offset is verified in
+        // isolation.
+        let single_feature_models = [
+            "UW1:あ\t2.0\n0.0\n",
+            "UW2:あ\t2.0\n0.0\n",
+            "UW3:あ\t2.0\n0.0\n",
+            "UW4:あ\t2.0\n0.0\n",
+            "UW5:あ\t2.0\n0.0\n",
+            "UW6:あ\t2.0\n0.0\n",
+            "UW1:B2\t2.0\n0.0\n",
+            "UW6:E2\t2.0\n0.0\n",
+            "BW1:あい\t2.0\n0.0\n",
+            "BW2:あい\t2.0\n0.0\n",
+            "BW3:あい\t2.0\n0.0\n",
+            "BW1:B1あ\t2.0\n0.0\n",
+            "BW3:いE1\t2.0\n0.0\n",
+        ];
+        let inputs =
+            ["あ", "あい", "あいう", "xあいうy", "ああああ", "あいあい", "いいあ", "あ漢い"];
+        for model in single_feature_models {
+            let mut learner = AdaBoost::new(0.01, 100);
+            learner.load_model_from_reader(model.as_bytes()).unwrap();
+            let segmenter = Segmenter::with_learner(Language::Japanese, learner);
+            for input in inputs {
+                assert_eq!(
+                    segmenter.segment(input),
+                    segmenter.segment_reference(input),
+                    "model {model:?} input {input:?}"
+                );
+            }
+        }
     }
 
     #[test]

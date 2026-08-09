@@ -1,23 +1,28 @@
-//! Declarative feature-template table and packed integer feature keys.
+//! Declarative feature-template table and the compiled two-pass scoring
+//! model.
 //!
 //! This module is the single source of truth for the segmentation feature
-//! template (issue #136). Three consumers derive from the [`TEMPLATES`]
-//! table:
+//! template (issues #136/#138/#139). Three consumers derive from the
+//! [`TEMPLATES`] table:
 //!
 //! 1. The string writer ([`crate::segmenter::Segmenter`]'s `write_attributes`),
 //!    which renders feature strings for training, extraction, and the POS
-//!    path.
-//! 2. The packed-key writer ([`Template::pack`]), used by `segment()`'s hot
-//!    loop to score positions without building strings.
-//! 3. The load-time parser ([`parse_feature_keys`]), which converts a trained
-//!    model's string feature keys into packed keys once, when the model is
-//!    compiled into a [`PackedModel`].
+//!    path in the table's emission order.
+//! 2. The load-time parser ([`parse_feature_keys`]), which converts a
+//!    trained model's string feature keys into packed integer keys once,
+//!    when the model is compiled into a [`PackedModel`].
+//! 3. The two-pass scorer in `segment()`, which reads the compiled tables:
+//!    a static pass scatter-adds every tag-free feature (merged `UW`/`BW`
+//!    probes, `WC` probes, `UC`/`BC`/`TC` dense loads) into a per-position
+//!    buffer, and a sequential pass adds the 16 tag-dependent dense loads.
 //!
-//! The table order is load-bearing: `segment()` sums `f64` weights in
-//! emission order and float addition is not associative, so the order must
-//! stay byte-for-byte compatible with the historical `write_attributes`
-//! emission sequence. The language-gated `WC1`..`WC4` templates sit last so
-//! that [`templates_for`] can hand out a prefix slice.
+//! The table order still defines the string writer's emission sequence
+//! (model files and training data depend on it). Scoring accumulates in
+//! two-pass order instead, so segmentation output is not bit-for-bit
+//! guaranteed against the string-keyed reference; it is pinned empirically
+//! by the exact-equality differential tests (zero divergence across all
+//! bundled models and corpora). The language-gated `WC1`..`WC4` templates
+//! sit last so that [`templates_for`] can hand out a prefix slice.
 
 use rustc_hash::FxHashMap;
 
@@ -147,9 +152,13 @@ impl Template {
     /// * `types` - Type ids per position ([`Language::char_type_id`]).
     ///
     /// # Returns
-    /// The packed key for looking up this feature's weight in a
-    /// [`PackedModel`].
-    #[inline]
+    /// The packed key for this feature.
+    ///
+    /// Test-only since the two-pass scorer: production code derives keys at
+    /// build time via [`parse_feature_keys`] and scores through the merged
+    /// tables, but the pack/parse roundtrip tests keep pinning the key
+    /// encoding that `build` decodes.
+    #[cfg(test)]
     pub(crate) fn pack(&self, i: usize, tags: &[u8], chars: &[u32], types: &[u8]) -> u64 {
         let mut acc = 0u64;
         for slot in self.slots {
@@ -165,10 +174,47 @@ impl Template {
     /// Returns true when every slot is a `Tag`/`Typ` slot, i.e. the
     /// template's key space is the small mixed-radix product of the tag and
     /// type domains and its weights can live in a direct-indexed dense
-    /// table ([`PackedModel::dense`]) instead of the hash map. 29 of the 42
-    /// templates qualify (all but `UW*`, `BW*`, `WC*`).
+    /// table ([`PackedModel::dense`]). 29 of the 42 templates qualify (all
+    /// but `UW*`, `BW*`, `WC*`, whose weights live in the merged-vector
+    /// hash tables).
     pub(crate) fn is_dense(&self) -> bool {
         self.slots.iter().all(|slot| !matches!(slot, Slot::Chr(_)))
+    }
+
+    /// Returns true when the template reads at least one boundary tag, i.e.
+    /// it depends on earlier segmentation decisions and must be scored in
+    /// the sequential pass (`UP*`, `BP*`, `UQ*`, `BQ*`, `TQ*` — 16
+    /// templates). Tag-free templates depend only on the input text and are
+    /// scored in the static pass. Test-only: production uses the pinned id
+    /// ranges (`TAG_HEAD_IDS` etc.), and the partition test asserts they
+    /// agree with this predicate.
+    #[cfg(test)]
+    pub(crate) fn has_tag_slot(&self) -> bool {
+        self.slots.iter().any(|slot| matches!(slot, Slot::Tag(_)))
+    }
+
+    /// Decodes the (char code, type id) pair out of a packed key of a
+    /// template with exactly one `Chr` and one `Typ` slot (the `WC*`
+    /// templates), walking the slots with their pack widths (24 bits per
+    /// `Chr`, 8 per `Tag`/`Typ`).
+    fn decode_chr_typ(&self, key: u64) -> (u32, u8) {
+        let mut shift: u32 = self
+            .slots
+            .iter()
+            .map(|slot| if matches!(slot, Slot::Chr(_)) { 24 } else { 8 })
+            .sum();
+        let (mut chr, mut typ) = (0u32, 0u8);
+        for slot in self.slots {
+            let width = if matches!(slot, Slot::Chr(_)) { 24 } else { 8 };
+            shift -= width;
+            let value = (key >> shift) & ((1u64 << width) - 1);
+            match slot {
+                Slot::Chr(_) => chr = value as u32,
+                Slot::Typ(_) => typ = value as u8,
+                Slot::Tag(_) => {}
+            }
+        }
+        (chr, typ)
     }
 
     /// Number of entries in this template's dense table for a language with
@@ -198,7 +244,11 @@ impl Template {
     ///
     /// # Returns
     /// An index strictly below [`dense_size`](Self::dense_size).
-    #[inline]
+    ///
+    /// Test-only since the two-pass scorer hard-codes the mixed-radix
+    /// expressions per family: this remains the canonical definition the
+    /// hard-coded indices are pinned against.
+    #[cfg(test)]
     pub(crate) fn dense_index(
         &self,
         i: usize,
@@ -240,6 +290,36 @@ impl Template {
 
 /// Radix of a tag slot (`TAG_U`/`TAG_B`/`TAG_O`).
 const TAG_RADIX: usize = 3;
+
+/// Template-id ranges of the template families, used to route packed keys
+/// into the per-family tables and to partition scoring into the static and
+/// sequential passes. The ids are pinned by `test_template_ids_match_indices`
+/// and the partition by `test_family_ranges_match_predicates`.
+pub(crate) const UW_IDS: std::ops::Range<usize> = 5..11;
+pub(crate) const BW_IDS: std::ops::Range<usize> = 11..14;
+/// `UC*`, `BC*`, `TC*`: dense, tag-free — scored in the static pass.
+pub(crate) const TYPE_ONLY_IDS: std::ops::Range<usize> = 14..27;
+/// First template id of the `BC*` family (within [`TYPE_ONLY_IDS`]).
+pub(crate) const BC_FIRST_ID: usize = 20;
+/// First template id of the `TC*` family (within [`TYPE_ONLY_IDS`]).
+pub(crate) const TC_FIRST_ID: usize = 23;
+/// `UP*`, `BP*`: dense, tag-dependent — scored in the sequential pass
+/// (via hard-coded indices pinned by tests against these ranges).
+#[cfg(test)]
+pub(crate) const TAG_HEAD_IDS: std::ops::Range<usize> = 0..5;
+/// `UQ*`, `BQ*`, `TQ*`: dense, tag-dependent — scored in the sequential
+/// pass (via hard-coded indices pinned by tests against these ranges).
+#[cfg(test)]
+pub(crate) const TAG_TAIL_IDS: std::ops::Range<usize> = 27..38;
+pub(crate) const WC_IDS: std::ops::Range<usize> = 38..42;
+
+/// Builds the slot-order-normalized key of a `WC*` weight in
+/// [`PackedModel::wc`]: the template's index within the `WC` family plus
+/// its (char code, type id) pair, independent of which slot renders first.
+#[inline]
+pub(crate) fn wc_key(wc_index: usize, chr: u32, typ: u8) -> u64 {
+    ((wc_index as u64) << 32) | (u64::from(chr) << 8) | u64::from(typ)
+}
 
 /// Number of templates shared by all languages (everything before `WC1`).
 const BASE_TEMPLATE_COUNT: usize = 38;
@@ -332,42 +412,50 @@ fn parse_slots(
     }
 }
 
-/// A trained AdaBoost model compiled to integer feature keys for
-/// allocation-free scoring in `segment()`'s hot loop. Tag/type-only
-/// templates live in direct-indexed dense tables (single array load per
-/// feature); char-bearing templates use a hash map probe on the packed
-/// key. The bias is read from the learner.
+/// A trained AdaBoost model compiled for two-pass scoring in `segment()`.
+///
+/// Char-bearing templates live in merged-vector hash tables — one probe
+/// covers a whole family at a text position, and the contributions are
+/// scatter-added into a per-position static score in a single pass over the
+/// sentence. Tag/type-only templates keep the direct-indexed dense tables
+/// from the previous design. The bias is read from the learner.
 #[derive(Debug)]
 pub(crate) struct PackedModel {
-    /// Char-bearing templates (`UW*`, `BW*`, `WC*`): packed key -> weight.
-    pub(crate) weights: FxHashMap<u64, f64>,
+    /// Char code -> `[UW1..UW6]` weights: one probe per text position
+    /// covers all six unigram-word templates (scatter-added to the six
+    /// neighboring decision positions).
+    pub(crate) uw: FxHashMap<u32, [f64; 6]>,
+    /// `(a << 24) | b` (adjacent char codes) -> `[BW1..BW3]` weights: one
+    /// probe per adjacent pair covers all three bigram-word templates.
+    pub(crate) bw: FxHashMap<u64, [f64; 3]>,
+    /// [`wc_key`]-keyed `WC*` weights (Japanese/Chinese only).
+    pub(crate) wc: FxHashMap<u64, f64>,
+    /// Type id -> `[UC1..UC6]` weights: the scatter twin of the `UC*`
+    /// dense tables (derived from `dense`, one direct index per position).
+    pub(crate) uc: Vec<[f64; 6]>,
+    /// Type-id pair (`t1 * T + t2`) -> `[BC1..BC3]` weights.
+    pub(crate) bc: Vec<[f64; 3]>,
+    /// Type-id triple (`(t1 * T + t2) * T + t3`) -> `[TC1..TC4]` weights.
+    pub(crate) tc: Vec<[f64; 4]>,
     /// Dense weight tables indexed by template id, one per
-    /// [`Template::is_dense`] template (empty `Vec` for map-scored
-    /// templates, so the scorer dispatches on `is_empty()`). Entry order is
-    /// the mixed-radix index of [`Template::dense_index`]; unset entries
-    /// stay `0.0`, reproducing a hash-map miss exactly.
+    /// [`Template::is_dense`] template (empty `Vec` for the char-bearing
+    /// templates, which live in the maps above). Entry order is the
+    /// mixed-radix index of [`Template::dense_index`]; unset entries stay
+    /// `0.0`, equivalent to a hash-map miss. The canonical store for the
+    /// tag-dependent sequential pass; the `uc`/`bc`/`tc` scatter vectors
+    /// above are derived views of ids 14..27.
     pub(crate) dense: Vec<Vec<f64>>,
 }
 
-impl Default for PackedModel {
-    /// An empty model: no map entries and zero-length dense tables. Every
-    /// lookup dispatches to the map path and misses (adds 0.0), matching an
-    /// untrained learner.
-    fn default() -> Self {
-        PackedModel {
-            weights: FxHashMap::default(),
-            dense: vec![Vec::new(); TEMPLATES.len()],
-        }
-    }
-}
-
 impl PackedModel {
-    /// Compiles the learner's string-keyed weights into integer keys for
-    /// `language`. Called once per model (re)load, not on the hot path.
+    /// Compiles the learner's string-keyed weights into the two-pass
+    /// scoring tables for `language`. Called once per model (re)load, not
+    /// on the hot path.
     ///
     /// Dense-eligible templates get a 0.0-initialized table sized by
-    /// [`Template::dense_size`]; their parsed keys are decoded into
-    /// mixed-radix indices. All other keys go into the hash map.
+    /// [`Template::dense_size`]; `UW*`/`BW*` keys are decoded into the
+    /// merged-vector maps (family slot = template id offset within the
+    /// family); `WC*` keys are normalized via [`wc_key`].
     ///
     /// # Arguments
     /// * `language` - The language whose templates to compile for.
@@ -378,7 +466,9 @@ impl PackedModel {
     /// attribute writer can generate for `language`.
     pub(crate) fn build(language: Language, learner: &AdaBoost) -> Self {
         let type_radix = language.type_codes().len();
-        let mut weights = FxHashMap::default();
+        let mut uw: FxHashMap<u32, [f64; 6]> = FxHashMap::default();
+        let mut bw: FxHashMap<u64, [f64; 3]> = FxHashMap::default();
+        let mut wc: FxHashMap<u64, f64> = FxHashMap::default();
         let mut dense: Vec<Vec<f64>> = TEMPLATES
             .iter()
             .map(|t| if t.is_dense() { vec![0.0; t.dense_size(type_radix)] } else { Vec::new() })
@@ -388,16 +478,49 @@ impl PackedModel {
             keys.clear();
             parse_feature_keys(language, feature, &mut keys);
             for &key in &keys {
-                let template = &TEMPLATES[(key >> 56) as usize];
+                let tid = (key >> 56) as usize;
+                let template = &TEMPLATES[tid];
                 if template.is_dense() {
                     let idx = template.dense_index_from_key(key, type_radix);
-                    dense[template.id as usize][idx] = weight;
+                    dense[tid][idx] = weight;
+                } else if UW_IDS.contains(&tid) {
+                    // Single Chr slot: the char code is the low 24 bits.
+                    let code = (key & 0xFF_FFFF) as u32;
+                    uw.entry(code).or_insert([0.0; 6])[tid - UW_IDS.start] = weight;
+                } else if BW_IDS.contains(&tid) {
+                    // Two Chr slots: (a << 24) | b in the low 48 bits, the
+                    // same layout the scatter pass builds from adjacent
+                    // char codes.
+                    bw.entry(key & 0xFFFF_FFFF_FFFF).or_insert([0.0; 3])[tid - BW_IDS.start] =
+                        weight;
                 } else {
-                    weights.insert(key, weight);
+                    let (chr, typ) = template.decode_chr_typ(key);
+                    wc.insert(wc_key(tid - WC_IDS.start, chr, typ), weight);
                 }
             }
         }
-        PackedModel { weights, dense }
+        // Derive the scatter twins of the type-only dense tables: family
+        // slot k of entry v holds dense[first_id + k][v]. The dense tables
+        // stay canonical; these views trade memory (a few KB) for one direct
+        // index per position in the static pass.
+        let t = type_radix;
+        let uc: Vec<[f64; 6]> = (0..t)
+            .map(|v| std::array::from_fn(|k| dense[TYPE_ONLY_IDS.start + k][v]))
+            .collect();
+        let bc: Vec<[f64; 3]> =
+            (0..t * t).map(|v| std::array::from_fn(|k| dense[BC_FIRST_ID + k][v])).collect();
+        let tc: Vec<[f64; 4]> = (0..t * t * t)
+            .map(|v| std::array::from_fn(|k| dense[TC_FIRST_ID + k][v]))
+            .collect();
+        PackedModel {
+            uw,
+            bw,
+            wc,
+            uc,
+            bc,
+            tc,
+            dense,
+        }
     }
 }
 
@@ -599,13 +722,13 @@ mod tests {
         learner.load_model_from_reader(model.as_bytes()).unwrap();
 
         let packed = PackedModel::build(Language::Japanese, &learner);
-        // UW4:い (char-bearing) lands in the map; BC2:OI (tag/type-only)
-        // lands in its dense table; UC1:SN (Korean code) and ZZZ:x parse for
-        // no Japanese template and are skipped entirely.
-        assert_eq!(packed.weights.len(), 1);
-        // UW4 = [Chr(3)] (id 8).
-        let uw4 = (8u64 << 56) | u64::from('い');
-        assert_eq!(packed.weights.get(&uw4), Some(&0.5));
+        // UW4:い (char-bearing) lands in the merged uw table at family slot
+        // 3; BC2:OI (tag/type-only) lands in its dense table; UC1:SN (Korean
+        // code) and ZZZ:x parse for no Japanese template and are skipped.
+        assert_eq!(packed.uw.len(), 1);
+        assert_eq!(packed.uw.get(&u32::from('い')), Some(&[0.0, 0.0, 0.0, 0.5, 0.0, 0.0]));
+        assert!(packed.bw.is_empty());
+        assert!(packed.wc.is_empty());
         // BC2 = [Typ(2), Typ(3)] (id 21) with Japanese ids O=0, I=6:
         // mixed-radix index = 0 * 8 + 6.
         assert_eq!(packed.dense[21][6], -0.25);
@@ -691,6 +814,186 @@ mod tests {
         let types = [0u8, 0, 2, 3, 6, 0, 0];
         let idx = template.dense_index(4, &tags, &types, 8);
         assert_eq!(packed.dense[37][idx], 0.75);
-        assert!(packed.weights.is_empty());
+        assert!(packed.uw.is_empty() && packed.bw.is_empty() && packed.wc.is_empty());
+    }
+
+    // --- Two-pass scoring tests (#139) ---
+
+    #[test]
+    fn test_family_ranges_match_predicates() {
+        // The pinned id ranges used for build routing and pass partitioning
+        // must agree with the slot-derived predicates.
+        for (i, template) in TEMPLATES.iter().enumerate() {
+            assert_eq!(UW_IDS.contains(&i), template.prefix.starts_with("UW"));
+            assert_eq!(BW_IDS.contains(&i), template.prefix.starts_with("BW"));
+            assert_eq!(WC_IDS.contains(&i), template.prefix.starts_with("WC"));
+            assert_eq!(
+                TYPE_ONLY_IDS.contains(&i),
+                template.is_dense() && !template.has_tag_slot(),
+                "{}",
+                template.prefix
+            );
+            assert_eq!(
+                TAG_HEAD_IDS.contains(&i) || TAG_TAIL_IDS.contains(&i),
+                template.is_dense() && template.has_tag_slot(),
+                "{}",
+                template.prefix
+            );
+        }
+        assert_eq!(TYPE_ONLY_IDS.len(), 13);
+        assert_eq!(TAG_HEAD_IDS.len() + TAG_TAIL_IDS.len(), 16);
+    }
+
+    #[test]
+    fn test_sequential_pass_indices_match_dense_index() {
+        // The two-pass scorer hard-codes the mixed-radix index expressions
+        // for the 16 tag-dependent templates. Pin them against the
+        // canonical Template::dense_index over every (tags, types)
+        // combination for the largest type radix in use.
+        let t = 10usize; // Korean type-code count (largest)
+        for p1 in 0..3usize {
+            for p2 in 0..3usize {
+                for p3 in 0..3usize {
+                    for c1 in 0..t {
+                        for c2 in 0..t {
+                            for c3 in 0..t {
+                                for c4 in 0..t {
+                                    // Position i = 4 reads context indices
+                                    // 1..=3 (tags) and 1..=4 (types).
+                                    let tags = [0, p1 as u8, p2 as u8, p3 as u8, 0, 0, 0];
+                                    let types = [0, c1 as u8, c2 as u8, c3 as u8, c4 as u8, 0, 0];
+                                    let expected: [usize; 16] = [
+                                        p1,
+                                        p2,
+                                        p3,
+                                        p1 * 3 + p2,
+                                        p2 * 3 + p3,
+                                        p1 * t + c1,
+                                        p2 * t + c2,
+                                        p3 * t + c3,
+                                        (p2 * t + c2) * t + c3,
+                                        (p2 * t + c3) * t + c4,
+                                        (p3 * t + c2) * t + c3,
+                                        (p3 * t + c3) * t + c4,
+                                        ((p2 * t + c1) * t + c2) * t + c3,
+                                        ((p2 * t + c2) * t + c3) * t + c4,
+                                        ((p3 * t + c1) * t + c2) * t + c3,
+                                        ((p3 * t + c2) * t + c3) * t + c4,
+                                    ];
+                                    let ids = TAG_HEAD_IDS.chain(TAG_TAIL_IDS);
+                                    for (tid, exp) in ids.zip(expected) {
+                                        assert_eq!(
+                                            TEMPLATES[tid].dense_index(4, &tags, &types, t),
+                                            exp,
+                                            "{}",
+                                            TEMPLATES[tid].prefix
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_static_scatter_offsets_match_slots() {
+        // The static pass scatter-adds with hard-coded position offsets:
+        // unigram families (UW/UC) at i = q + 3 - k, bigram families
+        // (BW/BC) at i = q + 2 - k, TC at i = q + 3 - k, and WC gathered at
+        // (w3,c4), (c3,w4), (w3,c3), (w4,c4). Derive each template's true
+        // offset from its slot deltas and pin the hard-coded values.
+        for (k, tid) in UW_IDS.enumerate() {
+            let Slot::Chr(d) = TEMPLATES[tid].slots[0] else { panic!() };
+            // Slot reads context q = i - 3 + d, so i = q + 3 - d and d == k.
+            assert_eq!(d as usize, k, "{}", TEMPLATES[tid].prefix);
+        }
+        for (k, tid) in (TYPE_ONLY_IDS.start..BC_FIRST_ID).enumerate() {
+            let Slot::Typ(d) = TEMPLATES[tid].slots[0] else { panic!() };
+            assert_eq!(d as usize, k, "{}", TEMPLATES[tid].prefix);
+        }
+        for (k, tid) in BW_IDS.enumerate() {
+            let [Slot::Chr(a), Slot::Chr(b)] = TEMPLATES[tid].slots else { panic!() };
+            // Pair (q, q+1) with q = i - 3 + a, adjacency b = a + 1;
+            // i = q + 2 - k requires a == k + 1.
+            assert_eq!((*a as usize, *b as usize), (k + 1, k + 2), "{}", TEMPLATES[tid].prefix);
+        }
+        for (k, tid) in (BC_FIRST_ID..TC_FIRST_ID).enumerate() {
+            let [Slot::Typ(a), Slot::Typ(b)] = TEMPLATES[tid].slots else { panic!() };
+            assert_eq!((*a as usize, *b as usize), (k + 1, k + 2), "{}", TEMPLATES[tid].prefix);
+        }
+        for (k, tid) in (TC_FIRST_ID..TYPE_ONLY_IDS.end).enumerate() {
+            let [Slot::Typ(a), Slot::Typ(b), Slot::Typ(c)] = TEMPLATES[tid].slots else {
+                panic!()
+            };
+            // Triple (q, q+1, q+2) with q = i - 3 + a; i = q + 3 - k
+            // requires a == k.
+            assert_eq!(
+                (*a as usize, *b as usize, *c as usize),
+                (k, k + 1, k + 2),
+                "{}",
+                TEMPLATES[tid].prefix
+            );
+        }
+        // WC context deltas: (Chr, Typ) pairs per family index.
+        let expected_wc = [(2u8, 3u8), (3, 2), (2, 2), (3, 3)];
+        for (k, tid) in WC_IDS.enumerate() {
+            let (mut chr_d, mut typ_d) = (0u8, 0u8);
+            for slot in TEMPLATES[tid].slots {
+                match *slot {
+                    Slot::Chr(d) => chr_d = d,
+                    Slot::Typ(d) => typ_d = d,
+                    Slot::Tag(_) => panic!(),
+                }
+            }
+            assert_eq!((chr_d, typ_d), expected_wc[k], "{}", TEMPLATES[tid].prefix);
+        }
+    }
+
+    #[test]
+    fn test_scatter_vectors_match_dense_tables() {
+        // The uc/bc/tc scatter vectors are derived views of the dense
+        // tables; verify the derivation on a model with features in each
+        // family.
+        let model = "UC3:I\t0.1\nBC2:HI\t0.2\nTC4:IHK\t0.3\n0.0\n";
+        let mut learner = AdaBoost::new(0.01, 100);
+        learner.load_model_from_reader(model.as_bytes()).unwrap();
+        let packed = PackedModel::build(Language::Japanese, &learner);
+        let t = 8usize;
+        // Japanese ids: I=6, H=5, K=7. UC3 = family slot 2; BC2 = slot 1;
+        // TC4 = slot 3.
+        assert_eq!(packed.uc[6][2], 0.1);
+        assert_eq!(packed.bc[5 * t + 6][1], 0.2);
+        assert_eq!(packed.tc[(6 * t + 5) * t + 7][3], 0.3);
+        for (v, arr) in packed.uc.iter().enumerate() {
+            for (k, w) in arr.iter().enumerate() {
+                assert_eq!(*w, packed.dense[TYPE_ONLY_IDS.start + k][v]);
+            }
+        }
+    }
+
+    #[test]
+    fn test_build_merged_uw_bw_wc_tables() {
+        // Family slots and key layouts of the merged tables, including
+        // sentinel chars and both WC slot orders (WC2 renders type first).
+        let model = "UW1:B2\t0.1\nUW6:あ\t0.2\nBW1:B1あ\t0.3\nBW3:あい\t0.4\nWC2:Iい\t0.5\nWC4:いI\t0.6\n0.0\n";
+        let mut learner = AdaBoost::new(0.01, 100);
+        learner.load_model_from_reader(model.as_bytes()).unwrap();
+        let packed = PackedModel::build(Language::Japanese, &learner);
+
+        let b1 = SENTINEL_BASE + 2;
+        let b2 = SENTINEL_BASE + 1;
+        assert_eq!(packed.uw.get(&b2), Some(&[0.1, 0.0, 0.0, 0.0, 0.0, 0.0]));
+        assert_eq!(packed.uw.get(&u32::from('あ')), Some(&[0.0, 0.0, 0.0, 0.0, 0.0, 0.2]));
+        let bw1_key = (u64::from(b1) << 24) | u64::from('あ');
+        let bw3_key = (u64::from('あ') << 24) | u64::from('い');
+        assert_eq!(packed.bw.get(&bw1_key), Some(&[0.3, 0.0, 0.0]));
+        assert_eq!(packed.bw.get(&bw3_key), Some(&[0.0, 0.0, 0.4]));
+        // Japanese type id I = 6; WC family indices are 1 (WC2) and 3 (WC4).
+        assert_eq!(packed.wc.get(&wc_key(1, u32::from('い'), 6)), Some(&0.5));
+        assert_eq!(packed.wc.get(&wc_key(3, u32::from('い'), 6)), Some(&0.6));
+        assert_eq!(packed.wc.len(), 2);
     }
 }
