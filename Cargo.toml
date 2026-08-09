@@ -12,7 +12,7 @@ lto = "thin"
 codegen-units = 1
 
 [workspace.package]
-version = "0.6.0"
+version = "0.7.0"
 edition = "2024"
 rust-version = "1.87"
 description = "Litsea is an extremely compact word segmentation and model training tool implemented in Rust."
@@ -25,18 +25,18 @@ categories = ["text-processing"]
 license = "MIT"
 
 [workspace.dependencies]
-clap = { version = "4.6.1", features = ["derive"] }
+clap = { version = "4.6.6", features = ["derive"] }
 ctrlc = "3.5.2"
 reqwest = { version = "0.13.4", features = [
     "rustls",
 ], default-features = false } # use rustls instead of native-tls to avoid linking openssl; disables http2, charset, and system-proxy
-rustc-hash = "2.1.1"
+rustc-hash = "2.1.3"
 tempfile = "3.27.0"
-thiserror = "2.0.18"
-tokio = { version = "1.52.3", features = ["rt-multi-thread", "macros"] }
+thiserror = "2.0.20"
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros"] }
 tokio-test = "0.4.5"
 criterion = { version = "0.8.2", default-features = false, features = [
     "html_reports",
 ] }
 
-litsea = { version = "0.6.0", path = "./litsea" }
+litsea = { version = "0.7.0", path = "./litsea" }
