@@ -455,6 +455,7 @@ impl Segmenter {
 
         self.with_packed(|packed| {
             let templates = templates_for(self.language);
+            let type_radix = self.language.type_codes().len();
             // Padding for lookback: tags[0..3] are fixed U (unknown), and tags[3]
             // is also U since there is no boundary decision before the first
             // character.
@@ -464,13 +465,20 @@ impl Segmenter {
             let mut result = Vec::new();
             let mut word = chars[3].to_string();
             for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
-                // Sum the weights by packed key; a miss adds 0.0 so the f64
-                // accumulation sequence matches the string-keyed reference
-                // bit for bit.
+                // Sum the weights in template order; every miss adds 0.0 so
+                // the f64 accumulation sequence matches the string-keyed
+                // reference bit for bit. Tag/type-only templates read a
+                // direct-indexed dense table; char-bearing ones probe the map
+                // by packed key.
                 let mut score = bias;
                 for template in templates {
-                    let key = template.pack(i, &tags, &char_codes, &type_ids);
-                    score += packed.weights.get(&key).copied().unwrap_or(0.0);
+                    let dense = &packed.dense[template.id as usize];
+                    score += if dense.is_empty() {
+                        let key = template.pack(i, &tags, &char_codes, &type_ids);
+                        packed.weights.get(&key).copied().unwrap_or(0.0)
+                    } else {
+                        dense[template.dense_index(i, &tags, &type_ids, type_radix)]
+                    };
                 }
                 if score >= 0.0 {
                     result.push(std::mem::take(&mut word));
