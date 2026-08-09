@@ -55,67 +55,78 @@ Push the remaining word "。" to the result.
 ["これ", "は", "テスト", "です", "。"]
 ```
 
-## How Prediction Works at Each Position
+## How Prediction Works: Two Passes
 
 `segment()` never builds feature strings. When a model is loaded, the
-segmenter compiles the learner's string-keyed weights into **packed `u64`
-feature keys** once (see below); the hot loop then works entirely on
-integers. At each position *i*, the segmenter:
+segmenter compiles the learner's string-keyed weights into integer-indexed
+tables once (see below), and each sentence is then scored in **two
+passes**, exploiting the fact that only 16 of the 38--42 features depend
+on earlier boundary decisions:
 
-1. **Indexes features** -- For each of the 38--42 templates, derives an
-   integer key from the relevant boundary-tag ids, character type ids, and
-   character code points, entirely on the stack. Tag/type-only templates
-   (29 of 42) compute a small mixed-radix index; char-bearing templates
-   (`UW*`, `BW*`, `WC*`) pack a `u64` key (template id in the top byte,
-   8 bits per tag/type, 24 bits per character; the padding sentinels
-   `B3`...`E3` map to code points just above the Unicode scalar range).
-   No allocation, no string formatting, and for dense templates no hashing.
-2. **Computes score** -- Tag/type-only templates load their weight from a
-   per-template dense array by the mixed-radix index (a single array load);
-   char-bearing templates probe an `FxHashMap<u64, f64>`. Either way an
-   unknown feature contributes 0.0 to a running score that starts at the
-   bias. The bias itself is a cached field (`-sum(model) / 2.0`, kept in
-   sync by every weight-mutating path) and is read once per sentence, not
-   recomputed per position:
+1. **Static pass** -- every tag-free feature is accumulated into a
+   per-position score buffer in one sweep over the sentence:
+   - Each character position makes **one merged `UW` probe** (char code ->
+     `[UW1..UW6]` weights) and **one direct `UC` vector load** (type id ->
+     `[UC1..UC6]`), scatter-adding the six values to the six neighboring
+     decision positions they feed.
+   - Each adjacent pair makes one merged `BW` probe and one direct `BC`
+     vector load (three values each), and each triple one direct `TC`
+     vector load (four values).
+   - For Japanese/Chinese, the four `WC` (char + type) weights are looked
+     up per position.
+2. **Sequential pass** -- at each position *i*, the score starts from the
+   bias plus the precomputed static score, adds the 16 tag-dependent
+   weights (`UP*`, `BP*`, `UQ*`, `BQ*`, `TQ*` -- all direct-indexed dense
+   array loads, no hashing), and decides: if `score >= 0`, the character
+   starts a new word; otherwise it continues the current one. The decision
+   is pushed to the tags array and feeds the next positions' lookups.
 
    ```text
-   score = bias + sum(weight(template, context) for each template)
+   score = bias + static[i] + sum(dense[tag-dependent template][mixed-radix index])
    ```
 
-3. **Makes decision** -- If `score >= 0`, the character starts a new word (boundary); otherwise, it continues the current word
-4. **Updates tags** -- Pushes the B or O tag id to the tags array, which affects feature extraction for subsequent positions
+The bias is a cached field (`-sum(model) / 2.0`, kept in sync by every
+weight-mutating path) and is read once per sentence. The packed context
+(`packed_context`) borrows word-assembly string slices directly from the
+input and carries parallel `u32` char-code and `u8` type-id arrays; the
+sentinel entries (`B3`...`E3`) map to code points just above the Unicode
+scalar range.
 
-The packed context (`packed_context`) borrows word-assembly string slices
-directly from the input and carries parallel `u32` char-code and `u8`
-type-id arrays; the sentinel entries (`B3`...`E3`) are static values.
-
-### The Packed Scoring Table
+### The Compiled Scoring Tables
 
 The feature template is defined once as a declarative table
 (`packed_model::TEMPLATES`), from which three consumers derive: the string
-writer used by training/extraction/POS paths, the integer-key writers used
-by `segment()`, and the load-time parser that converts each model feature
-string into its integer key. Compilation happens eagerly in
-`Segmenter::with_learner` and is invalidated whenever the learner is
-mutated (`learner_mut()` / `add_corpus`), then rebuilt lazily on the next
-`segment()` call.
+writer used by training/extraction/POS paths, the load-time parser that
+converts each model feature string into an integer key, and the two-pass
+scorer's tables. Compilation happens eagerly in `Segmenter::with_learner`
+and is invalidated whenever the learner is mutated (`learner_mut()` /
+`add_corpus`), then rebuilt lazily on the next `segment()` call.
 
-The compiled model is a hybrid of two lookup structures, split by key-space
-size. The 29 tag/type-only templates (`UP*`, `BP*`, `UC*`, `BC*`, `TC*`,
-`UQ*`, `BQ*`, `TQ*`) have tiny domains -- 3 boundary tags and 8--10 type
-codes per language -- so each gets a **direct-indexed dense array** sized
-by the exact mixed-radix product (about 74 KB total for Japanese), and
-scoring is a single array load with no hashing. The 13 char-bearing
-templates (`UW*`, `BW*`, `WC*`) embed 21-bit code points, so their weights
-stay in an `FxHashMap<u64, f64>` probed by packed key.
+The compiled model splits by key-space size and tag dependence:
+
+- **Merged-vector hash tables** for char n-grams: `UW1..6` collapse into
+  one `char -> [f64; 6]` table and `BW1..3` into one
+  `(char, char) -> [f64; 3]` table, so a whole family costs one probe.
+  `WC*` weights live in a small `(char, type)`-keyed map.
+- **Dense arrays** for tag/type-only templates: each of the 29 gets a
+  direct-indexed table sized by the exact mixed-radix product (3 per tag
+  slot, 8--10 per type slot; about 74 KB total for Japanese). The
+  `UC`/`BC`/`TC` tables additionally get merged scatter-vector views for
+  the static pass.
 
 Model features that the segmenter's language could never generate (for
-example Korean type codes in a Japanese segmenter) are omitted from both
-structures; they are unreachable at scoring time, so scores are unaffected.
-A map miss adds `0.0` and unset dense entries hold `0.0`, so the
-floating-point accumulation sequence -- and therefore the segmentation
-output -- is bit-for-bit identical to the historical string-keyed
-implementation.
+example Korean type codes in a Japanese segmenter) are omitted from all
+tables; they are unreachable at scoring time, so scores are unaffected.
+
+### Output Equivalence
+
+Scoring accumulates in two-pass order, which differs from the historical
+string-keyed accumulation order, so the `f64` sums are no longer
+guaranteed bit-for-bit identical. In practice no output difference has
+been observed: the exact-equality differential tests (all bundled models,
+sentinel stress strings, and a real-text corpus) pass unchanged, and they
+remain in the test suite as the detection net for any knife-edge score
+flip a future model might expose.
 
 ## Joint Segmentation and POS Tagging (`segment_with_pos`)
 
@@ -144,6 +155,6 @@ The segmentation algorithm is **linear** in the length of the input:
 
 - Each character position is visited once: O(n)
 - Feature extraction at each position: O(1) (fixed number of templates, each packed into a `u64` on the stack)
-- Prediction at each position: O(f) where f is the number of active features (~38-42) -- a direct dense-array load for the 29 tag/type-only templates, a single integer-keyed `FxHashMap` probe for the 13 char-bearing ones
+- Prediction at each position: O(f) where f is the number of active features (~38-42), but with families merged -- the static pass costs ~2 hash probes (`UW`, `BW`) plus a handful of direct vector loads per character, and the sequential pass is 16 direct dense-array loads
 - Total: O(n * f) which is effectively O(n)
 - Allocation profile: the packed context borrows word slices from the input and carries flat `u32`/`u8` arrays, the bias is cached, and no strings are built anywhere in the hot loop (the packed table itself is compiled once per model load, off the hot path)

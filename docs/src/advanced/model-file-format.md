@@ -66,7 +66,7 @@ score = bias + sum(model[feature] for feature in input_attributes)
 The on-disk format is string-keyed and unchanged, but the segmenter does
 not score against the strings directly: at load time each feature line is
 parsed and compiled into a packed `u64` integer key for the hot loop (see
-[Prediction Pipeline](../algorithm/prediction-pipeline.md#the-packed-scoring-table)).
+[Prediction Pipeline](../algorithm/prediction-pipeline.md#the-compiled-scoring-tables)).
 Features that the segmenter's language could never generate (for example
 type codes of another language) are ignored by that compilation -- exactly
 as they could never match an input attribute before -- while the bias is
