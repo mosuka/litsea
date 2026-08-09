@@ -1,9 +1,10 @@
 use std::collections::HashSet;
+use std::sync::{PoisonError, RwLock};
 
 use crate::adaboost::AdaBoost;
 use crate::error::{LitseaError, Result};
-use crate::language::Language;
-use crate::packed_model::{Slot, templates_for};
+use crate::language::{Language, OTHER_TYPE_ID};
+use crate::packed_model::{PackedModel, SENTINEL_BASE, Slot, TAG_B, TAG_O, TAG_U, templates_for};
 use crate::perceptron::AveragedPerceptron;
 use crate::upos::{SegmentLabel, Upos};
 
@@ -15,9 +16,16 @@ use crate::upos::{SegmentLabel, Upos};
 #[derive(Debug)]
 pub struct Segmenter {
     language: Language,
+    /// The AdaBoost learner. All mutation must flow through
+    /// [`learner_mut`](Self::learner_mut) (as [`add_corpus`](Self::add_corpus)
+    /// does) so that `packed` is invalidated alongside.
     learner: AdaBoost,
     /// Optional Averaged Perceptron for POS tagging
     pos_learner: Option<AveragedPerceptron>,
+    /// The learner's weights compiled to packed integer keys for
+    /// [`segment`](Self::segment)'s hot loop. `None` after a learner
+    /// mutation; lazily rebuilt on the next `segment` call.
+    packed: RwLock<Option<PackedModel>>,
 }
 
 impl Segmenter {
@@ -57,10 +65,14 @@ impl Segmenter {
     /// # Returns
     /// A new Segmenter instance with the specified language and learner.
     pub fn with_learner(language: Language, learner: AdaBoost) -> Self {
+        // Compile the packed scoring table eagerly so the common
+        // load-then-segment path never rebuilds mid-stream.
+        let packed = RwLock::new(Some(PackedModel::build(language, &learner)));
         Segmenter {
             language,
             learner,
             pos_learner: None,
+            packed,
         }
     }
 
@@ -81,6 +93,9 @@ impl Segmenter {
             language,
             learner: AdaBoost::default(),
             pos_learner: Some(pos_learner),
+            // The default learner has no features; an empty table is its
+            // correct compilation.
+            packed: RwLock::new(Some(PackedModel::default())),
         }
     }
 
@@ -97,7 +112,13 @@ impl Segmenter {
     }
 
     /// Returns a mutable reference to the AdaBoost learner used for segmentation.
+    ///
+    /// The caller may mutate the learner (load a model, add instances,
+    /// train), so the compiled packed scoring table is dropped here; the
+    /// next [`segment`](Self::segment) call rebuilds it from the learner's
+    /// then-current weights.
     pub fn learner_mut(&mut self) -> &mut AdaBoost {
+        *self.packed.get_mut().unwrap_or_else(PoisonError::into_inner) = None;
         &mut self.learner
     }
 
@@ -155,6 +176,52 @@ impl Segmenter {
         chars.extend_from_slice(&["E1", "E2", "E3"]);
         types.extend_from_slice(&["O", "O", "O"]);
         (chars, types)
+    }
+
+    /// Packed variant of [`sentence_context`](Self::sentence_context) for
+    /// [`segment`](Self::segment)'s hot loop.
+    ///
+    /// Returns `(chars, char_codes, type_ids)` with the same layout (three
+    /// head sentinels, real characters, three tail sentinels): `chars` holds
+    /// string slices for word assembly, `char_codes` holds the numeric char
+    /// codes used in packed keys (code points; sentinels map to
+    /// `SENTINEL_BASE + k` in B3/B2/B1/E1/E2/E3 order), and `type_ids` holds
+    /// [`Language::char_type_id`] values (padding uses the "O" id, conflated
+    /// with a real Other-class character exactly as in the string
+    /// representation).
+    fn packed_context<'a>(&self, text: &'a str) -> (Vec<&'a str>, Vec<u32>, Vec<u8>) {
+        let mut chars: Vec<&str> = Vec::with_capacity(text.len() + 6);
+        let mut char_codes: Vec<u32> = Vec::with_capacity(text.len() + 6);
+        let mut type_ids: Vec<u8> = Vec::with_capacity(text.len() + 6);
+        chars.extend_from_slice(&["B3", "B2", "B1"]);
+        char_codes.extend_from_slice(&[SENTINEL_BASE, SENTINEL_BASE + 1, SENTINEL_BASE + 2]);
+        type_ids.extend_from_slice(&[OTHER_TYPE_ID; 3]);
+        for (i, ch) in text.char_indices() {
+            chars.push(&text[i..i + ch.len_utf8()]);
+            char_codes.push(u32::from(ch));
+            type_ids.push(self.language.char_type_id(ch));
+        }
+        chars.extend_from_slice(&["E1", "E2", "E3"]);
+        char_codes.extend_from_slice(&[SENTINEL_BASE + 3, SENTINEL_BASE + 4, SENTINEL_BASE + 5]);
+        type_ids.extend_from_slice(&[OTHER_TYPE_ID; 3]);
+        (chars, char_codes, type_ids)
+    }
+
+    /// Runs `f` with the packed scoring table, rebuilding it first if a
+    /// learner mutation invalidated it. The fast path takes only an
+    /// uncontended read lock (one per sentence).
+    fn with_packed<R>(&self, f: impl FnOnce(&PackedModel) -> R) -> R {
+        {
+            let guard = self.packed.read().unwrap_or_else(PoisonError::into_inner);
+            if let Some(packed) = guard.as_ref() {
+                return f(packed);
+            }
+        }
+        let mut guard = self.packed.write().unwrap_or_else(PoisonError::into_inner);
+        // get_or_insert_with covers the race where another thread rebuilt
+        // the table between the two lock acquisitions.
+        let packed = guard.get_or_insert_with(|| PackedModel::build(self.language, &self.learner));
+        f(packed)
     }
 
     /// Shared corpus-processing pipeline behind `process_corpus` and
@@ -300,8 +367,11 @@ impl Segmenter {
         self.process_corpus(corpus, |attrs, label| {
             instances.push((attrs, label));
         });
+        // Mutate through learner_mut() so the packed scoring table is
+        // invalidated alongside the learner change.
+        let learner = self.learner_mut();
         for (attrs, label) in instances {
-            self.learner.add_instance(attrs, label);
+            learner.add_instance(attrs, label);
         }
     }
 
@@ -377,22 +447,62 @@ impl Segmenter {
         if sentence.is_empty() {
             return Vec::new();
         }
-        let learner = &self.learner;
-        let (chars, types) = self.sentence_context(sentence);
-        // Padding for lookback: tags[0..3] are fixed "U" (Unknown), and tags[3]
-        // is also "U" since there is no boundary decision before the first character.
-        let mut tags: Vec<&'static str> = Vec::with_capacity(chars.len());
-        tags.extend_from_slice(&["U"; 4]);
+        let (chars, char_codes, type_ids) = self.packed_context(sentence);
 
         // The bias is a sum over all model weights; compute it once per
         // sentence instead of once per character.
+        let bias = self.learner.bias();
+
+        self.with_packed(|packed| {
+            let templates = templates_for(self.language);
+            // Padding for lookback: tags[0..3] are fixed U (unknown), and tags[3]
+            // is also U since there is no boundary decision before the first
+            // character.
+            let mut tags: Vec<u8> = Vec::with_capacity(chars.len());
+            tags.extend_from_slice(&[TAG_U; 4]);
+
+            let mut result = Vec::new();
+            let mut word = chars[3].to_string();
+            for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
+                // Sum the weights by packed key; a miss adds 0.0 so the f64
+                // accumulation sequence matches the string-keyed reference
+                // bit for bit.
+                let mut score = bias;
+                for template in templates {
+                    let key = template.pack(i, &tags, &char_codes, &type_ids);
+                    score += packed.weights.get(&key).copied().unwrap_or(0.0);
+                }
+                if score >= 0.0 {
+                    result.push(std::mem::take(&mut word));
+                    tags.push(TAG_B);
+                } else {
+                    tags.push(TAG_O);
+                }
+                word.push_str(ch);
+            }
+            result.push(word);
+            result
+        })
+    }
+
+    /// Reference implementation of [`segment`](Self::segment) using the
+    /// string-keyed lookup path (the pre-#136 hot loop). Kept test-only as
+    /// the oracle for differential tests: `segment` must produce identical
+    /// output for any model and input.
+    #[cfg(test)]
+    fn segment_reference(&self, sentence: &str) -> Vec<String> {
+        if sentence.is_empty() {
+            return Vec::new();
+        }
+        let learner = &self.learner;
+        let (chars, types) = self.sentence_context(sentence);
+        let mut tags: Vec<&'static str> = Vec::with_capacity(chars.len());
+        tags.extend_from_slice(&["U"; 4]);
         let bias = learner.bias();
 
         let mut result = Vec::new();
         let mut word = chars[3].to_string();
         for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
-            // Sum the weights of the attributes directly instead of building
-            // a HashSet per position.
             let mut score = bias;
             self.write_attributes(i, &tags, &chars, &types, &mut |attr| {
                 score += learner.weight(attr);
@@ -968,6 +1078,133 @@ mod tests {
             // The POS is one of the Upos variants
             let _ = pos.to_string();
         }
+    }
+
+    // --- Packed scoring path tests (#136) ---
+
+    /// Sentences whose packed keys must round-trip: golden-style inputs plus
+    /// sentinel-lookalike stress strings (real "B1"/"E2" substrings, mixed
+    /// scripts, digits, ASCII).
+    const STRESS_SENTENCES: [&str; 8] = [
+        "B1テスト",
+        "テB1あE2ト",
+        "E1E2E3",
+        "B1B2B3E1E2E3",
+        "abc B1 123",
+        "UOBそのタグ文字",
+        "SNSF가나한글",
+        "漢字とtestと123。",
+    ];
+
+    fn load_adaboost(model: &str) -> AdaBoost {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model);
+        let mut learner = AdaBoost::new(0.01, 100);
+        learner.load_model_from_path(&path).unwrap();
+        learner
+    }
+
+    fn assert_segment_matches_reference(segmenter: &Segmenter, sentences: &[&str]) {
+        for sentence in sentences {
+            assert_eq!(
+                segmenter.segment(sentence),
+                segmenter.segment_reference(sentence),
+                "packed segment() diverged from the string-keyed reference for {sentence:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_segment_differential_japanese_models() {
+        let sentences = [
+            "これはテストです。",
+            "私の猫は可愛い。",
+            "東京都に住んでいます。",
+            "字",
+            "こんにちは",
+            "価格は1000円です。",
+            "RustでNLPを実装する。",
+        ];
+        for model in ["japanese.model", "RWCP.model", "JEITA_Genpaku_ChaSen_IPAdic.model"] {
+            let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost(model));
+            assert_segment_matches_reference(&segmenter, &sentences);
+            assert_segment_matches_reference(&segmenter, &STRESS_SENTENCES);
+        }
+    }
+
+    #[test]
+    fn test_segment_differential_chinese_model() {
+        let sentences =
+            ["这是一个测试。", "我喜欢吃中国菜。", "他在北京工作。", "好", "2024年的春天。"];
+        let segmenter = Segmenter::with_learner(Language::Chinese, load_adaboost("chinese.model"));
+        assert_segment_matches_reference(&segmenter, &sentences);
+        assert_segment_matches_reference(&segmenter, &STRESS_SENTENCES);
+    }
+
+    #[test]
+    fn test_segment_differential_korean_model() {
+        let sentences =
+            ["이것은 테스트입니다.", "나는 고양이를 좋아한다.", "한국어 형태소 분석기.", "글"];
+        let segmenter = Segmenter::with_learner(Language::Korean, load_adaboost("korean.model"));
+        assert_segment_matches_reference(&segmenter, &sentences);
+        assert_segment_matches_reference(&segmenter, &STRESS_SENTENCES);
+    }
+
+    #[test]
+    fn test_segment_differential_bocchan_corpus() {
+        // Broad-coverage differential run over real text: the first 100
+        // non-empty lines of bocchan.txt against the RWCP model.
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
+        let text = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).take(100).collect();
+        assert!(!lines.is_empty());
+        let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost("RWCP.model"));
+        assert_segment_matches_reference(&segmenter, &lines);
+    }
+
+    #[test]
+    fn test_segment_differential_synthetic_ambiguity_model() {
+        // Handpicked sentinel-adjacent features: the packed table must give
+        // each of these strings its own key so scoring matches the
+        // string-keyed reference on inputs that generate them.
+        let model = "BW1:B1x\t0.5\nUW1:B1\t0.4\nBW2:B1\t0.3\nUW4:x\t-0.2\n0.0\n";
+        let mut learner = AdaBoost::new(0.01, 100);
+        learner.load_model_from_reader(model.as_bytes()).unwrap();
+        let segmenter = Segmenter::with_learner(Language::Japanese, learner);
+        assert_segment_matches_reference(&segmenter, &["xyz", "B1x", "xB1", "B1", "x"]);
+    }
+
+    #[test]
+    fn test_segment_cache_invalidated_by_learner_mut() {
+        // Loading another model through learner_mut() must drop the compiled
+        // table. Note load_model_from_reader MERGES into an already-populated
+        // learner, so the correct oracle is the string-keyed reference (which
+        // always reads the learner's current weights), not a fresh segmenter.
+        let sentence = "東京都に住んでいます。";
+        let mut segmenter =
+            Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"));
+        let before = segmenter.segment(sentence);
+
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models/RWCP.model");
+        segmenter.learner_mut().load_model_from_path(&path).unwrap();
+        let after = segmenter.segment(sentence);
+
+        assert_eq!(after, segmenter.segment_reference(sentence));
+        assert_ne!(before, after, "the merged model must actually disagree on this sentence");
+    }
+
+    #[test]
+    fn test_segment_cache_invalidated_by_add_corpus_and_train() {
+        // The add_corpus + learner_mut().train() workflow must also
+        // invalidate: afterwards segment() must equal the string-keyed
+        // reference (which always reads current weights).
+        let mut segmenter = Segmenter::new(Language::Japanese);
+        let _ = segmenter.segment("テストです");
+        for _ in 0..10 {
+            segmenter.add_corpus("テスト です");
+        }
+        let running = AtomicBool::new(true);
+        segmenter.learner_mut().train(&running);
+        assert_segment_matches_reference(&segmenter, &["テストです", "これはテストです。"]);
     }
 
     #[test]

@@ -629,10 +629,35 @@ impl AdaBoost {
     }
 
     /// Returns the model weight of a single attribute (0.0 if unknown).
-    /// Used by the segmenter's hot path to score positions without building
-    /// an attribute set.
+    ///
+    /// Test-only: the production scoring path looks weights up by packed
+    /// integer key (see `crate::packed_model`); this string-keyed lookup
+    /// remains as the reference implementation for differential tests.
+    ///
+    /// # Arguments
+    /// * `attr` - The attribute (feature string) to look up.
+    ///
+    /// # Returns
+    /// The weight of the attribute, or 0.0 if the model does not contain it.
+    #[cfg(test)]
     pub(crate) fn weight(&self, attr: &str) -> f64 {
         self.feature_index.get(attr).map_or(0.0, |&idx| self.model[idx])
+    }
+
+    /// Iterates over `(feature name, weight)` pairs, excluding the bias
+    /// bucket (the empty-string feature at index 0).
+    ///
+    /// Used by the segmenter to compile the packed scoring table
+    /// (`crate::packed_model::PackedModel`) after a model (re)load.
+    ///
+    /// # Returns
+    /// An iterator yielding each named feature and its current weight.
+    pub(crate) fn feature_weights(&self) -> impl Iterator<Item = (&str, f64)> + '_ {
+        self.features
+            .iter()
+            .zip(self.model.iter())
+            .filter(|(feature, _)| !feature.is_empty())
+            .map(|(feature, &weight)| (feature.as_str(), weight))
     }
 
     /// Gets the bias term of the model.
