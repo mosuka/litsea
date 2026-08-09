@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e98366a0.js";
+            window.path_to_searchindex_js = "searchindex-289bd82d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-007a5c4f.js"></script>
@@ -727,6 +727,13 @@ prediction = +1 if score &gt;= 0, else -1
 <p>これにより決定境界が中心化されます。空文字列特徴量（<code>""</code>）は学習中のバイアスバケットとして機能します。
 この特徴量はすべての構築経路（<code>new()</code>、特徴量ファイルからの初期化、モデルの読み込み）で特徴量インデックス 0 に登録されるため、
 <code>add_instance()</code> を通じて学習されたモデルも正しく学習・保存・再読み込みできます。</p>
+<h3 id="セグメンタにおける-packed-スコアリング"><a class="header" href="#セグメンタにおける-packed-スコアリング">セグメンタにおける Packed スコアリング</a></h3>
+<p><code>predict()</code> 自体は文字列で特徴量を検索し、そのセマンティクスは変わっていません。
+ただし <code>Segmenter</code> はホットパスでこれを呼び出しません: モデルの（再）ロード後、
+学習器の <code>(特徴量, 重み)</code> ペアを packed <code>u64</code> 整数キーへコンパイルし、各位置を
+整数マップ検索でスコアリングします（<a href="#packed-スコアリングテーブル">予測パイプライン</a>
+を参照）。コンパイル済みテーブルはモデルを正確にミラーするため、両経路は同じ
+スコアを生成します。</p>
 <h2 id="モデルファイル形式"><a class="header" href="#モデルファイル形式">モデルファイル形式</a></h2>
 <p>学習されたモデルはシンプルなテキストファイルとして保存されます:</p>
 <pre><code class="language-text">feature1\tweight1
@@ -931,6 +938,20 @@ feature2\tclass2\tweight2
 </tbody>
 </table>
 </div>
+<h2 id="単一の真実の源"><a class="header" href="#単一の真実の源">単一の真実の源</a></h2>
+<p>上記のテンプレート全体は、宣言的なテーブル（<code>packed_model::TEMPLATES</code> –
+プレフィックスと、タグ/文字/文字種スロットの順序付きリスト、固定の出力順）として
+一度だけ定義されます。両方の特徴量表現がここから導出されます:</p>
+<ul>
+<li>後述の<strong>文字列形式</strong> – 学習データ抽出、コーパス処理、モデルファイル、POS パスで
+使用</li>
+<li><code>segment()</code> のホットループが使用する <strong>packed <code>u64</code> 整数形式</strong> – モデルファイルは
+ロード時にこの形式へコンパイルされる
+（<a href="#packed-スコアリングテーブル">予測パイプライン</a>を参照）</li>
+</ul>
+<p>したがって、テンプレートの追加や並び替えはすべての消費者を一貫して変更します –
+ただし、スコアは出力順に累積されるため、順序は再現性にとって重要である点に注意して
+ください。</p>
 <h2 id="特徴量の形式"><a class="header" href="#特徴量の形式">特徴量の形式</a></h2>
 <p>各特徴量は <code>PREFIX:VALUE</code> の形式の文字列として表現されます:</p>
 <pre><code class="language-text">UW4:は        ← The character at position i is "は"
@@ -1102,24 +1123,48 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <pre><code class="language-text">["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h2 id="各位置での予測の仕組み"><a class="header" href="#各位置での予測の仕組み">各位置での予測の仕組み</a></h2>
-<p>各位置 <em>i</em> で、セグメンタは以下を実行します:</p>
+<p><code>segment()</code> は特徴量文字列を一切構築しません。モデルのロード時に、セグメンタは
+学習器の文字列キー付き重みを <strong>packed <code>u64</code> 特徴キー</strong>に一度だけコンパイルし
+（後述）、ホットループは整数のみで動作します。各位置 <em>i</em> で、セグメンタは以下を
+実行します:</p>
 <ol>
 <li>
-<p><strong>特徴量のストリーミング</strong> – <code>write_attributes(i, tags, chars, types, sink)</code> を呼び出し、38–42 個の特徴量文字列をそれぞれ再利用可能なバッファに整形して sink クロージャに渡す。この経路では位置ごとの集合やベクタは構築されない</p>
+<p><strong>特徴量のパック</strong> – 38–42 個のテンプレートそれぞれについて、テンプレート ID
+（最上位バイト）と、関連する境界タグ ID・文字種 ID・文字コードポイント
+（タグ/種別は 8 ビット、文字は 24 ビット。パディングセンチネル <code>B3</code>…<code>E3</code> は
+Unicode スカラー範囲の直上のコードにマップ）をスタック上の単一の <code>u64</code> キーに
+パックする。アロケーションも文字列整形も発生しない</p>
 </li>
 <li>
-<p><strong>スコアの計算</strong> – sink は <code>learner.weight(feature)</code>（モデル重みの <code>FxHashMap</code> 検索、未知の特徴量には 0.0）をバイアスから始まる累積スコアに加算する。バイアス自体はキャッシュされたフィールド（<code>-sum(model) / 2.0</code>、重みを変更するすべての経路で同期される）であり、文ごとに 1 回読み取られるだけで、位置ごとに再計算されることはない:</p>
-<pre><code class="language-text">score = bias + sum(weight(feature) for each streamed feature)
+<p><strong>スコアの計算</strong> – 各 packed キーを <code>FxHashMap&lt;u64, f64&gt;</code> で検索し
+（未知の特徴量には 0.0）、バイアスから始まる累積スコアに加算する。バイアス自体は
+キャッシュされたフィールド（<code>-sum(model) / 2.0</code>、重みを変更するすべての経路で
+同期される）であり、文ごとに 1 回読み取られるだけで、位置ごとに再計算されることは
+ない:</p>
+<pre><code class="language-text">score = bias + sum(packed_weights[key(template, context)] for each template)
 </code></pre>
 </li>
 <li>
 <p><strong>判定</strong> – <code>score &gt;= 0</code> の場合、その文字は新しい単語を開始（境界）、そうでなければ現在の単語を継続</p>
 </li>
 <li>
-<p><strong>タグの更新</strong> – tags 配列に “B” または “O” をプッシュし、後続の位置での特徴量抽出に影響を与える</p>
+<p><strong>タグの更新</strong> – tags 配列に B または O のタグ ID をプッシュし、後続の位置での特徴量抽出に影響を与える</p>
 </li>
 </ol>
-<p>パディングされた文字/種別コンテキスト（<code>sentence_context</code>）は、文字ごとに <code>String</code> を確保するのではなく、入力から直接文字列スライスを借用します。また、センチネルエントリ（<code>B3</code>…<code>E3</code>）は静的リテラルです。</p>
+<p>packed コンテキスト（<code>packed_context</code>）は、単語組み立て用の文字列スライスを入力から
+直接借用し、並行して <code>u32</code> 文字コード配列と <code>u8</code> 文字種 ID 配列を保持します。
+センチネルエントリ（<code>B3</code>…<code>E3</code>）は静的な値です。</p>
+<h3 id="packed-スコアリングテーブル"><a class="header" href="#packed-スコアリングテーブル">Packed スコアリングテーブル</a></h3>
+<p>特徴テンプレートは宣言的なテーブル（<code>packed_model::TEMPLATES</code>）として一度だけ
+定義され、そこから 3 つの消費者が導出されます: 学習・抽出・POS パスで使用される
+文字列ライター、<code>segment()</code> が使用する packed キーライター、そしてモデルの各特徴量
+文字列を packed キーへ変換するロード時パーサです。コンパイルは
+<code>Segmenter::with_learner</code> で先行して行われ、学習器が変更されると
+（<code>learner_mut()</code> / <code>add_corpus</code>）無効化され、次の <code>segment()</code> 呼び出しで遅延
+再構築されます。セグメンタの言語では生成し得ないモデル特徴量（例: 日本語セグメンタに
+おける韓国語の文字種コード）はテーブルから除外されます。それらはスコアリング時に
+到達不能なので、スコアには影響しません。検索ミスは <code>0.0</code> を加算するため、浮動小数点の
+累積順序 – したがって分割出力 – は従来の文字列キー実装とビット単位で一致します。</p>
 <h2 id="単語分割と品詞タグ付けの同時実行segment_with_pos"><a class="header" href="#単語分割と品詞タグ付けの同時実行segment_with_pos">単語分割と品詞タグ付けの同時実行（<code>segment_with_pos</code>）</a></h2>
 <p><code>segment_with_pos</code> は、AdaBoost の代わりに Averaged Perceptron を使用して同じ左から右へのパイプラインを実行します:</p>
 <ol>
@@ -1139,7 +1184,7 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <tr><td>最初のタグ</td><td>“U”（位置 3 の “B” を上書き）</td><td>“U”（先行する判定なし）</td></tr>
 <tr><td>最初の位置</td><td>境界パイプラインはスキップ、POS パイプラインは出力する（#100）</td><td>POS モードは最初の単語の品詞を予測するためにこの位置を予測する</td></tr>
 <tr><td>ラベル</td><td>コーパスから既知（+1 または -1）</td><td>AdaBoost による予測</td></tr>
-<tr><td>特徴量</td><td>コールバックを通じてファイルに書き出し</td><td><code>predict()</code> に直接渡される</td></tr>
+<tr><td>特徴量</td><td>コールバックを通じてファイルに書き出し（文字列形式）</td><td>packed <code>u64</code> キー、文字列なし</td></tr>
 </tbody>
 </table>
 </div>
@@ -1148,10 +1193,10 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <p>分割アルゴリズムは入力長に対して<strong>線形</strong>です:</p>
 <ul>
 <li>各文字位置を 1 回ずつ訪問: O(n)</li>
-<li>各位置での特徴量抽出: O(1)（固定数の特徴量を、再利用可能なバッファでストリーミング）</li>
-<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42）で、それぞれ 1 回の <code>FxHashMap</code> 検索</li>
+<li>各位置での特徴量抽出: O(1)（固定数のテンプレートを、それぞれスタック上の <code>u64</code> にパック）</li>
+<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42）で、それぞれ 1 回の整数キー <code>FxHashMap</code> 検索</li>
 <li>合計: O(n * f)、実質的に O(n)</li>
-<li>アロケーションの特性: 文コンテキストは入力から借用し、バイアスはキャッシュされ、属性/スコアバッファは位置間で再利用される</li>
+<li>アロケーションの特性: packed コンテキストは単語スライスを入力から借用し、フラットな <code>u32</code>/<code>u8</code> 配列を保持する。バイアスはキャッシュされ、ホットループ内では文字列を一切構築しない（packed テーブル自体はモデルロードごとに 1 回、ホットパス外でコンパイルされる）</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="言語サポート概要"><a class="header" href="#言語サポート概要">言語サポート概要</a></h1>
@@ -1409,19 +1454,19 @@ Language::Thai =&gt; write!(f, "thai"),
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
 <h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
-<p>新しい言語の文字を種別コードに分類する関数を定義します。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
+<p>新しい言語の文字を<strong>種別 ID</strong>（type id）に分類する関数を定義します。ID は言語の順序付き <code>type_codes()</code> テーブル（手順 4）へのインデックスです: 共通クラスは固定インデックス（“O” = 0、“P” = 1、“A” = 2、“N” = 3）を占め、言語固有クラスは 4 から続きます。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn thai_char_type(c: char) -&gt; &amp;'static str {
+</span>fn thai_char_type_id(c: char) -&gt; u8 {
     match c {
         // タイ文字の子音・順行母音 (U+0E01-U+0E3A)
-        '\u{0E01}'..='\u{0E3A}' =&gt; "T",
+        '\u{0E01}'..='\u{0E3A}' =&gt; 4, // "T"
         // タイ文字の母音・声調記号 (U+0E40-U+0E4E)
-        '\u{0E40}'..='\u{0E4E}' =&gt; "V",
+        '\u{0E40}'..='\u{0E4E}' =&gt; 5, // "V"
         // タイ数字 (U+0E50-U+0E59)
-        '\u{0E50}'..='\u{0E59}' =&gt; "N",
+        '\u{0E50}'..='\u{0E59}' =&gt; DIGIT_TYPE_ID, // "N"
         // 共通クラス: "P"（句読点）、"A"（ラテン文字）、"N"（数字）
-        _ =&gt; punct_latin_digit(c).unwrap_or("O"),
+        _ =&gt; punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 <span class="boring">}</span></code></pre>
@@ -1432,36 +1477,38 @@ Language::Thai =&gt; write!(f, "thai"),
 <li>中国語の「F」のように、<strong>高頻度の機能語</strong>を別のタイプとして検討する</li>
 <li>単純な範囲比較では対応できないロジックには<strong>matchガード</strong>を使用する（韓国語が받침の有無で音節を分割する際に使用しているように）</li>
 <li>共通の「P」/「A」/「N」クラスには、共有ヘルパー <code>punct_latin_digit()</code> を再利用する</li>
+<li><strong>コード集合は prefix-free に保つ</strong> – どのコードも他のコードのプレフィックスであってはならない（韓国語の <code>SN</code>/<code>SF</code> が成立するのは <code>S</code> 単独がコードでないため）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証する（言語ごとにユニットテストで固定される）</li>
 </ul>
-<h2 id="手順4-パターン関数を登録"><a class="header" href="#手順4-パターン関数を登録">手順4: パターン関数を登録</a></h2>
-<p><code>Language::char_type()</code> にmatchアームを追加します。</p>
+<h2 id="手順4-種別コードテーブルと分類関数を登録"><a class="header" href="#手順4-種別コードテーブルと分類関数を登録">手順4: 種別コードテーブルと分類関数を登録</a></h2>
+<p>言語の順序付きコードテーブルを <code>Language::type_codes()</code> に（インデックス = 種別 ID、共通コードが先頭）、ディスパッチアームを <code>Language::char_type_id()</code> に追加します。<code>char_type()</code> 自体はこの 2 つから導出されるため、文字列コードと数値 ID が乖離することはありません。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str {
+</span>pub(crate) fn type_codes(self) -&gt; &amp;'static [&amp;'static str] {
     match self {
-        Language::Japanese =&gt; japanese_char_type(c),
-        Language::Chinese =&gt; chinese_char_type(c),
-        Language::Korean =&gt; korean_char_type(c),
-        Language::Thai =&gt; thai_char_type(c),    // ← new
+        // ...
+        Language::Thai =&gt; &amp;["O", "P", "A", "N", "T", "V"],    // ← new
+    }
+}
+
+pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
+    match self {
+        // ...
+        Language::Thai =&gt; thai_char_type_id(c),    // ← new
     }
 }
 <span class="boring">}</span></code></pre>
 <h2 id="手順5-wc特徴量の有無を決定"><a class="header" href="#手順5-wc特徴量の有無を決定">手順5: WC特徴量の有無を決定</a></h2>
-<p><code>segmenter.rs</code> の内部属性ビルダー（<code>write_attributes()</code>）には、WC特徴量を含めるかどうかを言語に基づいて判定する <code>match</code> があります。</p>
+<p>特徴テンプレートは <code>packed_model.rs</code>（<code>TEMPLATES</code>）に一度だけ定義されており、<code>templates_for()</code> が末尾の <code>WC1</code>–<code>WC4</code>（文字/種別混合テンプレート）を言語が使用するかどうかを決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match self.language {
-    Language::Japanese | Language::Chinese =&gt; {
-        // Include WC features
-        attr!("WC1:{}{}", w3, c4);
-        attr!("WC2:{}{}", c3, w4);
-        attr!("WC3:{}{}", w3, c3);
-        attr!("WC4:{}{}", w4, c4);
+</span>pub(crate) fn templates_for(language: Language) -&gt; &amp;'static [Template] {
+    match language {
+        Language::Japanese | Language::Chinese =&gt; &amp;TEMPLATES[..],
+        _ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 個の基本テンプレート
     }
-    _ =&gt; {}
 }
 <span class="boring">}</span></code></pre>
-<p>対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、matchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。</p>
+<p>対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、最初のmatchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。</p>
 <h2 id="手順6-コーパスを用意してモデルを学習"><a class="header" href="#手順6-コーパスを用意してモデルを学習">手順6: コーパスを用意してモデルを学習</a></h2>
 <ol>
 <li>
@@ -3184,6 +3231,13 @@ UC4:I	0.2345
 <pre><code class="language-text">bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 </code></pre>
+<p>ディスク上の形式は文字列キーのまま変わっていませんが、セグメンタは文字列に対して
+直接スコアリングしません: ロード時に各特徴量行がパースされ、ホットループ用の
+packed <code>u64</code> 整数キーへコンパイルされます
+（<a href="#packed-スコアリングテーブル">予測パイプライン</a>
+を参照）。セグメンタの言語では生成し得ない特徴量（例: 他言語の文字種コード）は
+このコンパイルで無視されます – 従来も入力属性にマッチし得なかったものと完全に
+同じ扱いです。一方、バイアスは常にファイル内のすべての重みから計算されます。</p>
 <h2 id="ファイルサイズ"><a class="header" href="#ファイルサイズ">ファイルサイズ</a></h2>
 <p>モデルファイルは非常にコンパクトです:</p>
 <div class="table-wrapper">

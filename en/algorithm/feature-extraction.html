@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c50212b9.js";
+            window.path_to_searchindex_js = "../searchindex-8880907b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -237,6 +237,21 @@
 </tbody>
 </table>
 </div>
+<h2 id="single-source-of-truth"><a class="header" href="#single-source-of-truth">Single Source of Truth</a></h2>
+<p>The whole template above is defined once as a declarative table
+(<code>packed_model::TEMPLATES</code> – prefix plus an ordered list of tag/char/type
+slots, in a fixed emission order). Both feature representations derive from
+it:</p>
+<ul>
+<li>the <strong>string form</strong> below, used for training data extraction, corpus
+processing, model files, and the POS path;</li>
+<li>the <strong>packed <code>u64</code> integer form</strong> used by <code>segment()</code>’s hot loop, into
+which model files are compiled at load time (see
+<a href="prediction-pipeline.html#the-packed-scoring-table">Prediction Pipeline</a>).</li>
+</ul>
+<p>Adding or reordering a template therefore changes every consumer
+consistently – but note the order is load-bearing for reproducibility,
+because scores are accumulated in emission order.</p>
 <h2 id="feature-format"><a class="header" href="#feature-format">Feature Format</a></h2>
 <p>Each feature is represented as a string in the format <code>PREFIX:VALUE</code>:</p>
 <pre><code class="language-text">UW4:は        ← The character at position i is "は"

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c50212b9.js";
+            window.path_to_searchindex_js = "../searchindex-8880907b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -215,19 +215,19 @@ Language::Thai =&gt; write!(f, "thai"),
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
 <h2 id="step-3-create-a-character-classification-function"><a class="header" href="#step-3-create-a-character-classification-function">Step 3: Create a Character Classification Function</a></h2>
-<p>Define a function that classifies a <code>char</code> into a type code for the new language. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
+<p>Define a function that classifies a <code>char</code> into a <strong>type id</strong> for the new language. Ids are indices into the language’s ordered <code>type_codes()</code> table (Step 4): the shared classes occupy fixed indices (“O” = 0, “P” = 1, “A” = 2, “N” = 3) and language-specific classes follow from 4. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn thai_char_type(c: char) -&gt; &amp;'static str {
+</span>fn thai_char_type_id(c: char) -&gt; u8 {
     match c {
         // Thai consonants and sequential vowels (U+0E01-U+0E3A)
-        '\u{0E01}'..='\u{0E3A}' =&gt; "T",
+        '\u{0E01}'..='\u{0E3A}' =&gt; 4, // "T"
         // Thai vowels and tone marks (U+0E40-U+0E4E)
-        '\u{0E40}'..='\u{0E4E}' =&gt; "V",
+        '\u{0E40}'..='\u{0E4E}' =&gt; 5, // "V"
         // Thai digits (U+0E50-U+0E59)
-        '\u{0E50}'..='\u{0E59}' =&gt; "N",
+        '\u{0E50}'..='\u{0E59}' =&gt; DIGIT_TYPE_ID, // "N"
         // Shared classes: "P" (punctuation), "A" (Latin), "N" (digits)
-        _ =&gt; punct_latin_digit(c).unwrap_or("O"),
+        _ =&gt; punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 <span class="boring">}</span></code></pre>
@@ -238,36 +238,38 @@ Language::Thai =&gt; write!(f, "thai"),
 <li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
 <li><strong>Use match guards</strong> for logic beyond plain ranges (as Korean does to split syllables with/without 받침)</li>
 <li>Reuse the shared <code>punct_latin_digit()</code> helper for the common “P”/“A”/“N” classes</li>
+<li><strong>Keep the code set prefix-free</strong> – no code may be a prefix of another (Korean’s <code>SN</code>/<code>SF</code> work because <code>S</code> alone is not a code). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous (a unit test pins this per language)</li>
 </ul>
-<h2 id="step-4-register-the-classification-function"><a class="header" href="#step-4-register-the-classification-function">Step 4: Register the Classification Function</a></h2>
-<p>Add a match arm in <code>Language::char_type()</code>:</p>
+<h2 id="step-4-register-the-type-code-table-and-classification-function"><a class="header" href="#step-4-register-the-type-code-table-and-classification-function">Step 4: Register the Type-Code Table and Classification Function</a></h2>
+<p>Add the language’s ordered code table to <code>Language::type_codes()</code> (index = type id; shared codes first) and a dispatch arm in <code>Language::char_type_id()</code>. <code>char_type()</code> itself is derived from these two, so string codes and numeric ids cannot drift apart:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str {
+</span>pub(crate) fn type_codes(self) -&gt; &amp;'static [&amp;'static str] {
     match self {
-        Language::Japanese =&gt; japanese_char_type(c),
-        Language::Chinese =&gt; chinese_char_type(c),
-        Language::Korean =&gt; korean_char_type(c),
-        Language::Thai =&gt; thai_char_type(c),    // ← new
+        // ...
+        Language::Thai =&gt; &amp;["O", "P", "A", "N", "T", "V"],    // ← new
+    }
+}
+
+pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
+    match self {
+        // ...
+        Language::Thai =&gt; thai_char_type_id(c),    // ← new
     }
 }
 <span class="boring">}</span></code></pre>
 <h2 id="step-5-decide-on-wc-feature-inclusion"><a class="header" href="#step-5-decide-on-wc-feature-inclusion">Step 5: Decide on WC Feature Inclusion</a></h2>
-<p>In <code>segmenter.rs</code>, the internal attribute builder (<code>write_attributes()</code>) has a <code>match</code> on the language to decide whether to include WC features:</p>
+<p>The feature template is defined once in <code>packed_model.rs</code> (<code>TEMPLATES</code>), and <code>templates_for()</code> decides whether a language uses the trailing <code>WC1</code>–<code>WC4</code> char/type mixed templates:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match self.language {
-    Language::Japanese | Language::Chinese =&gt; {
-        // Include WC features
-        attr!("WC1:{}{}", w3, c4);
-        attr!("WC2:{}{}", c3, w4);
-        attr!("WC3:{}{}", w3, c3);
-        attr!("WC4:{}{}", w4, c4);
+</span>pub(crate) fn templates_for(language: Language) -&gt; &amp;'static [Template] {
+    match language {
+        Language::Japanese | Language::Chinese =&gt; &amp;TEMPLATES[..],
+        _ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 base templates
     }
-    _ =&gt; {}
 }
 <span class="boring">}</span></code></pre>
-<p>If your language’s character types have enough variety to make WC features informative, add it to the match arm. If your type system is low-entropy (like Korean’s SN/SF), it is better to exclude WC features.</p>
+<p>If your language’s character types have enough variety to make WC features informative, add it to the first match arm. If your type system is low-entropy (like Korean’s SN/SF), it is better to exclude WC features.</p>
 <h2 id="step-6-prepare-corpus-and-train-a-model"><a class="header" href="#step-6-prepare-corpus-and-train-a-model">Step 6: Prepare Corpus and Train a Model</a></h2>
 <ol>
 <li>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
+            window.path_to_searchindex_js = "../searchindex-289bd82d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -226,6 +226,13 @@ UC4:I	0.2345
 <pre><code class="language-text">bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 </code></pre>
+<p>ディスク上の形式は文字列キーのまま変わっていませんが、セグメンタは文字列に対して
+直接スコアリングしません: ロード時に各特徴量行がパースされ、ホットループ用の
+packed <code>u64</code> 整数キーへコンパイルされます
+（<a href="../algorithm/prediction-pipeline.html#packed-スコアリングテーブル">予測パイプライン</a>
+を参照）。セグメンタの言語では生成し得ない特徴量（例: 他言語の文字種コード）は
+このコンパイルで無視されます – 従来も入力属性にマッチし得なかったものと完全に
+同じ扱いです。一方、バイアスは常にファイル内のすべての重みから計算されます。</p>
 <h2 id="ファイルサイズ"><a class="header" href="#ファイルサイズ">ファイルサイズ</a></h2>
 <p>モデルファイルは非常にコンパクトです:</p>
 <div class="table-wrapper">

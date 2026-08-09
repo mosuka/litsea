@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
+            window.path_to_searchindex_js = "../searchindex-289bd82d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -215,19 +215,19 @@ Language::Thai =&gt; write!(f, "thai"),
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
 <h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
-<p>新しい言語の文字を種別コードに分類する関数を定義します。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
+<p>新しい言語の文字を<strong>種別 ID</strong>（type id）に分類する関数を定義します。ID は言語の順序付き <code>type_codes()</code> テーブル（手順 4）へのインデックスです: 共通クラスは固定インデックス（“O” = 0、“P” = 1、“A” = 2、“N” = 3）を占め、言語固有クラスは 4 から続きます。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn thai_char_type(c: char) -&gt; &amp;'static str {
+</span>fn thai_char_type_id(c: char) -&gt; u8 {
     match c {
         // タイ文字の子音・順行母音 (U+0E01-U+0E3A)
-        '\u{0E01}'..='\u{0E3A}' =&gt; "T",
+        '\u{0E01}'..='\u{0E3A}' =&gt; 4, // "T"
         // タイ文字の母音・声調記号 (U+0E40-U+0E4E)
-        '\u{0E40}'..='\u{0E4E}' =&gt; "V",
+        '\u{0E40}'..='\u{0E4E}' =&gt; 5, // "V"
         // タイ数字 (U+0E50-U+0E59)
-        '\u{0E50}'..='\u{0E59}' =&gt; "N",
+        '\u{0E50}'..='\u{0E59}' =&gt; DIGIT_TYPE_ID, // "N"
         // 共通クラス: "P"（句読点）、"A"（ラテン文字）、"N"（数字）
-        _ =&gt; punct_latin_digit(c).unwrap_or("O"),
+        _ =&gt; punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 <span class="boring">}</span></code></pre>
@@ -238,36 +238,38 @@ Language::Thai =&gt; write!(f, "thai"),
 <li>中国語の「F」のように、<strong>高頻度の機能語</strong>を別のタイプとして検討する</li>
 <li>単純な範囲比較では対応できないロジックには<strong>matchガード</strong>を使用する（韓国語が받침の有無で音節を分割する際に使用しているように）</li>
 <li>共通の「P」/「A」/「N」クラスには、共有ヘルパー <code>punct_latin_digit()</code> を再利用する</li>
+<li><strong>コード集合は prefix-free に保つ</strong> – どのコードも他のコードのプレフィックスであってはならない（韓国語の <code>SN</code>/<code>SF</code> が成立するのは <code>S</code> 単独がコードでないため）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証する（言語ごとにユニットテストで固定される）</li>
 </ul>
-<h2 id="手順4-パターン関数を登録"><a class="header" href="#手順4-パターン関数を登録">手順4: パターン関数を登録</a></h2>
-<p><code>Language::char_type()</code> にmatchアームを追加します。</p>
+<h2 id="手順4-種別コードテーブルと分類関数を登録"><a class="header" href="#手順4-種別コードテーブルと分類関数を登録">手順4: 種別コードテーブルと分類関数を登録</a></h2>
+<p>言語の順序付きコードテーブルを <code>Language::type_codes()</code> に（インデックス = 種別 ID、共通コードが先頭）、ディスパッチアームを <code>Language::char_type_id()</code> に追加します。<code>char_type()</code> 自体はこの 2 つから導出されるため、文字列コードと数値 ID が乖離することはありません。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str {
+</span>pub(crate) fn type_codes(self) -&gt; &amp;'static [&amp;'static str] {
     match self {
-        Language::Japanese =&gt; japanese_char_type(c),
-        Language::Chinese =&gt; chinese_char_type(c),
-        Language::Korean =&gt; korean_char_type(c),
-        Language::Thai =&gt; thai_char_type(c),    // ← new
+        // ...
+        Language::Thai =&gt; &amp;["O", "P", "A", "N", "T", "V"],    // ← new
+    }
+}
+
+pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
+    match self {
+        // ...
+        Language::Thai =&gt; thai_char_type_id(c),    // ← new
     }
 }
 <span class="boring">}</span></code></pre>
 <h2 id="手順5-wc特徴量の有無を決定"><a class="header" href="#手順5-wc特徴量の有無を決定">手順5: WC特徴量の有無を決定</a></h2>
-<p><code>segmenter.rs</code> の内部属性ビルダー（<code>write_attributes()</code>）には、WC特徴量を含めるかどうかを言語に基づいて判定する <code>match</code> があります。</p>
+<p>特徴テンプレートは <code>packed_model.rs</code>（<code>TEMPLATES</code>）に一度だけ定義されており、<code>templates_for()</code> が末尾の <code>WC1</code>–<code>WC4</code>（文字/種別混合テンプレート）を言語が使用するかどうかを決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match self.language {
-    Language::Japanese | Language::Chinese =&gt; {
-        // Include WC features
-        attr!("WC1:{}{}", w3, c4);
-        attr!("WC2:{}{}", c3, w4);
-        attr!("WC3:{}{}", w3, c3);
-        attr!("WC4:{}{}", w4, c4);
+</span>pub(crate) fn templates_for(language: Language) -&gt; &amp;'static [Template] {
+    match language {
+        Language::Japanese | Language::Chinese =&gt; &amp;TEMPLATES[..],
+        _ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 個の基本テンプレート
     }
-    _ =&gt; {}
 }
 <span class="boring">}</span></code></pre>
-<p>対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、matchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。</p>
+<p>対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、最初のmatchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。</p>
 <h2 id="手順6-コーパスを用意してモデルを学習"><a class="header" href="#手順6-コーパスを用意してモデルを学習">手順6: コーパスを用意してモデルを学習</a></h2>
 <ol>
 <li>

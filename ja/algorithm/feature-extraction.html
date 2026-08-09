@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e98366a0.js";
+            window.path_to_searchindex_js = "../searchindex-289bd82d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -237,6 +237,20 @@
 </tbody>
 </table>
 </div>
+<h2 id="単一の真実の源"><a class="header" href="#単一の真実の源">単一の真実の源</a></h2>
+<p>上記のテンプレート全体は、宣言的なテーブル（<code>packed_model::TEMPLATES</code> –
+プレフィックスと、タグ/文字/文字種スロットの順序付きリスト、固定の出力順）として
+一度だけ定義されます。両方の特徴量表現がここから導出されます:</p>
+<ul>
+<li>後述の<strong>文字列形式</strong> – 学習データ抽出、コーパス処理、モデルファイル、POS パスで
+使用</li>
+<li><code>segment()</code> のホットループが使用する <strong>packed <code>u64</code> 整数形式</strong> – モデルファイルは
+ロード時にこの形式へコンパイルされる
+（<a href="prediction-pipeline.html#packed-スコアリングテーブル">予測パイプライン</a>を参照）</li>
+</ul>
+<p>したがって、テンプレートの追加や並び替えはすべての消費者を一貫して変更します –
+ただし、スコアは出力順に累積されるため、順序は再現性にとって重要である点に注意して
+ください。</p>
 <h2 id="特徴量の形式"><a class="header" href="#特徴量の形式">特徴量の形式</a></h2>
 <p>各特徴量は <code>PREFIX:VALUE</code> の形式の文字列として表現されます:</p>
 <pre><code class="language-text">UW4:は        ← The character at position i is "は"

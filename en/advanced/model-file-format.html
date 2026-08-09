@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c50212b9.js";
+            window.path_to_searchindex_js = "../searchindex-8880907b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -228,6 +228,14 @@ header and rejects non-finite weights.</p>
 <pre><code class="language-text">bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 </code></pre>
+<p>The on-disk format is string-keyed and unchanged, but the segmenter does
+not score against the strings directly: at load time each feature line is
+parsed and compiled into a packed <code>u64</code> integer key for the hot loop (see
+<a href="../algorithm/prediction-pipeline.html#the-packed-scoring-table">Prediction Pipeline</a>).
+Features that the segmenter’s language could never generate (for example
+type codes of another language) are ignored by that compilation – exactly
+as they could never match an input attribute before – while the bias is
+always computed over every weight in the file.</p>
 <h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
 <p>Model files are very compact:</p>
 <div class="table-wrapper">

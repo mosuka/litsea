@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c50212b9.js";
+            window.path_to_searchindex_js = "searchindex-8880907b.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-dc1e276c.js"></script>
@@ -729,6 +729,15 @@ path, so reading it during inference is O(1).</p>
 <p>This centers the decision boundary. The empty-string feature (<code>""</code>) serves as the bias bucket during training.
 It is registered at feature index 0 on every construction path (<code>new()</code>, feature-file initialization, and
 model loading), so models trained through <code>add_instance()</code> train, save, and reload correctly.</p>
+<h3 id="packed-scoring-in-the-segmenter"><a class="header" href="#packed-scoring-in-the-segmenter">Packed Scoring in the Segmenter</a></h3>
+<p><code>predict()</code> itself looks features up by string, and its semantics are
+unchanged. The <code>Segmenter</code>, however, does not call it on the hot path:
+after a model (re)load it compiles the learner’s <code>(feature, weight)</code> pairs
+into packed <code>u64</code> integer keys and scores each position with integer map
+probes instead (see
+<a href="#the-packed-scoring-table">Prediction Pipeline</a>).
+The compiled table mirrors the model exactly, so both paths produce the
+same scores.</p>
 <h2 id="model-file-format"><a class="header" href="#model-file-format">Model File Format</a></h2>
 <p>The trained model is saved as a simple text file:</p>
 <pre><code class="language-text">feature1\tweight1
@@ -931,6 +940,21 @@ always produces byte-identical files; loading does not depend on the order</li>
 </tbody>
 </table>
 </div>
+<h2 id="single-source-of-truth"><a class="header" href="#single-source-of-truth">Single Source of Truth</a></h2>
+<p>The whole template above is defined once as a declarative table
+(<code>packed_model::TEMPLATES</code> – prefix plus an ordered list of tag/char/type
+slots, in a fixed emission order). Both feature representations derive from
+it:</p>
+<ul>
+<li>the <strong>string form</strong> below, used for training data extraction, corpus
+processing, model files, and the POS path;</li>
+<li>the <strong>packed <code>u64</code> integer form</strong> used by <code>segment()</code>’s hot loop, into
+which model files are compiled at load time (see
+<a href="#the-packed-scoring-table">Prediction Pipeline</a>).</li>
+</ul>
+<p>Adding or reordering a template therefore changes every consumer
+consistently – but note the order is load-bearing for reproducibility,
+because scores are accumulated in emission order.</p>
 <h2 id="feature-format"><a class="header" href="#feature-format">Feature Format</a></h2>
 <p>Each feature is represented as a string in the format <code>PREFIX:VALUE</code>:</p>
 <pre><code class="language-text">UW4:は        ← The character at position i is "は"
@@ -1100,24 +1124,52 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <pre><code class="language-text">["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h2 id="how-prediction-works-at-each-position"><a class="header" href="#how-prediction-works-at-each-position">How Prediction Works at Each Position</a></h2>
-<p>At each position <em>i</em>, the segmenter:</p>
+<p><code>segment()</code> never builds feature strings. When a model is loaded, the
+segmenter compiles the learner’s string-keyed weights into <strong>packed <code>u64</code>
+feature keys</strong> once (see below); the hot loop then works entirely on
+integers. At each position <em>i</em>, the segmenter:</p>
 <ol>
 <li>
-<p><strong>Streams features</strong> – Calls <code>write_attributes(i, tags, chars, types, sink)</code>, which formats each of the 38–42 feature strings into a reused buffer and passes it to a sink closure. No per-position set or vector is built on this path.</p>
+<p><strong>Packs features</strong> – For each of the 38–42 templates, packs the
+template id (top byte) together with the relevant boundary-tag ids,
+character type ids, and character code points (8 bits per tag/type, 24
+bits per character; the padding sentinels <code>B3</code>…<code>E3</code> map to code points
+just above the Unicode scalar range) into a single <code>u64</code> key on the
+stack. No allocation, no string formatting.</p>
 </li>
 <li>
-<p><strong>Computes score</strong> – The sink adds <code>learner.weight(feature)</code> (an <code>FxHashMap</code> lookup of the model weight, 0.0 for unknown features) to a running score that starts at the bias. The bias itself is a cached field (<code>-sum(model) / 2.0</code>, kept in sync by every weight-mutating path) and is read once per sentence, not recomputed per position:</p>
-<pre><code class="language-text">score = bias + sum(weight(feature) for each streamed feature)
+<p><strong>Computes score</strong> – Each packed key is looked up in an
+<code>FxHashMap&lt;u64, f64&gt;</code> (0.0 for unknown features) and added to a running
+score that starts at the bias. The bias itself is a cached field
+(<code>-sum(model) / 2.0</code>, kept in sync by every weight-mutating path) and is
+read once per sentence, not recomputed per position:</p>
+<pre><code class="language-text">score = bias + sum(packed_weights[key(template, context)] for each template)
 </code></pre>
 </li>
 <li>
 <p><strong>Makes decision</strong> – If <code>score &gt;= 0</code>, the character starts a new word (boundary); otherwise, it continues the current word</p>
 </li>
 <li>
-<p><strong>Updates tags</strong> – Pushes “B” or “O” to the tags array, which affects feature extraction for subsequent positions</p>
+<p><strong>Updates tags</strong> – Pushes the B or O tag id to the tags array, which affects feature extraction for subsequent positions</p>
 </li>
 </ol>
-<p>The padded character/type context (<code>sentence_context</code>) borrows string slices directly from the input instead of allocating a <code>String</code> per character, and the sentinel entries (<code>B3</code>…<code>E3</code>) are static literals.</p>
+<p>The packed context (<code>packed_context</code>) borrows word-assembly string slices
+directly from the input and carries parallel <code>u32</code> char-code and <code>u8</code>
+type-id arrays; the sentinel entries (<code>B3</code>…<code>E3</code>) are static values.</p>
+<h3 id="the-packed-scoring-table"><a class="header" href="#the-packed-scoring-table">The Packed Scoring Table</a></h3>
+<p>The feature template is defined once as a declarative table
+(<code>packed_model::TEMPLATES</code>), from which three consumers derive: the string
+writer used by training/extraction/POS paths, the packed-key writer used by
+<code>segment()</code>, and the load-time parser that converts each model feature
+string into its packed key. Compilation happens eagerly in
+<code>Segmenter::with_learner</code> and is invalidated whenever the learner is
+mutated (<code>learner_mut()</code> / <code>add_corpus</code>), then rebuilt lazily on the next
+<code>segment()</code> call. Model features that the segmenter’s language could never
+generate (for example Korean type codes in a Japanese segmenter) are
+omitted from the table; they are unreachable at scoring time, so scores are
+unaffected. A lookup miss adds <code>0.0</code>, so the floating-point accumulation
+sequence – and therefore the segmentation output – is bit-for-bit
+identical to the historical string-keyed implementation.</p>
 <h2 id="joint-segmentation-and-pos-tagging-segment_with_pos"><a class="header" href="#joint-segmentation-and-pos-tagging-segment_with_pos">Joint Segmentation and POS Tagging (<code>segment_with_pos</code>)</a></h2>
 <p><code>segment_with_pos</code> runs the same left-to-right pipeline with the Averaged Perceptron instead of AdaBoost:</p>
 <ol>
@@ -1137,7 +1189,7 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <tr><td>First tag</td><td>“U” (overrides “B” at position 3)</td><td>“U” (no prior decision)</td></tr>
 <tr><td>First position</td><td>Boundary pipeline skips it; POS pipeline emits it (#100)</td><td>POS mode predicts it for the first word’s POS</td></tr>
 <tr><td>Labels</td><td>Known from corpus (+1 or -1)</td><td>Predicted by AdaBoost</td></tr>
-<tr><td>Features</td><td>Written to file via callback</td><td>Passed directly to <code>predict()</code></td></tr>
+<tr><td>Features</td><td>Written to file via callback (string form)</td><td>Packed <code>u64</code> keys, no strings</td></tr>
 </tbody>
 </table>
 </div>
@@ -1146,10 +1198,10 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 <p>The segmentation algorithm is <strong>linear</strong> in the length of the input:</p>
 <ul>
 <li>Each character position is visited once: O(n)</li>
-<li>Feature extraction at each position: O(1) (fixed number of features, streamed through a reused buffer)</li>
-<li>Prediction at each position: O(f) where f is the number of active features (~38-42), each a single <code>FxHashMap</code> probe</li>
+<li>Feature extraction at each position: O(1) (fixed number of templates, each packed into a <code>u64</code> on the stack)</li>
+<li>Prediction at each position: O(f) where f is the number of active features (~38-42), each a single integer-keyed <code>FxHashMap</code> probe</li>
 <li>Total: O(n * f) which is effectively O(n)</li>
-<li>Allocation profile: the sentence context borrows from the input, the bias is cached, and attribute/score buffers are reused across positions</li>
+<li>Allocation profile: the packed context borrows word slices from the input and carries flat <code>u32</code>/<code>u8</code> arrays, the bias is cached, and no strings are built anywhere in the hot loop (the packed table itself is compiled once per model load, off the hot path)</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language-support-overview"><a class="header" href="#language-support-overview">Language Support Overview</a></h1>
@@ -1407,19 +1459,19 @@ Language::Thai =&gt; write!(f, "thai"),
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
 <h2 id="step-3-create-a-character-classification-function"><a class="header" href="#step-3-create-a-character-classification-function">Step 3: Create a Character Classification Function</a></h2>
-<p>Define a function that classifies a <code>char</code> into a type code for the new language. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
+<p>Define a function that classifies a <code>char</code> into a <strong>type id</strong> for the new language. Ids are indices into the language’s ordered <code>type_codes()</code> table (Step 4): the shared classes occupy fixed indices (“O” = 0, “P” = 1, “A” = 2, “N” = 3) and language-specific classes follow from 4. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn thai_char_type(c: char) -&gt; &amp;'static str {
+</span>fn thai_char_type_id(c: char) -&gt; u8 {
     match c {
         // Thai consonants and sequential vowels (U+0E01-U+0E3A)
-        '\u{0E01}'..='\u{0E3A}' =&gt; "T",
+        '\u{0E01}'..='\u{0E3A}' =&gt; 4, // "T"
         // Thai vowels and tone marks (U+0E40-U+0E4E)
-        '\u{0E40}'..='\u{0E4E}' =&gt; "V",
+        '\u{0E40}'..='\u{0E4E}' =&gt; 5, // "V"
         // Thai digits (U+0E50-U+0E59)
-        '\u{0E50}'..='\u{0E59}' =&gt; "N",
+        '\u{0E50}'..='\u{0E59}' =&gt; DIGIT_TYPE_ID, // "N"
         // Shared classes: "P" (punctuation), "A" (Latin), "N" (digits)
-        _ =&gt; punct_latin_digit(c).unwrap_or("O"),
+        _ =&gt; punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 <span class="boring">}</span></code></pre>
@@ -1430,36 +1482,38 @@ Language::Thai =&gt; write!(f, "thai"),
 <li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
 <li><strong>Use match guards</strong> for logic beyond plain ranges (as Korean does to split syllables with/without 받침)</li>
 <li>Reuse the shared <code>punct_latin_digit()</code> helper for the common “P”/“A”/“N” classes</li>
+<li><strong>Keep the code set prefix-free</strong> – no code may be a prefix of another (Korean’s <code>SN</code>/<code>SF</code> work because <code>S</code> alone is not a code). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous (a unit test pins this per language)</li>
 </ul>
-<h2 id="step-4-register-the-classification-function"><a class="header" href="#step-4-register-the-classification-function">Step 4: Register the Classification Function</a></h2>
-<p>Add a match arm in <code>Language::char_type()</code>:</p>
+<h2 id="step-4-register-the-type-code-table-and-classification-function"><a class="header" href="#step-4-register-the-type-code-table-and-classification-function">Step 4: Register the Type-Code Table and Classification Function</a></h2>
+<p>Add the language’s ordered code table to <code>Language::type_codes()</code> (index = type id; shared codes first) and a dispatch arm in <code>Language::char_type_id()</code>. <code>char_type()</code> itself is derived from these two, so string codes and numeric ids cannot drift apart:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn char_type(&amp;self, c: char) -&gt; &amp;'static str {
+</span>pub(crate) fn type_codes(self) -&gt; &amp;'static [&amp;'static str] {
     match self {
-        Language::Japanese =&gt; japanese_char_type(c),
-        Language::Chinese =&gt; chinese_char_type(c),
-        Language::Korean =&gt; korean_char_type(c),
-        Language::Thai =&gt; thai_char_type(c),    // ← new
+        // ...
+        Language::Thai =&gt; &amp;["O", "P", "A", "N", "T", "V"],    // ← new
+    }
+}
+
+pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
+    match self {
+        // ...
+        Language::Thai =&gt; thai_char_type_id(c),    // ← new
     }
 }
 <span class="boring">}</span></code></pre>
 <h2 id="step-5-decide-on-wc-feature-inclusion"><a class="header" href="#step-5-decide-on-wc-feature-inclusion">Step 5: Decide on WC Feature Inclusion</a></h2>
-<p>In <code>segmenter.rs</code>, the internal attribute builder (<code>write_attributes()</code>) has a <code>match</code> on the language to decide whether to include WC features:</p>
+<p>The feature template is defined once in <code>packed_model.rs</code> (<code>TEMPLATES</code>), and <code>templates_for()</code> decides whether a language uses the trailing <code>WC1</code>–<code>WC4</code> char/type mixed templates:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>match self.language {
-    Language::Japanese | Language::Chinese =&gt; {
-        // Include WC features
-        attr!("WC1:{}{}", w3, c4);
-        attr!("WC2:{}{}", c3, w4);
-        attr!("WC3:{}{}", w3, c3);
-        attr!("WC4:{}{}", w4, c4);
+</span>pub(crate) fn templates_for(language: Language) -&gt; &amp;'static [Template] {
+    match language {
+        Language::Japanese | Language::Chinese =&gt; &amp;TEMPLATES[..],
+        _ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 base templates
     }
-    _ =&gt; {}
 }
 <span class="boring">}</span></code></pre>
-<p>If your language’s character types have enough variety to make WC features informative, add it to the match arm. If your type system is low-entropy (like Korean’s SN/SF), it is better to exclude WC features.</p>
+<p>If your language’s character types have enough variety to make WC features informative, add it to the first match arm. If your type system is low-entropy (like Korean’s SN/SF), it is better to exclude WC features.</p>
 <h2 id="step-6-prepare-corpus-and-train-a-model"><a class="header" href="#step-6-prepare-corpus-and-train-a-model">Step 6: Prepare Corpus and Train a Model</a></h2>
 <ol>
 <li>
@@ -3210,6 +3264,14 @@ header and rejects non-finite weights.</p>
 <pre><code class="language-text">bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 </code></pre>
+<p>The on-disk format is string-keyed and unchanged, but the segmenter does
+not score against the strings directly: at load time each feature line is
+parsed and compiled into a packed <code>u64</code> integer key for the hot loop (see
+<a href="#the-packed-scoring-table">Prediction Pipeline</a>).
+Features that the segmenter’s language could never generate (for example
+type codes of another language) are ignored by that compilation – exactly
+as they could never match an input attribute before – while the bias is
+always computed over every weight in the file.</p>
 <h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
 <p>Model files are very compact:</p>
 <div class="table-wrapper">
