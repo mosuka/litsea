@@ -161,7 +161,85 @@ impl Template {
         }
         (u64::from(self.id) << 56) | acc
     }
+
+    /// Returns true when every slot is a `Tag`/`Typ` slot, i.e. the
+    /// template's key space is the small mixed-radix product of the tag and
+    /// type domains and its weights can live in a direct-indexed dense
+    /// table ([`PackedModel::dense`]) instead of the hash map. 29 of the 42
+    /// templates qualify (all but `UW*`, `BW*`, `WC*`).
+    pub(crate) fn is_dense(&self) -> bool {
+        self.slots.iter().all(|slot| !matches!(slot, Slot::Chr(_)))
+    }
+
+    /// Number of entries in this template's dense table for a language with
+    /// `type_radix` type codes: the mixed-radix product of the slot domains
+    /// (3 per `Tag` slot, `type_radix` per `Typ` slot). Only meaningful for
+    /// [`is_dense`](Self::is_dense) templates.
+    pub(crate) fn dense_size(&self, type_radix: usize) -> usize {
+        debug_assert!(self.is_dense());
+        self.slots.iter().fold(1, |acc, slot| match slot {
+            Slot::Tag(_) => acc * TAG_RADIX,
+            Slot::Typ(_) => acc * type_radix,
+            Slot::Chr(_) => acc, // unreachable: dense templates have no Chr slot
+        })
+    }
+
+    /// Mixed-radix dense-table index of this template's feature at position
+    /// `i`: `idx = idx * radix + value` over the slots in order. Shares its
+    /// definition with [`dense_index_from_key`](Self::dense_index_from_key)
+    /// so the scorer and the table builder agree by construction. Only
+    /// meaningful for [`is_dense`](Self::is_dense) templates.
+    ///
+    /// # Arguments
+    /// * `i` - The character position (same convention as [`pack`](Self::pack)).
+    /// * `tags` - Boundary-tag ids per position.
+    /// * `types` - Type ids per position.
+    /// * `type_radix` - The language's type-code count.
+    ///
+    /// # Returns
+    /// An index strictly below [`dense_size`](Self::dense_size).
+    #[inline]
+    pub(crate) fn dense_index(
+        &self,
+        i: usize,
+        tags: &[u8],
+        types: &[u8],
+        type_radix: usize,
+    ) -> usize {
+        debug_assert!(self.is_dense());
+        let mut idx = 0usize;
+        for slot in self.slots {
+            idx = match *slot {
+                Slot::Tag(d) => idx * TAG_RADIX + tags[i - 3 + d as usize] as usize,
+                Slot::Typ(d) => idx * type_radix + types[i - 3 + d as usize] as usize,
+                Slot::Chr(_) => idx, // unreachable: dense templates have no Chr slot
+            };
+        }
+        idx
+    }
+
+    /// Recomputes the dense-table index from a packed key produced by
+    /// [`pack`](Self::pack) or [`parse_feature_keys`]. Dense templates carry
+    /// only 8-bit fields, decoded here in slot order and re-accumulated with
+    /// the same mixed radices as [`dense_index`](Self::dense_index).
+    fn dense_index_from_key(&self, key: u64, type_radix: usize) -> usize {
+        debug_assert!(self.is_dense());
+        let n = self.slots.len();
+        let mut idx = 0usize;
+        for (j, slot) in self.slots.iter().enumerate() {
+            let value = ((key >> (8 * (n - 1 - j))) & 0xFF) as usize;
+            idx = match slot {
+                Slot::Tag(_) => idx * TAG_RADIX + value,
+                Slot::Typ(_) => idx * type_radix + value,
+                Slot::Chr(_) => idx, // unreachable: dense templates have no Chr slot
+            };
+        }
+        idx
+    }
 }
+
+/// Radix of a tag slot (`TAG_U`/`TAG_B`/`TAG_O`).
+const TAG_RADIX: usize = 3;
 
 /// Number of templates shared by all languages (everything before `WC1`).
 const BASE_TEMPLATE_COUNT: usize = 38;
@@ -254,18 +332,42 @@ fn parse_slots(
     }
 }
 
-/// A trained AdaBoost model compiled to packed integer feature keys for
-/// allocation-free scoring in `segment()`'s hot loop. Weights are stored
-/// directly (one map probe per feature); the bias is read from the learner.
-#[derive(Debug, Default)]
+/// A trained AdaBoost model compiled to integer feature keys for
+/// allocation-free scoring in `segment()`'s hot loop. Tag/type-only
+/// templates live in direct-indexed dense tables (single array load per
+/// feature); char-bearing templates use a hash map probe on the packed
+/// key. The bias is read from the learner.
+#[derive(Debug)]
 pub(crate) struct PackedModel {
-    /// Packed feature key -> model weight.
+    /// Char-bearing templates (`UW*`, `BW*`, `WC*`): packed key -> weight.
     pub(crate) weights: FxHashMap<u64, f64>,
+    /// Dense weight tables indexed by template id, one per
+    /// [`Template::is_dense`] template (empty `Vec` for map-scored
+    /// templates, so the scorer dispatches on `is_empty()`). Entry order is
+    /// the mixed-radix index of [`Template::dense_index`]; unset entries
+    /// stay `0.0`, reproducing a hash-map miss exactly.
+    pub(crate) dense: Vec<Vec<f64>>,
+}
+
+impl Default for PackedModel {
+    /// An empty model: no map entries and zero-length dense tables. Every
+    /// lookup dispatches to the map path and misses (adds 0.0), matching an
+    /// untrained learner.
+    fn default() -> Self {
+        PackedModel {
+            weights: FxHashMap::default(),
+            dense: vec![Vec::new(); TEMPLATES.len()],
+        }
+    }
 }
 
 impl PackedModel {
-    /// Compiles the learner's string-keyed weights into packed keys for
+    /// Compiles the learner's string-keyed weights into integer keys for
     /// `language`. Called once per model (re)load, not on the hot path.
+    ///
+    /// Dense-eligible templates get a 0.0-initialized table sized by
+    /// [`Template::dense_size`]; their parsed keys are decoded into
+    /// mixed-radix indices. All other keys go into the hash map.
     ///
     /// # Arguments
     /// * `language` - The language whose templates to compile for.
@@ -275,16 +377,27 @@ impl PackedModel {
     /// A `PackedModel` mirroring every feature of `learner` that the
     /// attribute writer can generate for `language`.
     pub(crate) fn build(language: Language, learner: &AdaBoost) -> Self {
+        let type_radix = language.type_codes().len();
         let mut weights = FxHashMap::default();
+        let mut dense: Vec<Vec<f64>> = TEMPLATES
+            .iter()
+            .map(|t| if t.is_dense() { vec![0.0; t.dense_size(type_radix)] } else { Vec::new() })
+            .collect();
         let mut keys = Vec::new();
         for (feature, weight) in learner.feature_weights() {
             keys.clear();
             parse_feature_keys(language, feature, &mut keys);
             for &key in &keys {
-                weights.insert(key, weight);
+                let template = &TEMPLATES[(key >> 56) as usize];
+                if template.is_dense() {
+                    let idx = template.dense_index_from_key(key, type_radix);
+                    dense[template.id as usize][idx] = weight;
+                } else {
+                    weights.insert(key, weight);
+                }
             }
         }
-        PackedModel { weights }
+        PackedModel { weights, dense }
     }
 }
 
@@ -486,14 +599,98 @@ mod tests {
         learner.load_model_from_reader(model.as_bytes()).unwrap();
 
         let packed = PackedModel::build(Language::Japanese, &learner);
-        // UW4:い and BC2:OI parse for Japanese; UC1:SN (Korean code) and
-        // ZZZ:x do not.
-        assert_eq!(packed.weights.len(), 2);
-        // UW4 = [Chr(3)] (id 8); BC2 = [Typ(2), Typ(3)] (id 21) with
-        // Japanese ids O=0, I=6.
+        // UW4:い (char-bearing) lands in the map; BC2:OI (tag/type-only)
+        // lands in its dense table; UC1:SN (Korean code) and ZZZ:x parse for
+        // no Japanese template and are skipped entirely.
+        assert_eq!(packed.weights.len(), 1);
+        // UW4 = [Chr(3)] (id 8).
         let uw4 = (8u64 << 56) | u64::from('い');
-        let bc2 = (21u64 << 56) | 6u64;
         assert_eq!(packed.weights.get(&uw4), Some(&0.5));
-        assert_eq!(packed.weights.get(&bc2), Some(&-0.25));
+        // BC2 = [Typ(2), Typ(3)] (id 21) with Japanese ids O=0, I=6:
+        // mixed-radix index = 0 * 8 + 6.
+        assert_eq!(packed.dense[21][6], -0.25);
+        // UC1:SN was skipped: its dense table stays all-zero.
+        assert!(packed.dense[14].iter().all(|&w| w == 0.0));
+    }
+
+    // --- Dense-table tests (#138) ---
+
+    #[test]
+    fn test_dense_partition() {
+        // Exactly the char-bearing templates (UW*, BW*, WC*) are map-scored;
+        // the other 29 are dense-eligible.
+        let mut dense_count = 0;
+        for template in &TEMPLATES {
+            let char_bearing = template.prefix.starts_with("UW")
+                || template.prefix.starts_with("BW")
+                || template.prefix.starts_with("WC");
+            assert_eq!(template.is_dense(), !char_bearing, "{}", template.prefix);
+            if template.is_dense() {
+                dense_count += 1;
+            }
+        }
+        assert_eq!(dense_count, 29);
+    }
+
+    #[test]
+    fn test_dense_sizes_japanese() {
+        // Japanese has 8 type codes; expected mixed-radix products per
+        // template family.
+        let expected = [
+            ("UP1", 3),
+            ("BP1", 9),
+            ("UC1", 8),
+            ("BC1", 64),
+            ("TC1", 512),
+            ("UQ1", 24),
+            ("BQ1", 192),
+            ("TQ1", 1536),
+        ];
+        for (prefix, size) in expected {
+            let template = TEMPLATES.iter().find(|t| t.prefix == prefix).unwrap();
+            assert_eq!(template.dense_size(8), size, "{prefix}");
+        }
+    }
+
+    #[test]
+    fn test_dense_index_consistent_with_key_decode() {
+        // For every dense template and language: the scorer's directly
+        // computed index equals the index decoded from the packed key (the
+        // builder's path), and both are within the table.
+        for language in [Language::Japanese, Language::Chinese, Language::Korean] {
+            let type_radix = language.type_codes().len();
+            let ctx = ctx_for(language);
+            for template in templates_for(language) {
+                if !template.is_dense() {
+                    continue;
+                }
+                let key = template.pack(4, &ctx.tag_ids, &ctx.char_codes, &ctx.type_ids);
+                let from_key = template.dense_index_from_key(key, type_radix);
+                let direct = template.dense_index(4, &ctx.tag_ids, &ctx.type_ids, type_radix);
+                assert_eq!(from_key, direct, "{language}: {}", template.prefix);
+                assert!(direct < template.dense_size(type_radix), "{}", template.prefix);
+            }
+        }
+    }
+
+    #[test]
+    fn test_build_dense_storage_roundtrip() {
+        // A weight stored through build's key-decode path must be readable
+        // at the scorer's directly computed index. TQ4 = [Tag(2), Typ(1),
+        // Typ(2), Typ(3)] (id 37) exercises the deepest mixed-radix case;
+        // rendered for Japanese with p3=O, types A,N,I.
+        let model = "TQ4:OANI\t0.75\n0.0\n";
+        let mut learner = AdaBoost::new(0.01, 100);
+        learner.load_model_from_reader(model.as_bytes()).unwrap();
+        let packed = PackedModel::build(Language::Japanese, &learner);
+
+        let template = TEMPLATES.iter().find(|t| t.prefix == "TQ4").unwrap();
+        // Context where position 4 yields exactly p3=O ("O" at tags[3]) and
+        // c2..c4 = A,N,I (type ids 2,3,6 at indices 2..=4).
+        let tags = [TAG_U, TAG_U, TAG_U, TAG_O, TAG_U, TAG_U, TAG_U];
+        let types = [0u8, 0, 2, 3, 6, 0, 0];
+        let idx = template.dense_index(4, &tags, &types, 8);
+        assert_eq!(packed.dense[37][idx], 0.75);
+        assert!(packed.weights.is_empty());
     }
 }
