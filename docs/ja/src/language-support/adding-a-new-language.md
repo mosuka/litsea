@@ -40,19 +40,19 @@ Language::Thai => write!(f, "thai"),
 
 ## 手順3: 文字タイプパターンを作成
 
-新しい言語の文字を種別コードに分類する関数を定義します。分類は文字範囲に対する `match` 式で直接行います（正規表現は使いません）。**最初にマッチしたアーム**が種別を決定します。
+新しい言語の文字を**種別 ID**（type id）に分類する関数を定義します。ID は言語の順序付き `type_codes()` テーブル（手順 4）へのインデックスです: 共通クラスは固定インデックス（"O" = 0、"P" = 1、"A" = 2、"N" = 3）を占め、言語固有クラスは 4 から続きます。分類は文字範囲に対する `match` 式で直接行います（正規表現は使いません）。**最初にマッチしたアーム**が種別を決定します。
 
 ```rust
-fn thai_char_type(c: char) -> &'static str {
+fn thai_char_type_id(c: char) -> u8 {
     match c {
         // タイ文字の子音・順行母音 (U+0E01-U+0E3A)
-        '\u{0E01}'..='\u{0E3A}' => "T",
+        '\u{0E01}'..='\u{0E3A}' => 4, // "T"
         // タイ文字の母音・声調記号 (U+0E40-U+0E4E)
-        '\u{0E40}'..='\u{0E4E}' => "V",
+        '\u{0E40}'..='\u{0E4E}' => 5, // "V"
         // タイ数字 (U+0E50-U+0E59)
-        '\u{0E50}'..='\u{0E59}' => "N",
+        '\u{0E50}'..='\u{0E59}' => DIGIT_TYPE_ID, // "N"
         // 共通クラス: "P"（句読点）、"A"（ラテン文字）、"N"（数字）
-        _ => punct_latin_digit(c).unwrap_or("O"),
+        _ => punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 ```
@@ -64,40 +64,42 @@ fn thai_char_type(c: char) -> &'static str {
 - 中国語の「F」のように、**高頻度の機能語**を別のタイプとして検討する
 - 単純な範囲比較では対応できないロジックには**matchガード**を使用する（韓国語が받침の有無で音節を分割する際に使用しているように）
 - 共通の「P」/「A」/「N」クラスには、共有ヘルパー `punct_latin_digit()` を再利用する
+- **コード集合は prefix-free に保つ** -- どのコードも他のコードのプレフィックスであってはならない（韓国語の `SN`/`SF` が成立するのは `S` 単独がコードでないため）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証する（言語ごとにユニットテストで固定される）
 
-## 手順4: パターン関数を登録
+## 手順4: 種別コードテーブルと分類関数を登録
 
-`Language::char_type()` にmatchアームを追加します。
+言語の順序付きコードテーブルを `Language::type_codes()` に（インデックス = 種別 ID、共通コードが先頭）、ディスパッチアームを `Language::char_type_id()` に追加します。`char_type()` 自体はこの 2 つから導出されるため、文字列コードと数値 ID が乖離することはありません。
 
 ```rust
-pub fn char_type(&self, c: char) -> &'static str {
+pub(crate) fn type_codes(self) -> &'static [&'static str] {
     match self {
-        Language::Japanese => japanese_char_type(c),
-        Language::Chinese => chinese_char_type(c),
-        Language::Korean => korean_char_type(c),
-        Language::Thai => thai_char_type(c),    // ← new
+        // ...
+        Language::Thai => &["O", "P", "A", "N", "T", "V"],    // ← new
+    }
+}
+
+pub(crate) fn char_type_id(self, c: char) -> u8 {
+    match self {
+        // ...
+        Language::Thai => thai_char_type_id(c),    // ← new
     }
 }
 ```
 
 ## 手順5: WC特徴量の有無を決定
 
-`segmenter.rs` の内部属性ビルダー（`write_attributes()`）には、WC特徴量を含めるかどうかを言語に基づいて判定する `match` があります。
+特徴テンプレートは `packed_model.rs`（`TEMPLATES`）に一度だけ定義されており、`templates_for()` が末尾の `WC1`--`WC4`（文字/種別混合テンプレート）を言語が使用するかどうかを決定します。
 
 ```rust
-match self.language {
-    Language::Japanese | Language::Chinese => {
-        // Include WC features
-        attr!("WC1:{}{}", w3, c4);
-        attr!("WC2:{}{}", c3, w4);
-        attr!("WC3:{}{}", w3, c3);
-        attr!("WC4:{}{}", w4, c4);
+pub(crate) fn templates_for(language: Language) -> &'static [Template] {
+    match language {
+        Language::Japanese | Language::Chinese => &TEMPLATES[..],
+        _ => &TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 個の基本テンプレート
     }
-    _ => {}
 }
 ```
 
-対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、matchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。
+対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、最初のmatchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。
 
 ## 手順6: コーパスを用意してモデルを学習
 

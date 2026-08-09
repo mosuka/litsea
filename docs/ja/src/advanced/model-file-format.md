@@ -61,6 +61,14 @@ bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
 score = bias + sum(model[feature] for feature in input_attributes)
 ```
 
+ディスク上の形式は文字列キーのまま変わっていませんが、セグメンタは文字列に対して
+直接スコアリングしません: ロード時に各特徴量行がパースされ、ホットループ用の
+packed `u64` 整数キーへコンパイルされます
+（[予測パイプライン](../algorithm/prediction-pipeline.md#packed-スコアリングテーブル)
+を参照）。セグメンタの言語では生成し得ない特徴量（例: 他言語の文字種コード）は
+このコンパイルで無視されます -- 従来も入力属性にマッチし得なかったものと完全に
+同じ扱いです。一方、バイアスは常にファイル内のすべての重みから計算されます。
+
 ## ファイルサイズ
 
 モデルファイルは非常にコンパクトです:

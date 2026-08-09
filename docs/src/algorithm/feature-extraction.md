@@ -42,6 +42,23 @@ For each character position *i* in the input, the segmenter extracts features fr
 | Chinese | 38 | 4 | **42** |
 | Korean | 38 | 0 | **38** |
 
+## Single Source of Truth
+
+The whole template above is defined once as a declarative table
+(`packed_model::TEMPLATES` -- prefix plus an ordered list of tag/char/type
+slots, in a fixed emission order). Both feature representations derive from
+it:
+
+- the **string form** below, used for training data extraction, corpus
+  processing, model files, and the POS path;
+- the **packed `u64` integer form** used by `segment()`'s hot loop, into
+  which model files are compiled at load time (see
+  [Prediction Pipeline](prediction-pipeline.md#the-packed-scoring-table)).
+
+Adding or reordering a template therefore changes every consumer
+consistently -- but note the order is load-bearing for reproducibility,
+because scores are accumulated in emission order.
+
 ## Feature Format
 
 Each feature is represented as a string in the format `PREFIX:VALUE`:

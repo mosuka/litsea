@@ -98,6 +98,17 @@ This centers the decision boundary. The empty-string feature (`""`) serves as th
 It is registered at feature index 0 on every construction path (`new()`, feature-file initialization, and
 model loading), so models trained through `add_instance()` train, save, and reload correctly.
 
+### Packed Scoring in the Segmenter
+
+`predict()` itself looks features up by string, and its semantics are
+unchanged. The `Segmenter`, however, does not call it on the hot path:
+after a model (re)load it compiles the learner's `(feature, weight)` pairs
+into packed `u64` integer keys and scores each position with integer map
+probes instead (see
+[Prediction Pipeline](prediction-pipeline.md#the-packed-scoring-table)).
+The compiled table mirrors the model exactly, so both paths produce the
+same scores.
+
 ## Model File Format
 
 The trained model is saved as a simple text file:
