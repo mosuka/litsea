@@ -58,120 +58,156 @@ impl FromStr for Language {
     }
 }
 
+/// Type id of the "O" (Other) code. Shared by every language: index 0 of
+/// every [`Language::type_codes`] table. Also used by the segmenter as the
+/// padding type id (padding is intentionally indistinguishable from a real
+/// Other-class character, matching the string representation).
+pub(crate) const OTHER_TYPE_ID: u8 = 0;
+/// Type id of the shared "P" (punctuation) code (index 1 in every table).
+const PUNCT_TYPE_ID: u8 = 1;
+/// Type id of the shared "A" (Latin) code (index 2 in every table).
+const LATIN_TYPE_ID: u8 = 2;
+/// Type id of the shared "N" (digit) code (index 3 in every table).
+const DIGIT_TYPE_ID: u8 = 3;
+
 impl Language {
+    /// Returns the ordered table of type codes this language can produce.
+    ///
+    /// The index of a code in this table is its type id as returned by
+    /// [`char_type_id`](Self::char_type_id). The shared codes occupy fixed
+    /// indices across all languages ("O" = 0, "P" = 1, "A" = 2, "N" = 3);
+    /// language-specific codes follow from index 4.
+    pub(crate) fn type_codes(self) -> &'static [&'static str] {
+        match self {
+            Language::Japanese => &["O", "P", "A", "N", "M", "H", "I", "K"],
+            Language::Chinese => &["O", "P", "A", "N", "F", "C", "X", "R", "B"],
+            Language::Korean => &["O", "P", "A", "N", "E", "SN", "SF", "J", "G", "H"],
+        }
+    }
+
+    /// Classifies a character into a language-specific type id (an index
+    /// into [`type_codes`](Self::type_codes)).
+    ///
+    /// Classification is a direct `match` on character ranges, so it is
+    /// allocation-free and O(1).
+    pub(crate) fn char_type_id(self, c: char) -> u8 {
+        match self {
+            Language::Japanese => japanese_char_type_id(c),
+            Language::Chinese => chinese_char_type_id(c),
+            Language::Korean => korean_char_type_id(c),
+        }
+    }
+
     /// Classifies a character into a language-specific type code.
     ///
     /// Returns "O" (Other) if the character does not belong to any class.
-    /// Classification is a direct `match` on character ranges, so it is
-    /// allocation-free and O(1).
+    /// Implemented as a table lookup over [`char_type_id`](Self::char_type_id),
+    /// so the string codes and the numeric ids are consistent by construction.
     #[must_use]
     pub fn char_type(&self, c: char) -> &'static str {
-        match self {
-            Language::Japanese => japanese_char_type(c),
-            Language::Chinese => chinese_char_type(c),
-            Language::Korean => korean_char_type(c),
-        }
+        self.type_codes()[self.char_type_id(c) as usize]
     }
 }
 
 /// Classes shared by all languages, checked after the language-specific ones:
-/// - "P": CJK Symbols and Punctuation + full-width punctuation
-/// - "A": ASCII and full-width Latin characters
-/// - "N": Digits (ASCII and full-width)
-fn punct_latin_digit(c: char) -> Option<&'static str> {
+/// - "P" (id 1): CJK Symbols and Punctuation + full-width punctuation
+/// - "A" (id 2): ASCII and full-width Latin characters
+/// - "N" (id 3): Digits (ASCII and full-width)
+fn punct_latin_digit(c: char) -> Option<u8> {
     match c {
         '\u{3000}'..='\u{303F}'
         | '\u{FF01}'..='\u{FF0F}'
         | '\u{FF1A}'..='\u{FF20}'
         | '\u{FF3B}'..='\u{FF40}'
-        | '\u{FF5B}'..='\u{FF65}' => Some("P"),
-        'a'..='z' | 'A'..='Z' | 'ａ'..='ｚ' | 'Ａ'..='Ｚ' => Some("A"),
-        '0'..='9' | '０'..='９' => Some("N"),
+        | '\u{FF5B}'..='\u{FF65}' => Some(PUNCT_TYPE_ID),
+        'a'..='z' | 'A'..='Z' | 'ａ'..='ｚ' | 'Ａ'..='Ｚ' => Some(LATIN_TYPE_ID),
+        '0'..='9' | '０'..='９' => Some(DIGIT_TYPE_ID),
         _ => None,
     }
 }
 
-/// Character type classification for Japanese.
+/// Character type classification for Japanese, returning type ids.
 ///
-/// Type codes:
-/// - "M": Kanji numbers (一二三四五六七八九十百千万億兆)
-/// - "H": Kanji (CJK Unified Ideographs, U+4E00..=U+9FFF, plus 々〆ヵヶ)
-/// - "I": Hiragana
-/// - "K": Katakana (full-width and half-width)
+/// Type codes (ids per the Japanese [`Language::type_codes`] table):
+/// - "M" (4): Kanji numbers (一二三四五六七八九十百千万億兆)
+/// - "H" (5): Kanji (CJK Unified Ideographs, U+4E00..=U+9FFF, plus 々〆ヵヶ)
+/// - "I" (6): Hiragana
+/// - "K" (7): Katakana (full-width and half-width)
 /// - "P" / "A" / "N": see [`punct_latin_digit`]
-/// - "O": Other (fallback)
-fn japanese_char_type(c: char) -> &'static str {
+/// - "O" (0): Other (fallback)
+fn japanese_char_type_id(c: char) -> u8 {
     match c {
         '一' | '二' | '三' | '四' | '五' | '六' | '七' | '八' | '九' | '十' | '百' | '千'
-        | '万' | '億' | '兆' => "M",
+        | '万' | '億' | '兆' => 4, // "M"
         // CJK Unified Ideographs (U+4E00..=U+9FFF) plus 々〆ヵヶ
-        '\u{4E00}'..='\u{9FFF}' | '々' | '〆' | 'ヵ' | 'ヶ' => "H",
+        '\u{4E00}'..='\u{9FFF}' | '々' | '〆' | 'ヵ' | 'ヶ' => 5, // "H"
         // ぁ-ん
-        '\u{3041}'..='\u{3093}' => "I",
+        '\u{3041}'..='\u{3093}' => 6, // "I"
         // ァ-ヴ, ー, half-width ｱ-ﾝ and ﾞﾟ
-        '\u{30A1}'..='\u{30F4}' | 'ー' | '\u{FF71}'..='\u{FF9D}' | 'ﾞ' | 'ﾟ' => "K",
-        _ => punct_latin_digit(c).unwrap_or("O"),
+        '\u{30A1}'..='\u{30F4}' | 'ー' | '\u{FF71}'..='\u{FF9D}' | 'ﾞ' | 'ﾟ' => 7, // "K"
+        _ => punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 
-/// Character type classification for Chinese.
+/// Character type classification for Chinese, returning type ids.
 ///
-/// Type codes:
-/// - "F": High-frequency function words (虚词: 的了在是和不也 etc.)
-/// - "C": CJK Unified Ideographs (U+4E00..U+9FFF)
-/// - "X": CJK Extension A (U+3400..U+4DBF)
-/// - "R": CJK Radicals and Kangxi Radicals (U+2E80..U+2FDF)
-/// - "B": Bopomofo (Zhuyin)
+/// Type codes (ids per the Chinese [`Language::type_codes`] table):
+/// - "F" (4): High-frequency function words (虚词: 的了在是和不也 etc.)
+/// - "C" (5): CJK Unified Ideographs (U+4E00..U+9FFF)
+/// - "X" (6): CJK Extension A (U+3400..U+4DBF)
+/// - "R" (7): CJK Radicals and Kangxi Radicals (U+2E80..U+2FDF)
+/// - "B" (8): Bopomofo (Zhuyin)
 /// - "P" / "A" / "N": see [`punct_latin_digit`]
-/// - "O": Other (fallback)
-fn chinese_char_type(c: char) -> &'static str {
+/// - "O" (0): Other (fallback)
+fn chinese_char_type_id(c: char) -> u8 {
     match c {
         // High-frequency function words (虚词): structural particles,
         // aspect/modal particles, conjunctions, prepositions, and common
         // grammatical verbs/adverbs
         '的' | '地' | '得' | '了' | '着' | '过' | '吗' | '呢' | '吧' | '啊' | '嘛' | '和'
         | '与' | '或' | '但' | '而' | '且' | '及' | '在' | '从' | '到' | '把' | '被' | '对'
-        | '向' | '给' | '是' | '有' | '不' | '也' | '都' | '就' | '要' | '会' | '能' | '可' => {
-            "F"
+        | '向' | '给' | '是' | '有' | '不' | '也' | '都' | '就' | '要' | '会' | '能' | '可' =>
+        {
+            4 // "F"
         }
-        '\u{4E00}'..='\u{9FFF}' => "C",
-        '\u{3400}'..='\u{4DBF}' => "X",
-        '\u{2E80}'..='\u{2FDF}' => "R",
+        '\u{4E00}'..='\u{9FFF}' => 5, // "C"
+        '\u{3400}'..='\u{4DBF}' => 6, // "X"
+        '\u{2E80}'..='\u{2FDF}' => 7, // "R"
         // Bopomofo + Bopomofo Extended
-        '\u{3100}'..='\u{312F}' | '\u{31A0}'..='\u{31BF}' => "B",
-        _ => punct_latin_digit(c).unwrap_or("O"),
+        '\u{3100}'..='\u{312F}' | '\u{31A0}'..='\u{31BF}' => 8, // "B"
+        _ => punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 
-/// Character type classification for Korean.
+/// Character type classification for Korean, returning type ids.
 ///
-/// Type codes:
-/// - "E": High-frequency particles/endings (조사/어미: 은는을를의에)
-/// - "SN": Hangul Syllable without 받침 (e.g., 가, 나, 하)
-/// - "SF": Hangul Syllable with 받침 (e.g., 한, 글, 각)
-/// - "J": Hangul Jamo (U+1100..U+11FF)
-/// - "G": Hangul Compatibility Jamo (U+3130..U+318F)
-/// - "H": Hanja / CJK Ideographs (U+4E00..U+9FFF)
+/// Type codes (ids per the Korean [`Language::type_codes`] table):
+/// - "E" (4): High-frequency particles/endings (조사/어미: 은는을를의에)
+/// - "SN" (5): Hangul Syllable without 받침 (e.g., 가, 나, 하)
+/// - "SF" (6): Hangul Syllable with 받침 (e.g., 한, 글, 각)
+/// - "J" (7): Hangul Jamo (U+1100..U+11FF)
+/// - "G" (8): Hangul Compatibility Jamo (U+3130..U+318F)
+/// - "H" (9): Hanja / CJK Ideographs (U+4E00..U+9FFF)
 /// - "P" / "A" / "N": see [`punct_latin_digit`]
-/// - "O": Other (fallback)
-fn korean_char_type(c: char) -> &'static str {
+/// - "O" (0): Other (fallback)
+fn korean_char_type_id(c: char) -> u8 {
     match c {
         // Overwhelmingly used as grammatical particles:
         // 은/는 (topic), 을/를 (object), 의 (possessive), 에 (locative)
-        '은' | '는' | '을' | '를' | '의' | '에' => "E",
+        '은' | '는' | '을' | '를' | '의' | '에' => 4, // "E"
         // Hangul Syllables: (codepoint - 0xAC00) % 28 == 0 means no 받침
         // (final consonant)
         '\u{AC00}'..='\u{D7AF}' => {
             if (c as u32 - 0xAC00).is_multiple_of(28) {
-                "SN"
+                5 // "SN"
             } else {
-                "SF"
+                6 // "SF"
             }
         }
-        '\u{1100}'..='\u{11FF}' => "J",
-        '\u{3130}'..='\u{318F}' => "G",
-        '\u{4E00}'..='\u{9FFF}' => "H",
-        _ => punct_latin_digit(c).unwrap_or("O"),
+        '\u{1100}'..='\u{11FF}' => 7, // "J"
+        '\u{3130}'..='\u{318F}' => 8, // "G"
+        '\u{4E00}'..='\u{9FFF}' => 9, // "H"
+        _ => punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
     }
 }
 
@@ -218,6 +254,62 @@ mod tests {
     #[test]
     fn test_language_default() {
         assert_eq!(Language::default(), Language::Japanese);
+    }
+
+    // --- Type-code table tests (#136) ---
+
+    const ALL_LANGUAGES: [Language; 3] = [Language::Japanese, Language::Chinese, Language::Korean];
+
+    #[test]
+    fn test_type_codes_unique_and_shared_prefix() {
+        // The packed-key encoding relies on ids (table indices) mapping
+        // one-to-one to codes, and on the shared codes sitting at fixed
+        // indices so punct_latin_digit can stay language-agnostic.
+        for lang in ALL_LANGUAGES {
+            let codes = lang.type_codes();
+            for (i, a) in codes.iter().enumerate() {
+                for b in &codes[i + 1..] {
+                    assert_ne!(a, b, "duplicate type code in {lang} table");
+                }
+            }
+            assert_eq!(codes[OTHER_TYPE_ID as usize], "O");
+            assert_eq!(codes[1], "P");
+            assert_eq!(codes[2], "A");
+            assert_eq!(codes[3], "N");
+        }
+    }
+
+    #[test]
+    fn test_type_codes_prefix_free() {
+        // The load-time feature parser decodes concatenated type codes left
+        // to right; that is deterministic only while no code is a prefix of
+        // another. In particular "S" alone must not be a Korean code (SN/SF
+        // are the only multi-character codes).
+        for lang in ALL_LANGUAGES {
+            let codes = lang.type_codes();
+            for (i, a) in codes.iter().enumerate() {
+                for (j, b) in codes.iter().enumerate() {
+                    if i != j {
+                        assert!(!b.starts_with(a), "{lang}: code {a:?} is a prefix of {b:?}");
+                    }
+                }
+            }
+            assert!(!codes.contains(&"S"));
+        }
+    }
+
+    #[test]
+    fn test_char_type_id_consistent_with_char_type() {
+        // char_type is a table lookup over char_type_id, so consistency is
+        // structural; this pins the id values for a representative sample.
+        let samples = ['あ', 'ア', '漢', '的', '中', '는', '한', '가', 'A', '5', '。', '@'];
+        for lang in ALL_LANGUAGES {
+            for c in samples {
+                let id = lang.char_type_id(c) as usize;
+                assert!(id < lang.type_codes().len());
+                assert_eq!(lang.type_codes()[id], lang.char_type(c));
+            }
+        }
     }
 
     // --- Japanese pattern tests ---

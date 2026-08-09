@@ -16,6 +16,7 @@ pub mod extractor;
 pub mod language;
 pub mod metrics;
 mod model_io;
+mod packed_model;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;

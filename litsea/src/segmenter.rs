@@ -1,9 +1,9 @@
 use std::collections::HashSet;
-use std::fmt::Write as _;
 
 use crate::adaboost::AdaBoost;
 use crate::error::{LitseaError, Result};
 use crate::language::Language;
+use crate::packed_model::{Slot, templates_for};
 use crate::perceptron::AveragedPerceptron;
 use crate::upos::{SegmentLabel, Upos};
 
@@ -514,8 +514,12 @@ impl Segmenter {
     }
 
     /// Writes each attribute for position `i` into a reusable buffer and
-    /// passes it to `sink`. This is the single source of truth for the
-    /// feature template.
+    /// passes it to `sink`. The feature template itself is defined once in
+    /// [`crate::packed_model::TEMPLATES`]; this renders each template as
+    /// `{prefix}:{slot values}` via plain `push_str` (no `core::fmt`), in
+    /// table order. The language-specific `WC*` templates are included for
+    /// Japanese and Chinese only (Korean's uniform syllable types would make
+    /// them noise), via [`crate::packed_model::templates_for`].
     ///
     /// # Panics
     /// Panics if `i` is less than 3 or if `i + 2` exceeds the length of
@@ -529,80 +533,19 @@ impl Segmenter {
         types: &[&'static str],
         sink: &mut dyn FnMut(&str),
     ) {
-        let w1 = &chars[i - 3];
-        let w2 = &chars[i - 2];
-        let w3 = &chars[i - 1];
-        let w4 = &chars[i];
-        let w5 = &chars[i + 1];
-        let w6 = &chars[i + 2];
-        let c1 = types[i - 3];
-        let c2 = types[i - 2];
-        let c3 = types[i - 1];
-        let c4 = types[i];
-        let c5 = types[i + 1];
-        let c6 = types[i + 2];
-        let p1 = tags[i - 3];
-        let p2 = tags[i - 2];
-        let p3 = tags[i - 1];
-
         let mut buf = String::with_capacity(32);
-        macro_rules! attr {
-            ($($arg:tt)*) => {{
-                buf.clear();
-                let _ = write!(buf, $($arg)*);
-                sink(&buf);
-            }};
-        }
-
-        attr!("UP1:{}", p1);
-        attr!("UP2:{}", p2);
-        attr!("UP3:{}", p3);
-        attr!("BP1:{}{}", p1, p2);
-        attr!("BP2:{}{}", p2, p3);
-        attr!("UW1:{}", w1);
-        attr!("UW2:{}", w2);
-        attr!("UW3:{}", w3);
-        attr!("UW4:{}", w4);
-        attr!("UW5:{}", w5);
-        attr!("UW6:{}", w6);
-        attr!("BW1:{}{}", w2, w3);
-        attr!("BW2:{}{}", w3, w4);
-        attr!("BW3:{}{}", w4, w5);
-        attr!("UC1:{}", c1);
-        attr!("UC2:{}", c2);
-        attr!("UC3:{}", c3);
-        attr!("UC4:{}", c4);
-        attr!("UC5:{}", c5);
-        attr!("UC6:{}", c6);
-        attr!("BC1:{}{}", c2, c3);
-        attr!("BC2:{}{}", c3, c4);
-        attr!("BC3:{}{}", c4, c5);
-        attr!("TC1:{}{}{}", c1, c2, c3);
-        attr!("TC2:{}{}{}", c2, c3, c4);
-        attr!("TC3:{}{}{}", c3, c4, c5);
-        attr!("TC4:{}{}{}", c4, c5, c6);
-        attr!("UQ1:{}{}", p1, c1);
-        attr!("UQ2:{}{}", p2, c2);
-        attr!("UQ3:{}{}", p3, c3);
-        attr!("BQ1:{}{}{}", p2, c2, c3);
-        attr!("BQ2:{}{}{}", p2, c3, c4);
-        attr!("BQ3:{}{}{}", p3, c2, c3);
-        attr!("BQ4:{}{}{}", p3, c3, c4);
-        attr!("TQ1:{}{}{}{}", p2, c1, c2, c3);
-        attr!("TQ2:{}{}{}{}", p2, c2, c3, c4);
-        attr!("TQ3:{}{}{}{}", p3, c1, c2, c3);
-        attr!("TQ4:{}{}{}{}", p3, c2, c3, c4);
-
-        // Language-specific features: char + char-type mixed features for Japanese and Chinese.
-        // Korean is excluded because its uniform character types (SN/SF only) make these features noise.
-        match self.language {
-            Language::Japanese | Language::Chinese => {
-                attr!("WC1:{}{}", w3, c4);
-                attr!("WC2:{}{}", c3, w4);
-                attr!("WC3:{}{}", w3, c3);
-                attr!("WC4:{}{}", w4, c4);
+        for template in templates_for(self.language) {
+            buf.clear();
+            buf.push_str(template.prefix);
+            buf.push(':');
+            for slot in template.slots {
+                buf.push_str(match *slot {
+                    Slot::Tag(d) => tags[i - 3 + d as usize],
+                    Slot::Chr(d) => chars[i - 3 + d as usize],
+                    Slot::Typ(d) => types[i - 3 + d as usize],
+                });
             }
-            _ => {}
+            sink(&buf);
         }
     }
 }
@@ -773,12 +716,48 @@ mod tests {
         segmenter.collect_attributes(4, &tags, &chars, &types, &mut attrs);
 
         let expected = [
-            "UP1:B", "UP2:O", "UP3:U", "BP1:BO", "BP2:OU", "UW1:B2", "UW2:B1", "UW3:あ",
-            "UW4:い", "UW5:う", "UW6:E1", "BW1:B1あ", "BW2:あい", "BW3:いう", "UC1:P", "UC2:A",
-            "UC3:N", "UC4:I", "UC5:H", "UC6:K", "BC1:AN", "BC2:NI", "BC3:IH", "TC1:PAN",
-            "TC2:ANI", "TC3:NIH", "TC4:IHK", "UQ1:BP", "UQ2:OA", "UQ3:UN", "BQ1:OAN",
-            "BQ2:ONI", "BQ3:UAN", "BQ4:UNI", "TQ1:OPAN", "TQ2:OANI", "TQ3:UPAN", "TQ4:UANI",
-            "WC1:あI", "WC2:Nい", "WC3:あN", "WC4:いI",
+            "UP1:B",
+            "UP2:O",
+            "UP3:U",
+            "BP1:BO",
+            "BP2:OU",
+            "UW1:B2",
+            "UW2:B1",
+            "UW3:あ",
+            "UW4:い",
+            "UW5:う",
+            "UW6:E1",
+            "BW1:B1あ",
+            "BW2:あい",
+            "BW3:いう",
+            "UC1:P",
+            "UC2:A",
+            "UC3:N",
+            "UC4:I",
+            "UC5:H",
+            "UC6:K",
+            "BC1:AN",
+            "BC2:NI",
+            "BC3:IH",
+            "TC1:PAN",
+            "TC2:ANI",
+            "TC3:NIH",
+            "TC4:IHK",
+            "UQ1:BP",
+            "UQ2:OA",
+            "UQ3:UN",
+            "BQ1:OAN",
+            "BQ2:ONI",
+            "BQ3:UAN",
+            "BQ4:UNI",
+            "TQ1:OPAN",
+            "TQ2:OANI",
+            "TQ3:UPAN",
+            "TQ4:UANI",
+            "WC1:あI",
+            "WC2:Nい",
+            "WC3:あN",
+            "WC4:いI",
         ];
         assert_eq!(attrs, expected);
     }
@@ -796,12 +775,44 @@ mod tests {
         segmenter.collect_attributes(4, &tags, &chars, &types, &mut attrs);
 
         let expected = [
-            "UP1:B", "UP2:O", "UP3:U", "BP1:BO", "BP2:OU", "UW1:B2", "UW2:B1", "UW3:한",
-            "UW4:국", "UW5:어", "UW6:E1", "BW1:B1한", "BW2:한국", "BW3:국어", "UC1:E",
-            "UC2:SN", "UC3:SF", "UC4:J", "UC5:G", "UC6:H", "BC1:SNSF", "BC2:SFJ", "BC3:JG",
-            "TC1:ESNSF", "TC2:SNSFJ", "TC3:SFJG", "TC4:JGH", "UQ1:BE", "UQ2:OSN", "UQ3:USF",
-            "BQ1:OSNSF", "BQ2:OSFJ", "BQ3:USNSF", "BQ4:USFJ", "TQ1:OESNSF", "TQ2:OSNSFJ",
-            "TQ3:UESNSF", "TQ4:USNSFJ",
+            "UP1:B",
+            "UP2:O",
+            "UP3:U",
+            "BP1:BO",
+            "BP2:OU",
+            "UW1:B2",
+            "UW2:B1",
+            "UW3:한",
+            "UW4:국",
+            "UW5:어",
+            "UW6:E1",
+            "BW1:B1한",
+            "BW2:한국",
+            "BW3:국어",
+            "UC1:E",
+            "UC2:SN",
+            "UC3:SF",
+            "UC4:J",
+            "UC5:G",
+            "UC6:H",
+            "BC1:SNSF",
+            "BC2:SFJ",
+            "BC3:JG",
+            "TC1:ESNSF",
+            "TC2:SNSFJ",
+            "TC3:SFJG",
+            "TC4:JGH",
+            "UQ1:BE",
+            "UQ2:OSN",
+            "UQ3:USF",
+            "BQ1:OSNSF",
+            "BQ2:OSFJ",
+            "BQ3:USNSF",
+            "BQ4:USFJ",
+            "TQ1:OESNSF",
+            "TQ2:OSNSFJ",
+            "TQ3:UESNSF",
+            "TQ4:USNSFJ",
         ];
         assert_eq!(attrs, expected);
     }
