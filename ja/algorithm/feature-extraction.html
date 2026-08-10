@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-db3f3bf1.js";
+            window.path_to_searchindex_js = "../searchindex-0f3289e8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -242,10 +242,10 @@
 プレフィックスと、タグ/文字/文字種スロットの順序付きリスト、固定の出力順）として
 一度だけ定義されます。両方の特徴量表現がここから導出されます:</p>
 <ul>
-<li>後述の<strong>文字列形式</strong> – 学習データ抽出、コーパス処理、モデルファイル、POS パスで
-使用</li>
-<li><code>segment()</code> の 2 パススコアラーが使用する<strong>整数インデックスのスコアリング
-テーブル群</strong> – モデルファイルはロード時にこの形式へコンパイルされる
+<li>後述の<strong>文字列形式</strong> – 学習データ抽出、コーパス処理、モデルファイルで使用</li>
+<li><code>segment()</code> と <code>segment_with_pos()</code> の 2 パススコアラーが使用する
+<strong>整数インデックスのスコアリングテーブル群</strong> – モデルファイルはロード時に
+この形式へコンパイルされる
 （<a href="prediction-pipeline.html#コンパイル済みスコアリングテーブル">予測パイプライン</a>を参照）</li>
 </ul>
 <p>したがって、テンプレートの追加や並び替えはすべての消費者を一貫して変更します。

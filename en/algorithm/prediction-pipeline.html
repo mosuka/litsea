@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-38d9a5cd.js";
+            window.path_to_searchindex_js = "../searchindex-cbf1b07d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -255,12 +255,14 @@ sentinel entries (<code>B3</code>…<code>E3</code>) map to code points just abo
 scalar range.</p>
 <h3 id="the-compiled-scoring-tables"><a class="header" href="#the-compiled-scoring-tables">The Compiled Scoring Tables</a></h3>
 <p>The feature template is defined once as a declarative table
-(<code>packed_model::TEMPLATES</code>), from which three consumers derive: the string
-writer used by training/extraction/POS paths, the load-time parser that
-converts each model feature string into an integer key, and the two-pass
-scorer’s tables. Compilation happens eagerly in <code>Segmenter::with_learner</code>
-and is invalidated whenever the learner is mutated (<code>learner_mut()</code> /
-<code>add_corpus</code>), then rebuilt lazily on the next <code>segment()</code> call.</p>
+(<code>packed_model::TEMPLATES</code>), from which four consumers derive: the string
+writer used by training and extraction, the load-time parser that
+converts each model feature string into an integer key, the two-pass
+scorer’s tables, and the multiclass POS twin of parser and scorer
+(<code>packed_pos_model::PackedPosModel</code>, see below). Compilation happens
+eagerly in <code>Segmenter::with_learner</code> and is invalidated whenever the
+learner is mutated (<code>learner_mut()</code> / <code>add_corpus</code>), then rebuilt lazily
+on the next <code>segment()</code> call.</p>
 <p>The compiled model splits by key-space size and tag dependence:</p>
 <ul>
 <li><strong>Merged-vector hash tables</strong> for char n-grams: <code>UW1..6</code> collapse into
@@ -285,13 +287,40 @@ sentinel stress strings, and a real-text corpus) pass unchanged, and they
 remain in the test suite as the detection net for any knife-edge score
 flip a future model might expose.</p>
 <h2 id="joint-segmentation-and-pos-tagging-segment_with_pos"><a class="header" href="#joint-segmentation-and-pos-tagging-segment_with_pos">Joint Segmentation and POS Tagging (<code>segment_with_pos</code>)</a></h2>
-<p><code>segment_with_pos</code> runs the same left-to-right pipeline with the Averaged Perceptron instead of AdaBoost:</p>
+<p><code>segment_with_pos</code> runs the same two-pass pipeline with the Averaged
+Perceptron instead of AdaBoost (issue #143). The perceptron’s weights are
+compiled once into a multiclass twin of the segmentation tables
+(<code>packed_pos_model::PackedPosModel</code>), cached next to the AdaBoost tables
+and invalidated by <code>pos_learner_mut()</code> / <code>add_corpus_with_pos()</code>. No
+feature strings are built at inference time:</p>
 <ol>
-<li>Features for each position are collected into a reused <code>Vec&lt;String&gt;</code> (<code>collect_attributes</code>), and the perceptron’s per-class score vector is also a reused buffer.</li>
-<li>The perceptron predicts a <code>SegmentLabel</code> (<code>B-&lt;POS&gt;</code> or <code>O</code>) per position with a single <code>FxHashMap</code> lookup per feature (feature -&gt; per-class weight vector layout).</li>
-<li>The prediction at the <strong>first character position</strong> determines the first word’s POS. Since #100 the POS training pipeline emits that position too, so training and inference are symmetric (the boundary/AdaBoost pipeline still skips it because its first-position label is degenerate).</li>
-<li>A <code>B-&lt;POS&gt;</code> label closes the current word and starts a new one carrying that POS; <code>O</code> extends the current word.</li>
+<li><strong>Static pass</strong> – as in <code>segment()</code>, one merged <code>UW</code> probe per
+position, one merged <code>BW</code> probe per pair, <code>WC</code> gathers, and
+<code>UC</code>/<code>BC</code>/<code>TC</code> scatter-twin blocks accumulate into an
+<code>n x n_classes</code> score matrix. Because perceptron updates touch only
+the gold/predicted class pair, features average ~3 non-zero classes,
+so the hash-table families store sparse <code>(class, weight)</code> rows.</li>
+<li><strong>Sequential pass</strong> – at each position, the 16 tag-dependent dense
+rows are added on top of the static row and the argmax class is
+taken (first strictly-greater class wins, exactly like
+<code>AveragedPerceptron</code>’s prediction). A presence bitset skips the rows
+of features absent from the model without touching the weight
+tables. The predicted class maps to a pre-parsed <code>SegmentLabel</code>
+(<code>B-&lt;POS&gt;</code> or <code>O</code>) – no per-character label string parsing.</li>
+<li>Unlike <code>segment()</code>, decisions start at the <strong>first character
+position</strong> (<code>lo = 3</code>): its label determines the first word’s POS.
+Since #100 the POS training pipeline emits that position too, so
+training and inference are symmetric (the boundary/AdaBoost pipeline
+still skips it because its first-position label is degenerate).</li>
+<li>A <code>B-&lt;POS&gt;</code> label closes the current word and starts a new one
+carrying that POS; <code>O</code> extends the current word. Words are
+materialized from byte offsets of the input, one exact-size
+allocation each.</li>
 </ol>
+<p>The string-keyed path is kept test-only (<code>segment_with_pos_reference</code>)
+as the oracle for exact-equality differential tests, which measure zero
+output divergence across all bundled POS models, stress strings, and a
+real-text corpus – the same guarantee net as <code>segment()</code>’s.</p>
 <h2 id="training-vs-prediction"><a class="header" href="#training-vs-prediction">Training vs. Prediction</a></h2>
 <div class="table-wrapper">
 <table>

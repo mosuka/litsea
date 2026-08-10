@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-db3f3bf1.js";
+            window.path_to_searchindex_js = "../searchindex-0f3289e8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -191,6 +191,8 @@
     upos["upos.rs&lt;br/&gt;UPOSタグとラベル"]
     extractor["extractor.rs&lt;br/&gt;特徴量抽出"]
     trainer["trainer.rs&lt;br/&gt;学習オーケストレーション"]
+    packed_model["packed_model.rs（非公開）&lt;br/&gt;特徴テンプレート + packed AdaBoost テーブル"]
+    packed_pos_model["packed_pos_model.rs（非公開）&lt;br/&gt;packed パーセプトロンテーブル（品詞）"]
     model_io["model_io.rs（非公開）&lt;br/&gt;モデルURI読み込み"]
     error["error.rs&lt;br/&gt;LitseaError / Result"]
     metrics["metrics.rs&lt;br/&gt;評価指標"]
@@ -199,6 +201,9 @@
     upos --&gt; segmenter
     adaboost --&gt; segmenter
     perceptron --&gt; segmenter
+    packed_model --&gt; segmenter
+    packed_pos_model --&gt; segmenter
+    packed_model --&gt; packed_pos_model
     segmenter --&gt; extractor
     adaboost --&gt; trainer
     perceptron --&gt; trainer
@@ -308,6 +313,10 @@
 <li><strong><code>BinaryMetrics</code></strong> – 正解率・適合率・再現率・混同行列（AdaBoost）</li>
 <li><strong><code>MulticlassMetrics</code></strong> – 正解率とマクロ平均適合率/再現率（Averaged Perceptron）</li>
 </ul>
+<h3 id="packed_modelrs--特徴テンプレートと-packed-adaboost-テーブル非公開"><a class="header" href="#packed_modelrs--特徴テンプレートと-packed-adaboost-テーブル非公開"><code>packed_model.rs</code> – 特徴テンプレートと packed AdaBoost テーブル（非公開）</a></h3>
+<p>宣言的な特徴テンプレートテーブル（<code>TEMPLATES</code>。全特徴量コンシューマの単一の真実の源）、モデルの特徴量文字列を packed 整数キーへ変換するロード時パーサ、そして <code>segment()</code> の 2 パススコアラーが読むマージ/密テーブルへ AdaBoost の重みをコンパイルした <code>PackedModel</code> を保持する内部モジュールです。公開APIには含まれません。</p>
+<h3 id="packed_pos_modelrs--packed-パーセプトロンテーブル非公開"><a class="header" href="#packed_pos_modelrs--packed-パーセプトロンテーブル非公開"><code>packed_pos_model.rs</code> – packed パーセプトロンテーブル（非公開）</a></h3>
+<p><code>PackedModel</code> の多クラス版となる内部モジュールです（issue #143）。Averaged Perceptron のクラス別重み行を同じ 2 パステーブル構造（文字を含むファミリーはスパースな <code>(クラス, 重み)</code> 行、タグ/文字種のみのテンプレートは密行 + presence ビットセット、事前パース済み <code>SegmentLabel</code>）へコンパイルし、<code>segment_with_pos()</code> が読み取ります。公開APIには含まれません。</p>
 <h3 id="model_iors--モデル読み込みio非公開"><a class="header" href="#model_iors--モデル読み込みio非公開"><code>model_io.rs</code> – モデル読み込みI/O（非公開）</a></h3>
 <p>モデルURI（プレーンパス、<code>file://</code>、<code>remote_model</code> フィーチャー時の <code>http(s)://</code>）を解決して生のモデルバイト列を返す内部モジュールです。公開APIには含まれません。</p>
 <h2 id="公開エクスポート"><a class="header" href="#公開エクスポート">公開エクスポート</a></h2>
@@ -320,6 +329,8 @@ pub mod extractor;
 pub mod language;
 pub mod metrics;
 mod model_io;
+mod packed_model;
+mod packed_pos_model;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;

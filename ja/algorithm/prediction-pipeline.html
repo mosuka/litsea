@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-db3f3bf1.js";
+            window.path_to_searchindex_js = "../searchindex-0f3289e8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -251,9 +251,10 @@ scatter-add する</li>
 マップされます。</p>
 <h3 id="コンパイル済みスコアリングテーブル"><a class="header" href="#コンパイル済みスコアリングテーブル">コンパイル済みスコアリングテーブル</a></h3>
 <p>特徴テンプレートは宣言的なテーブル（<code>packed_model::TEMPLATES</code>）として一度だけ
-定義され、そこから 3 つの消費者が導出されます: 学習・抽出・POS パスで使用される
+定義され、そこから 4 つの消費者が導出されます: 学習・抽出で使用される
 文字列ライター、モデルの各特徴量文字列を整数キーへ変換するロード時パーサ、
-そして 2 パススコアラーのテーブル群です。コンパイルは
+2 パススコアラーのテーブル群、そしてパーサとスコアラーの多クラス版である
+POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）です。コンパイルは
 <code>Segmenter::with_learner</code> で先行して行われ、学習器が変更されると
 （<code>learner_mut()</code> / <code>add_corpus</code>）無効化され、次の <code>segment()</code> 呼び出しで遅延
 再構築されます。</p>
@@ -279,13 +280,39 @@ scatter-add する</li>
 スコアが 0 近傍の knife-edge に乗った場合の検出網としてテストスイートに
 残されています。</p>
 <h2 id="単語分割と品詞タグ付けの同時実行segment_with_pos"><a class="header" href="#単語分割と品詞タグ付けの同時実行segment_with_pos">単語分割と品詞タグ付けの同時実行（<code>segment_with_pos</code>）</a></h2>
-<p><code>segment_with_pos</code> は、AdaBoost の代わりに Averaged Perceptron を使用して同じ左から右へのパイプラインを実行します:</p>
+<p><code>segment_with_pos</code> は、AdaBoost の代わりに Averaged Perceptron を使用して
+同じ 2 パスのパイプラインを実行します（issue #143）。パーセプトロンの重みは
+分割用テーブルの多クラス版（<code>packed_pos_model::PackedPosModel</code>）へ一度だけ
+コンパイルされ、AdaBoost のテーブルと並んでキャッシュされ、
+<code>pos_learner_mut()</code> / <code>add_corpus_with_pos()</code> で無効化されます。推論時に
+特徴量文字列は一切構築されません:</p>
 <ol>
-<li>各位置の特徴量は再利用可能な <code>Vec&lt;String&gt;</code>（<code>collect_attributes</code>）に収集され、パーセプトロンのクラス別スコアベクタも再利用可能なバッファです。</li>
-<li>パーセプトロンは、特徴量ごとに 1 回の <code>FxHashMap</code> 検索（特徴量 → クラス別重みベクタというレイアウト）で、各位置の <code>SegmentLabel</code>（<code>B-&lt;POS&gt;</code> または <code>O</code>）を予測します。</li>
-<li><strong>最初の文字位置</strong>での予測が最初の単語の品詞を決定します。#100 以降、POS 学習パイプラインもこの位置を出力するため、学習と推論は対称になります（境界（AdaBoost）パイプラインは、最初の位置のラベルが自明であるため、依然としてこの位置をスキップします）。</li>
-<li><code>B-&lt;POS&gt;</code> ラベルは現在の単語を確定させ、その品詞を持つ新しい単語を開始します。<code>O</code> は現在の単語を延長します。</li>
+<li><strong>静的パス</strong> – <code>segment()</code> と同様に、位置ごとのマージ済み <code>UW</code> probe
+1 回、隣接ペアごとのマージ済み <code>BW</code> probe 1 回、<code>WC</code> の gather、
+<code>UC</code>/<code>BC</code>/<code>TC</code> の scatter ツインブロックを <code>n x n_classes</code> の
+スコア行列に累積します。パーセプトロンの更新は正解/予測クラスのペアしか
+触らないため、特徴量あたりの非ゼロクラスは平均約 3 個であり、
+ハッシュテーブル系ファミリーはスパースな <code>(クラス, 重み)</code> 行を格納します。</li>
+<li><strong>逐次パス</strong> – 各位置で、タグ依存の 16 個の密行を静的スコア行の上に
+加算し、argmax クラスを取ります（先勝ちの strictly-greater。
+<code>AveragedPerceptron</code> の予測と同一のタイブレーク）。presence ビットセットに
+より、モデルに存在しない特徴量の行は重みテーブルに触れることなく
+スキップされます。予測クラスは事前にパース済みの <code>SegmentLabel</code>
+（<code>B-&lt;POS&gt;</code> または <code>O</code>）へ直接引かれ、文字ごとのラベル文字列パースは
+ありません。</li>
+<li><code>segment()</code> と異なり、判定は<strong>最初の文字位置</strong>（<code>lo = 3</code>）から始まります:
+そのラベルが最初の単語の品詞を決定します。#100 以降、POS 学習
+パイプラインもこの位置を出力するため、学習と推論は対称になります
+（境界（AdaBoost）パイプラインは、最初の位置のラベルが自明であるため、
+依然としてこの位置をスキップします）。</li>
+<li><code>B-&lt;POS&gt;</code> ラベルは現在の単語を確定させ、その品詞を持つ新しい単語を
+開始します。<code>O</code> は現在の単語を延長します。単語は入力のバイトオフセット
+から 1 単語 1 回の正確なサイズのアロケーションで生成されます。</li>
 </ol>
+<p>文字列キーのパスは test-only（<code>segment_with_pos_reference</code>）として
+完全一致差分テストのオラクルに残されており、全同梱 POS モデル・ストレス
+文字列・実テキストコーパスで出力乖離ゼロが計測されています –
+<code>segment()</code> と同じ保証網です。</p>
 <h2 id="学習と予測の比較"><a class="header" href="#学習と予測の比較">学習と予測の比較</a></h2>
 <div class="table-wrapper">
 <table>

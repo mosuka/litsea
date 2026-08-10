@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-38d9a5cd.js";
+            window.path_to_searchindex_js = "../searchindex-cbf1b07d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -244,9 +244,10 @@ slots, in a fixed emission order). Both feature representations derive from
 it:</p>
 <ul>
 <li>the <strong>string form</strong> below, used for training data extraction, corpus
-processing, model files, and the POS path;</li>
-<li>the <strong>integer-indexed scoring tables</strong> used by <code>segment()</code>’s two-pass
-scorer, into which model files are compiled at load time (see
+processing, and model files;</li>
+<li>the <strong>integer-indexed scoring tables</strong> used by the two-pass scorers of
+<code>segment()</code> and <code>segment_with_pos()</code>, into which model files are
+compiled at load time (see
 <a href="prediction-pipeline.html#the-compiled-scoring-tables">Prediction Pipeline</a>).</li>
 </ul>
 <p>Adding or reordering a template therefore changes every consumer
