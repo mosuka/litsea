@@ -95,12 +95,14 @@ scalar range.
 ### The Compiled Scoring Tables
 
 The feature template is defined once as a declarative table
-(`packed_model::TEMPLATES`), from which three consumers derive: the string
-writer used by training/extraction/POS paths, the load-time parser that
-converts each model feature string into an integer key, and the two-pass
-scorer's tables. Compilation happens eagerly in `Segmenter::with_learner`
-and is invalidated whenever the learner is mutated (`learner_mut()` /
-`add_corpus`), then rebuilt lazily on the next `segment()` call.
+(`packed_model::TEMPLATES`), from which four consumers derive: the string
+writer used by training and extraction, the load-time parser that
+converts each model feature string into an integer key, the two-pass
+scorer's tables, and the multiclass POS twin of parser and scorer
+(`packed_pos_model::PackedPosModel`, see below). Compilation happens
+eagerly in `Segmenter::with_learner` and is invalidated whenever the
+learner is mutated (`learner_mut()` / `add_corpus`), then rebuilt lazily
+on the next `segment()` call.
 
 The compiled model splits by key-space size and tag dependence:
 
@@ -130,12 +132,40 @@ flip a future model might expose.
 
 ## Joint Segmentation and POS Tagging (`segment_with_pos`)
 
-`segment_with_pos` runs the same left-to-right pipeline with the Averaged Perceptron instead of AdaBoost:
+`segment_with_pos` runs the same two-pass pipeline with the Averaged
+Perceptron instead of AdaBoost (issue #143). The perceptron's weights are
+compiled once into a multiclass twin of the segmentation tables
+(`packed_pos_model::PackedPosModel`), cached next to the AdaBoost tables
+and invalidated by `pos_learner_mut()` / `add_corpus_with_pos()`. No
+feature strings are built at inference time:
 
-1. Features for each position are collected into a reused `Vec<String>` (`collect_attributes`), and the perceptron's per-class score vector is also a reused buffer.
-2. The perceptron predicts a `SegmentLabel` (`B-<POS>` or `O`) per position with a single `FxHashMap` lookup per feature (feature -> per-class weight vector layout).
-3. The prediction at the **first character position** determines the first word's POS. Since #100 the POS training pipeline emits that position too, so training and inference are symmetric (the boundary/AdaBoost pipeline still skips it because its first-position label is degenerate).
-4. A `B-<POS>` label closes the current word and starts a new one carrying that POS; `O` extends the current word.
+1. **Static pass** -- as in `segment()`, one merged `UW` probe per
+   position, one merged `BW` probe per pair, `WC` gathers, and
+   `UC`/`BC`/`TC` scatter-twin blocks accumulate into an
+   `n x n_classes` score matrix. Because perceptron updates touch only
+   the gold/predicted class pair, features average ~3 non-zero classes,
+   so the hash-table families store sparse `(class, weight)` rows.
+2. **Sequential pass** -- at each position, the 16 tag-dependent dense
+   rows are added on top of the static row and the argmax class is
+   taken (first strictly-greater class wins, exactly like
+   `AveragedPerceptron`'s prediction). A presence bitset skips the rows
+   of features absent from the model without touching the weight
+   tables. The predicted class maps to a pre-parsed `SegmentLabel`
+   (`B-<POS>` or `O`) -- no per-character label string parsing.
+3. Unlike `segment()`, decisions start at the **first character
+   position** (`lo = 3`): its label determines the first word's POS.
+   Since #100 the POS training pipeline emits that position too, so
+   training and inference are symmetric (the boundary/AdaBoost pipeline
+   still skips it because its first-position label is degenerate).
+4. A `B-<POS>` label closes the current word and starts a new one
+   carrying that POS; `O` extends the current word. Words are
+   materialized from byte offsets of the input, one exact-size
+   allocation each.
+
+The string-keyed path is kept test-only (`segment_with_pos_reference`)
+as the oracle for exact-equality differential tests, which measure zero
+output divergence across all bundled POS models, stress strings, and a
+real-text corpus -- the same guarantee net as `segment()`'s.
 
 ## Training vs. Prediction
 
