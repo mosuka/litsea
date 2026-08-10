@@ -2,12 +2,12 @@
 //! model.
 //!
 //! This module is the single source of truth for the segmentation feature
-//! template (issues #136/#138/#139). Three consumers derive from the
+//! template (issues #136/#138/#139). Four consumers derive from the
 //! [`TEMPLATES`] table:
 //!
 //! 1. The string writer ([`crate::segmenter::Segmenter`]'s `write_attributes`),
-//!    which renders feature strings for training, extraction, and the POS
-//!    path in the table's emission order.
+//!    which renders feature strings for training and extraction in the
+//!    table's emission order.
 //! 2. The load-time parser ([`parse_feature_keys`]), which converts a
 //!    trained model's string feature keys into packed integer keys once,
 //!    when the model is compiled into a [`PackedModel`].
@@ -15,6 +15,10 @@
 //!    a static pass scatter-adds every tag-free feature (merged `UW`/`BW`
 //!    probes, `WC` probes, `UC`/`BC`/`TC` dense loads) into a per-position
 //!    buffer, and a sequential pass adds the 16 tag-dependent dense loads.
+//! 4. The multiclass twin of 2 and 3 for the POS path
+//!    ([`crate::packed_pos_model::PackedPosModel`], issue #143), which
+//!    compiles the Averaged Perceptron's per-class weight rows into the
+//!    same two-pass table structure for `segment_with_pos()`.
 //!
 //! The table order still defines the string writer's emission sequence
 //! (model files and training data depend on it). Scoring accumulates in
@@ -154,11 +158,12 @@ impl Template {
     /// # Returns
     /// The packed key for this feature.
     ///
-    /// The AdaBoost path derives keys only at build time (via
-    /// [`parse_feature_keys`]) and scores through the merged tables; the
-    /// packed POS scorer ([`crate::packed_pos_model::PackedPosModel`])
-    /// additionally packs keys per position on its hot path. The pack/parse
-    /// roundtrip tests pin the key encoding that `build` decodes.
+    /// Test-only since the two-pass scorers: production code (both the
+    /// AdaBoost path and the packed POS path) derives keys at build time
+    /// via [`parse_feature_keys`] and scores through the merged tables, but
+    /// the pack/parse roundtrip tests keep pinning the key encoding that
+    /// the builders decode.
+    #[cfg(test)]
     pub(crate) fn pack(&self, i: usize, tags: &[u8], chars: &[u32], types: &[u8]) -> u64 {
         let mut acc = 0u64;
         for slot in self.slots {
@@ -196,8 +201,8 @@ impl Template {
     /// Decodes the (char code, type id) pair out of a packed key of a
     /// template with exactly one `Chr` and one `Typ` slot (the `WC*`
     /// templates), walking the slots with their pack widths (24 bits per
-    /// `Chr`, 8 per `Tag`/`Typ`).
-    fn decode_chr_typ(&self, key: u64) -> (u32, u8) {
+    /// `Chr`, 8 per `Tag`/`Typ`). Shared by both packed-model builders.
+    pub(crate) fn decode_chr_typ(&self, key: u64) -> (u32, u8) {
         let mut shift: u32 = self
             .slots
             .iter()
@@ -245,10 +250,11 @@ impl Template {
     /// # Returns
     /// An index strictly below [`dense_size`](Self::dense_size).
     ///
-    /// The AdaBoost two-pass scorer hard-codes the mixed-radix expressions
-    /// per family (pinned against this canonical definition by a unit test);
-    /// the packed POS scorer ([`crate::packed_pos_model::PackedPosModel`])
-    /// calls this directly on its hot path.
+    /// Test-only since the two-pass scorers hard-code the mixed-radix
+    /// expressions per family (both `segment()` and the packed POS scorer's
+    /// `predict_seq`): this remains the canonical definition the hard-coded
+    /// indices are pinned against.
+    #[cfg(test)]
     pub(crate) fn dense_index(
         &self,
         i: usize,
