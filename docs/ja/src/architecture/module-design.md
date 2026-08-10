@@ -13,6 +13,8 @@ graph TD
     upos["upos.rs<br/>UPOSタグとラベル"]
     extractor["extractor.rs<br/>特徴量抽出"]
     trainer["trainer.rs<br/>学習オーケストレーション"]
+    packed_model["packed_model.rs（非公開）<br/>特徴テンプレート + packed AdaBoost テーブル"]
+    packed_pos_model["packed_pos_model.rs（非公開）<br/>packed パーセプトロンテーブル（品詞）"]
     model_io["model_io.rs（非公開）<br/>モデルURI読み込み"]
     error["error.rs<br/>LitseaError / Result"]
     metrics["metrics.rs<br/>評価指標"]
@@ -21,6 +23,9 @@ graph TD
     upos --> segmenter
     adaboost --> segmenter
     perceptron --> segmenter
+    packed_model --> segmenter
+    packed_pos_model --> segmenter
+    packed_model --> packed_pos_model
     segmenter --> extractor
     adaboost --> trainer
     perceptron --> trainer
@@ -117,6 +122,14 @@ graph TD
 - **`BinaryMetrics`** -- 正解率・適合率・再現率・混同行列（AdaBoost）
 - **`MulticlassMetrics`** -- 正解率とマクロ平均適合率/再現率（Averaged Perceptron）
 
+### `packed_model.rs` -- 特徴テンプレートと packed AdaBoost テーブル（非公開）
+
+宣言的な特徴テンプレートテーブル（`TEMPLATES`。全特徴量コンシューマの単一の真実の源）、モデルの特徴量文字列を packed 整数キーへ変換するロード時パーサ、そして `segment()` の 2 パススコアラーが読むマージ/密テーブルへ AdaBoost の重みをコンパイルした `PackedModel` を保持する内部モジュールです。公開APIには含まれません。
+
+### `packed_pos_model.rs` -- packed パーセプトロンテーブル（非公開）
+
+`PackedModel` の多クラス版となる内部モジュールです（issue #143）。Averaged Perceptron のクラス別重み行を同じ 2 パステーブル構造（文字を含むファミリーはスパースな `(クラス, 重み)` 行、タグ/文字種のみのテンプレートは密行 + presence ビットセット、事前パース済み `SegmentLabel`）へコンパイルし、`segment_with_pos()` が読み取ります。公開APIには含まれません。
+
 ### `model_io.rs` -- モデル読み込みI/O（非公開）
 
 モデルURI（プレーンパス、`file://`、`remote_model` フィーチャー時の `http(s)://`）を解決して生のモデルバイト列を返す内部モジュールです。公開APIには含まれません。
@@ -132,6 +145,8 @@ pub mod extractor;
 pub mod language;
 pub mod metrics;
 mod model_io;
+mod packed_model;
+mod packed_pos_model;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;

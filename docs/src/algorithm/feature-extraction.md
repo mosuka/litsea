@@ -50,9 +50,10 @@ slots, in a fixed emission order). Both feature representations derive from
 it:
 
 - the **string form** below, used for training data extraction, corpus
-  processing, model files, and the POS path;
-- the **integer-indexed scoring tables** used by `segment()`'s two-pass
-  scorer, into which model files are compiled at load time (see
+  processing, and model files;
+- the **integer-indexed scoring tables** used by the two-pass scorers of
+  `segment()` and `segment_with_pos()`, into which model files are
+  compiled at load time (see
   [Prediction Pipeline](prediction-pipeline.md#the-compiled-scoring-tables)).
 
 Adding or reordering a template therefore changes every consumer

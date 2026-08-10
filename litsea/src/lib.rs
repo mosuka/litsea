@@ -17,6 +17,7 @@ pub mod language;
 pub mod metrics;
 mod model_io;
 mod packed_model;
+mod packed_pos_model;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;

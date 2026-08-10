@@ -13,6 +13,8 @@ graph TD
     upos["upos.rs<br/>UPOS tags and labels"]
     extractor["extractor.rs<br/>Feature extraction"]
     trainer["trainer.rs<br/>Training orchestration"]
+    packed_model["packed_model.rs (private)<br/>Feature templates + packed AdaBoost tables"]
+    packed_pos_model["packed_pos_model.rs (private)<br/>Packed perceptron tables (POS)"]
     model_io["model_io.rs (private)<br/>Model URI loading"]
     error["error.rs<br/>LitseaError / Result"]
     metrics["metrics.rs<br/>Evaluation metrics"]
@@ -21,6 +23,9 @@ graph TD
     upos --> segmenter
     adaboost --> segmenter
     perceptron --> segmenter
+    packed_model --> segmenter
+    packed_pos_model --> segmenter
+    packed_model --> packed_pos_model
     segmenter --> extractor
     adaboost --> trainer
     perceptron --> trainer
@@ -117,6 +122,14 @@ High-level training workflows.
 - **`BinaryMetrics`** -- Accuracy, precision, recall, confusion matrix (AdaBoost)
 - **`MulticlassMetrics`** -- Accuracy and macro-averaged precision/recall (Averaged Perceptron)
 
+### `packed_model.rs` -- Feature Templates and Packed AdaBoost Tables (private)
+
+Internal module holding the declarative feature-template table (`TEMPLATES`, the single source of truth for all feature consumers), the load-time parser that converts model feature strings into packed integer keys, and `PackedModel` -- the AdaBoost weights compiled into the merged/dense tables read by `segment()`'s two-pass scorer. Not part of the public API.
+
+### `packed_pos_model.rs` -- Packed Perceptron Tables (private)
+
+Internal multiclass twin of `PackedModel` (issue #143): compiles the Averaged Perceptron's per-class weight rows into the same two-pass table structure (sparse `(class, weight)` rows for the char-bearing families, dense rows plus a presence bitset for the tag/type-only templates, pre-parsed `SegmentLabel`s) read by `segment_with_pos()`. Not part of the public API.
+
 ### `model_io.rs` -- Model Loading I/O (private)
 
 Internal module that resolves a model URI (plain path, `file://`, or `http(s)://` with the `remote_model` feature) and returns the raw model bytes. Not part of the public API.
@@ -132,6 +145,8 @@ pub mod extractor;
 pub mod language;
 pub mod metrics;
 mod model_io;
+mod packed_model;
+mod packed_pos_model;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
