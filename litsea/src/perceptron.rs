@@ -168,11 +168,32 @@ impl AveragedPerceptron {
 
     /// Predicts the label from a slice, reusing the caller's scratch buffer
     /// (internal allocation-avoiding API).
+    ///
+    /// Test-only since the packed POS scorer (issue #143): kept as part of
+    /// the string-keyed reference path that the differential tests pin
+    /// against.
+    #[cfg(test)]
     pub(crate) fn predict_slice(&self, features: &[String], scores: &mut Vec<f64>) -> &str {
         match self.predict_idx_into(features.iter(), scores) {
             Some(i) => &self.classes[i],
             None => "",
         }
+    }
+
+    /// Iterates over every known feature and its per-class weight row (row
+    /// entries are in class-index order, parallel to
+    /// [`class_names`](Self::class_names)). Internal accessor used to compile
+    /// the packed POS scoring tables
+    /// ([`crate::packed_pos_model::PackedPosModel`]).
+    pub(crate) fn feature_class_weights(&self) -> impl Iterator<Item = (&str, &[f64])> + '_ {
+        self.slots.iter().map(|(feat, slot)| (feat.as_str(), slot.w.as_slice()))
+    }
+
+    /// Returns the known class names in sorted order (the class-index order
+    /// used by every per-class weight row and by prediction tie-breaking).
+    /// Internal accessor for the packed POS scoring tables.
+    pub(crate) fn class_names(&self) -> &[String] {
+        &self.classes
     }
 
     /// Updates the weight of a single (feature, class) pair.

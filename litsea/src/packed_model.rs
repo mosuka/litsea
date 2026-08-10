@@ -154,11 +154,11 @@ impl Template {
     /// # Returns
     /// The packed key for this feature.
     ///
-    /// Test-only since the two-pass scorer: production code derives keys at
-    /// build time via [`parse_feature_keys`] and scores through the merged
-    /// tables, but the pack/parse roundtrip tests keep pinning the key
-    /// encoding that `build` decodes.
-    #[cfg(test)]
+    /// The AdaBoost path derives keys only at build time (via
+    /// [`parse_feature_keys`]) and scores through the merged tables; the
+    /// packed POS scorer ([`crate::packed_pos_model::PackedPosModel`])
+    /// additionally packs keys per position on its hot path. The pack/parse
+    /// roundtrip tests pin the key encoding that `build` decodes.
     pub(crate) fn pack(&self, i: usize, tags: &[u8], chars: &[u32], types: &[u8]) -> u64 {
         let mut acc = 0u64;
         for slot in self.slots {
@@ -245,10 +245,10 @@ impl Template {
     /// # Returns
     /// An index strictly below [`dense_size`](Self::dense_size).
     ///
-    /// Test-only since the two-pass scorer hard-codes the mixed-radix
-    /// expressions per family: this remains the canonical definition the
-    /// hard-coded indices are pinned against.
-    #[cfg(test)]
+    /// The AdaBoost two-pass scorer hard-codes the mixed-radix expressions
+    /// per family (pinned against this canonical definition by a unit test);
+    /// the packed POS scorer ([`crate::packed_pos_model::PackedPosModel`])
+    /// calls this directly on its hot path.
     pub(crate) fn dense_index(
         &self,
         i: usize,
@@ -272,7 +272,7 @@ impl Template {
     /// [`pack`](Self::pack) or [`parse_feature_keys`]. Dense templates carry
     /// only 8-bit fields, decoded here in slot order and re-accumulated with
     /// the same mixed radices as [`dense_index`](Self::dense_index).
-    fn dense_index_from_key(&self, key: u64, type_radix: usize) -> usize {
+    pub(crate) fn dense_index_from_key(&self, key: u64, type_radix: usize) -> usize {
         debug_assert!(self.is_dense());
         let n = self.slots.len();
         let mut idx = 0usize;
