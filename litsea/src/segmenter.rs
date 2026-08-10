@@ -1693,6 +1693,32 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "full-corpus sweep (slow with the string-keyed reference); run explicitly with --ignored"]
+    fn test_segment_with_pos_differential_bocchan_full() {
+        // Full-corpus differential net for the packed POS scorer: every
+        // non-empty bocchan line must match the string-keyed reference
+        // exactly. The fast suite covers the first 50 lines; this sweep
+        // covers the whole novel. (It also served as the adoption gate for
+        // the f32-table experiment, #145: zero divergence but no measurable
+        // speedup, so f64 stays.)
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
+        let text = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+        assert!(lines.len() > 400, "bocchan corpus unexpectedly small: {}", lines.len());
+        let segmenter =
+            Segmenter::with_pos_learner(Language::Japanese, load_perceptron("japanese_pos.model"));
+        let mut diverged = 0usize;
+        for line in &lines {
+            if segmenter.segment_with_pos(line).unwrap()
+                != segmenter.segment_with_pos_reference(line).unwrap()
+            {
+                diverged += 1;
+            }
+        }
+        assert_eq!(diverged, 0, "{diverged} of {} lines diverged", lines.len());
+    }
+
+    #[test]
     fn test_segment_with_pos_differential_trained_in_memory() {
         // Weights straight out of train() (not a saved/loaded file) must
         // also match: exercises zero-weight columns in live FeatureSlots and
