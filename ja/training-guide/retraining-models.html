@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0f3289e8.js";
+            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -183,14 +183,14 @@
                         <h1 id="モデルの再学習"><a class="header" href="#モデルの再学習">モデルの再学習</a></h1>
 <p>既存のモデルに新しいデータで学習を再開することで、モデルを改善できます。</p>
 <h2 id="コマンド"><a class="header" href="#コマンド">コマンド</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
 </code></pre>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre><code class="language-sh"># 新しいコーパスから特徴量を抽出
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # 既存モデルから再学習
-litsea train -t 0.005 -i 1000 \
+litsea train -t 0.0001 -i 20000 \
     -m ./models/japanese.model \
     ./new_features.txt \
     ./models/japanese_v2.model

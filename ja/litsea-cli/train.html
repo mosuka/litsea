@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0f3289e8.js";
+            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -234,13 +234,13 @@
 <p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <p>基本的な学習:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 </code></pre>
 <p>高精度な学習（低い閾値、多い反復回数）:</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>既存モデルからの再学習:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/japanese.model \
     ./new_features.txt ./models/japanese_v2.model
 </code></pre>
 <h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>

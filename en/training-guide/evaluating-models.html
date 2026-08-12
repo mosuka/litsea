@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cbf1b07d.js";
+            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -183,7 +183,11 @@
                         <h1 id="evaluating-models"><a class="header" href="#evaluating-models">Evaluating Models</a></h1>
 <p>Understanding model quality is essential for producing good segmentation results.</p>
 <h2 id="metrics"><a class="header" href="#metrics">Metrics</a></h2>
-<p>The <code>train</code> command outputs three key metrics after training:</p>
+<p>The <code>train</code> command outputs three key metrics after training. These are
+<strong>in-sample</strong> metrics: they are measured on the training data itself, so
+they overestimate how the model performs on unseen text. For a realistic
+picture, always evaluate on a held-out corpus that was not used for
+training (see the benchmarks below).</p>
 <h3 id="accuracy"><a class="header" href="#accuracy">Accuracy</a></h3>
 <pre><code class="language-text">Accuracy = (TP + TN) / Total Instances
 </code></pre>
@@ -209,15 +213,18 @@
 </table>
 </div>
 <h2 id="pre-trained-model-benchmarks"><a class="header" href="#pre-trained-model-benchmarks">Pre-trained Model Benchmarks</a></h2>
+<p>The bundled models are trained with <code>-t 0.0001 -i 20000</code> and evaluated on
+the held-out test split of their training treebank. <strong>Word F1</strong> scores
+exact word matches; <strong>Boundary F1</strong> scores individual boundary decisions.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Model</th><th>Accuracy</th><th>Precision</th><th>Recall</th><th>Training Corpus</th></tr>
+<tr><th>Model</th><th>Word F1</th><th>Boundary F1</th><th>Training Corpus</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>94.15%</td><td>95.57%</td><td>94.36%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>85.08%</td><td>–</td><td>–</td><td>UD Korean-GSD</td></tr>
-<tr><td>chinese.model</td><td>80.72%</td><td>–</td><td>–</td><td>UD Chinese-GSD</td></tr>
+<tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>65.37%</td><td>82.32%</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
@@ -225,8 +232,11 @@
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>
 <li><strong>More training data</strong> – A larger and more diverse corpus</li>
-<li><strong>Lower threshold</strong> – Try <code>-t 0.001</code> to allow more boosting iterations</li>
-<li><strong>More iterations</strong> – Try <code>-i 5000</code> or higher</li>
+<li><strong>Lower threshold</strong> – Try <code>-t 0.0001</code> to allow more boosting iterations</li>
+<li><strong>More iterations</strong> – Try <code>-i 20000</code> or higher. AdaBoost selects one
+weak learner (feature) per iteration, so the number of iterations caps
+how many features the model can use; the CLI default (<code>-i 100</code>) produces
+very small models with much lower held-out accuracy</li>
 <li><strong>Better corpus quality</strong> – Ensure consistent tokenization and clean text</li>
 <li><strong>Retraining</strong> – Start from an existing model and train with additional data (see <a href="retraining-models.html">Retraining Models</a>)</li>
 </ol>

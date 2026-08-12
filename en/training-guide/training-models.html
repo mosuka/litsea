@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cbf1b07d.js";
+            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -186,7 +186,7 @@
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 </code></pre>
 <h2 id="training-process"><a class="header" href="#training-process">Training Process</a></h2>
 <pre><code class="language-mermaid">flowchart TD
@@ -211,8 +211,8 @@
 <tr><th>Parameter</th><th>Flag</th><th>Default</th><th>Guidance</th></tr>
 </thead>
 <tbody>
-<tr><td>Threshold</td><td><code>-t</code></td><td>0.01</td><td>Start with 0.005. Lower values allow more iterations but increase training time</td></tr>
-<tr><td>Iterations</td><td><code>-i</code></td><td>100</td><td>Start with 1000. Increase if accuracy is still improving when training stops</td></tr>
+<tr><td>Threshold</td><td><code>-t</code></td><td>0.01</td><td>Start with 0.0001 (used for the bundled models). Lower values delay early stopping but increase training time</td></tr>
+<tr><td>Iterations</td><td><code>-i</code></td><td>100</td><td>Start with 20000 (used for the bundled models). AdaBoost selects one feature per iteration, so this caps the number of features in the model; the default produces very small models with much lower held-out accuracy</td></tr>
 </tbody>
 </table>
 </div>
@@ -257,7 +257,7 @@
 <tr><td>Classification</td><td>Binary (boundary / non-boundary)</td><td>Multiclass (18 segment labels)</td></tr>
 <tr><td>Labels</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
 <tr><td>Hyperparameters</td><td>Threshold, Iterations</td><td>Number of epochs</td></tr>
-<tr><td>Model size</td><td>~1-22 KB</td><td>~11 MB</td></tr>
+<tr><td>Model size</td><td>~18-22 KB</td><td>~11 MB</td></tr>
 </tbody>
 </table>
 </div>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cbf1b07d.js";
+            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -183,14 +183,14 @@
                         <h1 id="retraining-models"><a class="header" href="#retraining-models">Retraining Models</a></h1>
 <p>You can improve an existing model by resuming training with new data.</p>
 <h2 id="command"><a class="header" href="#command">Command</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
 </code></pre>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh"># Extract features from new corpus
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # Retrain from existing model
-litsea train -t 0.005 -i 1000 \
+litsea train -t 0.0001 -i 20000 \
     -m ./models/japanese.model \
     ./new_features.txt \
     ./models/japanese_v2.model

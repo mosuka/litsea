@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cbf1b07d.js";
+            window.path_to_searchindex_js = "searchindex-ad947bd1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-dc1e276c.js"></script>
@@ -222,7 +222,7 @@
 <li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
 <li>Convert to corpus format: <code>bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt</code></li>
 <li>Extract features: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
-<li>Train a model: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
+<li>Train a model: <code>litsea train -t 0.0001 -i 20000 features.txt model.model</code></li>
 <li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
 <h3 id="pos-workflow-word-segmentation-with-pos-tagging"><a class="header" href="#pos-workflow-word-segmentation-with-pos-tagging">POS Workflow (Word Segmentation with POS Tagging)</a></h3>

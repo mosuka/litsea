@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0f3289e8.js";
+            window.path_to_searchindex_js = "searchindex-0dddb408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-007a5c4f.js"></script>
@@ -183,6 +183,11 @@
                         <h1 id="事前学習済みモデル"><a class="header" href="#事前学習済みモデル">事前学習済みモデル</a></h1>
 <p>Litsea は <code>models/</code> ディレクトリに複数の事前学習済みモデルを同梱しています。</p>
 <h2 id="モデルカタログ"><a class="header" href="#モデルカタログ">モデルカタログ</a></h2>
+<p>単語分割モデルは、学習コーパスの held-out テスト分割（学習に使用していない文）で
+評価しています。<strong>単語 F1（Word F1）</strong> は単語の完全一致、<strong>境界 F1（Boundary F1）</strong>
+は個々の境界判定のスコアです。なお <code>train</code> コマンドが出力するのは学習データ自身で
+測った <em>in-sample</em> 指標であり、ここに示す held-out の値より高くなる点に注意して
+ください。</p>
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -192,10 +197,10 @@
 <tbody>
 <tr><td>言語</td><td>日本語</td></tr>
 <tr><td>学習コーパス</td><td>UD Japanese-GSD</td></tr>
-<tr><td>正解率</td><td>94.15%</td></tr>
-<tr><td>適合率</td><td>95.57%</td></tr>
-<tr><td>再現率</td><td>94.36%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 1.4 KB</td></tr>
+<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>91.48%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>96.31%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 20 KB</td></tr>
 </tbody>
 </table>
 </div>
@@ -208,8 +213,10 @@
 <tbody>
 <tr><td>言語</td><td>韓国語</td></tr>
 <tr><td>学習コーパス</td><td>UD Korean-GSD</td></tr>
-<tr><td>正解率</td><td>85.08%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 1.3 KB</td></tr>
+<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>65.37%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>82.32%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 20 KB</td></tr>
 </tbody>
 </table>
 </div>
@@ -222,8 +229,10 @@
 <tbody>
 <tr><td>言語</td><td>中国語（簡体字・繁体字）</td></tr>
 <tr><td>学習コーパス</td><td>UD Chinese-GSD</td></tr>
-<tr><td>正解率</td><td>80.72%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 1.1 KB</td></tr>
+<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>77.56%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>87.81%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 18 KB</td></tr>
 </tbody>
 </table>
 </div>

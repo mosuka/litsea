@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0f3289e8.js";
+            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -233,7 +233,9 @@
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Korean-GSD</li>
-<li><strong>精度（Accuracy）</strong>: 85.08%</li>
+<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
+<li><strong>単語 F1（held-out）</strong>: 65.37%</li>
+<li><strong>境界 F1（held-out）</strong>: 82.32%</li>
 </ul>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model

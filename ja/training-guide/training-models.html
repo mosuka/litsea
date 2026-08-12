@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0f3289e8.js";
+            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -186,7 +186,7 @@
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h2 id="基本的な使用例"><a class="header" href="#基本的な使用例">基本的な使用例</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 </code></pre>
 <h2 id="学習プロセス"><a class="header" href="#学習プロセス">学習プロセス</a></h2>
 <pre><code class="language-mermaid">flowchart TD
@@ -211,8 +211,8 @@
 <tr><th>パラメータ</th><th>フラグ</th><th>デフォルト値</th><th>ガイダンス</th></tr>
 </thead>
 <tbody>
-<tr><td>閾値</td><td><code>-t</code></td><td>0.01</td><td>0.005 から開始することを推奨。値を低くすると反復回数が増えるが、学習時間も増加する</td></tr>
-<tr><td>反復回数</td><td><code>-i</code></td><td>100</td><td>1000 から開始することを推奨。学習停止時にまだ精度が向上している場合は増やす</td></tr>
+<tr><td>閾値</td><td><code>-t</code></td><td>0.01</td><td>0.0001 から開始することを推奨（同梱モデルで使用）。値を低くすると早期停止が遅くなるが、学習時間も増加する</td></tr>
+<tr><td>反復回数</td><td><code>-i</code></td><td>100</td><td>20000 から開始することを推奨（同梱モデルで使用）。AdaBoost は 1 反復につき特徴を 1 つ選択するため、この値がモデルの特徴数の上限になる。デフォルト値では非常に小さいモデルになり、held-out 精度が大幅に低くなる</td></tr>
 </tbody>
 </table>
 </div>
@@ -257,7 +257,7 @@
 <tr><td>分類</td><td>二値（境界 / 非境界）</td><td>多クラス（18 セグメントラベル）</td></tr>
 <tr><td>ラベル</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
 <tr><td>ハイパーパラメータ</td><td>閾値、反復回数</td><td>エポック数</td></tr>
-<tr><td>モデルサイズ</td><td>約 1-22 KB</td><td>約 11 MB</td></tr>
+<tr><td>モデルサイズ</td><td>約 18-22 KB</td><td>約 11 MB</td></tr>
 </tbody>
 </table>
 </div>

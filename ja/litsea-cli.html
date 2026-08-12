@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0f3289e8.js";
+            window.path_to_searchindex_js = "searchindex-0dddb408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-007a5c4f.js"></script>
@@ -222,7 +222,7 @@
 <li>UD Treebank をダウンロードする: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
 <li>コーパスを準備する: <code>bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt</code></li>
 <li>特徴量を抽出する: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
-<li>モデルを学習する: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
+<li>モデルを学習する: <code>litsea train -t 0.0001 -i 20000 features.txt model.model</code></li>
 <li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
 <h3 id="pos-ワークフロー品詞推定付き単語分割"><a class="header" href="#pos-ワークフロー品詞推定付き単語分割">POS ワークフロー（品詞推定付き単語分割）</a></h3>

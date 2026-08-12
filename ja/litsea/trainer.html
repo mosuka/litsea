@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0f3289e8.js";
+            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-007a5c4f.js"></script>
@@ -206,8 +206,8 @@
 use litsea::trainer::Trainer;
 
 let mut trainer = Trainer::new(
-    0.005,                           // threshold
-    1000,                            // max iterations
+    0.0001,                          // threshold
+    20000,                           // max iterations
     Path::new("./features.txt"),     // features file
 )?;
 <span class="boring">}</span></code></pre>
@@ -253,8 +253,8 @@ use litsea::trainer::Trainer;
 #[tokio::main]
 async fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut trainer = Trainer::new(
-        0.005,
-        1000,
+        0.0001,
+        20000,
         Path::new("./features.txt"),
     )?;
 

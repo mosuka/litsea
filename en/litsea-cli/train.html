@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cbf1b07d.js";
+            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -234,13 +234,13 @@
 <p>This allows you to stop long-running training sessions without losing progress.</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <p>Basic training:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 </code></pre>
 <p>Training with higher precision (lower threshold, more iterations):</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>Retraining from an existing model:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/japanese.model \
     ./new_features.txt ./models/japanese_v2.model
 </code></pre>
 <h2 id="hyperparameter-tuning"><a class="header" href="#hyperparameter-tuning">Hyperparameter Tuning</a></h2>

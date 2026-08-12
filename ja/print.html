@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0f3289e8.js";
+            window.path_to_searchindex_js = "searchindex-0dddb408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-007a5c4f.js"></script>
@@ -1266,12 +1266,12 @@ POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）�
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Count</th><th>Pre-trained Model Accuracy</th></tr>
+<tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Count</th><th>単語 F1（held-out）</th></tr>
 </thead>
 <tbody>
-<tr><td>日本語</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>94.15%</td></tr>
-<tr><td>中国語</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>80.72%</td></tr>
-<tr><td>韓国語</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>85.08%</td></tr>
+<tr><td>日本語</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>91.48%</td></tr>
+<tr><td>中国語</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>77.56%</td></tr>
+<tr><td>韓国語</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>65.37%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1349,9 +1349,9 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Japanese-GSD</li>
-<li><strong>精度（Accuracy）</strong>: 94.15%</li>
-<li><strong>適合率（Precision）</strong>: 95.57%</li>
-<li><strong>再現率（Recall）</strong>: 94.36%</li>
+<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
+<li><strong>単語 F1（held-out）</strong>: 91.48%</li>
+<li><strong>境界 F1（held-out）</strong>: 96.31%</li>
 </ul>
 <h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
 <ul>
@@ -1415,7 +1415,9 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Chinese-GSD</li>
-<li><strong>精度（Accuracy）</strong>: 80.72%</li>
+<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
+<li><strong>単語 F1（held-out）</strong>: 77.56%</li>
+<li><strong>境界 F1（held-out）</strong>: 87.81%</li>
 </ul>
 <h2 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h2>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
@@ -1474,7 +1476,9 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Korean-GSD</li>
-<li><strong>精度（Accuracy）</strong>: 85.08%</li>
+<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
+<li><strong>単語 F1（held-out）</strong>: 65.37%</li>
+<li><strong>境界 F1（held-out）</strong>: 82.32%</li>
 </ul>
 <h2 id="使用例-2"><a class="header" href="#使用例-2">使用例</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
@@ -1584,7 +1588,7 @@ pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
 </li>
 <li>
 <p><strong>モデルを学習</strong>します。</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/thai.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/thai.model
 </code></pre>
 </li>
 </ol>
@@ -1936,8 +1940,8 @@ extractor.extract_with_pos(
 use litsea::trainer::Trainer;
 
 let mut trainer = Trainer::new(
-    0.005,                           // threshold
-    1000,                            // max iterations
+    0.0001,                          // threshold
+    20000,                           // max iterations
     Path::new("./features.txt"),     // features file
 )?;
 <span class="boring">}</span></code></pre>
@@ -1983,8 +1987,8 @@ use litsea::trainer::Trainer;
 #[tokio::main]
 async fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut trainer = Trainer::new(
-        0.005,
-        1000,
+        0.0001,
+        20000,
         Path::new("./features.txt"),
     )?;
 
@@ -2546,7 +2550,7 @@ assert_eq!(lang.char_type('@'), "O");
 <li>UD Treebank をダウンロードする: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
 <li>コーパスを準備する: <code>bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt</code></li>
 <li>特徴量を抽出する: <code>litsea extract -l japanese corpus.txt features.txt</code></li>
-<li>モデルを学習する: <code>litsea train -t 0.005 -i 1000 features.txt model.model</code></li>
+<li>モデルを学習する: <code>litsea train -t 0.0001 -i 20000 features.txt model.model</code></li>
 <li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
 <h3 id="pos-ワークフロー品詞推定付き単語分割"><a class="header" href="#pos-ワークフロー品詞推定付き単語分割">POS ワークフロー（品詞推定付き単語分割）</a></h3>
@@ -2690,13 +2694,13 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 <p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
 <h2 id="使用例-4"><a class="header" href="#使用例-4">使用例</a></h2>
 <p>基本的な学習:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 </code></pre>
 <p>高精度な学習（低い閾値、多い反復回数）:</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>既存モデルからの再学習:</p>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/japanese.model \
     ./new_features.txt ./models/japanese_v2.model
 </code></pre>
 <h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
@@ -3055,7 +3059,7 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h2 id="基本的な使用例"><a class="header" href="#基本的な使用例">基本的な使用例</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 </code></pre>
 <h2 id="学習プロセス"><a class="header" href="#学習プロセス">学習プロセス</a></h2>
 <pre><code class="language-mermaid">flowchart TD
@@ -3080,8 +3084,8 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 <tr><th>パラメータ</th><th>フラグ</th><th>デフォルト値</th><th>ガイダンス</th></tr>
 </thead>
 <tbody>
-<tr><td>閾値</td><td><code>-t</code></td><td>0.01</td><td>0.005 から開始することを推奨。値を低くすると反復回数が増えるが、学習時間も増加する</td></tr>
-<tr><td>反復回数</td><td><code>-i</code></td><td>100</td><td>1000 から開始することを推奨。学習停止時にまだ精度が向上している場合は増やす</td></tr>
+<tr><td>閾値</td><td><code>-t</code></td><td>0.01</td><td>0.0001 から開始することを推奨（同梱モデルで使用）。値を低くすると早期停止が遅くなるが、学習時間も増加する</td></tr>
+<tr><td>反復回数</td><td><code>-i</code></td><td>100</td><td>20000 から開始することを推奨（同梱モデルで使用）。AdaBoost は 1 反復につき特徴を 1 つ選択するため、この値がモデルの特徴数の上限になる。デフォルト値では非常に小さいモデルになり、held-out 精度が大幅に低くなる</td></tr>
 </tbody>
 </table>
 </div>
@@ -3126,7 +3130,7 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 <tr><td>分類</td><td>二値（境界 / 非境界）</td><td>多クラス（18 セグメントラベル）</td></tr>
 <tr><td>ラベル</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
 <tr><td>ハイパーパラメータ</td><td>閾値、反復回数</td><td>エポック数</td></tr>
-<tr><td>モデルサイズ</td><td>約 1-22 KB</td><td>約 11 MB</td></tr>
+<tr><td>モデルサイズ</td><td>約 18-22 KB</td><td>約 11 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -3158,7 +3162,10 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 <h1 id="モデルの評価"><a class="header" href="#モデルの評価">モデルの評価</a></h1>
 <p>モデルの品質を理解することは、良好な分割結果を得るために不可欠です。</p>
 <h2 id="メトリクス"><a class="header" href="#メトリクス">メトリクス</a></h2>
-<p><code>train</code> コマンドは学習後に3つの主要なメトリクスを出力します:</p>
+<p><code>train</code> コマンドは学習後に3つの主要なメトリクスを出力します。これらは
+<strong>in-sample</strong> 指標（学習データ自身で測った値）であり、未知のテキストに対する
+性能を過大評価します。実際の品質を知るには、必ず学習に使用していない held-out
+コーパスで評価してください（後述のベンチマークを参照）。</p>
 <h3 id="accuracy正解率"><a class="header" href="#accuracy正解率">Accuracy（正解率）</a></h3>
 <pre><code class="language-text">Accuracy = (TP + TN) / Total Instances
 </code></pre>
@@ -3184,15 +3191,18 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 </table>
 </div>
 <h2 id="事前学習済みモデルのベンチマーク"><a class="header" href="#事前学習済みモデルのベンチマーク">事前学習済みモデルのベンチマーク</a></h2>
+<p>同梱モデルは <code>-t 0.0001 -i 20000</code> で学習し、学習コーパスの held-out テスト分割で
+評価しています。<strong>単語 F1</strong> は単語の完全一致、<strong>境界 F1</strong> は個々の境界判定の
+スコアです。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>モデル</th><th>正解率</th><th>適合率</th><th>再現率</th><th>学習コーパス</th></tr>
+<tr><th>モデル</th><th>単語 F1</th><th>境界 F1</th><th>学習コーパス</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>94.15%</td><td>95.57%</td><td>94.36%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>85.08%</td><td>–</td><td>–</td><td>UD Korean-GSD</td></tr>
-<tr><td>chinese.model</td><td>80.72%</td><td>–</td><td>–</td><td>UD Chinese-GSD</td></tr>
+<tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>65.37%</td><td>82.32%</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
@@ -3200,8 +3210,11 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 <p>精度が不十分な場合は、以下を検討してください:</p>
 <ol>
 <li><strong>より多くの学習データ</strong> – より大規模で多様なコーパスを用意する</li>
-<li><strong>閾値を下げる</strong> – <code>-t 0.001</code> を試して、より多くのブースティング反復を許可する</li>
-<li><strong>反復回数を増やす</strong> – <code>-i 5000</code> 以上を試す</li>
+<li><strong>閾値を下げる</strong> – <code>-t 0.0001</code> を試して、より多くのブースティング反復を許可する</li>
+<li><strong>反復回数を増やす</strong> – <code>-i 20000</code> 以上を試す。AdaBoost は 1 反復につき弱学習器
+（特徴）を 1 つ選択するため、反復回数がモデルの特徴数の上限になります。CLI の
+デフォルト（<code>-i 100</code>）では非常に小さいモデルになり、held-out 精度が大幅に
+低くなります</li>
 <li><strong>コーパスの品質向上</strong> – 一貫したトークン化とクリーンなテキストを確保する</li>
 <li><strong>再学習</strong> – 既存のモデルから開始し、追加データで学習する（<a href="#モデルの再学習">モデルの再学習</a>を参照）</li>
 </ol>
@@ -3209,14 +3222,14 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 <h1 id="モデルの再学習"><a class="header" href="#モデルの再学習">モデルの再学習</a></h1>
 <p>既存のモデルに新しいデータで学習を再開することで、モデルを改善できます。</p>
 <h2 id="コマンド-3"><a class="header" href="#コマンド-3">コマンド</a></h2>
-<pre><code class="language-sh">litsea train -t 0.005 -i 1000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
 </code></pre>
 <h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
 <pre><code class="language-sh"># 新しいコーパスから特徴量を抽出
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # 既存モデルから再学習
-litsea train -t 0.005 -i 1000 \
+litsea train -t 0.0001 -i 20000 \
     -m ./models/japanese.model \
     ./new_features.txt \
     ./models/japanese_v2.model
@@ -3307,9 +3320,9 @@ packed <code>u64</code> 整数キーへコンパイルされます
 <tr><th>モデル</th><th>サイズ</th><th>特徴量</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>約 1.4 KB</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>約 1.3 KB</td><td>UD Korean-GSD</td></tr>
-<tr><td>chinese.model</td><td>約 1.1 KB</td><td>UD Chinese-GSD</td></tr>
+<tr><td>japanese.model</td><td>約 20 KB</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>約 20 KB</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>約 18 KB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>RWCP.model</td><td>約 22 KB</td><td>オリジナルの TinySegmenter</td></tr>
 <tr><td>japanese_pos.model</td><td>約 11 MB</td><td>UD Japanese-GSD（品詞）</td></tr>
 <tr><td>chinese_pos.model</td><td>約 19 MB</td><td>UD Chinese-GSD（品詞）</td></tr>
@@ -3438,6 +3451,11 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <h1 id="事前学習済みモデル"><a class="header" href="#事前学習済みモデル">事前学習済みモデル</a></h1>
 <p>Litsea は <code>models/</code> ディレクトリに複数の事前学習済みモデルを同梱しています。</p>
 <h2 id="モデルカタログ"><a class="header" href="#モデルカタログ">モデルカタログ</a></h2>
+<p>単語分割モデルは、学習コーパスの held-out テスト分割（学習に使用していない文）で
+評価しています。<strong>単語 F1（Word F1）</strong> は単語の完全一致、<strong>境界 F1（Boundary F1）</strong>
+は個々の境界判定のスコアです。なお <code>train</code> コマンドが出力するのは学習データ自身で
+測った <em>in-sample</em> 指標であり、ここに示す held-out の値より高くなる点に注意して
+ください。</p>
 <h3 id="japanesemodel-1"><a class="header" href="#japanesemodel-1">japanese.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -3447,10 +3465,10 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tbody>
 <tr><td>言語</td><td>日本語</td></tr>
 <tr><td>学習コーパス</td><td>UD Japanese-GSD</td></tr>
-<tr><td>正解率</td><td>94.15%</td></tr>
-<tr><td>適合率</td><td>95.57%</td></tr>
-<tr><td>再現率</td><td>94.36%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 1.4 KB</td></tr>
+<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>91.48%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>96.31%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 20 KB</td></tr>
 </tbody>
 </table>
 </div>
@@ -3463,8 +3481,10 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tbody>
 <tr><td>言語</td><td>韓国語</td></tr>
 <tr><td>学習コーパス</td><td>UD Korean-GSD</td></tr>
-<tr><td>正解率</td><td>85.08%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 1.3 KB</td></tr>
+<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>65.37%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>82.32%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 20 KB</td></tr>
 </tbody>
 </table>
 </div>
@@ -3477,8 +3497,10 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tbody>
 <tr><td>言語</td><td>中国語（簡体字・繁体字）</td></tr>
 <tr><td>学習コーパス</td><td>UD Chinese-GSD</td></tr>
-<tr><td>正解率</td><td>80.72%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 1.1 KB</td></tr>
+<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>77.56%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>87.81%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 18 KB</td></tr>
 </tbody>
 </table>
 </div>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cbf1b07d.js";
+            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-dc1e276c.js"></script>
@@ -222,7 +222,9 @@
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <ul>
 <li><strong>Training corpus</strong>: UD Chinese-GSD</li>
-<li><strong>Accuracy</strong>: 80.72%</li>
+<li><strong>Training options</strong>: <code>-t 0.0001 -i 20000</code></li>
+<li><strong>Word F1 (held-out)</strong>: 77.56%</li>
+<li><strong>Boundary F1 (held-out)</strong>: 87.81%</li>
 </ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
