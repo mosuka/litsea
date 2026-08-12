@@ -4,16 +4,23 @@ Litsea ships with several pre-trained models in the `models/` directory.
 
 ## Model Catalog
 
+The word segmentation models are evaluated on the held-out test split of
+their training treebank (sentences never seen during training). **Word F1**
+scores exact word matches; **Boundary F1** scores individual boundary
+decisions. Note that the `train` command prints *in-sample* metrics
+(measured on the training data itself), which are higher than these
+held-out figures.
+
 ### japanese.model
 
 | Property | Value |
 |----------|-------|
 | Language | Japanese |
 | Training Corpus | UD Japanese-GSD |
-| Accuracy | 94.15% |
-| Precision | 95.57% |
-| Recall | 94.36% |
-| File Size | ~1.4 KB |
+| Training Options | `-t 0.0001 -i 20000` |
+| Word F1 (held-out) | 91.48% |
+| Boundary F1 (held-out) | 96.31% |
+| File Size | ~20 KB |
 
 ### korean.model
 
@@ -21,8 +28,10 @@ Litsea ships with several pre-trained models in the `models/` directory.
 |----------|-------|
 | Language | Korean |
 | Training Corpus | UD Korean-GSD |
-| Accuracy | 85.08% |
-| File Size | ~1.3 KB |
+| Training Options | `-t 0.0001 -i 20000` |
+| Word F1 (held-out) | 65.37% |
+| Boundary F1 (held-out) | 82.32% |
+| File Size | ~20 KB |
 
 ### chinese.model
 
@@ -30,8 +39,10 @@ Litsea ships with several pre-trained models in the `models/` directory.
 |----------|-------|
 | Language | Chinese (Simplified & Traditional) |
 | Training Corpus | UD Chinese-GSD |
-| Accuracy | 80.72% |
-| File Size | ~1.1 KB |
+| Training Options | `-t 0.0001 -i 20000` |
+| Word F1 (held-out) | 77.56% |
+| Boundary F1 (held-out) | 87.81% |
+| File Size | ~18 KB |
 
 ### RWCP.model
 

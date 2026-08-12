@@ -118,7 +118,7 @@ If your language's character types have enough variety to make WC features infor
 3. **Train a model**:
 
    ```sh
-   litsea train -t 0.005 -i 1000 ./features.txt ./models/thai.model
+   litsea train -t 0.0001 -i 20000 ./features.txt ./models/thai.model
    ```
 
 ## Step 7: Add Tests

@@ -78,9 +78,9 @@ Model files are very compact:
 
 | Model | Size | Features |
 |-------|------|----------|
-| japanese.model | ~1.4 KB | UD Japanese-GSD |
-| korean.model | ~1.3 KB | UD Korean-GSD |
-| chinese.model | ~1.1 KB | UD Chinese-GSD |
+| japanese.model | ~20 KB | UD Japanese-GSD |
+| korean.model | ~20 KB | UD Korean-GSD |
+| chinese.model | ~18 KB | UD Chinese-GSD |
 | RWCP.model | ~22 KB | Original TinySegmenter |
 | japanese_pos.model | ~11 MB | UD Japanese-GSD (POS) |
 | chinese_pos.model | ~19 MB | UD Chinese-GSD (POS) |

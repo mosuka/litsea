@@ -75,9 +75,9 @@ packed `u64` 整数キーへコンパイルされます
 
 | モデル | サイズ | 特徴量 |
 |-------|------|----------|
-| japanese.model | 約 1.4 KB | UD Japanese-GSD |
-| korean.model | 約 1.3 KB | UD Korean-GSD |
-| chinese.model | 約 1.1 KB | UD Chinese-GSD |
+| japanese.model | 約 20 KB | UD Japanese-GSD |
+| korean.model | 約 20 KB | UD Korean-GSD |
+| chinese.model | 約 18 KB | UD Chinese-GSD |
 | RWCP.model | 約 22 KB | オリジナルの TinySegmenter |
 | japanese_pos.model | 約 11 MB | UD Japanese-GSD（品詞） |
 | chinese_pos.model | 約 19 MB | UD Chinese-GSD（品詞） |

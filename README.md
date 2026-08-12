@@ -80,7 +80,7 @@ Feature extraction completed successfully.
 Train the features output by the above command using AdaBoost. Use `-t` to set the weak classifier accuracy threshold and `-i` to set the maximum number of iterations:
 
 ```sh
-./target/release/litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+./target/release/litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 ```
 
 The `train` command reports metrics computed on the training data (with enough iterations the model can fit the training corpus almost perfectly; evaluate on held-out text for a realistic quality estimate):
@@ -198,13 +198,13 @@ The output will look like:
 ## Pre-trained models
 
 - **japanese.model**
-  Trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank. Accuracy: 94.15%.
+  Trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank. Held-out word F1: 91.48%.
 
 - **korean.model**
-  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank. Accuracy: 85.08%.
+  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank. Held-out word F1: 65.37%.
 
 - **chinese.model**
-  Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank. Accuracy: 80.72%.
+  Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank. Held-out word F1: 77.56%.
 
 - **japanese_pos.model**
   Joint word segmentation and POS tagging model trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank using Averaged Perceptron. Training accuracy: 98.23%.
@@ -226,7 +226,7 @@ The output will look like:
 You can further improve performance by resuming training from an existing model with new corpora:
 
 ```sh
-./target/release/litsea train -t 0.005 -i 1000 -m ./models/japanese.model ./new_features.txt ./models/japanese.model
+./target/release/litsea train -t 0.0001 -i 20000 -m ./models/japanese.model ./new_features.txt ./models/japanese.model
 ```
 
 ## License

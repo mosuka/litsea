@@ -11,7 +11,7 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 ## Basic Example
 
 ```sh
-litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 ```
 
 ## Training Process
@@ -36,8 +36,8 @@ flowchart TD
 
 | Parameter | Flag | Default | Guidance |
 |-----------|------|---------|----------|
-| Threshold | `-t` | 0.01 | Start with 0.005. Lower values allow more iterations but increase training time |
-| Iterations | `-i` | 100 | Start with 1000. Increase if accuracy is still improving when training stops |
+| Threshold | `-t` | 0.01 | Start with 0.0001 (used for the bundled models). Lower values delay early stopping but increase training time |
+| Iterations | `-i` | 100 | Start with 20000 (used for the bundled models). AdaBoost selects one feature per iteration, so this caps the number of features in the model; the default produces very small models with much lower held-out accuracy |
 
 ## Interpreting Output
 
@@ -90,7 +90,7 @@ litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 | Classification | Binary (boundary / non-boundary) | Multiclass (18 segment labels) |
 | Labels | `1`, `-1` | `B-NOUN`, `B-VERB`, ..., `O` |
 | Hyperparameters | Threshold, Iterations | Number of epochs |
-| Model size | ~1-22 KB | ~11 MB |
+| Model size | ~18-22 KB | ~11 MB |
 
 ### POS Hyperparameters
 

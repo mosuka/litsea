@@ -38,7 +38,7 @@ flowchart LR
 1. Download a UD Treebank: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)`
 2. Convert to corpus format: `bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt`
 3. Extract features: `litsea extract -l japanese corpus.txt features.txt`
-4. Train a model: `litsea train -t 0.005 -i 1000 features.txt model.model`
+4. Train a model: `litsea train -t 0.0001 -i 20000 features.txt model.model`
 5. Segment text: `echo "text" | litsea segment -l japanese model.model`
 
 ### POS Workflow (Word Segmentation with POS Tagging)

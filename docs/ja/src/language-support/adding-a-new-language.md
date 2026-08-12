@@ -118,7 +118,7 @@ pub(crate) fn templates_for(language: Language) -> &'static [Template] {
 3. **モデルを学習**します。
 
    ```sh
-   litsea train -t 0.005 -i 1000 ./features.txt ./models/thai.model
+   litsea train -t 0.0001 -i 20000 ./features.txt ./models/thai.model
    ```
 
 ## 手順7: テストを追加
