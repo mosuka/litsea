@@ -4,11 +4,11 @@ Litseaは、`Language` 列挙型に基づく統一的なフレームワークを
 
 ## サポート言語
 
-| Language | Enum Variant | CLI Values | Feature Count | Pre-trained Model Accuracy |
-|----------|-------------|------------|---------------|---------------------------|
-| 日本語 | `Language::Japanese` | `japanese`, `ja` | 42 | 94.15% |
-| 中国語 | `Language::Chinese` | `chinese`, `zh` | 42 | 80.72% |
-| 韓国語 | `Language::Korean` | `korean`, `ko` | 38 | 85.08% |
+| Language | Enum Variant | CLI Values | Feature Count | 単語 F1（held-out） |
+|----------|-------------|------------|---------------|---------------------|
+| 日本語 | `Language::Japanese` | `japanese`, `ja` | 42 | 91.48% |
+| 中国語 | `Language::Chinese` | `chinese`, `zh` | 42 | 77.56% |
+| 韓国語 | `Language::Korean` | `korean`, `ko` | 38 | 65.37% |
 
 ## Language 列挙型
 

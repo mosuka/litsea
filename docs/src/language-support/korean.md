@@ -50,7 +50,9 @@ Korean does **not** use WC (word + character-type) features. Since most Hangul s
 ### korean.model
 
 - **Training corpus**: UD Korean-GSD
-- **Accuracy**: 85.08%
+- **Training options**: `-t 0.0001 -i 20000`
+- **Word F1 (held-out)**: 65.37%
+- **Boundary F1 (held-out)**: 82.32%
 
 ## Example
 

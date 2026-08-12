@@ -1557,7 +1557,7 @@ mod tests {
         // table. Note load_model_from_reader MERGES into an already-populated
         // learner, so the correct oracle is the string-keyed reference (which
         // always reads the learner's current weights), not a fresh segmenter.
-        let sentence = "東京都に住んでいます。";
+        let sentence = "これはテストです。";
         let mut segmenter =
             Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"));
         let before = segmenter.segment(sentence);

@@ -4,7 +4,11 @@ Understanding model quality is essential for producing good segmentation results
 
 ## Metrics
 
-The `train` command outputs three key metrics after training:
+The `train` command outputs three key metrics after training. These are
+**in-sample** metrics: they are measured on the training data itself, so
+they overestimate how the model performs on unseen text. For a realistic
+picture, always evaluate on a held-out corpus that was not used for
+training (see the benchmarks below).
 
 ### Accuracy
 
@@ -39,18 +43,25 @@ Of the **actual** boundaries, what fraction did the model **find**. High recall 
 
 ## Pre-trained Model Benchmarks
 
-| Model | Accuracy | Precision | Recall | Training Corpus |
-|-------|----------|-----------|--------|-----------------|
-| japanese.model | 94.15% | 95.57% | 94.36% | UD Japanese-GSD |
-| korean.model | 85.08% | -- | -- | UD Korean-GSD |
-| chinese.model | 80.72% | -- | -- | UD Chinese-GSD |
+The bundled models are trained with `-t 0.0001 -i 20000` and evaluated on
+the held-out test split of their training treebank. **Word F1** scores
+exact word matches; **Boundary F1** scores individual boundary decisions.
+
+| Model | Word F1 | Boundary F1 | Training Corpus |
+|-------|---------|-------------|-----------------|
+| japanese.model | 91.48% | 96.31% | UD Japanese-GSD |
+| korean.model | 65.37% | 82.32% | UD Korean-GSD |
+| chinese.model | 77.56% | 87.81% | UD Chinese-GSD |
 
 ## Improving Model Quality
 
 If accuracy is unsatisfactory, consider:
 
 1. **More training data** -- A larger and more diverse corpus
-2. **Lower threshold** -- Try `-t 0.001` to allow more boosting iterations
-3. **More iterations** -- Try `-i 5000` or higher
+2. **Lower threshold** -- Try `-t 0.0001` to allow more boosting iterations
+3. **More iterations** -- Try `-i 20000` or higher. AdaBoost selects one
+   weak learner (feature) per iteration, so the number of iterations caps
+   how many features the model can use; the CLI default (`-i 100`) produces
+   very small models with much lower held-out accuracy
 4. **Better corpus quality** -- Ensure consistent tokenization and clean text
 5. **Retraining** -- Start from an existing model and train with additional data (see [Retraining Models](retraining-models.md))

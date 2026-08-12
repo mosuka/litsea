@@ -27,9 +27,9 @@
 ### japanese.model
 
 - **学習コーパス**: UD Japanese-GSD
-- **精度（Accuracy）**: 94.15%
-- **適合率（Precision）**: 95.57%
-- **再現率（Recall）**: 94.36%
+- **学習オプション**: `-t 0.0001 -i 20000`
+- **単語 F1（held-out）**: 91.48%
+- **境界 F1（held-out）**: 96.31%
 
 ### RWCP.model
 

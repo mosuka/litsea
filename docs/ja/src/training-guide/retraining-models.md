@@ -5,7 +5,7 @@
 ## コマンド
 
 ```sh
-litsea train -t 0.005 -i 1000 -m <EXISTING_MODEL> <NEW_FEATURES_FILE> <OUTPUT_MODEL>
+litsea train -t 0.0001 -i 20000 -m <EXISTING_MODEL> <NEW_FEATURES_FILE> <OUTPUT_MODEL>
 ```
 
 ## 使用例
@@ -15,7 +15,7 @@ litsea train -t 0.005 -i 1000 -m <EXISTING_MODEL> <NEW_FEATURES_FILE> <OUTPUT_MO
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # 既存モデルから再学習
-litsea train -t 0.005 -i 1000 \
+litsea train -t 0.0001 -i 20000 \
     -m ./models/japanese.model \
     ./new_features.txt \
     ./models/japanese_v2.model

@@ -27,9 +27,9 @@ Patterns are evaluated in order. Notably:
 ### japanese.model
 
 - **Training corpus**: UD Japanese-GSD
-- **Accuracy**: 94.15%
-- **Precision**: 95.57%
-- **Recall**: 94.36%
+- **Training options**: `-t 0.0001 -i 20000`
+- **Word F1 (held-out)**: 91.48%
+- **Boundary F1 (held-out)**: 96.31%
 
 ### RWCP.model
 

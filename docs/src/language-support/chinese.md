@@ -35,7 +35,9 @@ These characters appear overwhelmingly in grammatical roles and signal word boun
 ### chinese.model
 
 - **Training corpus**: UD Chinese-GSD
-- **Accuracy**: 80.72%
+- **Training options**: `-t 0.0001 -i 20000`
+- **Word F1 (held-out)**: 77.56%
+- **Boundary F1 (held-out)**: 87.81%
 
 ## Example
 

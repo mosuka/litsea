@@ -38,7 +38,7 @@ flowchart LR
 1. UD Treebank をダウンロードする: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)`
 2. コーパスを準備する: `bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt`
 3. 特徴量を抽出する: `litsea extract -l japanese corpus.txt features.txt`
-4. モデルを学習する: `litsea train -t 0.005 -i 1000 features.txt model.model`
+4. モデルを学習する: `litsea train -t 0.0001 -i 20000 features.txt model.model`
 5. テキストを分割する: `echo "text" | litsea segment -l japanese model.model`
 
 ### POS ワークフロー（品詞推定付き単語分割）

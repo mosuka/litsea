@@ -57,7 +57,7 @@ This allows you to stop long-running training sessions without losing progress.
 Basic training:
 
 ```sh
-litsea train -t 0.005 -i 1000 ./features.txt ./models/japanese.model
+litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 ```
 
 Training with higher precision (lower threshold, more iterations):
@@ -69,7 +69,7 @@ litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 Retraining from an existing model:
 
 ```sh
-litsea train -t 0.005 -i 1000 -m ./models/japanese.model \
+litsea train -t 0.0001 -i 20000 -m ./models/japanese.model \
     ./new_features.txt ./models/japanese_v2.model
 ```
 

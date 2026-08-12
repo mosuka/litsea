@@ -29,8 +29,8 @@ use std::path::Path;
 use litsea::trainer::Trainer;
 
 let mut trainer = Trainer::new(
-    0.005,                           // threshold
-    1000,                            // max iterations
+    0.0001,                          // threshold
+    20000,                           // max iterations
     Path::new("./features.txt"),     // features file
 )?;
 ```
@@ -86,8 +86,8 @@ use litsea::trainer::Trainer;
 #[tokio::main]
 async fn main() -> litsea::Result<()> {
     let mut trainer = Trainer::new(
-        0.005,
-        1000,
+        0.0001,
+        20000,
         Path::new("./features.txt"),
     )?;
 
