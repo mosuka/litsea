@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6c12c38f.js";
+            window.path_to_searchindex_js = "../searchindex-aa7b8a58.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9fc4699e.js"></script>
@@ -232,8 +232,10 @@ decision positions they feed.</li>
 <li>Each adjacent pair makes one merged <code>BW</code> probe and one direct <code>BC</code>
 vector load (three values each), and each triple one direct <code>TC</code>
 vector load (four values).</li>
-<li>For Japanese/Chinese, the four <code>WC</code> (char + type) weights are looked
-up per position.</li>
+<li>For Japanese/Chinese, each character makes one merged <code>WC</code> row probe
+(the row is direct-indexed by type id and scatter-added to the two
+decision positions the character feeds); the block is skipped
+entirely for models without <code>WC</code> features.</li>
 </ul>
 </li>
 <li>
@@ -268,7 +270,8 @@ on the next <code>segment()</code> call.</p>
 <li><strong>Merged-vector hash tables</strong> for char n-grams: <code>UW1..6</code> collapse into
 one <code>char -&gt; [f64; 6]</code> table and <code>BW1..3</code> into one
 <code>(char, char) -&gt; [f64; 3]</code> table, so a whole family costs one probe.
-<code>WC*</code> weights live in a small <code>(char, type)</code>-keyed map.</li>
+<code>WC1..4</code> likewise collapse into one <code>char -&gt; [slot][type_id]</code> row table
+(one probe per character, type dimension direct-indexed).</li>
 <li><strong>Dense arrays</strong> for tag/type-only templates: each of the 29 gets a
 direct-indexed table sized by the exact mixed-radix product (3 per tag
 slot, 8–10 per type slot; about 74 KB total for Japanese). The

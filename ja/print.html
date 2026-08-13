@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e85e1c74.js";
+            window.path_to_searchindex_js = "searchindex-f903e752.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-59d64227.js"></script>
@@ -1038,7 +1038,10 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
 scatter-add する</li>
 <li>隣接ペアごとに <code>BW</code> のマージ済み probe 1 回と <code>BC</code> ベクトルの直接ロード
 1 回（各 3 値）、トリプルごとに <code>TC</code> ベクトルの直接ロード 1 回（4 値）</li>
-<li>日本語/中国語では、<code>WC</code>（文字 + 文字種）の 4 つの重みを位置ごとに検索する</li>
+<li>日本語/中国語では、文字ごとに 1 回のマージ済み <code>WC</code> 行 probe を行う
+（行は文字種 ID で直接インデックスされ、その文字が寄与する 2 つの
+判定位置へ scatter-add される）。<code>WC</code> 特徴を持たないモデルでは
+ブロック全体がスキップされる</li>
 </ul>
 </li>
 <li>
@@ -1070,8 +1073,9 @@ POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）�
 <ul>
 <li><strong>文字 n-gram のマージ済みベクトルハッシュテーブル</strong>: <code>UW1..6</code> は
 「文字 → <code>[f64; 6]</code>」1 テーブルに、<code>BW1..3</code> は「文字ペア → <code>[f64; 3]</code>」
-1 テーブルに統合され、ファミリー全体が probe 1 回で済みます。<code>WC*</code> は
-（文字, 文字種）キーの小さなマップに格納されます</li>
+1 テーブルに統合され、ファミリー全体が probe 1 回で済みます。<code>WC1..4</code> も
+同様に「文字 → <code>[スロット][文字種 ID]</code>」の行テーブル 1 つに統合されます
+（文字ごとに probe 1 回、文字種次元は直接インデックス）</li>
 <li><strong>タグ/文字種のみのテンプレートの密配列</strong>: 29 個それぞれが mixed-radix 積の
 厳密サイズ（タグスロットは 3、文字種スロットは 8–10。日本語で合計約 74KB）の
 直接インデックステーブルを持ちます。<code>UC</code>/<code>BC</code>/<code>TC</code> のテーブルには、静的パス用の
