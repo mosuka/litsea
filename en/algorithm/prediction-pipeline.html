@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,7 +199,7 @@ types: ["O", "O", "O",  "I", "I", "I", "K", "K", "K", "I", "I", "P"]
 types: [..., "P",  "O",  "O",  "O" ]
 </code></pre>
 <h3 id="step-4-iterate-and-predict"><a class="header" href="#step-4-iterate-and-predict">Step 4: Iterate and Predict</a></h3>
-<p>For each position <code>i</code> from 4 to <code>len(chars) - 3</code>:</p>
+<p>For each position <code>i</code> from 4 through <code>len(chars) - 4</code> (inclusive):</p>
 <pre><code class="language-text">i=4 (れ): Extract features → predict → label=-1 (O) → word="これ"
 i=5 (は): Extract features → predict → label=+1 (B) → push "これ", word="は"
 i=6 (テ): Extract features → predict → label=+1 (B) → push "は", word="テ"

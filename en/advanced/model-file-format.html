@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -251,7 +251,7 @@ always computed over every weight in the file.</p>
 <tr><td>japanese_pos.model</td><td>~11 MB</td><td>UD Japanese-GSD (POS)</td></tr>
 <tr><td>chinese_pos.model</td><td>~19 MB</td><td>UD Chinese-GSD (POS)</td></tr>
 <tr><td>korean_pos.model</td><td>~8.9 MB</td><td>UD Korean-GSD (POS)</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~17 KB</td><td>JEITA corpus</td></tr>
+<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
 </tbody>
 </table>
 </div>
@@ -259,7 +259,7 @@ always computed over every weight in the file.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
-<li>The format is <strong>deterministic</strong> (features are sorted via BTreeMap)</li>
+<li>The format is <strong>deterministic</strong> for the usual training workflow: <code>save_model</code> writes features in the learner’s feature order, which is sorted (via <code>BTreeMap</code>) for learners initialized from a features file or loaded from disk. A learner populated only via <code>add_instance()</code> writes features in insertion order instead</li>
 <li>Models are <strong>forward-compatible</strong> – new features in the input that are not in the model are simply ignored during prediction</li>
 </ul>
 

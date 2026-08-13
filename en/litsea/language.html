@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,6 +186,7 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -193,6 +194,7 @@ pub enum Language {
     Korean,
 }
 <span class="boring">}</span></code></pre>
+<p>The enum is marked <code>#[non_exhaustive]</code> because new languages are expected to be added without a breaking change; external <code>match</code> expressions over <code>Language</code> therefore need a wildcard arm (<code>_ =&gt; ...</code>).</p>
 <h3 id="traits"><a class="header" href="#traits">Traits</a></h3>
 <ul>
 <li><code>Default</code> – Returns <code>Language::Japanese</code></li>
@@ -236,7 +238,20 @@ assert_eq!(lang.char_type('あ'), "I");
 assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<p>Internally, <code>char_type</code> dispatches to a private per-language function (<code>japanese_char_type</code>, <code>chinese_char_type</code>, <code>korean_char_type</code>). The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes.</p>
+<p>Internally, <code>char_type</code> is a table lookup over the numeric type id returned by a private per-language function (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>), so string codes and numeric ids cannot drift apart. The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes.</p>
+<h2 id="parselanguageerror"><a class="header" href="#parselanguageerror">ParseLanguageError</a></h2>
+<p>Parsing a <code>Language</code> from a string fails with <code>ParseLanguageError</code>, which is re-exported at the crate root (<code>litsea::ParseLanguageError</code>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::{Language, ParseLanguageError};
+
+let err: ParseLanguageError = "french".parse::&lt;Language&gt;().unwrap_err();
+assert_eq!(err.input(), "french");
+<span class="boring">}</span></code></pre>
+<ul>
+<li><code>input()</code> – Returns the string that failed to parse</li>
+<li>The error message enumerates the supported languages: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
+</ul>
 
                     </main>
 

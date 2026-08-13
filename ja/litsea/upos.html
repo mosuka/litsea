@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -244,7 +244,7 @@ pub enum Upos {
 <h3 id="トレイト実装"><a class="header" href="#トレイト実装">トレイト実装</a></h3>
 <ul>
 <li><code>Display</code>: <code>"NOUN"</code>, <code>"VERB"</code> などの文字列に変換</li>
-<li><code>FromStr</code>: 文字列から <code>Upos</code> にパース。不正な文字列にはエラーを返す</li>
+<li><code>FromStr</code>: 文字列から <code>Upos</code> にパース。不正な文字列には <code>ParseUposError</code> を返す</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -253,6 +253,8 @@ pub enum Upos {
 let pos: Upos = "NOUN".parse().unwrap();
 assert_eq!(pos.to_string(), "NOUN");
 <span class="boring">}</span></code></pre>
+<h3 id="parseuposerror"><a class="header" href="#parseuposerror">ParseUposError</a></h3>
+<p><code>ParseUposError</code>（クレートルートから <code>litsea::ParseUposError</code> として再エクスポート）は、文字列が有効な UPOS タグでない場合に返されます。<code>input()</code> アクセサはパースに失敗した文字列を返し、エラーメッセージは <code>Unknown UPOS tag: '&lt;input&gt;'</code> となります。</p>
 <h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
 <h3 id="定義-1"><a class="header" href="#定義-1">定義</a></h3>
 <p><code>SegmentLabel</code> 型は単語境界検出と品詞タグ付けを組み合わせます。各文字位置に 18 ラベルのいずれかが割り当てられます:</p>
@@ -283,7 +285,7 @@ pub enum SegmentLabel {
 </span><span class="boring">fn main() {
 </span>pub fn all_labels() -&gt; Vec&lt;SegmentLabel&gt;
 <span class="boring">}</span></code></pre>
-<p>全 18 ラベル（B-ADJ, B-ADP, …, B-X, O）の一覧を返します。</p>
+<p>全 18 個の <code>SegmentLabel</code> 値（文字列ではありません）のベクタを返します: 17 個の <code>B(Upos)</code> ラベルの後に <code>O</code> が続きます。</p>
 <h4 id="is_boundary"><a class="header" href="#is_boundary"><code>is_boundary</code></a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -299,7 +301,7 @@ pub enum SegmentLabel {
 <h3 id="トレイト実装-1"><a class="header" href="#トレイト実装-1">トレイト実装</a></h3>
 <ul>
 <li><code>Display</code>: <code>"B-NOUN"</code>, <code>"O"</code> などの文字列に変換</li>
-<li><code>FromStr</code>: 文字列から <code>SegmentLabel</code> にパース</li>
+<li><code>FromStr</code>: 文字列から <code>SegmentLabel</code> にパース。不正な文字列には <code>ParseSegmentLabelError</code> を返す</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -313,6 +315,12 @@ let label_o: SegmentLabel = "O".parse().unwrap();
 assert!(!label_o.is_boundary());
 assert_eq!(label_o.pos(), None);
 <span class="boring">}</span></code></pre>
+<h3 id="parsesegmentlabelerror"><a class="header" href="#parsesegmentlabelerror">ParseSegmentLabelError</a></h3>
+<p><code>ParseSegmentLabelError</code>（クレートルートから <code>litsea::ParseSegmentLabelError</code> として再エクスポート）は、文字列が有効なセグメントラベルでない場合に返されます。2 つのバリアントがあります:</p>
+<ul>
+<li><code>InvalidFormat</code> – 文字列が <code>O</code> でも <code>B-&lt;UPOS&gt;</code> 形式でもない（メッセージ: <code>Invalid segment label: '&lt;input&gt;'. Expected 'O' or 'B-&lt;UPOS&gt;'</code>）</li>
+<li><code>InvalidPos</code> – <code>B-</code> プレフィックスはあるが POS 部分のパースに失敗した（内部の <code>ParseUposError</code> をラップする）</li>
+</ul>
 
                     </main>
 

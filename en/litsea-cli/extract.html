@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -215,14 +215,14 @@
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
-<p>The features file contains one line per character position:</p>
-<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+<p>The features file contains one line per character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	BW2:これ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	BW2:れは	...
 </code></pre>
 <ul>
 <li><code>1</code> = word boundary</li>
 <li><code>-1</code> = non-boundary</li>
-<li>Features are tab-separated</li>
+<li>Features are written tab-separated in alphabetically sorted order, so each line starts with the <code>BC1:</code> feature rather than following the template definition order</li>
 </ul>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <pre><code class="language-sh"># Japanese
@@ -244,9 +244,9 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="pos-feature-output-format"><a class="header" href="#pos-feature-output-format">POS Feature Output Format</a></h3>
-<p>In POS mode, the label column uses segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>) instead of binary <code>1</code>/<code>-1</code>:</p>
-<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
-O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
+<p>In POS mode, the label column uses segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>) instead of binary <code>1</code>/<code>-1</code>. Features are again written tab-separated in alphabetically sorted order:</p>
+<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	BW1:B2B1	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
 </code></pre>
 <h3 id="pos-extraction-example"><a class="header" href="#pos-extraction-example">POS Extraction Example</a></h3>
 <pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt

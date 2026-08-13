@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-dc1e276c.js"></script>
+        <script src="toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -213,7 +213,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>
 <h2 id="current-version"><a class="header" href="#current-version">Current Version</a></h2>
-<p>Litsea v0.6.0 (unreleased) – Rust Edition 2024, minimum Rust version 1.87.</p>
+<p>Litsea v0.8.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
 <h2 id="links"><a class="header" href="#links">Links</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub Repository</a></li>
@@ -253,14 +253,14 @@ cargo build --release
 <h2 id="using-as-a-library"><a class="header" href="#using-as-a-library">Using as a Library</a></h2>
 <p>Add Litsea to your project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.6.0"
+litsea = "0.8.0"
 </code></pre>
 <p>Remote model loading over http(s) is opt-in; enable the <code>remote_model</code>
 feature if you need it:</p>
-<pre><code class="language-toml">litsea = { version = "0.6.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.8.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
-<p><strong>Note:</strong> Loading models from local files (<code>load_model_from_path</code>) is synchronous, so no async runtime is needed. An async runtime such as <code>tokio</code> is only required if you load models over HTTP/HTTPS with the async <code>load_model</code> method (enabled by the <code>remote_model</code> feature, which is on by default).</p>
+<p><strong>Note:</strong> Loading models from local files (<code>load_model_from_path</code>) is synchronous, so no async runtime is needed. An async runtime such as <code>tokio</code> is only required if you load models over HTTP/HTTPS with the async <code>load_model</code> method (available only when the opt-in <code>remote_model</code> feature is enabled).</p>
 </blockquote>
 <h2 id="supported-platforms"><a class="header" href="#supported-platforms">Supported Platforms</a></h2>
 <p>Litsea is tested on the following platforms:</p>
@@ -394,120 +394,6 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="workspace-structure"><a class="header" href="#workspace-structure">Workspace Structure</a></h1>
-<p>Litsea is organized as a <strong>Cargo workspace</strong> with two crates and supporting directories.</p>
-<h2 id="directory-layout"><a class="header" href="#directory-layout">Directory Layout</a></h2>
-<pre><code class="language-text">litsea/
-├── Cargo.toml              # Workspace manifest (incl. release profile)
-├── Cargo.lock              # Dependency lock file
-├── Makefile                # Build convenience targets
-├── rustfmt.toml            # Rust formatting configuration
-├── LICENSE                 # MIT
-├── README.md               # Project overview
-├── litsea/                 # Core library crate
-│   ├── Cargo.toml
-│   ├── src/
-│   │   ├── lib.rs          # Module declarations, re-exports, and version
-│   │   ├── adaboost.rs     # AdaBoost algorithm (word segmentation)
-│   │   ├── perceptron.rs   # Averaged Perceptron (joint segmentation + POS)
-│   │   ├── segmenter.rs    # Segmentation pipeline and feature templates
-│   │   ├── extractor.rs    # Feature extraction from corpus
-│   │   ├── trainer.rs      # Training orchestration (Trainer / PosTrainer)
-│   │   ├── language.rs     # Language enum and character classification
-│   │   ├── upos.rs         # UPOS tags and SegmentLabel
-│   │   ├── model_io.rs     # Model URI resolution and download limits
-│   │   ├── metrics.rs      # BinaryMetrics / MulticlassMetrics
-│   │   └── error.rs        # LitseaError / Result
-│   ├── benches/
-│   │   └── bench.rs        # Criterion benchmarks
-│   └── tests/
-│       └── golden.rs       # Golden snapshots for every bundled model
-├── litsea-cli/             # CLI binary crate
-│   ├── Cargo.toml
-│   ├── src/
-│   │   └── main.rs         # CLI entry point
-│   └── tests/
-│       └── cli.rs          # CLI integration tests
-├── models/                 # Pre-trained models
-│   ├── japanese.model
-│   ├── chinese.model
-│   ├── korean.model
-│   ├── japanese_pos.model
-│   ├── chinese_pos.model
-│   ├── korean_pos.model
-│   ├── RWCP.model
-│   └── JEITA_Genpaku_ChaSen_IPAdic.model
-├── resources/              # Sample data and test fixtures
-│   └── bocchan.txt         # Sample corpus
-├── scripts/                # Corpus preparation utilities
-│   ├── download_udtreebank.sh   # Download UD Treebanks (prints CoNLL-U file path)
-│   ├── corpus_udtreebank.sh     # Convert CoNLL-U to Litsea corpus format
-│   ├── download_wikidump.sh     # Download Wikipedia dumps
-│   ├── corpus_wikidump.sh       # Convert Wikipedia dumps to corpus format
-│   ├── split_sentences.sh       # Split text into sentences
-│   └── wikitexts.sh             # Download and prepare Wikipedia text data
-├── docs/                   # mdbook documentation (this book)
-└── .github/
-    └── workflows/          # CI/CD pipelines
-        ├── regression.yml  # Test on push/PR
-        ├── release.yml     # Release builds and publishing
-        └── periodic.yml    # Weekly stability tests
-</code></pre>
-<h2 id="crate-details"><a class="header" href="#crate-details">Crate Details</a></h2>
-<h3 id="litsea-core-library"><a class="header" href="#litsea-core-library"><code>litsea</code> (Core Library)</a></h3>
-<p>The core library provides all segmentation, training, and model I/O functionality.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
-</thead>
-<tbody>
-<tr><td><code>rustc-hash</code></td><td>2.1</td><td>Fast hashing for internal feature maps</td></tr>
-<tr><td><code>thiserror</code></td><td>2.0</td><td>Error type derivation</td></tr>
-<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS model loading (rustls, opt-in <code>remote_model</code> feature)</td></tr>
-<tr><td><code>criterion</code></td><td>0.8</td><td>Benchmarking (dev dependency)</td></tr>
-<tr><td><code>tempfile</code></td><td>3.27</td><td>Temporary files for tests (dev dependency)</td></tr>
-<tr><td><code>tokio</code></td><td>1.52+</td><td>Async runtime for tests (dev dependency)</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="litsea-cli-cli-binary"><a class="header" href="#litsea-cli-cli-binary"><code>litsea-cli</code> (CLI Binary)</a></h3>
-<p>The CLI provides a command-line interface to Litsea’s functionality.</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dependency</th><th>Version</th><th>Purpose</th></tr>
-</thead>
-<tbody>
-<tr><td><code>clap</code></td><td>4.6</td><td>Command-line argument parsing</td></tr>
-<tr><td><code>ctrlc</code></td><td>3.5</td><td>Graceful Ctrl+C handling during training</td></tr>
-<tr><td><code>tokio</code></td><td>1.52+</td><td>Async runtime</td></tr>
-<tr><td><code>litsea</code></td><td>0.6</td><td>Core library (workspace member, <code>remote_model</code> enabled)</td></tr>
-<tr><td><code>tempfile</code></td><td>3.27</td><td>Temporary files for integration tests (dev dependency)</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="workspace-configuration"><a class="header" href="#workspace-configuration">Workspace Configuration</a></h2>
-<p>The workspace uses Cargo resolver version 3 (Rust Edition 2024). Release
-builds enable thin LTO and a single codegen unit so the per-character
-feature-scoring call chain can be inlined across codegen units
-(<code>panic = "abort"</code> was considered and rejected — it cannot be scoped to the
-CLI binary and would complicate release-profile tests and benches):</p>
-<pre><code class="language-toml">[workspace]
-resolver = "3"
-members = ["litsea", "litsea-cli"]
-
-[workspace.package]
-version = "0.6.0"
-edition = "2024"
-rust-version = "1.87"
-
-[profile.release]
-lto = "thin"
-codegen-units = 1
-</code></pre>
-<p>Shared dependencies are defined at the workspace level in <code>[workspace.dependencies]</code> and referenced by each crate with <code>{ workspace = true }</code>.</p>
-<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="module-design"><a class="header" href="#module-design">Module Design</a></h1>
 <p>The <code>litsea</code> library crate is organized into focused modules, each with a clear responsibility.</p>
 <h2 id="module-dependency-graph"><a class="header" href="#module-dependency-graph">Module Dependency Graph</a></h2>
@@ -549,7 +435,7 @@ codegen-units = 1
 <ul>
 <li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>)</li>
 <li>Implements <code>Display</code> (outputs lowercase name)</li>
-<li><code>char_type(c: char) -&gt; &amp;'static str</code> – Classifies a character with a direct <code>match</code> on character ranges (allocation-free; no regex). Language-specific functions (<code>japanese_char_type</code>, etc.) share a <code>punct_latin_digit()</code> helper for the common <code>"P"</code>/<code>"A"</code>/<code>"N"</code> classes.</li>
+<li><code>char_type(c: char) -&gt; &amp;'static str</code> – Classifies a character as a table lookup over the numeric type id returned by the private <code>char_type_id()</code>, which dispatches to a per-language function (<code>japanese_char_type_id</code>, etc.) implemented as a direct <code>match</code> on character ranges (allocation-free; no regex). The language-specific functions share a <code>punct_latin_digit()</code> helper for the common <code>"P"</code>/<code>"A"</code>/<code>"N"</code> classes.</li>
 </ul>
 </li>
 </ul>
@@ -558,7 +444,8 @@ codegen-units = 1
 <ul>
 <li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, an <code>AdaBoost</code> learner, and an optional <code>AveragedPerceptron</code> POS learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, <code>pos_learner_mut()</code>)
 <ul>
-<li><code>new(language, learner)</code> – Create a segmenter with an optional pre-trained model</li>
+<li><code>new(language)</code> – Create a segmenter with a default (empty) AdaBoost learner</li>
+<li><code>with_learner(language, learner)</code> – Create a segmenter with a pre-configured AdaBoost learner (e.g. one that has loaded a pre-trained model)</li>
 <li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
 <li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> without a POS learner)</li>
@@ -633,7 +520,7 @@ codegen-units = 1
 </ul>
 <h3 id="errorrs--error-handling"><a class="header" href="#errorrs--error-handling"><code>error.rs</code> – Error Handling</a></h3>
 <ul>
-<li><strong><code>LitseaError</code></strong> – Error enum (<code>Io</code>, <code>InvalidData</code>, <code>InvalidInput</code>, <code>Unsupported</code>, and <code>Download</code> with the <code>remote_model</code> feature)</li>
+<li><strong><code>LitseaError</code></strong> – Error enum (<code>Io</code>, <code>InvalidData</code>, <code>InvalidInput</code>, <code>Unsupported</code>, <code>PosLearnerNotSet</code>, and <code>Download</code> with the <code>remote_model</code> feature). Marked <code>#[non_exhaustive]</code>, so downstream <code>match</code> expressions need a wildcard arm</li>
 <li><strong><code>Result&lt;T&gt;</code></strong> – Alias used by every fallible API</li>
 </ul>
 <h3 id="metricsrs--evaluation-metrics"><a class="header" href="#metricsrs--evaluation-metrics"><code>metrics.rs</code> – Evaluation Metrics</a></h3>
@@ -667,12 +554,12 @@ pub mod upos;
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
 pub use extractor::Extractor;
-pub use language::Language;
+pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
 pub use trainer::{PosTrainer, Trainer};
-pub use upos::{SegmentLabel, Upos};
+pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 pub fn version() -&gt; &amp;'static str { ... }
 <span class="boring">}</span></code></pre>
@@ -991,23 +878,23 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li><strong>B</strong> – “Boundary” tag (word start)</li>
 <li><strong>O</strong> – “Other” tag (continuation)</li>
 </ul>
-<p>Features are extracted for positions 4 through len-3 for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because <code>segment_with_pos</code> predicts there to derive the first word’s POS (#100). Positions run 4 (or 3) through len-3, where the full window of i-3 to i+2 is available.</p>
+<p>Features are extracted for positions 4 through len-4 (inclusive) for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because <code>segment_with_pos</code> predicts there to derive the first word’s POS (#100). Positions run 4 (or 3) through len-4 (inclusive), where the full window of i-3 to i+2 is available.</p>
 <h2 id="training-data-format"><a class="header" href="#training-data-format">Training Data Format</a></h2>
-<p>The <code>extract</code> command writes features to a file in this format:</p>
-<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+<p>The <code>extract</code> command writes features to a file in this format (real output for the corpus line <code>これ は テスト です 。</code>):</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	...
 </code></pre>
 <p>Each line contains:</p>
 <ol>
 <li>A label (<code>1</code> for boundary, <code>-1</code> for non-boundary)</li>
-<li>Tab-separated feature strings</li>
+<li>Tab-separated feature strings, written in alphabetically sorted order (not template emission order), so each line starts with the <code>BC1:</code> feature</li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="character-type-classification"><a class="header" href="#character-type-classification">Character Type Classification</a></h1>
 <p>Each language in Litsea defines a set of <strong>character type patterns</strong> that classify individual characters into linguistically meaningful categories. These type codes are used as features for the AdaBoost classifier.</p>
 <h2 id="how-it-works-1"><a class="header" href="#how-it-works-1">How It Works</a></h2>
 <p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> classifies a character with a direct <code>match</code> expression on Unicode character ranges — no regex, no allocation. Match arms are tried top to bottom, so the <strong>first matching arm</strong> determines the type code. If no arm matches, the character is classified as <code>"O"</code> (Other).</p>
-<p>Each language has its own classification function (<code>japanese_char_type</code>, <code>chinese_char_type</code>, <code>korean_char_type</code>); the classes shared by all languages — <code>"P"</code> (punctuation), <code>"A"</code> (Latin), <code>"N"</code> (digits) — live in a common <code>punct_latin_digit()</code> helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with match guards (e.g., Korean Hangul syllable structure).</p>
+<p>Each language has its own classification function returning a numeric type id (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>); <code>char_type</code> is a table lookup over the returned id, so string codes and numeric ids stay consistent by construction. The classes shared by all languages — <code>"P"</code> (punctuation), <code>"A"</code> (Latin), <code>"N"</code> (digits) — live in a common <code>punct_latin_digit()</code> helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with extra code inside an arm body (e.g., Korean’s codepoint test for Hangul syllable structure).</p>
 <h2 id="japanese-character-types"><a class="header" href="#japanese-character-types">Japanese Character Types</a></h2>
 <div class="table-wrapper">
 <table>
@@ -1077,7 +964,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 </table>
 </div>
 <h3 id="korean-hangul-syllable-detection"><a class="header" href="#korean-hangul-syllable-detection">Korean Hangul Syllable Detection</a></h3>
-<p>Korean uses a <strong>match guard</strong> for the SN and SF types. This leverages Unicode’s systematic Hangul encoding:</p>
+<p>Korean uses a <strong>range arm with a codepoint test</strong> for the SN and SF types. This leverages Unicode’s systematic Hangul encoding:</p>
 <ul>
 <li>Hangul Syllables occupy U+AC00–U+D7AF</li>
 <li>Each syllable is encoded as: <code>(initial * 21 + medial) * 28 + final + 0xAC00</code></li>
@@ -1095,7 +982,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <tr><td>Total types</td><td>8</td><td>9</td><td>10</td></tr>
 <tr><td>Unique types</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
 <tr><td>Shared types</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O (H shared with JP)</td></tr>
-<tr><td>Matching method</td><td>Range match</td><td>Range match</td><td>Range match + guard</td></tr>
+<tr><td>Matching method</td><td>Range match</td><td>Range match</td><td>Range match + codepoint test</td></tr>
 <tr><td>WC features used</td><td>Yes</td><td>Yes</td><td>No</td></tr>
 </tbody>
 </table>
@@ -1120,7 +1007,7 @@ types: ["O", "O", "O",  "I", "I", "I", "K", "K", "K", "I", "I", "P"]
 types: [..., "P",  "O",  "O",  "O" ]
 </code></pre>
 <h3 id="step-4-iterate-and-predict"><a class="header" href="#step-4-iterate-and-predict">Step 4: Iterate and Predict</a></h3>
-<p>For each position <code>i</code> from 4 to <code>len(chars) - 3</code>:</p>
+<p>For each position <code>i</code> from 4 through <code>len(chars) - 4</code> (inclusive):</p>
 <pre><code class="language-text">i=4 (れ): Extract features → predict → label=-1 (O) → word="これ"
 i=5 (は): Extract features → predict → label=+1 (B) → push "これ", word="は"
 i=6 (テ): Extract features → predict → label=+1 (B) → push "は", word="テ"
@@ -1287,6 +1174,7 @@ real-text corpus – the same guarantee net as <code>segment()</code>’s.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -1296,6 +1184,7 @@ pub enum Language {
 <span class="boring">}</span></code></pre>
 <ul>
 <li><strong>Default</strong> is <code>Japanese</code></li>
+<li>Marked <code>#[non_exhaustive]</code> – new languages can be added without a breaking change, so external <code>match</code> expressions need a wildcard arm</li>
 <li>Implements <code>FromStr</code> – parses from full name or ISO 639-1 code (case-insensitive)</li>
 <li>Implements <code>Display</code> – outputs the lowercase full name</li>
 </ul>
@@ -1320,7 +1209,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <tr><td>Character types</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
 <tr><td>WC features</td><td>Yes (4 extra)</td><td>Yes (4 extra)</td><td>No</td></tr>
 <tr><td>Total features</td><td>42</td><td>42</td><td>38</td></tr>
-<tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> with a range guard</td></tr>
+<tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges + codepoint test</td></tr>
 </tbody>
 </table>
 </div>
@@ -1371,7 +1260,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <ul>
 <li><strong>Training corpus</strong>: JEITA Project Sugita Genpaku corpus</li>
 <li><strong>Tokenizer</strong>: ChaSen with IPAdic dictionary</li>
-<li><strong>Size</strong>: ~17 KB</li>
+<li><strong>Size</strong>: ~16 KB</li>
 </ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
@@ -1470,7 +1359,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 </div>
 <p>These particles frequently appear at word boundaries and are given a distinct type code to improve segmentation accuracy.</p>
 <h3 id="hangul-syllable-structure-받침-detection"><a class="header" href="#hangul-syllable-structure-받침-detection">Hangul Syllable Structure (받침 Detection)</a></h3>
-<p>Korean uses a <strong><code>match</code> arm with a range guard</strong> for the SN and SF types. This exploits the systematic Unicode Hangul encoding:</p>
+<p>Korean uses a <strong>range arm with a codepoint test in its body</strong> for the SN and SF types. This exploits the systematic Unicode Hangul encoding:</p>
 <ul>
 <li>Hangul Syllables: U+AC00–U+D7AF (11,172 syllables)</li>
 <li>Each syllable = <code>(initial * 21 + medial) * 28 + final + 0xAC00</code></li>
@@ -1508,7 +1397,8 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <p>In <code>litsea/src/language.rs</code>, add a new variant to the <code>Language</code> enum:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub enum Language {
+</span>#[non_exhaustive]
+pub enum Language {
     #[default]
     Japanese,
     Chinese,
@@ -1516,6 +1406,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
     Thai,       // ← new language
 }
 <span class="boring">}</span></code></pre>
+<p>The enum is marked <code>#[non_exhaustive]</code> precisely because new languages are expected to be added, so adding a variant is not a breaking change for downstream crates.</p>
 <h2 id="step-2-implement-display-and-fromstr"><a class="header" href="#step-2-implement-display-and-fromstr">Step 2: Implement Display and FromStr</a></h2>
 <p>Add match arms for the new language:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1526,6 +1417,7 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
+<p>Also update the <code>ParseLanguageError</code> message in <code>language.rs</code>: it enumerates the supported languages (<code>Supported: japanese (ja), chinese (zh), korean (ko)</code>) and is pinned by a unit test, so both the message and the test must include the new language.</p>
 <h2 id="step-3-create-a-character-classification-function"><a class="header" href="#step-3-create-a-character-classification-function">Step 3: Create a Character Classification Function</a></h2>
 <p>Define a function that classifies a <code>char</code> into a <strong>type id</strong> for the new language. Ids are indices into the language’s ordered <code>type_codes()</code> table (Step 4): the shared classes occupy fixed indices (“O” = 0, “P” = 1, “A” = 2, “N” = 3) and language-specific classes follow from 4. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1548,7 +1440,7 @@ Language::Thai =&gt; write!(f, "thai"),
 <li><strong>Identify linguistically distinct categories</strong> that correlate with word boundary patterns</li>
 <li><strong>Order matters</strong> – match arms are tried top to bottom, so put more specific classes before general ones</li>
 <li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
-<li><strong>Use match guards</strong> for logic beyond plain ranges (as Korean does to split syllables with/without 받침)</li>
+<li><strong>Use extra logic inside an arm body</strong> when a plain range is not enough (as Korean does with a codepoint test to split syllables with/without 받침)</li>
 <li>Reuse the shared <code>punct_latin_digit()</code> helper for the common “P”/“A”/“N” classes</li>
 <li><strong>Keep the code set prefix-free</strong> – no code may be a prefix of another (Korean’s <code>SN</code>/<code>SF</code> work because <code>S</code> alone is not a code). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous (a unit test pins this per language)</li>
 </ul>
@@ -1617,7 +1509,7 @@ fn test_thai_char_types() {
 #[test]
 fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type("ก"), "T");
+    assert_eq!(segmenter.char_type('ก'), "T");
 }
 <span class="boring">}</span></code></pre>
 <p>Run all tests to verify:</p>
@@ -1628,7 +1520,7 @@ fn test_char_type_thai() {
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.6.0"
+litsea = "0.8.0"
 </code></pre>
 <p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method.</p>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
@@ -1876,14 +1768,15 @@ what <code>Extractor::extract_with_pos</code> builds on.</p>
 </span><span class="boring">fn main() {
 </span>pub fn new(language: Language) -&gt; Self
 <span class="boring">}</span></code></pre>
-<p>Creates a new extractor for the specified language. Internally creates a <code>Segmenter</code> without a pre-trained model.</p>
+<p>Creates a new extractor for the specified language. Internally creates a <code>Segmenter</code> without a pre-trained model. <code>Extractor</code> also implements <code>Default</code>, which is equivalent to <code>Extractor::new(Language::Japanese)</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::extractor::Extractor;
 use litsea::language::Language;
 
-let mut extractor = Extractor::new(Language::Japanese);
+let extractor = Extractor::new(Language::Japanese);
 <span class="boring">}</span></code></pre>
+<p>The extraction methods take <code>&amp;self</code>, so the binding does not need to be mutable.</p>
 <h2 id="methods-1"><a class="header" href="#methods-1">Methods</a></h2>
 <h3 id="extract"><a class="header" href="#extract"><code>extract</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2100,6 +1993,21 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 
 let mut learner = AdaBoost::new(0.01, 100);
 <span class="boring">}</span></code></pre>
+<h3 id="adaboostdefault"><a class="header" href="#adaboostdefault"><code>AdaBoost::default</code></a></h3>
+<p><code>AdaBoost</code> also implements <code>Default</code>, which is equivalent to <code>AdaBoost::new(0.01, 100)</code> – the default hyperparameters used across the library and CLI.</p>
+<h2 id="accessors-1"><a class="header" href="#accessors-1">Accessors</a></h2>
+<h3 id="threshold"><a class="header" href="#threshold"><code>threshold</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn threshold(&amp;self) -&gt; f64
+<span class="boring">}</span></code></pre>
+<p>Returns the early-stopping threshold this learner was created with.</p>
+<h3 id="num_iterations"><a class="header" href="#num_iterations"><code>num_iterations</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn num_iterations(&amp;self) -&gt; usize
+<span class="boring">}</span></code></pre>
+<p>Returns the maximum number of boosting iterations.</p>
 <h2 id="model-loading"><a class="header" href="#model-loading">Model Loading</a></h2>
 <h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2266,7 +2174,7 @@ learner.add_instance(feats, "B-NOUN".to_string());
 </span>use std::sync::atomic::AtomicBool;
 
 let running = AtomicBool::new(true);
-learner.train(10, running);
+learner.train(10, &amp;running);
 <span class="boring">}</span></code></pre>
 <h2 id="prediction-2"><a class="header" href="#prediction-2">Prediction</a></h2>
 <h3 id="predict-1"><a class="header" href="#predict-1"><code>predict</code></a></h3>
@@ -2414,7 +2322,7 @@ pub enum Upos {
 <h3 id="trait-implementations"><a class="header" href="#trait-implementations">Trait Implementations</a></h3>
 <ul>
 <li><code>Display</code>: Converts to a string such as <code>"NOUN"</code>, <code>"VERB"</code>, etc.</li>
-<li><code>FromStr</code>: Parses a string into <code>Upos</code>. Returns an error for invalid strings.</li>
+<li><code>FromStr</code>: Parses a string into <code>Upos</code>. Returns a <code>ParseUposError</code> for invalid strings.</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2423,6 +2331,8 @@ pub enum Upos {
 let pos: Upos = "NOUN".parse().unwrap();
 assert_eq!(pos.to_string(), "NOUN");
 <span class="boring">}</span></code></pre>
+<h3 id="parseuposerror"><a class="header" href="#parseuposerror">ParseUposError</a></h3>
+<p><code>ParseUposError</code> (re-exported at the crate root as <code>litsea::ParseUposError</code>) is returned when a string is not a valid UPOS tag. Its <code>input()</code> accessor returns the string that failed to parse, and the message reads <code>Unknown UPOS tag: '&lt;input&gt;'</code>.</p>
 <h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
 <h3 id="definition-1-1"><a class="header" href="#definition-1-1">Definition</a></h3>
 <p>The <code>SegmentLabel</code> type combines word boundary detection with POS tagging. Each character position is assigned one of 18 labels:</p>
@@ -2453,7 +2363,7 @@ pub enum SegmentLabel {
 </span><span class="boring">fn main() {
 </span>pub fn all_labels() -&gt; Vec&lt;SegmentLabel&gt;
 <span class="boring">}</span></code></pre>
-<p>Returns a vector of all 18 segment label strings.</p>
+<p>Returns a vector of all 18 <code>SegmentLabel</code> values (not strings): the 17 <code>B(Upos)</code> labels followed by <code>O</code>.</p>
 <h4 id="is_boundary"><a class="header" href="#is_boundary"><code>is_boundary</code></a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2469,7 +2379,7 @@ pub enum SegmentLabel {
 <h3 id="trait-implementations-1"><a class="header" href="#trait-implementations-1">Trait Implementations</a></h3>
 <ul>
 <li><code>Display</code>: Converts to a string such as <code>"B-NOUN"</code>, <code>"O"</code>, etc.</li>
-<li><code>FromStr</code>: Parses a string into <code>SegmentLabel</code>.</li>
+<li><code>FromStr</code>: Parses a string into <code>SegmentLabel</code>. Returns a <code>ParseSegmentLabelError</code> for invalid strings.</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2483,6 +2393,12 @@ let label_o: SegmentLabel = "O".parse().unwrap();
 assert!(!label_o.is_boundary());
 assert_eq!(label_o.pos(), None);
 <span class="boring">}</span></code></pre>
+<h3 id="parsesegmentlabelerror"><a class="header" href="#parsesegmentlabelerror">ParseSegmentLabelError</a></h3>
+<p><code>ParseSegmentLabelError</code> (re-exported at the crate root as <code>litsea::ParseSegmentLabelError</code>) is returned when a string is not a valid segment label. It has two variants:</p>
+<ul>
+<li><code>InvalidFormat</code> – the string is neither <code>O</code> nor of the form <code>B-&lt;UPOS&gt;</code> (message: <code>Invalid segment label: '&lt;input&gt;'. Expected 'O' or 'B-&lt;UPOS&gt;'</code>)</li>
+<li><code>InvalidPos</code> – the <code>B-</code> prefix was present but the POS part failed to parse (wraps the underlying <code>ParseUposError</code>)</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language"><a class="header" href="#language">Language</a></h1>
 <p>The <code>Language</code> enum defines language-specific behavior, including character type classification.</p>
@@ -2490,6 +2406,7 @@ assert_eq!(label_o.pos(), None);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -2497,6 +2414,7 @@ pub enum Language {
     Korean,
 }
 <span class="boring">}</span></code></pre>
+<p>The enum is marked <code>#[non_exhaustive]</code> because new languages are expected to be added without a breaking change; external <code>match</code> expressions over <code>Language</code> therefore need a wildcard arm (<code>_ =&gt; ...</code>).</p>
 <h3 id="traits"><a class="header" href="#traits">Traits</a></h3>
 <ul>
 <li><code>Default</code> – Returns <code>Language::Japanese</code></li>
@@ -2540,10 +2458,24 @@ assert_eq!(lang.char_type('あ'), "I");
 assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<p>Internally, <code>char_type</code> dispatches to a private per-language function (<code>japanese_char_type</code>, <code>chinese_char_type</code>, <code>korean_char_type</code>). The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes.</p>
+<p>Internally, <code>char_type</code> is a table lookup over the numeric type id returned by a private per-language function (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>), so string codes and numeric ids cannot drift apart. The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes.</p>
+<h2 id="parselanguageerror"><a class="header" href="#parselanguageerror">ParseLanguageError</a></h2>
+<p>Parsing a <code>Language</code> from a string fails with <code>ParseLanguageError</code>, which is re-exported at the crate root (<code>litsea::ParseLanguageError</code>):</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::{Language, ParseLanguageError};
+
+let err: ParseLanguageError = "french".parse::&lt;Language&gt;().unwrap_err();
+assert_eq!(err.input(), "french");
+<span class="boring">}</span></code></pre>
+<ul>
+<li><code>input()</code> – Returns the string that failed to parse</li>
+<li>The error message enumerates the supported languages: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cli-reference-overview"><a class="header" href="#cli-reference-overview">CLI Reference Overview</a></h1>
 <p>The <code>litsea</code> CLI provides commands for word segmentation, model training, and text processing.</p>
+<p>The CLI binary is built with the library’s <code>remote_model</code> feature enabled, so <code>http(s)://</code> model URIs work out of the box – unlike the <code>litsea</code> library itself, whose default features do not include remote loading.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
 <pre><code class="language-sh">litsea &lt;COMMAND&gt; [OPTIONS] [ARGS]
 </code></pre>
@@ -2637,14 +2569,14 @@ assert_eq!(lang.char_type('@'), "O");
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
-<p>The features file contains one line per character position:</p>
-<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+<p>The features file contains one line per character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	BW2:これ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	BW2:れは	...
 </code></pre>
 <ul>
 <li><code>1</code> = word boundary</li>
 <li><code>-1</code> = non-boundary</li>
-<li>Features are tab-separated</li>
+<li>Features are written tab-separated in alphabetically sorted order, so each line starts with the <code>BC1:</code> feature rather than following the template definition order</li>
 </ul>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <pre><code class="language-sh"># Japanese
@@ -2666,9 +2598,9 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="pos-feature-output-format"><a class="header" href="#pos-feature-output-format">POS Feature Output Format</a></h3>
-<p>In POS mode, the label column uses segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>) instead of binary <code>1</code>/<code>-1</code>:</p>
-<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
-O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
+<p>In POS mode, the label column uses segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>) instead of binary <code>1</code>/<code>-1</code>. Features are again written tab-separated in alphabetically sorted order:</p>
+<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	BW1:B2B1	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
 </code></pre>
 <h3 id="pos-extraction-example"><a class="header" href="#pos-extraction-example">POS Extraction Example</a></h3>
 <pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
@@ -2702,7 +2634,7 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) training mode using Averaged Perceptron</td></tr>
-<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS mode only)</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS mode only)</td></tr>
 </tbody>
 </table>
 </div>
@@ -2762,17 +2694,17 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 </thead>
 <tbody>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS training mode</td></tr>
-<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="examples-1-1"><a class="header" href="#examples-1-1">Examples</a></h3>
 <pre><code class="language-sh"># Train a POS model from POS features
-litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
+litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="output-1"><a class="header" href="#output-1">Output</a></h3>
 <p>POS training metrics are printed to stderr (macro-averaged precision and recall):</p>
-<pre><code class="language-text">Result Metrics:
+<pre><code class="language-text">Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%
@@ -2884,7 +2816,7 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 <ol>
 <li><a href="#preparing-a-corpus">Prepare a POS corpus</a> from a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) &amp;&amp; bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
 <li><a href="#extracting-features">Extract POS features</a>: <code>litsea extract --pos -l japanese pos_corpus.txt features.txt</code></li>
-<li><a href="#training-models">Train a POS model</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
+<li><a href="#training-models">Train a POS model</a>: <code>litsea train --pos --num-epochs 10 features.txt model.model</code></li>
 </ol>
 <h2 id="additional-topics"><a class="header" href="#additional-topics">Additional Topics</a></h2>
 <ul>
@@ -3049,16 +2981,16 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <ol>
 <li>The <code>Extractor</code> reads each line from the corpus</li>
 <li>For each sentence, it creates a <code>Segmenter</code> context with character arrays, type arrays, and tag arrays</li>
-<li>For each character position (except the first), it extracts features and writes them with the correct label</li>
+<li>For each character position (except the first), it extracts features and writes them with the correct label. The <code>--pos</code> pipeline also emits the first position, so that the first word’s POS tag is part of the training data</li>
 </ol>
 <h2 id="feature-file-format"><a class="header" href="#feature-file-format">Feature File Format</a></h2>
-<p>Each line represents one character position:</p>
-<pre><code class="language-text">1	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
--1	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
+<p>Each line represents one character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </code></pre>
 <ul>
 <li>First column: label (<code>1</code> = boundary, <code>-1</code> = non-boundary)</li>
-<li>Remaining columns: features (tab-separated)</li>
+<li>Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the <code>BC1:</code> feature)</li>
 </ul>
 <h2 id="pos-feature-extraction-1"><a class="header" href="#pos-feature-extraction-1">POS Feature Extraction</a></h2>
 <p>For POS tagging models, use the <code>--pos</code> flag to extract features with POS labels instead of binary boundary labels.</p>
@@ -3076,13 +3008,14 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </ul>
 <p>The feature template (character n-grams, type n-grams, etc.) is the same as for standard segmentation – only the label scheme differs.</p>
 <h3 id="pos-feature-file-format"><a class="header" href="#pos-feature-file-format">POS Feature File Format</a></h3>
-<pre><code class="language-text">B-NOUN	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
-O	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
-B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
+<p>For the POS corpus line <code>これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT</code>, the first three lines are:</p>
+<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </code></pre>
 <ul>
-<li>First column: segment label (e.g., <code>B-NOUN</code>, <code>O</code>)</li>
-<li>Remaining columns: features (tab-separated)</li>
+<li>First column: segment label (e.g., <code>B-PRON</code>, <code>O</code>)</li>
+<li>Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the <code>BC1:</code> feature)</li>
 </ul>
 <h2 id="file-size-expectations"><a class="header" href="#file-size-expectations">File Size Expectations</a></h2>
 <p>The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings. For a 1 MB corpus, expect a features file of roughly 50-100 MB.</p>
@@ -3164,7 +3097,7 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 <tr><td>Classification</td><td>Binary (boundary / non-boundary)</td><td>Multiclass (18 segment labels)</td></tr>
 <tr><td>Labels</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
 <tr><td>Hyperparameters</td><td>Threshold, Iterations</td><td>Number of epochs</td></tr>
-<tr><td>Model size</td><td>~18-22 KB</td><td>~11 MB</td></tr>
+<tr><td>Model size</td><td>~18-22 KB</td><td>~9-19 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -3180,7 +3113,7 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 </table>
 </div>
 <h3 id="pos-training-output"><a class="header" href="#pos-training-output">POS Training Output</a></h3>
-<pre><code class="language-text">Result Metrics:
+<pre><code class="language-text">Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%
@@ -3365,7 +3298,7 @@ always computed over every weight in the file.</p>
 <tr><td>japanese_pos.model</td><td>~11 MB</td><td>UD Japanese-GSD (POS)</td></tr>
 <tr><td>chinese_pos.model</td><td>~19 MB</td><td>UD Chinese-GSD (POS)</td></tr>
 <tr><td>korean_pos.model</td><td>~8.9 MB</td><td>UD Korean-GSD (POS)</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~17 KB</td><td>JEITA corpus</td></tr>
+<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
 </tbody>
 </table>
 </div>
@@ -3373,7 +3306,7 @@ always computed over every weight in the file.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
-<li>The format is <strong>deterministic</strong> (features are sorted via BTreeMap)</li>
+<li>The format is <strong>deterministic</strong> for the usual training workflow: <code>save_model</code> writes features in the learner’s feature order, which is sorted (via <code>BTreeMap</code>) for learners initialized from a features file or loaded from disk. A learner populated only via <code>add_instance()</code> writes features in insertion order instead</li>
 <li>Models are <strong>forward-compatible</strong> – new features in the input that are not in the model are simply ignored during prediction</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -3412,7 +3345,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 local loading only, keeping the dependency tree compact). The CLI enables it,
 so <code>litsea segment https://...</code> keeps working out of the box; library users
 need:</p>
-<pre><code class="language-toml">litsea = { version = "0.6.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.8.0", features = ["remote_model"] }
 </code></pre>
 <h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
 <ul>
@@ -3435,13 +3368,19 @@ trailing bias line fails to load; see
 <a href="#model-file-format-2">Model File Format</a>)</li>
 </ul>
 <h2 id="wasm-considerations"><a class="header" href="#wasm-considerations">WASM Considerations</a></h2>
-<p>On <code>wasm32</code> targets:</p>
+<p>The <code>wasm32</code> target is CI-checked only <strong>without</strong> the <code>remote_model</code> feature
+(<code>cargo check -p litsea --target wasm32-unknown-unknown --no-default-features</code>):</p>
 <ul>
-<li><strong>Local file paths are not supported</strong> – file system access is unavailable</li>
-<li><strong><code>file://</code> scheme is not supported</strong></li>
-<li><strong>HTTP/HTTPS loading works</strong> via the browser’s fetch API (through reqwest’s WASM support)</li>
+<li><strong>HTTP/HTTPS loading is not currently supported on <code>wasm32</code></strong> – the HTTP
+client configuration uses reqwest’s <code>ClientBuilder::connect_timeout</code> and
+<code>timeout</code>, which reqwest’s WASM client does not provide, so the
+<code>remote_model</code> feature does not build for this target</li>
+<li><strong>Local file paths and the <code>file://</code> scheme are not supported either</strong> –
+file system access is unavailable, so <code>read_file_bytes</code> returns an
+<code>Unsupported</code> error</li>
 </ul>
-<p>Error messages guide users to use URLs instead of file paths when running in WASM.</p>
+<p>Models must therefore be supplied by other means on <code>wasm32</code>, e.g. by calling
+<code>load_model_from_reader</code> with model bytes provided by the host environment.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="benchmarking"><a class="header" href="#benchmarking">Benchmarking</a></h1>
 <p>Litsea includes a Criterion benchmark suite for measuring performance.</p>
@@ -3459,10 +3398,10 @@ trailing bias line fails to load; see
 <tr><th>Benchmark</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_short/adaboost/{ja,zh,ko}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
-<tr><td><code>segment_short/averaged_perceptron/{ja,zh,ko}</code></td><td>Segment + POS tag a short sentence</td></tr>
+<tr><td><code>segment_short/adaboost/{japanese,chinese,korean}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean}</code></td><td>Segment + POS tag a short sentence</td></tr>
 <tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~300 KB)</td></tr>
-<tr><td><code>get_type_hiragana</code></td><td>Character type classification</td></tr>
+<tr><td><code>char_type_hiragana</code></td><td>Character type classification</td></tr>
 <tr><td><code>add_corpus</code></td><td>Corpus ingestion for training</td></tr>
 <tr><td><code>predict_adaboost</code></td><td>Single AdaBoost prediction</td></tr>
 </tbody>
@@ -3575,7 +3514,7 @@ held-out figures.</p>
 <tr><td>Language</td><td>Japanese</td></tr>
 <tr><td>Training Corpus</td><td>JEITA Project Sugita Genpaku corpus</td></tr>
 <tr><td>Tokenizer</td><td>ChaSen with IPAdic</td></tr>
-<tr><td>File Size</td><td>~17 KB</td></tr>
+<tr><td>File Size</td><td>~16 KB</td></tr>
 </tbody>
 </table>
 </div>

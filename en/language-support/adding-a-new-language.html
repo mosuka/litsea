@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,7 +196,8 @@
 <p>In <code>litsea/src/language.rs</code>, add a new variant to the <code>Language</code> enum:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub enum Language {
+</span>#[non_exhaustive]
+pub enum Language {
     #[default]
     Japanese,
     Chinese,
@@ -204,6 +205,7 @@
     Thai,       // ← new language
 }
 <span class="boring">}</span></code></pre>
+<p>The enum is marked <code>#[non_exhaustive]</code> precisely because new languages are expected to be added, so adding a variant is not a breaking change for downstream crates.</p>
 <h2 id="step-2-implement-display-and-fromstr"><a class="header" href="#step-2-implement-display-and-fromstr">Step 2: Implement Display and FromStr</a></h2>
 <p>Add match arms for the new language:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -214,6 +216,7 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
+<p>Also update the <code>ParseLanguageError</code> message in <code>language.rs</code>: it enumerates the supported languages (<code>Supported: japanese (ja), chinese (zh), korean (ko)</code>) and is pinned by a unit test, so both the message and the test must include the new language.</p>
 <h2 id="step-3-create-a-character-classification-function"><a class="header" href="#step-3-create-a-character-classification-function">Step 3: Create a Character Classification Function</a></h2>
 <p>Define a function that classifies a <code>char</code> into a <strong>type id</strong> for the new language. Ids are indices into the language’s ordered <code>type_codes()</code> table (Step 4): the shared classes occupy fixed indices (“O” = 0, “P” = 1, “A” = 2, “N” = 3) and language-specific classes follow from 4. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -236,7 +239,7 @@ Language::Thai =&gt; write!(f, "thai"),
 <li><strong>Identify linguistically distinct categories</strong> that correlate with word boundary patterns</li>
 <li><strong>Order matters</strong> – match arms are tried top to bottom, so put more specific classes before general ones</li>
 <li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
-<li><strong>Use match guards</strong> for logic beyond plain ranges (as Korean does to split syllables with/without 받침)</li>
+<li><strong>Use extra logic inside an arm body</strong> when a plain range is not enough (as Korean does with a codepoint test to split syllables with/without 받침)</li>
 <li>Reuse the shared <code>punct_latin_digit()</code> helper for the common “P”/“A”/“N” classes</li>
 <li><strong>Keep the code set prefix-free</strong> – no code may be a prefix of another (Korean’s <code>SN</code>/<code>SF</code> work because <code>S</code> alone is not a code). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous (a unit test pins this per language)</li>
 </ul>
@@ -305,7 +308,7 @@ fn test_thai_char_types() {
 #[test]
 fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type("ก"), "T");
+    assert_eq!(segmenter.char_type('ก'), "T");
 }
 <span class="boring">}</span></code></pre>
 <p>Run all tests to verify:</p>

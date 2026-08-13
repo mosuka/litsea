@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -202,16 +202,16 @@
 <ol>
 <li><code>Extractor</code> がコーパスの各行を読み込む</li>
 <li>各文に対して、文字配列・文字種配列・タグ配列を持つ <code>Segmenter</code> コンテキストを作成する</li>
-<li>各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む</li>
+<li>各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む。<code>--pos</code> パイプラインでは先頭位置も出力され、最初の単語の品詞タグが学習データに含まれるようになっている</li>
 </ol>
 <h2 id="特徴量ファイルの形式"><a class="header" href="#特徴量ファイルの形式">特徴量ファイルの形式</a></h2>
-<p>各行は1つの文字位置を表します:</p>
-<pre><code class="language-text">1	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
--1	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
+<p>各行は1つの文字位置を表します。コーパス行 <code>これ は テスト です 。</code> に対する最初の2行は次のとおりです:</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </code></pre>
 <ul>
 <li>最初の列: ラベル（<code>1</code> = 境界、<code>-1</code> = 非境界）</li>
-<li>残りの列: 特徴量（タブ区切り）</li>
+<li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
 <h2 id="品詞付き特徴量の抽出"><a class="header" href="#品詞付き特徴量の抽出">品詞付き特徴量の抽出</a></h2>
 <p>品詞推定モデル用には、<code>--pos</code> フラグを使用して、二値境界ラベルの代わりに品詞ラベル付きの特徴量を抽出します。</p>
@@ -229,13 +229,14 @@
 </ul>
 <p>特徴量テンプレート（文字 n-gram、文字種 n-gram など）は標準の分割と同じで、ラベル体系のみが異なります。</p>
 <h3 id="品詞特徴量ファイルの形式"><a class="header" href="#品詞特徴量ファイルの形式">品詞特徴量ファイルの形式</a></h3>
-<pre><code class="language-text">B-NOUN	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
-O	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
-B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
+<p>品詞付きコーパス行 <code>これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT</code> に対する最初の3行は次のとおりです:</p>
+<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </code></pre>
 <ul>
-<li>最初の列: セグメントラベル（例: <code>B-NOUN</code>、<code>O</code>）</li>
-<li>残りの列: 特徴量（タブ区切り）</li>
+<li>最初の列: セグメントラベル（例: <code>B-PRON</code>、<code>O</code>）</li>
+<li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
 <h2 id="ファイルサイズの目安"><a class="header" href="#ファイルサイズの目安">ファイルサイズの目安</a></h2>
 <p>特徴量ファイルは、各文字位置が38-42個の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。</p>

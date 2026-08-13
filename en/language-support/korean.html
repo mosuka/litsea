@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -219,7 +219,7 @@
 </div>
 <p>These particles frequently appear at word boundaries and are given a distinct type code to improve segmentation accuracy.</p>
 <h3 id="hangul-syllable-structure-받침-detection"><a class="header" href="#hangul-syllable-structure-받침-detection">Hangul Syllable Structure (받침 Detection)</a></h3>
-<p>Korean uses a <strong><code>match</code> arm with a range guard</strong> for the SN and SF types. This exploits the systematic Unicode Hangul encoding:</p>
+<p>Korean uses a <strong>range arm with a codepoint test in its body</strong> for the SN and SF types. This exploits the systematic Unicode Hangul encoding:</p>
 <ul>
 <li>Hangul Syllables: U+AC00–U+D7AF (11,172 syllables)</li>
 <li>Each syllable = <code>(initial * 21 + medial) * 28 + final + 0xAC00</code></li>

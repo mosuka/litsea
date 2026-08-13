@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,14 +195,15 @@
 </span><span class="boring">fn main() {
 </span>pub fn new(language: Language) -&gt; Self
 <span class="boring">}</span></code></pre>
-<p>指定した言語に対応する新しい Extractor を作成します。内部的に、学習済みモデルを持たない <code>Segmenter</code> を作成します。</p>
+<p>指定した言語に対応する新しい Extractor を作成します。内部的に、学習済みモデルを持たない <code>Segmenter</code> を作成します。<code>Extractor</code> は <code>Default</code> も実装しており、<code>Extractor::new(Language::Japanese)</code> と等価です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::extractor::Extractor;
 use litsea::language::Language;
 
-let mut extractor = Extractor::new(Language::Japanese);
+let extractor = Extractor::new(Language::Japanese);
 <span class="boring">}</span></code></pre>
+<p>抽出メソッドは <code>&amp;self</code> を取るため、束縛を可変（<code>mut</code>）にする必要はありません。</p>
 <h2 id="メソッド"><a class="header" href="#メソッド">メソッド</a></h2>
 <h3 id="extract"><a class="header" href="#extract"><code>extract</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

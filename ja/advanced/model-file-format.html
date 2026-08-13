@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -248,7 +248,7 @@ packed <code>u64</code> 整数キーへコンパイルされます
 <tr><td>japanese_pos.model</td><td>約 11 MB</td><td>UD Japanese-GSD（品詞）</td></tr>
 <tr><td>chinese_pos.model</td><td>約 19 MB</td><td>UD Chinese-GSD（品詞）</td></tr>
 <tr><td>korean_pos.model</td><td>約 8.9 MB</td><td>UD Korean-GSD（品詞）</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 17 KB</td><td>JEITA コーパス</td></tr>
+<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 16 KB</td><td>JEITA コーパス</td></tr>
 </tbody>
 </table>
 </div>
@@ -256,7 +256,7 @@ packed <code>u64</code> 整数キーへコンパイルされます
 <h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
 <ul>
 <li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>
-<li>形式は<strong>決定的</strong>です（特徴量は BTreeMap により整列されます）</li>
+<li>形式は、通常の学習ワークフローにおいては<strong>決定的</strong>です: <code>save_model</code> は学習器の特徴量順で特徴量を書き出します。特徴量ファイルから初期化された学習器やディスクから読み込まれた学習器では、この順序は（<code>BTreeMap</code> により）ソートされています。一方、<code>add_instance()</code> のみで構築された学習器は挿入順で書き出します</li>
 <li>モデルは<strong>前方互換性</strong>があります。入力に含まれるがモデルにない新しい特徴量は、予測時に単純に無視されます</li>
 </ul>
 

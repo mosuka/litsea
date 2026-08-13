@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,7 +196,8 @@
 <p><code>litsea/src/language.rs</code> で、<code>Language</code> 列挙型に新しいバリアントを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub enum Language {
+</span>#[non_exhaustive]
+pub enum Language {
     #[default]
     Japanese,
     Chinese,
@@ -204,6 +205,7 @@
     Thai,       // ← new language
 }
 <span class="boring">}</span></code></pre>
+<p>この列挙型に <code>#[non_exhaustive]</code> が付いているのは、まさに新しい言語の追加が想定されているためです。したがってバリアントの追加は、下流クレートにとって破壊的変更にはなりません。</p>
 <h2 id="手順2-display-と-fromstr-を実装"><a class="header" href="#手順2-display-と-fromstr-を実装">手順2: Display と FromStr を実装</a></h2>
 <p>新しい言語のmatchアームを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -214,6 +216,7 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
+<p>あわせて <code>language.rs</code> の <code>ParseLanguageError</code> のメッセージも更新してください。このメッセージはサポート言語を列挙しており（<code>Supported: japanese (ja), chinese (zh), korean (ko)</code>）、ユニットテストで固定されているため、メッセージとテストの両方に新しい言語を含める必要があります。</p>
 <h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
 <p>新しい言語の文字を<strong>種別 ID</strong>（type id）に分類する関数を定義します。ID は言語の順序付き <code>type_codes()</code> テーブル（手順 4）へのインデックスです: 共通クラスは固定インデックス（“O” = 0、“P” = 1、“A” = 2、“N” = 3）を占め、言語固有クラスは 4 から続きます。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -236,7 +239,7 @@ Language::Thai =&gt; write!(f, "thai"),
 <li>語境界パターンと相関する<strong>言語学的に異なるカテゴリ</strong>を特定する</li>
 <li><strong>順序は重要</strong> – 最初にマッチしたものが優先されるため、より具体的なパターンを汎用的なパターンの前に配置する</li>
 <li>中国語の「F」のように、<strong>高頻度の機能語</strong>を別のタイプとして検討する</li>
-<li>単純な範囲比較では対応できないロジックには<strong>matchガード</strong>を使用する（韓国語が받침の有無で音節を分割する際に使用しているように）</li>
+<li>単純な範囲だけでは足りない場合は<strong>アーム本体内の追加ロジック</strong>を使用する（韓国語が받침の有無で音節を分割するためにコードポイント判定を使用しているように）</li>
 <li>共通の「P」/「A」/「N」クラスには、共有ヘルパー <code>punct_latin_digit()</code> を再利用する</li>
 <li><strong>コード集合は prefix-free に保つ</strong> – どのコードも他のコードのプレフィックスであってはならない（韓国語の <code>SN</code>/<code>SF</code> が成立するのは <code>S</code> 単独がコードでないため）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証する（言語ごとにユニットテストで固定される）</li>
 </ul>
@@ -305,7 +308,7 @@ fn test_thai_char_types() {
 #[test]
 fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type("ก"), "T");
+    assert_eq!(segmenter.char_type('ก'), "T");
 }
 <span class="boring">}</span></code></pre>
 <p>全テストを実行して検証します。</p>

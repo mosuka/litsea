@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -275,18 +275,18 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li><strong>B</strong> – 「Boundary」タグ（単語の開始）</li>
 <li><strong>O</strong> – 「Other」タグ（継続）</li>
 </ul>
-<p>境界（AdaBoost）パイプラインでは、特徴量は位置 4 から len-3 まで抽出されます。POS パイプラインでは、<code>segment_with_pos</code>
+<p>境界（AdaBoost）パイプラインでは、特徴量は位置 4 から len-4 まで（両端を含む）抽出されます。POS パイプラインでは、<code>segment_with_pos</code>
 が最初の単語の品詞を導出するために位置 3（最初の実際の文字）でも予測を行うため、位置 3 でも特徴量が出力されます（#100）。
-位置は 4（または 3）から len-3 まで実行され、i-3 から i+2 の完全なウィンドウが利用可能です。</p>
+位置は 4（または 3）から len-4 まで（両端を含む）実行され、i-3 から i+2 の完全なウィンドウが利用可能です。</p>
 <h2 id="学習データの形式"><a class="header" href="#学習データの形式">学習データの形式</a></h2>
-<p><code>extract</code> コマンドは以下の形式で特徴量をファイルに書き出します:</p>
-<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+<p><code>extract</code> コマンドは以下の形式で特徴量をファイルに書き出します（コーパス行 <code>これ は テスト です 。</code> に対する実際の出力です）:</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	...
 </code></pre>
 <p>各行には以下が含まれます:</p>
 <ol>
 <li>ラベル（境界の場合 <code>1</code>、非境界の場合 <code>-1</code>）</li>
-<li>タブ区切りの特徴量文字列</li>
+<li>タブ区切りの特徴量文字列。アルファベット順にソートされた順序（テンプレートの出力順ではない）で書き出されるため、各行は <code>BC1:</code> 特徴量から始まる</li>
 </ol>
 
                     </main>

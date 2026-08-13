@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,6 +204,21 @@
 
 let mut learner = AdaBoost::new(0.01, 100);
 <span class="boring">}</span></code></pre>
+<h3 id="adaboostdefault"><a class="header" href="#adaboostdefault"><code>AdaBoost::default</code></a></h3>
+<p><code>AdaBoost</code> also implements <code>Default</code>, which is equivalent to <code>AdaBoost::new(0.01, 100)</code> – the default hyperparameters used across the library and CLI.</p>
+<h2 id="accessors"><a class="header" href="#accessors">Accessors</a></h2>
+<h3 id="threshold"><a class="header" href="#threshold"><code>threshold</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn threshold(&amp;self) -&gt; f64
+<span class="boring">}</span></code></pre>
+<p>Returns the early-stopping threshold this learner was created with.</p>
+<h3 id="num_iterations"><a class="header" href="#num_iterations"><code>num_iterations</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn num_iterations(&amp;self) -&gt; usize
+<span class="boring">}</span></code></pre>
+<p>Returns the maximum number of boosting iterations.</p>
 <h2 id="model-loading"><a class="header" href="#model-loading">Model Loading</a></h2>
 <h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

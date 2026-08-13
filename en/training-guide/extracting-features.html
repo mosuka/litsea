@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -202,16 +202,16 @@
 <ol>
 <li>The <code>Extractor</code> reads each line from the corpus</li>
 <li>For each sentence, it creates a <code>Segmenter</code> context with character arrays, type arrays, and tag arrays</li>
-<li>For each character position (except the first), it extracts features and writes them with the correct label</li>
+<li>For each character position (except the first), it extracts features and writes them with the correct label. The <code>--pos</code> pipeline also emits the first position, so that the first word’s POS tag is part of the training data</li>
 </ol>
 <h2 id="feature-file-format"><a class="header" href="#feature-file-format">Feature File Format</a></h2>
-<p>Each line represents one character position:</p>
-<pre><code class="language-text">1	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
--1	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
+<p>Each line represents one character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </code></pre>
 <ul>
 <li>First column: label (<code>1</code> = boundary, <code>-1</code> = non-boundary)</li>
-<li>Remaining columns: features (tab-separated)</li>
+<li>Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the <code>BC1:</code> feature)</li>
 </ul>
 <h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
 <p>For POS tagging models, use the <code>--pos</code> flag to extract features with POS labels instead of binary boundary labels.</p>
@@ -229,13 +229,14 @@
 </ul>
 <p>The feature template (character n-grams, type n-grams, etc.) is the same as for standard segmentation – only the label scheme differs.</p>
 <h3 id="pos-feature-file-format"><a class="header" href="#pos-feature-file-format">POS Feature File Format</a></h3>
-<pre><code class="language-text">B-NOUN	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
-O	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
-B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
+<p>For the POS corpus line <code>これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT</code>, the first three lines are:</p>
+<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </code></pre>
 <ul>
-<li>First column: segment label (e.g., <code>B-NOUN</code>, <code>O</code>)</li>
-<li>Remaining columns: features (tab-separated)</li>
+<li>First column: segment label (e.g., <code>B-PRON</code>, <code>O</code>)</li>
+<li>Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the <code>BC1:</code> feature)</li>
 </ul>
 <h2 id="file-size-expectations"><a class="header" href="#file-size-expectations">File Size Expectations</a></h2>
 <p>The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings. For a 1 MB corpus, expect a features file of roughly 50-100 MB.</p>

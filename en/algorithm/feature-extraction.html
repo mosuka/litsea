@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -277,16 +277,16 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li><strong>B</strong> – “Boundary” tag (word start)</li>
 <li><strong>O</strong> – “Other” tag (continuation)</li>
 </ul>
-<p>Features are extracted for positions 4 through len-3 for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because <code>segment_with_pos</code> predicts there to derive the first word’s POS (#100). Positions run 4 (or 3) through len-3, where the full window of i-3 to i+2 is available.</p>
+<p>Features are extracted for positions 4 through len-4 (inclusive) for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because <code>segment_with_pos</code> predicts there to derive the first word’s POS (#100). Positions run 4 (or 3) through len-4 (inclusive), where the full window of i-3 to i+2 is available.</p>
 <h2 id="training-data-format"><a class="header" href="#training-data-format">Training Data Format</a></h2>
-<p>The <code>extract</code> command writes features to a file in this format:</p>
-<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+<p>The <code>extract</code> command writes features to a file in this format (real output for the corpus line <code>これ は テスト です 。</code>):</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	...
 </code></pre>
 <p>Each line contains:</p>
 <ol>
 <li>A label (<code>1</code> for boundary, <code>-1</code> for non-boundary)</li>
-<li>Tab-separated feature strings</li>
+<li>Tab-separated feature strings, written in alphabetically sorted order (not template emission order), so each line starts with the <code>BC1:</code> feature</li>
 </ol>
 
                     </main>

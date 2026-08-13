@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,7 +184,7 @@
 <p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種クラス</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
 <h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
 <p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> は、Unicode 文字範囲に対する <code>match</code> 式で文字を直接分類します（正規表現・アロケーションなし）。matchアームは上から順に評価され、<strong>最初にマッチしたアーム</strong>が種別コードを決定します。どのアームにもマッチしない場合、その文字は <code>"O"</code>（Other）に分類されます。</p>
-<p>言語ごとに分類関数（<code>japanese_char_type</code>・<code>chinese_char_type</code>・<code>korean_char_type</code>）があり、全言語で共通のクラス <code>"P"</code>（句読点）・<code>"A"</code>（ラテン文字）・<code>"N"</code>（数字）は、言語固有クラスの後に評価される共有ヘルパー <code>punct_latin_digit()</code> にまとめられています。単純な範囲を超えるロジックはmatchガードで表現します（例: 韓国語のハングル音節構造）。</p>
+<p>言語ごとに数値の type id を返す分類関数（<code>japanese_char_type_id</code>・<code>chinese_char_type_id</code>・<code>korean_char_type_id</code>）があり、<code>char_type</code> は返された id に対するテーブル参照であるため、文字列コードと数値 id は構造上ずれることがありません。全言語で共通のクラス <code>"P"</code>（句読点）・<code>"A"</code>（ラテン文字）・<code>"N"</code>（数字）は、言語固有クラスの後に評価される共有ヘルパー <code>punct_latin_digit()</code> にまとめられています。単純な範囲を超えるロジックはアーム本体内の追加コードで表現します（例: 韓国語のハングル音節構造に対するコードポイント判定）。</p>
 <h2 id="日本語の文字種"><a class="header" href="#日本語の文字種">日本語の文字種</a></h2>
 <div class="table-wrapper">
 <table>
@@ -254,7 +254,7 @@
 </table>
 </div>
 <h3 id="韓国語ハングル音節の検出"><a class="header" href="#韓国語ハングル音節の検出">韓国語ハングル音節の検出</a></h3>
-<p>韓国語では SN と SF の種別に<strong>matchガード</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
+<p>韓国語では SN と SF の種別に<strong>コードポイント判定付きの範囲アーム</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
 <ul>
 <li>ハングル音節は U+AC00–U+D7AF を占有</li>
 <li>各音節は <code>(初声 * 21 + 中声) * 28 + 終声 + 0xAC00</code> としてエンコード</li>
@@ -272,7 +272,7 @@
 <tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td></tr>
 <tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
 <tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td></tr>
-<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + ガード</td></tr>
+<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + コードポイント判定</td></tr>
 <tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td></tr>
 </tbody>
 </table>

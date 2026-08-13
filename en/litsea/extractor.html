@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -195,14 +195,15 @@
 </span><span class="boring">fn main() {
 </span>pub fn new(language: Language) -&gt; Self
 <span class="boring">}</span></code></pre>
-<p>Creates a new extractor for the specified language. Internally creates a <code>Segmenter</code> without a pre-trained model.</p>
+<p>Creates a new extractor for the specified language. Internally creates a <code>Segmenter</code> without a pre-trained model. <code>Extractor</code> also implements <code>Default</code>, which is equivalent to <code>Extractor::new(Language::Japanese)</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::extractor::Extractor;
 use litsea::language::Language;
 
-let mut extractor = Extractor::new(Language::Japanese);
+let extractor = Extractor::new(Language::Japanese);
 <span class="boring">}</span></code></pre>
+<p>The extraction methods take <code>&amp;self</code>, so the binding does not need to be mutable.</p>
 <h2 id="methods"><a class="header" href="#methods">Methods</a></h2>
 <h3 id="extract"><a class="header" href="#extract"><code>extract</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

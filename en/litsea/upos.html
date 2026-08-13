@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -244,7 +244,7 @@ pub enum Upos {
 <h3 id="trait-implementations"><a class="header" href="#trait-implementations">Trait Implementations</a></h3>
 <ul>
 <li><code>Display</code>: Converts to a string such as <code>"NOUN"</code>, <code>"VERB"</code>, etc.</li>
-<li><code>FromStr</code>: Parses a string into <code>Upos</code>. Returns an error for invalid strings.</li>
+<li><code>FromStr</code>: Parses a string into <code>Upos</code>. Returns a <code>ParseUposError</code> for invalid strings.</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -253,6 +253,8 @@ pub enum Upos {
 let pos: Upos = "NOUN".parse().unwrap();
 assert_eq!(pos.to_string(), "NOUN");
 <span class="boring">}</span></code></pre>
+<h3 id="parseuposerror"><a class="header" href="#parseuposerror">ParseUposError</a></h3>
+<p><code>ParseUposError</code> (re-exported at the crate root as <code>litsea::ParseUposError</code>) is returned when a string is not a valid UPOS tag. Its <code>input()</code> accessor returns the string that failed to parse, and the message reads <code>Unknown UPOS tag: '&lt;input&gt;'</code>.</p>
 <h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
 <h3 id="definition-1"><a class="header" href="#definition-1">Definition</a></h3>
 <p>The <code>SegmentLabel</code> type combines word boundary detection with POS tagging. Each character position is assigned one of 18 labels:</p>
@@ -283,7 +285,7 @@ pub enum SegmentLabel {
 </span><span class="boring">fn main() {
 </span>pub fn all_labels() -&gt; Vec&lt;SegmentLabel&gt;
 <span class="boring">}</span></code></pre>
-<p>Returns a vector of all 18 segment label strings.</p>
+<p>Returns a vector of all 18 <code>SegmentLabel</code> values (not strings): the 17 <code>B(Upos)</code> labels followed by <code>O</code>.</p>
 <h4 id="is_boundary"><a class="header" href="#is_boundary"><code>is_boundary</code></a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -299,7 +301,7 @@ pub enum SegmentLabel {
 <h3 id="trait-implementations-1"><a class="header" href="#trait-implementations-1">Trait Implementations</a></h3>
 <ul>
 <li><code>Display</code>: Converts to a string such as <code>"B-NOUN"</code>, <code>"O"</code>, etc.</li>
-<li><code>FromStr</code>: Parses a string into <code>SegmentLabel</code>.</li>
+<li><code>FromStr</code>: Parses a string into <code>SegmentLabel</code>. Returns a <code>ParseSegmentLabelError</code> for invalid strings.</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -313,6 +315,12 @@ let label_o: SegmentLabel = "O".parse().unwrap();
 assert!(!label_o.is_boundary());
 assert_eq!(label_o.pos(), None);
 <span class="boring">}</span></code></pre>
+<h3 id="parsesegmentlabelerror"><a class="header" href="#parsesegmentlabelerror">ParseSegmentLabelError</a></h3>
+<p><code>ParseSegmentLabelError</code> (re-exported at the crate root as <code>litsea::ParseSegmentLabelError</code>) is returned when a string is not a valid segment label. It has two variants:</p>
+<ul>
+<li><code>InvalidFormat</code> – the string is neither <code>O</code> nor of the form <code>B-&lt;UPOS&gt;</code> (message: <code>Invalid segment label: '&lt;input&gt;'. Expected 'O' or 'B-&lt;UPOS&gt;'</code>)</li>
+<li><code>InvalidPos</code> – the <code>B-</code> prefix was present but the POS part failed to parse (wraps the underlying <code>ParseUposError</code>)</li>
+</ul>
 
                     </main>
 

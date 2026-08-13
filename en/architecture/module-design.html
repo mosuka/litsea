@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -221,7 +221,7 @@
 <ul>
 <li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>)</li>
 <li>Implements <code>Display</code> (outputs lowercase name)</li>
-<li><code>char_type(c: char) -&gt; &amp;'static str</code> – Classifies a character with a direct <code>match</code> on character ranges (allocation-free; no regex). Language-specific functions (<code>japanese_char_type</code>, etc.) share a <code>punct_latin_digit()</code> helper for the common <code>"P"</code>/<code>"A"</code>/<code>"N"</code> classes.</li>
+<li><code>char_type(c: char) -&gt; &amp;'static str</code> – Classifies a character as a table lookup over the numeric type id returned by the private <code>char_type_id()</code>, which dispatches to a per-language function (<code>japanese_char_type_id</code>, etc.) implemented as a direct <code>match</code> on character ranges (allocation-free; no regex). The language-specific functions share a <code>punct_latin_digit()</code> helper for the common <code>"P"</code>/<code>"A"</code>/<code>"N"</code> classes.</li>
 </ul>
 </li>
 </ul>
@@ -230,7 +230,8 @@
 <ul>
 <li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, an <code>AdaBoost</code> learner, and an optional <code>AveragedPerceptron</code> POS learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, <code>pos_learner_mut()</code>)
 <ul>
-<li><code>new(language, learner)</code> – Create a segmenter with an optional pre-trained model</li>
+<li><code>new(language)</code> – Create a segmenter with a default (empty) AdaBoost learner</li>
+<li><code>with_learner(language, learner)</code> – Create a segmenter with a pre-configured AdaBoost learner (e.g. one that has loaded a pre-trained model)</li>
 <li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
 <li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> without a POS learner)</li>
@@ -305,7 +306,7 @@
 </ul>
 <h3 id="errorrs--error-handling"><a class="header" href="#errorrs--error-handling"><code>error.rs</code> – Error Handling</a></h3>
 <ul>
-<li><strong><code>LitseaError</code></strong> – Error enum (<code>Io</code>, <code>InvalidData</code>, <code>InvalidInput</code>, <code>Unsupported</code>, and <code>Download</code> with the <code>remote_model</code> feature)</li>
+<li><strong><code>LitseaError</code></strong> – Error enum (<code>Io</code>, <code>InvalidData</code>, <code>InvalidInput</code>, <code>Unsupported</code>, <code>PosLearnerNotSet</code>, and <code>Download</code> with the <code>remote_model</code> feature). Marked <code>#[non_exhaustive]</code>, so downstream <code>match</code> expressions need a wildcard arm</li>
 <li><strong><code>Result&lt;T&gt;</code></strong> – Alias used by every fallible API</li>
 </ul>
 <h3 id="metricsrs--evaluation-metrics"><a class="header" href="#metricsrs--evaluation-metrics"><code>metrics.rs</code> – Evaluation Metrics</a></h3>
@@ -339,12 +340,12 @@ pub mod upos;
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
 pub use extractor::Extractor;
-pub use language::Language;
+pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
 pub use trainer::{PosTrainer, Trainer};
-pub use upos::{SegmentLabel, Upos};
+pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 pub fn version() -&gt; &amp;'static str { ... }
 <span class="boring">}</span></code></pre>
@@ -353,7 +354,7 @@ pub fn version() -&gt; &amp;'static str { ... }
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../architecture/workspace-structure.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../architecture/overview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -367,7 +368,7 @@ pub fn version() -&gt; &amp;'static str { ... }
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../architecture/workspace-structure.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../architecture/overview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

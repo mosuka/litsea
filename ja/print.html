@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-007a5c4f.js"></script>
+        <script src="toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -213,7 +213,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="名前の由来"><a class="header" href="#名前の由来">名前の由来</a></h2>
 <p>クスノキ科には <em>Lindera</em>（クロモジ）と同じ科に属する <em>Litsea cubeba</em>（アオモジ）という小さな植物があります。これが <strong>Litsea</strong> という名前の由来です。</p>
 <h2 id="現在のバージョン"><a class="header" href="#現在のバージョン">現在のバージョン</a></h2>
-<p>Litsea v0.6.0（未リリース） – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
+<p>Litsea v0.8.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
 <h2 id="リンク"><a class="header" href="#リンク">リンク</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub リポジトリ</a></li>
@@ -253,13 +253,13 @@ cargo build --release
 <h2 id="ライブラリとしての利用"><a class="header" href="#ライブラリとしての利用">ライブラリとしての利用</a></h2>
 <p>プロジェクトの <code>Cargo.toml</code> に Litsea を追加します:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.6.0"
+litsea = "0.8.0"
 </code></pre>
 <p>http(s) 経由のリモートモデル読み込みはオプトイン（opt-in）です。必要な場合は <code>remote_model</code> フィーチャーを有効にしてください:</p>
-<pre><code class="language-toml">litsea = { version = "0.6.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.8.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
-<p><strong>注意:</strong> ローカルファイルからのモデル読み込み（<code>load_model_from_path</code>）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（<code>tokio</code> など）が必要になるのは、非同期の <code>load_model</code> メソッドを使って HTTP/HTTPS 経由でモデルを読み込む場合のみです（<code>remote_model</code> フィーチャーで有効化され、このフィーチャーはデフォルトで有効です）。</p>
+<p><strong>注意:</strong> ローカルファイルからのモデル読み込み（<code>load_model_from_path</code>）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（<code>tokio</code> など）が必要になるのは、非同期の <code>load_model</code> メソッドを使って HTTP/HTTPS 経由でモデルを読み込む場合のみです（オプトインの <code>remote_model</code> フィーチャーを有効にした場合にのみ利用できます）。</p>
 </blockquote>
 <h2 id="サポートプラットフォーム"><a class="header" href="#サポートプラットフォーム">サポートプラットフォーム</a></h2>
 <p>Litsea は以下のプラットフォームでテストされています:</p>
@@ -393,120 +393,6 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="ワークスペース構成"><a class="header" href="#ワークスペース構成">ワークスペース構成</a></h1>
-<p>Litsea は 2 つのクレートとサポートディレクトリで構成される <strong>Cargo ワークスペース</strong>として組織されています。</p>
-<h2 id="ディレクトリ構成"><a class="header" href="#ディレクトリ構成">ディレクトリ構成</a></h2>
-<pre><code class="language-text">litsea/
-├── Cargo.toml              # Workspace manifest (incl. release profile)
-├── Cargo.lock              # Dependency lock file
-├── Makefile                # Build convenience targets
-├── rustfmt.toml            # Rust formatting configuration
-├── LICENSE                 # MIT
-├── README.md               # Project overview
-├── litsea/                 # Core library crate
-│   ├── Cargo.toml
-│   ├── src/
-│   │   ├── lib.rs          # Module declarations, re-exports, and version
-│   │   ├── adaboost.rs     # AdaBoost algorithm (word segmentation)
-│   │   ├── perceptron.rs   # Averaged Perceptron (joint segmentation + POS)
-│   │   ├── segmenter.rs    # Segmentation pipeline and feature templates
-│   │   ├── extractor.rs    # Feature extraction from corpus
-│   │   ├── trainer.rs      # Training orchestration (Trainer / PosTrainer)
-│   │   ├── language.rs     # Language enum and character classification
-│   │   ├── upos.rs         # UPOS tags and SegmentLabel
-│   │   ├── model_io.rs     # Model URI resolution and download limits
-│   │   ├── metrics.rs      # BinaryMetrics / MulticlassMetrics
-│   │   └── error.rs        # LitseaError / Result
-│   ├── benches/
-│   │   └── bench.rs        # Criterion benchmarks
-│   └── tests/
-│       └── golden.rs       # Golden snapshots for every bundled model
-├── litsea-cli/             # CLI binary crate
-│   ├── Cargo.toml
-│   ├── src/
-│   │   └── main.rs         # CLI entry point
-│   └── tests/
-│       └── cli.rs          # CLI integration tests
-├── models/                 # Pre-trained models
-│   ├── japanese.model
-│   ├── chinese.model
-│   ├── korean.model
-│   ├── japanese_pos.model
-│   ├── chinese_pos.model
-│   ├── korean_pos.model
-│   ├── RWCP.model
-│   └── JEITA_Genpaku_ChaSen_IPAdic.model
-├── resources/              # Sample data and test fixtures
-│   └── bocchan.txt         # Sample corpus
-├── scripts/                # Corpus preparation utilities
-│   ├── download_udtreebank.sh   # Download UD Treebanks (prints CoNLL-U file path)
-│   ├── corpus_udtreebank.sh     # Convert CoNLL-U to Litsea corpus format
-│   ├── download_wikidump.sh     # Download Wikipedia dumps
-│   ├── corpus_wikidump.sh       # Convert Wikipedia dumps to corpus format
-│   ├── split_sentences.sh       # Split text into sentences
-│   └── wikitexts.sh             # Download and prepare Wikipedia text data
-├── docs/                   # mdbook documentation (this book)
-└── .github/
-    └── workflows/          # CI/CD pipelines
-        ├── regression.yml  # Test on push/PR
-        ├── release.yml     # Release builds and publishing
-        └── periodic.yml    # Weekly stability tests
-</code></pre>
-<h2 id="クレートの詳細"><a class="header" href="#クレートの詳細">クレートの詳細</a></h2>
-<h3 id="litseaコアライブラリ"><a class="header" href="#litseaコアライブラリ"><code>litsea</code>（コアライブラリ）</a></h3>
-<p>コアライブラリは、分割、学習、モデル I/O のすべての機能を提供します。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dependency</th><th>Version</th><th>用途</th></tr>
-</thead>
-<tbody>
-<tr><td><code>rustc-hash</code></td><td>2.1</td><td>内部の特徴量マップ用の高速ハッシュ</td></tr>
-<tr><td><code>thiserror</code></td><td>2.0</td><td>エラー型の導出</td></tr>
-<tr><td><code>reqwest</code></td><td>0.13</td><td>HTTP/HTTPS モデル読み込み（rustls、任意の <code>remote_model</code> フィーチャー）</td></tr>
-<tr><td><code>criterion</code></td><td>0.8</td><td>ベンチマーク（開発依存）</td></tr>
-<tr><td><code>tempfile</code></td><td>3.27</td><td>テスト用一時ファイル（開発依存）</td></tr>
-<tr><td><code>tokio</code></td><td>1.52+</td><td>テスト用非同期ランタイム（開発依存）</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="litsea-clicli-バイナリ"><a class="header" href="#litsea-clicli-バイナリ"><code>litsea-cli</code>（CLI バイナリ）</a></h3>
-<p>CLI は Litsea の機能へのコマンドラインインターフェースを提供します。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Dependency</th><th>Version</th><th>用途</th></tr>
-</thead>
-<tbody>
-<tr><td><code>clap</code></td><td>4.6</td><td>コマンドライン引数の解析</td></tr>
-<tr><td><code>ctrlc</code></td><td>3.5</td><td>学習中の Ctrl+C のグレースフルハンドリング</td></tr>
-<tr><td><code>tokio</code></td><td>1.52+</td><td>非同期ランタイム</td></tr>
-<tr><td><code>litsea</code></td><td>0.6</td><td>コアライブラリ（ワークスペースメンバー、<code>remote_model</code> 有効化）</td></tr>
-<tr><td><code>tempfile</code></td><td>3.27</td><td>統合テスト用一時ファイル（開発依存）</td></tr>
-</tbody>
-</table>
-</div>
-<h2 id="ワークスペース設定"><a class="header" href="#ワークスペース設定">ワークスペース設定</a></h2>
-<p>ワークスペースは Cargo resolver バージョン 3（Rust Edition 2024）を使用します。リリースビルドでは
-thin LTO と単一のコード生成ユニット（codegen unit）を有効にし、文字単位の特徴量スコアリングの
-呼び出しチェーンをコード生成ユニットをまたいでインライン化できるようにしています
-（<code>panic = "abort"</code> も検討しましたが、CLI バイナリだけに適用範囲を限定できず、リリースプロファイルの
-テストやベンチマークが複雑になるため見送りました）:</p>
-<pre><code class="language-toml">[workspace]
-resolver = "3"
-members = ["litsea", "litsea-cli"]
-
-[workspace.package]
-version = "0.6.0"
-edition = "2024"
-rust-version = "1.87"
-
-[profile.release]
-lto = "thin"
-codegen-units = 1
-</code></pre>
-<p>共有依存関係はワークスペースレベルの <code>[workspace.dependencies]</code> で定義され、各クレートから <code>{ workspace = true }</code> で参照されます。</p>
-<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="モジュール設計"><a class="header" href="#モジュール設計">モジュール設計</a></h1>
 <p><code>litsea</code> ライブラリクレートは、それぞれ明確な責務を持つモジュールで構成されています。</p>
 <h2 id="モジュール依存関係グラフ"><a class="header" href="#モジュール依存関係グラフ">モジュール依存関係グラフ</a></h2>
@@ -548,7 +434,7 @@ codegen-units = 1
 <ul>
 <li><code>FromStr</code> を実装（<code>"japanese"</code>・<code>"ja"</code>・<code>"chinese"</code>・<code>"zh"</code>・<code>"korean"</code>・<code>"ko"</code> をパース）</li>
 <li><code>Display</code> を実装（小文字名を出力）</li>
-<li><code>char_type(c: char) -&gt; &amp;'static str</code> – 文字範囲に対する <code>match</code> で文字を直接分類（アロケーションなし・正規表現不使用）。言語別関数（<code>japanese_char_type</code> など）が、共通の <code>"P"</code>/<code>"A"</code>/<code>"N"</code> クラス用の <code>punct_latin_digit()</code> ヘルパーを共有します。</li>
+<li><code>char_type(c: char) -&gt; &amp;'static str</code> – 非公開の <code>char_type_id()</code> が返す数値の type id に対するテーブル参照として文字を分類します。<code>char_type_id()</code> は言語別関数（<code>japanese_char_type_id</code> など）にディスパッチし、各関数は文字範囲に対する直接の <code>match</code> として実装されています（アロケーションなし・正規表現不使用）。言語別関数は、共通の <code>"P"</code>/<code>"A"</code>/<code>"N"</code> クラス用の <code>punct_latin_digit()</code> ヘルパーを共有します。</li>
 </ul>
 </li>
 </ul>
@@ -557,7 +443,8 @@ codegen-units = 1
 <ul>
 <li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）
 <ul>
-<li><code>new(language, learner)</code> – 学習済みモデル（任意）付きでセグメンターを作成</li>
+<li><code>new(language)</code> – デフォルト（空）の AdaBoost 学習器付きでセグメンターを作成</li>
+<li><code>with_learner(language, learner)</code> – 設定済みの AdaBoost 学習器（例: 学習済みモデルを読み込んだもの）付きでセグメンターを作成</li>
 <li><code>with_pos_learner(language, pos_learner)</code> – 分割+品詞付与用のセグメンターを作成</li>
 <li><code>segment(sentence)</code> – テキストを単語に分割し <code>Vec&lt;String&gt;</code> を返す</li>
 <li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> を返す（POS 学習器が未設定の場合は <code>PosLearnerNotSet</code>）</li>
@@ -589,7 +476,7 @@ codegen-units = 1
 <li><strong><code>AveragedPerceptron</code></strong>
 <ul>
 <li><code>add_instance(features, label)</code> – 学習インスタンスを追加</li>
-<li><code>train(num_epochs, running)</code> – 重み平均化付きで学習</li>
+<li><code>train(num_epochs, running)</code> – 重み平均化付きで学習（<code>running: &amp;AtomicBool</code>）</li>
 <li><code>predict(&amp;features)</code> – 最良クラスのラベルを予測</li>
 <li><code>load_model(uri)</code>（async）/ <code>load_model_from_path(path)</code> / <code>load_model_from_reader(reader)</code> – モデルの読み込み</li>
 <li><code>save_model(path)</code> – モデルを保存</li>
@@ -632,7 +519,7 @@ codegen-units = 1
 </ul>
 <h3 id="errorrs--エラー処理"><a class="header" href="#errorrs--エラー処理"><code>error.rs</code> – エラー処理</a></h3>
 <ul>
-<li><strong><code>LitseaError</code></strong> – エラー enum（<code>Io</code>・<code>InvalidData</code>・<code>InvalidInput</code>・<code>Unsupported</code>、<code>remote_model</code> フィーチャー時は <code>Download</code> も）</li>
+<li><strong><code>LitseaError</code></strong> – エラー enum（<code>Io</code>・<code>InvalidData</code>・<code>InvalidInput</code>・<code>Unsupported</code>・<code>PosLearnerNotSet</code>、<code>remote_model</code> フィーチャー時は <code>Download</code> も）。<code>#[non_exhaustive]</code> が付与されているため、外部の <code>match</code> 式にはワイルドカードアームが必要です</li>
 <li><strong><code>Result&lt;T&gt;</code></strong> – すべての失敗しうるAPIが使うエイリアス</li>
 </ul>
 <h3 id="metricsrs--評価指標"><a class="header" href="#metricsrs--評価指標"><code>metrics.rs</code> – 評価指標</a></h3>
@@ -666,12 +553,12 @@ pub mod upos;
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
 pub use extractor::Extractor;
-pub use language::Language;
+pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
 pub use trainer::{PosTrainer, Trainer};
-pub use upos::{SegmentLabel, Upos};
+pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 pub fn version() -&gt; &amp;'static str { ... }
 <span class="boring">}</span></code></pre>
@@ -989,25 +876,25 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li><strong>B</strong> – 「Boundary」タグ（単語の開始）</li>
 <li><strong>O</strong> – 「Other」タグ（継続）</li>
 </ul>
-<p>境界（AdaBoost）パイプラインでは、特徴量は位置 4 から len-3 まで抽出されます。POS パイプラインでは、<code>segment_with_pos</code>
+<p>境界（AdaBoost）パイプラインでは、特徴量は位置 4 から len-4 まで（両端を含む）抽出されます。POS パイプラインでは、<code>segment_with_pos</code>
 が最初の単語の品詞を導出するために位置 3（最初の実際の文字）でも予測を行うため、位置 3 でも特徴量が出力されます（#100）。
-位置は 4（または 3）から len-3 まで実行され、i-3 から i+2 の完全なウィンドウが利用可能です。</p>
+位置は 4（または 3）から len-4 まで（両端を含む）実行され、i-3 から i+2 の完全なウィンドウが利用可能です。</p>
 <h2 id="学習データの形式"><a class="header" href="#学習データの形式">学習データの形式</a></h2>
-<p><code>extract</code> コマンドは以下の形式で特徴量をファイルに書き出します:</p>
-<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+<p><code>extract</code> コマンドは以下の形式で特徴量をファイルに書き出します（コーパス行 <code>これ は テスト です 。</code> に対する実際の出力です）:</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	...
 </code></pre>
 <p>各行には以下が含まれます:</p>
 <ol>
 <li>ラベル（境界の場合 <code>1</code>、非境界の場合 <code>-1</code>）</li>
-<li>タブ区切りの特徴量文字列</li>
+<li>タブ区切りの特徴量文字列。アルファベット順にソートされた順序（テンプレートの出力順ではない）で書き出されるため、各行は <code>BC1:</code> 特徴量から始まる</li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="文字種分類"><a class="header" href="#文字種分類">文字種分類</a></h1>
 <p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種クラス</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
 <h2 id="仕組み-1"><a class="header" href="#仕組み-1">仕組み</a></h2>
 <p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> は、Unicode 文字範囲に対する <code>match</code> 式で文字を直接分類します（正規表現・アロケーションなし）。matchアームは上から順に評価され、<strong>最初にマッチしたアーム</strong>が種別コードを決定します。どのアームにもマッチしない場合、その文字は <code>"O"</code>（Other）に分類されます。</p>
-<p>言語ごとに分類関数（<code>japanese_char_type</code>・<code>chinese_char_type</code>・<code>korean_char_type</code>）があり、全言語で共通のクラス <code>"P"</code>（句読点）・<code>"A"</code>（ラテン文字）・<code>"N"</code>（数字）は、言語固有クラスの後に評価される共有ヘルパー <code>punct_latin_digit()</code> にまとめられています。単純な範囲を超えるロジックはmatchガードで表現します（例: 韓国語のハングル音節構造）。</p>
+<p>言語ごとに数値の type id を返す分類関数（<code>japanese_char_type_id</code>・<code>chinese_char_type_id</code>・<code>korean_char_type_id</code>）があり、<code>char_type</code> は返された id に対するテーブル参照であるため、文字列コードと数値 id は構造上ずれることがありません。全言語で共通のクラス <code>"P"</code>（句読点）・<code>"A"</code>（ラテン文字）・<code>"N"</code>（数字）は、言語固有クラスの後に評価される共有ヘルパー <code>punct_latin_digit()</code> にまとめられています。単純な範囲を超えるロジックはアーム本体内の追加コードで表現します（例: 韓国語のハングル音節構造に対するコードポイント判定）。</p>
 <h2 id="日本語の文字種"><a class="header" href="#日本語の文字種">日本語の文字種</a></h2>
 <div class="table-wrapper">
 <table>
@@ -1077,7 +964,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 </table>
 </div>
 <h3 id="韓国語ハングル音節の検出"><a class="header" href="#韓国語ハングル音節の検出">韓国語ハングル音節の検出</a></h3>
-<p>韓国語では SN と SF の種別に<strong>matchガード</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
+<p>韓国語では SN と SF の種別に<strong>コードポイント判定付きの範囲アーム</strong>を使用します。これは Unicode の体系的なハングルエンコーディングを活用しています:</p>
 <ul>
 <li>ハングル音節は U+AC00–U+D7AF を占有</li>
 <li>各音節は <code>(初声 * 21 + 中声) * 28 + 終声 + 0xAC00</code> としてエンコード</li>
@@ -1095,7 +982,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td></tr>
 <tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
 <tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td></tr>
-<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + ガード</td></tr>
+<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + コードポイント判定</td></tr>
 <tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td></tr>
 </tbody>
 </table>
@@ -1120,7 +1007,7 @@ types: ["O", "O", "O",  "I", "I", "I", "K", "K", "K", "I", "I", "P"]
 types: [..., "P",  "O",  "O",  "O" ]
 </code></pre>
 <h3 id="ステップ-4-反復と予測"><a class="header" href="#ステップ-4-反復と予測">ステップ 4: 反復と予測</a></h3>
-<p>位置 <code>i</code> を 4 から <code>len(chars) - 3</code> まで繰り返します:</p>
+<p>位置 <code>i</code> を 4 から <code>len(chars) - 4</code> まで（両端を含む）繰り返します:</p>
 <pre><code class="language-text">i=4 (れ): Extract features → predict → label=-1 (O) → word="これ"
 i=5 (は): Extract features → predict → label=+1 (B) → push "これ", word="は"
 i=6 (テ): Extract features → predict → label=+1 (B) → push "は", word="テ"
@@ -1279,6 +1166,7 @@ POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）�
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -1288,6 +1176,7 @@ pub enum Language {
 <span class="boring">}</span></code></pre>
 <ul>
 <li><strong>デフォルト</strong>は <code>Japanese</code></li>
+<li><code>#[non_exhaustive]</code> 付き – 新しい言語を破壊的変更なしに追加できるため、外部の <code>match</code> 式にはワイルドカードアームが必要</li>
 <li><code>FromStr</code> を実装 – 完全な言語名またはISO 639-1コードからパース可能（大文字小文字を区別しない）</li>
 <li><code>Display</code> を実装 – 小文字の完全な言語名を出力</li>
 </ul>
@@ -1312,7 +1201,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <tr><td>文字タイプ数</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
 <tr><td>WC特徴量</td><td>あり（4個追加）</td><td>あり（4個追加）</td><td>なし</td></tr>
 <tr><td>総特徴量数</td><td>42</td><td>42</td><td>38</td></tr>
-<tr><td>マッチング方式</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（範囲ガード）</td></tr>
+<tr><td>マッチング方式</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）+ コードポイント判定</td></tr>
 </tbody>
 </table>
 </div>
@@ -1363,7 +1252,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <ul>
 <li><strong>学習コーパス</strong>: JEITA杉田玄白プロジェクトのコーパス</li>
 <li><strong>トークナイザ</strong>: ChaSen（IPAdic辞書使用）</li>
-<li><strong>サイズ</strong>: 約17 KB</li>
+<li><strong>サイズ</strong>: 約16 KB</li>
 </ul>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
@@ -1462,7 +1351,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 </div>
 <p>これらの助詞は語境界に頻繁に出現するため、分割精度を向上させるために独自のタイプコードが割り当てられています。</p>
 <h3 id="ハングル音節構造받침検出"><a class="header" href="#ハングル音節構造받침検出">ハングル音節構造（받침検出）</a></h3>
-<p>韓国語では、SNとSFタイプに<strong>範囲ガード付きの <code>match</code> アーム</strong>を使用します。これはUnicodeハングルエンコーディングの体系的な構造を活用しています。</p>
+<p>韓国語では、SNとSFタイプに<strong>本体でコードポイント判定を行う範囲アーム</strong>を使用します。これはUnicodeハングルエンコーディングの体系的な構造を活用しています。</p>
 <ul>
 <li>ハングル音節: U+AC00–U+D7AF（11,172音節）</li>
 <li>各音節 = <code>(初声 * 21 + 中声) * 28 + 終声 + 0xAC00</code></li>
@@ -1500,7 +1389,8 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <p><code>litsea/src/language.rs</code> で、<code>Language</code> 列挙型に新しいバリアントを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub enum Language {
+</span>#[non_exhaustive]
+pub enum Language {
     #[default]
     Japanese,
     Chinese,
@@ -1508,6 +1398,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
     Thai,       // ← new language
 }
 <span class="boring">}</span></code></pre>
+<p>この列挙型に <code>#[non_exhaustive]</code> が付いているのは、まさに新しい言語の追加が想定されているためです。したがってバリアントの追加は、下流クレートにとって破壊的変更にはなりません。</p>
 <h2 id="手順2-display-と-fromstr-を実装"><a class="header" href="#手順2-display-と-fromstr-を実装">手順2: Display と FromStr を実装</a></h2>
 <p>新しい言語のmatchアームを追加します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1518,6 +1409,7 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
+<p>あわせて <code>language.rs</code> の <code>ParseLanguageError</code> のメッセージも更新してください。このメッセージはサポート言語を列挙しており（<code>Supported: japanese (ja), chinese (zh), korean (ko)</code>）、ユニットテストで固定されているため、メッセージとテストの両方に新しい言語を含める必要があります。</p>
 <h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
 <p>新しい言語の文字を<strong>種別 ID</strong>（type id）に分類する関数を定義します。ID は言語の順序付き <code>type_codes()</code> テーブル（手順 4）へのインデックスです: 共通クラスは固定インデックス（“O” = 0、“P” = 1、“A” = 2、“N” = 3）を占め、言語固有クラスは 4 から続きます。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1540,7 +1432,7 @@ Language::Thai =&gt; write!(f, "thai"),
 <li>語境界パターンと相関する<strong>言語学的に異なるカテゴリ</strong>を特定する</li>
 <li><strong>順序は重要</strong> – 最初にマッチしたものが優先されるため、より具体的なパターンを汎用的なパターンの前に配置する</li>
 <li>中国語の「F」のように、<strong>高頻度の機能語</strong>を別のタイプとして検討する</li>
-<li>単純な範囲比較では対応できないロジックには<strong>matchガード</strong>を使用する（韓国語が받침の有無で音節を分割する際に使用しているように）</li>
+<li>単純な範囲だけでは足りない場合は<strong>アーム本体内の追加ロジック</strong>を使用する（韓国語が받침の有無で音節を分割するためにコードポイント判定を使用しているように）</li>
 <li>共通の「P」/「A」/「N」クラスには、共有ヘルパー <code>punct_latin_digit()</code> を再利用する</li>
 <li><strong>コード集合は prefix-free に保つ</strong> – どのコードも他のコードのプレフィックスであってはならない（韓国語の <code>SN</code>/<code>SF</code> が成立するのは <code>S</code> 単独がコードでないため）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証する（言語ごとにユニットテストで固定される）</li>
 </ul>
@@ -1609,7 +1501,7 @@ fn test_thai_char_types() {
 #[test]
 fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type("ก"), "T");
+    assert_eq!(segmenter.char_type('ก'), "T");
 }
 <span class="boring">}</span></code></pre>
 <p>全テストを実行して検証します。</p>
@@ -1620,7 +1512,7 @@ fn test_char_type_thai() {
 <p><code>litsea</code> クレートは、単語分割、モデル学習、特徴量抽出のための Rust API を提供します。</p>
 <h2 id="インストール-1"><a class="header" href="#インストール-1">インストール</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.6.0"
+litsea = "0.8.0"
 </code></pre>
 <p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（<code>load_model</code>）を使う場合のみ、非同期ランタイムを追加してください。</p>
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
@@ -1855,14 +1747,15 @@ where
 </span><span class="boring">fn main() {
 </span>pub fn new(language: Language) -&gt; Self
 <span class="boring">}</span></code></pre>
-<p>指定した言語に対応する新しい Extractor を作成します。内部的に、学習済みモデルを持たない <code>Segmenter</code> を作成します。</p>
+<p>指定した言語に対応する新しい Extractor を作成します。内部的に、学習済みモデルを持たない <code>Segmenter</code> を作成します。<code>Extractor</code> は <code>Default</code> も実装しており、<code>Extractor::new(Language::Japanese)</code> と等価です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::extractor::Extractor;
 use litsea::language::Language;
 
-let mut extractor = Extractor::new(Language::Japanese);
+let extractor = Extractor::new(Language::Japanese);
 <span class="boring">}</span></code></pre>
+<p>抽出メソッドは <code>&amp;self</code> を取るため、束縛を可変（<code>mut</code>）にする必要はありません。</p>
 <h2 id="メソッド-1"><a class="header" href="#メソッド-1">メソッド</a></h2>
 <h3 id="extract"><a class="header" href="#extract"><code>extract</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2066,6 +1959,21 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 
 let mut learner = AdaBoost::new(0.01, 100);
 <span class="boring">}</span></code></pre>
+<h3 id="adaboostdefault"><a class="header" href="#adaboostdefault"><code>AdaBoost::default</code></a></h3>
+<p><code>AdaBoost</code> は <code>Default</code> も実装しており、<code>AdaBoost::new(0.01, 100)</code> と等価です – これはライブラリと CLI 全体で使われるデフォルトのハイパーパラメータです。</p>
+<h2 id="アクセサ-1"><a class="header" href="#アクセサ-1">アクセサ</a></h2>
+<h3 id="threshold"><a class="header" href="#threshold"><code>threshold</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn threshold(&amp;self) -&gt; f64
+<span class="boring">}</span></code></pre>
+<p>この学習器の作成時に指定した早期停止の閾値を返します。</p>
+<h3 id="num_iterations"><a class="header" href="#num_iterations"><code>num_iterations</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn num_iterations(&amp;self) -&gt; usize
+<span class="boring">}</span></code></pre>
+<p>ブースティング反復の最大回数を返します。</p>
 <h2 id="モデルの読み込み"><a class="header" href="#モデルの読み込み">モデルの読み込み</a></h2>
 <h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2232,7 +2140,7 @@ learner.add_instance(feats, "B-NOUN".to_string());
 </span>use std::sync::atomic::AtomicBool;
 
 let running = AtomicBool::new(true);
-learner.train(10, running);
+learner.train(10, &amp;running);
 <span class="boring">}</span></code></pre>
 <h2 id="予測-2"><a class="header" href="#予測-2">予測</a></h2>
 <h3 id="predict-1"><a class="header" href="#predict-1"><code>predict</code></a></h3>
@@ -2380,7 +2288,7 @@ pub enum Upos {
 <h3 id="トレイト実装"><a class="header" href="#トレイト実装">トレイト実装</a></h3>
 <ul>
 <li><code>Display</code>: <code>"NOUN"</code>, <code>"VERB"</code> などの文字列に変換</li>
-<li><code>FromStr</code>: 文字列から <code>Upos</code> にパース。不正な文字列にはエラーを返す</li>
+<li><code>FromStr</code>: 文字列から <code>Upos</code> にパース。不正な文字列には <code>ParseUposError</code> を返す</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2389,6 +2297,8 @@ pub enum Upos {
 let pos: Upos = "NOUN".parse().unwrap();
 assert_eq!(pos.to_string(), "NOUN");
 <span class="boring">}</span></code></pre>
+<h3 id="parseuposerror"><a class="header" href="#parseuposerror">ParseUposError</a></h3>
+<p><code>ParseUposError</code>（クレートルートから <code>litsea::ParseUposError</code> として再エクスポート）は、文字列が有効な UPOS タグでない場合に返されます。<code>input()</code> アクセサはパースに失敗した文字列を返し、エラーメッセージは <code>Unknown UPOS tag: '&lt;input&gt;'</code> となります。</p>
 <h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
 <h3 id="定義-1-1"><a class="header" href="#定義-1-1">定義</a></h3>
 <p><code>SegmentLabel</code> 型は単語境界検出と品詞タグ付けを組み合わせます。各文字位置に 18 ラベルのいずれかが割り当てられます:</p>
@@ -2419,7 +2329,7 @@ pub enum SegmentLabel {
 </span><span class="boring">fn main() {
 </span>pub fn all_labels() -&gt; Vec&lt;SegmentLabel&gt;
 <span class="boring">}</span></code></pre>
-<p>全 18 ラベル（B-ADJ, B-ADP, …, B-X, O）の一覧を返します。</p>
+<p>全 18 個の <code>SegmentLabel</code> 値（文字列ではありません）のベクタを返します: 17 個の <code>B(Upos)</code> ラベルの後に <code>O</code> が続きます。</p>
 <h4 id="is_boundary"><a class="header" href="#is_boundary"><code>is_boundary</code></a></h4>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2435,7 +2345,7 @@ pub enum SegmentLabel {
 <h3 id="トレイト実装-1"><a class="header" href="#トレイト実装-1">トレイト実装</a></h3>
 <ul>
 <li><code>Display</code>: <code>"B-NOUN"</code>, <code>"O"</code> などの文字列に変換</li>
-<li><code>FromStr</code>: 文字列から <code>SegmentLabel</code> にパース</li>
+<li><code>FromStr</code>: 文字列から <code>SegmentLabel</code> にパース。不正な文字列には <code>ParseSegmentLabelError</code> を返す</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2449,6 +2359,12 @@ let label_o: SegmentLabel = "O".parse().unwrap();
 assert!(!label_o.is_boundary());
 assert_eq!(label_o.pos(), None);
 <span class="boring">}</span></code></pre>
+<h3 id="parsesegmentlabelerror"><a class="header" href="#parsesegmentlabelerror">ParseSegmentLabelError</a></h3>
+<p><code>ParseSegmentLabelError</code>（クレートルートから <code>litsea::ParseSegmentLabelError</code> として再エクスポート）は、文字列が有効なセグメントラベルでない場合に返されます。2 つのバリアントがあります:</p>
+<ul>
+<li><code>InvalidFormat</code> – 文字列が <code>O</code> でも <code>B-&lt;UPOS&gt;</code> 形式でもない（メッセージ: <code>Invalid segment label: '&lt;input&gt;'. Expected 'O' or 'B-&lt;UPOS&gt;'</code>）</li>
+<li><code>InvalidPos</code> – <code>B-</code> プレフィックスはあるが POS 部分のパースに失敗した（内部の <code>ParseUposError</code> をラップする）</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language"><a class="header" href="#language">Language</a></h1>
 <p><code>Language</code> 列挙型は、文字種分類を含む言語固有の動作を定義します。</p>
@@ -2456,6 +2372,7 @@ assert_eq!(label_o.pos(), None);
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -2463,6 +2380,7 @@ pub enum Language {
     Korean,
 }
 <span class="boring">}</span></code></pre>
+<p>この列挙型に <code>#[non_exhaustive]</code> が付いているのは、新しい言語が破壊的変更なしに追加されることを想定しているためです。したがって、外部クレートで <code>Language</code> に対する <code>match</code> 式を書く場合はワイルドカードアーム（<code>_ =&gt; ...</code>）が必要です。</p>
 <h3 id="トレイト"><a class="header" href="#トレイト">トレイト</a></h3>
 <ul>
 <li><code>Default</code> – <code>Language::Japanese</code> を返す</li>
@@ -2506,10 +2424,24 @@ assert_eq!(lang.char_type('あ'), "I");
 assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<p>内部的には、<code>char_type</code> は言語ごとの非公開関数（<code>japanese_char_type</code>、<code>chinese_char_type</code>、<code>korean_char_type</code>）にディスパッチします。全言語に共通のクラス – <code>"P"</code>（句読点）、<code>"A"</code>（ラテン文字）、<code>"N"</code>（数字） – は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。</p>
+<p>内部的には、<code>char_type</code> は言語ごとの非公開関数（<code>japanese_char_type_id</code>、<code>chinese_char_type_id</code>、<code>korean_char_type_id</code>）が返す数値の type id に対するテーブル参照になっており、文字列コードと数値 id が食い違うことはありません。全言語に共通のクラス – <code>"P"</code>（句読点）、<code>"A"</code>（ラテン文字）、<code>"N"</code>（数字） – は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。</p>
+<h2 id="parselanguageerror"><a class="header" href="#parselanguageerror">ParseLanguageError</a></h2>
+<p>文字列からの <code>Language</code> のパースに失敗すると <code>ParseLanguageError</code> が返されます。この型はクレートルートから再エクスポートされています（<code>litsea::ParseLanguageError</code>）:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::{Language, ParseLanguageError};
+
+let err: ParseLanguageError = "french".parse::&lt;Language&gt;().unwrap_err();
+assert_eq!(err.input(), "french");
+<span class="boring">}</span></code></pre>
+<ul>
+<li><code>input()</code> – パースに失敗した文字列を返す</li>
+<li>エラーメッセージにはサポートされている言語が列挙されます: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cliリファレンス概要"><a class="header" href="#cliリファレンス概要">CLIリファレンス概要</a></h1>
 <p><code>litsea</code> CLIは、単語分割、モデル学習、テキスト処理のためのコマンドを提供します。</p>
+<p>CLI バイナリはライブラリの <code>remote_model</code> フィーチャーを有効にしてビルドされているため、<code>http(s)://</code> のモデル URI を追加設定なしでそのまま利用できます。一方、<code>litsea</code> ライブラリ自体はデフォルトフィーチャーにリモート読み込みを含みません。</p>
 <h2 id="使い方"><a class="header" href="#使い方">使い方</a></h2>
 <pre><code class="language-sh">litsea &lt;COMMAND&gt; [OPTIONS] [ARGS]
 </code></pre>
@@ -2603,14 +2535,14 @@ assert_eq!(lang.char_type('@'), "O");
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <h2 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h2>
-<p>特徴量ファイルには、文字位置ごとに1行が含まれます。</p>
-<pre><code class="language-text">1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+<p>特徴量ファイルには、文字位置ごとに1行が含まれます。コーパス行 <code>これ は テスト です 。</code> に対する最初の2行は次のとおりです。</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	BW2:これ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	BW2:れは	...
 </code></pre>
 <ul>
 <li><code>1</code> = 語境界</li>
 <li><code>-1</code> = 非境界</li>
-<li>特徴量はタブ区切り</li>
+<li>特徴量はアルファベット順にソートされてタブ区切りで書き出されます。そのため各行はテンプレート定義順ではなく <code>BC1:</code> 特徴量から始まります</li>
 </ul>
 <h2 id="使用例-3"><a class="header" href="#使用例-3">使用例</a></h2>
 <pre><code class="language-sh"># Japanese
@@ -2632,9 +2564,9 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="品詞付き特徴量の出力形式"><a class="header" href="#品詞付き特徴量の出力形式">品詞付き特徴量の出力形式</a></h3>
-<p>POSモードでは、ラベル列は二値の <code>1</code>/<code>-1</code> の代わりにセグメントラベル（<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>）を使用します。</p>
-<pre><code class="language-text">B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
-O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
+<p>POSモードでは、ラベル列は二値の <code>1</code>/<code>-1</code> の代わりにセグメントラベル（<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>）を使用します。特徴量はここでもアルファベット順にソートされてタブ区切りで書き出されます。</p>
+<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	BW1:B2B1	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
 </code></pre>
 <h3 id="品詞付き特徴量抽出の例"><a class="header" href="#品詞付き特徴量抽出の例">品詞付き特徴量抽出の例</a></h3>
 <pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
@@ -2668,7 +2600,7 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）学習モードを有効にする（Averaged Perceptron を使用）</td></tr>
-<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（POS モードのみ）</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（POS モードのみ）</td></tr>
 </tbody>
 </table>
 </div>
@@ -2728,17 +2660,17 @@ O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
 </thead>
 <tbody>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定モデル（Averaged Perceptron）を学習する</td></tr>
-<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="使用例-1-1"><a class="header" href="#使用例-1-1">使用例</a></h3>
-<pre><code class="language-sh"># 品詞モデルの学習（10エポック）
-litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
+<pre><code class="language-sh"># 品詞特徴量から品詞モデルを学習
+litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="出力-1"><a class="header" href="#出力-1">出力</a></h3>
 <p>学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。</p>
-<pre><code class="language-text">Result Metrics:
+<pre><code class="language-text">Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%
@@ -2850,7 +2782,7 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 <ol>
 <li>UD Treebank をダウンロードして<a href="#コーパスの準備">品詞付きコーパスを準備</a>: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) &amp;&amp; bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
 <li><a href="#特徴量の抽出">品詞付き特徴量を抽出</a>: <code>litsea extract --pos -l japanese pos_corpus.txt features.txt</code></li>
-<li><a href="#モデルの学習">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.txt</code></li>
+<li><a href="#モデルの学習">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.model</code></li>
 </ol>
 <h2 id="その他のトピック"><a class="header" href="#その他のトピック">その他のトピック</a></h2>
 <ul>
@@ -3015,16 +2947,16 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <ol>
 <li><code>Extractor</code> がコーパスの各行を読み込む</li>
 <li>各文に対して、文字配列・文字種配列・タグ配列を持つ <code>Segmenter</code> コンテキストを作成する</li>
-<li>各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む</li>
+<li>各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む。<code>--pos</code> パイプラインでは先頭位置も出力され、最初の単語の品詞タグが学習データに含まれるようになっている</li>
 </ol>
 <h2 id="特徴量ファイルの形式"><a class="header" href="#特徴量ファイルの形式">特徴量ファイルの形式</a></h2>
-<p>各行は1つの文字位置を表します:</p>
-<pre><code class="language-text">1	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
--1	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
+<p>各行は1つの文字位置を表します。コーパス行 <code>これ は テスト です 。</code> に対する最初の2行は次のとおりです:</p>
+<pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </code></pre>
 <ul>
 <li>最初の列: ラベル（<code>1</code> = 境界、<code>-1</code> = 非境界）</li>
-<li>残りの列: 特徴量（タブ区切り）</li>
+<li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
 <h2 id="品詞付き特徴量の抽出"><a class="header" href="#品詞付き特徴量の抽出">品詞付き特徴量の抽出</a></h2>
 <p>品詞推定モデル用には、<code>--pos</code> フラグを使用して、二値境界ラベルの代わりに品詞ラベル付きの特徴量を抽出します。</p>
@@ -3042,13 +2974,14 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </ul>
 <p>特徴量テンプレート（文字 n-gram、文字種 n-gram など）は標準の分割と同じで、ラベル体系のみが異なります。</p>
 <h3 id="品詞特徴量ファイルの形式"><a class="header" href="#品詞特徴量ファイルの形式">品詞特徴量ファイルの形式</a></h3>
-<pre><code class="language-text">B-NOUN	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
-O	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
-B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
+<p>品詞付きコーパス行 <code>これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT</code> に対する最初の3行は次のとおりです:</p>
+<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </code></pre>
 <ul>
-<li>最初の列: セグメントラベル（例: <code>B-NOUN</code>、<code>O</code>）</li>
-<li>残りの列: 特徴量（タブ区切り）</li>
+<li>最初の列: セグメントラベル（例: <code>B-PRON</code>、<code>O</code>）</li>
+<li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
 <h2 id="ファイルサイズの目安"><a class="header" href="#ファイルサイズの目安">ファイルサイズの目安</a></h2>
 <p>特徴量ファイルは、各文字位置が38-42個の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。</p>
@@ -3130,7 +3063,7 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 <tr><td>分類</td><td>二値（境界 / 非境界）</td><td>多クラス（18 セグメントラベル）</td></tr>
 <tr><td>ラベル</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
 <tr><td>ハイパーパラメータ</td><td>閾値、反復回数</td><td>エポック数</td></tr>
-<tr><td>モデルサイズ</td><td>約 18-22 KB</td><td>約 11 MB</td></tr>
+<tr><td>モデルサイズ</td><td>約 18-22 KB</td><td>約 9-19 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -3146,7 +3079,7 @@ B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
 </table>
 </div>
 <h3 id="品詞学習の出力"><a class="header" href="#品詞学習の出力">品詞学習の出力</a></h3>
-<pre><code class="language-text">Result Metrics:
+<pre><code class="language-text">Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%
@@ -3327,7 +3260,7 @@ packed <code>u64</code> 整数キーへコンパイルされます
 <tr><td>japanese_pos.model</td><td>約 11 MB</td><td>UD Japanese-GSD（品詞）</td></tr>
 <tr><td>chinese_pos.model</td><td>約 19 MB</td><td>UD Chinese-GSD（品詞）</td></tr>
 <tr><td>korean_pos.model</td><td>約 8.9 MB</td><td>UD Korean-GSD（品詞）</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 17 KB</td><td>JEITA コーパス</td></tr>
+<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 16 KB</td><td>JEITA コーパス</td></tr>
 </tbody>
 </table>
 </div>
@@ -3335,7 +3268,7 @@ packed <code>u64</code> 整数キーへコンパイルされます
 <h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
 <ul>
 <li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>
-<li>形式は<strong>決定的</strong>です（特徴量は BTreeMap により整列されます）</li>
+<li>形式は、通常の学習ワークフローにおいては<strong>決定的</strong>です: <code>save_model</code> は学習器の特徴量順で特徴量を書き出します。特徴量ファイルから初期化された学習器やディスクから読み込まれた学習器では、この順序は（<code>BTreeMap</code> により）ソートされています。一方、<code>add_instance()</code> のみで構築された学習器は挿入順で書き出します</li>
 <li>モデルは<strong>前方互換性</strong>があります。入力に含まれるがモデルにない新しい特徴量は、予測時に単純に無視されます</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -3371,7 +3304,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="フィーチャーの有効化"><a class="header" href="#フィーチャーの有効化">フィーチャーの有効化</a></h2>
 <p>0.6.0 以降、<code>remote_model</code> フィーチャーは<strong>オプトイン</strong>です（ライブラリのデフォルトはローカル読み込みのみとし、依存関係のツリーをコンパクトに保っています）。CLI ではこのフィーチャーが有効化されているため、<code>litsea segment https://...</code> はそのまま動作します。ライブラリ利用者は以下が必要です:</p>
-<pre><code class="language-toml">litsea = { version = "0.6.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.8.0", features = ["remote_model"] }
 </code></pre>
 <h2 id="実装の詳細"><a class="header" href="#実装の詳細">実装の詳細</a></h2>
 <ul>
@@ -3393,13 +3326,20 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 モデルは読み込みに失敗します。<a href="#モデルファイル形式-2">モデルファイル形式</a> を参照）</li>
 </ul>
 <h2 id="wasm-に関する注意事項"><a class="header" href="#wasm-に関する注意事項">WASM に関する注意事項</a></h2>
-<p><code>wasm32</code> ターゲットでは:</p>
+<p><code>wasm32</code> ターゲットは、<code>remote_model</code> フィーチャーを<strong>無効にした状態</strong>でのみ CI で
+チェックされています
+（<code>cargo check -p litsea --target wasm32-unknown-unknown --no-default-features</code>）:</p>
 <ul>
-<li><strong>ローカルファイルパスは非対応</strong> – ファイルシステムへのアクセスが利用できない</li>
-<li><strong><code>file://</code> スキームは非対応</strong></li>
-<li><strong>HTTP/HTTPS の読み込みは動作する</strong> – ブラウザの fetch API 経由（reqwest の WASM サポート）</li>
+<li><strong><code>wasm32</code> では HTTP/HTTPS の読み込みは現在サポートされていません</strong> – HTTP
+クライアントの構成が reqwest の <code>ClientBuilder::connect_timeout</code> と
+<code>timeout</code> を使用しており、reqwest の WASM クライアントがこれらを提供していない
+ため、<code>remote_model</code> フィーチャーはこのターゲットではビルドできません</li>
+<li><strong>ローカルファイルパスと <code>file://</code> スキームも非対応です</strong> –
+ファイルシステムへのアクセスが利用できないため、<code>read_file_bytes</code> は
+<code>Unsupported</code> エラーを返します</li>
 </ul>
-<p>WASM 環境で実行する場合、ファイルパスの代わりに URL を使用するようエラーメッセージが案内します。</p>
+<p>したがって <code>wasm32</code> では、ホスト環境から供給されたモデルのバイト列を
+<code>load_model_from_reader</code> に渡すなど、別の手段でモデルを与える必要があります。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ベンチマーク"><a class="header" href="#ベンチマーク">ベンチマーク</a></h1>
 <p>Litsea には、パフォーマンス測定のための Criterion ベンチマークスイートが含まれています。</p>
@@ -3417,10 +3357,10 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tr><th>ベンチマーク</th><th>説明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_short/adaboost/{ja,zh,ko}</code></td><td>短い文の分割（AdaBoost）</td></tr>
-<tr><td><code>segment_short/averaged_perceptron/{ja,zh,ko}</code></td><td>短い文の分割+品詞付与</td></tr>
+<tr><td><code>segment_short/adaboost/{japanese,chinese,korean}</code></td><td>短い文の分割（AdaBoost）</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean}</code></td><td>短い文の分割+品詞付与</td></tr>
 <tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>坊っちゃん全文の処理（約 300 KB）</td></tr>
-<tr><td><code>get_type_hiragana</code></td><td>文字種分類</td></tr>
+<tr><td><code>char_type_hiragana</code></td><td>文字種分類</td></tr>
 <tr><td><code>add_corpus</code></td><td>学習用コーパスの取り込み</td></tr>
 <tr><td><code>predict_adaboost</code></td><td>単一の AdaBoost 予測</td></tr>
 </tbody>
@@ -3528,7 +3468,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tr><td>言語</td><td>日本語</td></tr>
 <tr><td>学習コーパス</td><td>JEITA プロジェクト 杉田玄白コーパス</td></tr>
 <tr><td>トークナイザ</td><td>ChaSen with IPAdic</td></tr>
-<tr><td>ファイルサイズ</td><td>約 17 KB</td></tr>
+<tr><td>ファイルサイズ</td><td>約 16 KB</td></tr>
 </tbody>
 </table>
 </div>

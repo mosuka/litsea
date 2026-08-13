@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,7 +199,7 @@ types: ["O", "O", "O",  "I", "I", "I", "K", "K", "K", "I", "I", "P"]
 types: [..., "P",  "O",  "O",  "O" ]
 </code></pre>
 <h3 id="ステップ-4-反復と予測"><a class="header" href="#ステップ-4-反復と予測">ステップ 4: 反復と予測</a></h3>
-<p>位置 <code>i</code> を 4 から <code>len(chars) - 3</code> まで繰り返します:</p>
+<p>位置 <code>i</code> を 4 から <code>len(chars) - 4</code> まで（両端を含む）繰り返します:</p>
 <pre><code class="language-text">i=4 (れ): Extract features → predict → label=-1 (O) → word="これ"
 i=5 (は): Extract features → predict → label=+1 (B) → push "これ", word="は"
 i=6 (テ): Extract features → predict → label=+1 (B) → push "は", word="テ"

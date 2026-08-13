@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -208,7 +208,7 @@
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) training mode using Averaged Perceptron</td></tr>
-<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS mode only)</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS mode only)</td></tr>
 </tbody>
 </table>
 </div>
@@ -268,17 +268,17 @@
 </thead>
 <tbody>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS training mode</td></tr>
-<tr><td><code>-e</code>, <code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
 <pre><code class="language-sh"># Train a POS model from POS features
-litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
+litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.model
 </code></pre>
 <h3 id="output-1"><a class="header" href="#output-1">Output</a></h3>
 <p>POS training metrics are printed to stderr (macro-averaged precision and recall):</p>
-<pre><code class="language-text">Result Metrics:
+<pre><code class="language-text">Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%

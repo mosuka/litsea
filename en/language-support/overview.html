@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,6 +199,7 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -208,6 +209,7 @@ pub enum Language {
 <span class="boring">}</span></code></pre>
 <ul>
 <li><strong>Default</strong> is <code>Japanese</code></li>
+<li>Marked <code>#[non_exhaustive]</code> – new languages can be added without a breaking change, so external <code>match</code> expressions need a wildcard arm</li>
 <li>Implements <code>FromStr</code> – parses from full name or ISO 639-1 code (case-insensitive)</li>
 <li>Implements <code>Display</code> – outputs the lowercase full name</li>
 </ul>
@@ -232,7 +234,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <tr><td>Character types</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
 <tr><td>WC features</td><td>Yes (4 extra)</td><td>Yes (4 extra)</td><td>No</td></tr>
 <tr><td>Total features</td><td>42</td><td>42</td><td>38</td></tr>
-<tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> with a range guard</td></tr>
+<tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges + codepoint test</td></tr>
 </tbody>
 </table>
 </div>

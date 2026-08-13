@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ad947bd1.js";
+            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-dc1e276c.js"></script>
+        <script src="../toc-9fc4699e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -215,7 +215,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 local loading only, keeping the dependency tree compact). The CLI enables it,
 so <code>litsea segment https://...</code> keeps working out of the box; library users
 need:</p>
-<pre><code class="language-toml">litsea = { version = "0.6.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.8.0", features = ["remote_model"] }
 </code></pre>
 <h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
 <ul>
@@ -238,13 +238,19 @@ trailing bias line fails to load; see
 <a href="model-file-format.html">Model File Format</a>)</li>
 </ul>
 <h2 id="wasm-considerations"><a class="header" href="#wasm-considerations">WASM Considerations</a></h2>
-<p>On <code>wasm32</code> targets:</p>
+<p>The <code>wasm32</code> target is CI-checked only <strong>without</strong> the <code>remote_model</code> feature
+(<code>cargo check -p litsea --target wasm32-unknown-unknown --no-default-features</code>):</p>
 <ul>
-<li><strong>Local file paths are not supported</strong> – file system access is unavailable</li>
-<li><strong><code>file://</code> scheme is not supported</strong></li>
-<li><strong>HTTP/HTTPS loading works</strong> via the browser’s fetch API (through reqwest’s WASM support)</li>
+<li><strong>HTTP/HTTPS loading is not currently supported on <code>wasm32</code></strong> – the HTTP
+client configuration uses reqwest’s <code>ClientBuilder::connect_timeout</code> and
+<code>timeout</code>, which reqwest’s WASM client does not provide, so the
+<code>remote_model</code> feature does not build for this target</li>
+<li><strong>Local file paths and the <code>file://</code> scheme are not supported either</strong> –
+file system access is unavailable, so <code>read_file_bytes</code> returns an
+<code>Unsupported</code> error</li>
 </ul>
-<p>Error messages guide users to use URLs instead of file paths when running in WASM.</p>
+<p>Models must therefore be supplied by other means on <code>wasm32</code>, e.g. by calling
+<code>load_model_from_reader</code> with model bytes provided by the host environment.</p>
 
                     </main>
 

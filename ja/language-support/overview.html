@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0dddb408.js";
+            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-007a5c4f.js"></script>
+        <script src="../toc-59d64227.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -199,6 +199,7 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -208,6 +209,7 @@ pub enum Language {
 <span class="boring">}</span></code></pre>
 <ul>
 <li><strong>デフォルト</strong>は <code>Japanese</code></li>
+<li><code>#[non_exhaustive]</code> 付き – 新しい言語を破壊的変更なしに追加できるため、外部の <code>match</code> 式にはワイルドカードアームが必要</li>
 <li><code>FromStr</code> を実装 – 完全な言語名またはISO 639-1コードからパース可能（大文字小文字を区別しない）</li>
 <li><code>Display</code> を実装 – 小文字の完全な言語名を出力</li>
 </ul>
@@ -232,7 +234,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <tr><td>文字タイプ数</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
 <tr><td>WC特徴量</td><td>あり（4個追加）</td><td>あり（4個追加）</td><td>なし</td></tr>
 <tr><td>総特徴量数</td><td>42</td><td>42</td><td>38</td></tr>
-<tr><td>マッチング方式</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（範囲ガード）</td></tr>
+<tr><td>マッチング方式</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）+ コードポイント判定</td></tr>
 </tbody>
 </table>
 </div>
