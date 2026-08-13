@@ -132,4 +132,12 @@ echo "これはテストです。" | litsea segment --pos -l japanese models/jap
 
 `resources/` ディレクトリには以下も含まれています:
 
-- **bocchan.txt** -- 夏目漱石の小説「坊っちゃん」のサンプル日本語コーパス（約 307 KB）。ベンチマークに使用されます。
+- **bocchan.txt** -- 坊っちゃん（夏目漱石）、約 307 KB。`segment_long_japanese` ベンチマークと差分テストに使用。
+- **wagahaiwa_nekodearu.txt** -- 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。
+- **mujeong.txt** -- 무정（李光洙、1917）、約 786 KB、ko.wikisource。
+- **rulin_waishi.txt** -- 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。
+
+後半の 3 つは外部の
+[tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
+のコーパスとバイト同一で、`external_corpus` ベンチマークグループが使用します
+（[ベンチマーク](advanced/benchmarking.md)を参照）。いずれもパブリックドメインです。

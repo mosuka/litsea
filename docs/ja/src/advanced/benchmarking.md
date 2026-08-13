@@ -23,11 +23,51 @@ make bench
 | `segment_short/adaboost/{japanese,chinese,korean}` | 短い文の分割（AdaBoost） |
 | `segment_short/averaged_perceptron/{japanese,chinese,korean}` | 短い文の分割+品詞付与 |
 | `segment_long_japanese/{adaboost,averaged_perceptron}` | 坊っちゃん全文の処理（約 300 KB） |
+| `external_corpus/*` | tokenizer-speed-bench と同一のコーパススループット計測（後述） |
 | `char_type_hiragana` | 文字種分類 |
 | `add_corpus` | 学習用コーパスの取り込み |
 | `predict_adaboost` | 単一の AdaBoost 予測 |
 
 モデルは `load_model_from_path` で同期的に読み込まれます。ベンチマークに非同期ランタイムは関与しません。
+
+## コーパススループット（`external_corpus`）
+
+`external_corpus` グループは、外部の
+[tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
+にある litsea の 7 ベンチをリポジトリ内で再現します。これにより、
+スループットの回帰を `cargo bench` だけで検出できます:
+
+```sh
+cargo bench --bench bench -- external_corpus
+```
+
+| ベンチ ID | モデル | コーパス |
+|----------|-------|--------|
+| `japanese` | japanese.model | wagahaiwa_nekodearu.txt |
+| `japanese-rwcp` | RWCP.model | wagahaiwa_nekodearu.txt |
+| `japanese-pos` | japanese_pos.model | wagahaiwa_nekodearu.txt |
+| `korean` | korean.model | mujeong.txt |
+| `korean-pos` | korean_pos.model | mujeong.txt |
+| `chinese` | chinese.model | rulin_waishi.txt |
+| `chinese-pos` | chinese_pos.model | rulin_waishi.txt |
+
+1 イテレーションでコーパス全行を分割し（外部ベンチと同様、行のフィルタなし）、
+グループの `Throughput::Elements` にコーパスの改行を除く文字数を設定しているため、
+Criterion の `elem/s` 表示がそのまま **chars/sec** として読めます。
+
+コーパスは `resources/` に外部ベンチとバイト同一で同梱しています:
+
+| コーパス | サイズ | 出典 |
+|--------|------|--------|
+| wagahaiwa_nekodearu.txt | 約 1.1 MB | 吾輩は猫である（夏目漱石）、青空文庫、パブリックドメイン |
+| mujeong.txt | 約 786 KB | 무정（李光洙、1917）、ko.wikisource、パブリックドメイン — 分かち書きされた現代表記の韓国語で、空白対応 korean.model の想定入力 |
+| rulin_waishi.txt | 約 985 KB | 儒林外史（呉敬梓）、zh.wikisource、パブリックドメイン — UD Chinese-GSD と同じ繁体字 |
+
+数値は公表されている tokenizer-speed-bench の値と比較可能ですが、方法論の違いに
+より完全には一致しません: Criterion はプロセス内のウォームアップ + サンプリング
+（外部ベンチは 101 回のプロセスインターリーブ実行）であり、`cargo bench` は litsea の
+チューニング済み release プロファイル（thin LTO、codegen-units=1）を継承します
+（外部ベンチのクレートはデフォルトの release プロファイル）。
 
 ## HTML レポート
 

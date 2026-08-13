@@ -2,7 +2,7 @@ use std::fs;
 use std::hint::black_box;
 use std::path::PathBuf;
 
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
 
 use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
@@ -113,6 +113,80 @@ fn bench_segment_long(c: &mut Criterion) {
 }
 
 // ---------------------------------------------------------------------------
+// External-corpus throughput benchmarks (tokenizer-speed-bench parity)
+// ---------------------------------------------------------------------------
+
+/// Reads a benchmark corpus as unfiltered lines (no trimming, no empty-line
+/// filtering — the same workload as tokenizer-speed-bench) and returns the
+/// lines together with their total character count (newline-free, the same
+/// chars/sec definition as the external harness).
+fn load_corpus_lines(corpus_name: &str) -> (Vec<String>, u64) {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources").join(corpus_name);
+    let text = fs::read_to_string(&path)
+        .unwrap_or_else(|e| panic!("Failed to read {}: {}", path.display(), e));
+    let lines: Vec<String> = text.lines().map(|l| l.to_string()).collect();
+    let chars = lines.iter().map(|l| l.chars().count() as u64).sum();
+    (lines, chars)
+}
+
+/// Reproduces the seven litsea benches of the external tokenizer-speed-bench
+/// harness in-repo: one iteration segments every line of the corpus, and
+/// criterion's `Throughput::Elements` makes the report read as chars/sec.
+/// Methodology differences from the external harness (criterion sampling
+/// instead of process-interleaved single passes; the workspace's tuned
+/// release profile) are documented in `docs/src/advanced/benchmarking.md`.
+fn bench_external_corpus(c: &mut Criterion) {
+    let mut group = c.benchmark_group("external_corpus");
+    group.sample_size(30);
+
+    // (bench id, language, AdaBoost model, corpus)
+    let segment_cases: &[(&str, Language, &str, &str)] = &[
+        ("japanese", Language::Japanese, "japanese.model", "wagahaiwa_nekodearu.txt"),
+        ("japanese-rwcp", Language::Japanese, "RWCP.model", "wagahaiwa_nekodearu.txt"),
+        ("korean", Language::Korean, "korean.model", "mujeong.txt"),
+        ("chinese", Language::Chinese, "chinese.model", "rulin_waishi.txt"),
+    ];
+    for (id, language, model, corpus) in segment_cases {
+        let (lines, chars) = load_corpus_lines(corpus);
+        let segmenter = Segmenter::with_learner(*language, load_adaboost_model(model));
+        group.throughput(Throughput::Elements(chars));
+        group.bench_function(*id, |b| {
+            b.iter(|| {
+                for line in &lines {
+                    black_box(segmenter.segment(black_box(line)));
+                }
+            });
+        });
+    }
+
+    // (bench id, language, Averaged Perceptron model, corpus)
+    let pos_cases: &[(&str, Language, &str, &str)] = &[
+        (
+            "japanese-pos",
+            Language::Japanese,
+            "japanese_pos.model",
+            "wagahaiwa_nekodearu.txt",
+        ),
+        ("korean-pos", Language::Korean, "korean_pos.model", "mujeong.txt"),
+        ("chinese-pos", Language::Chinese, "chinese_pos.model", "rulin_waishi.txt"),
+    ];
+    for (id, language, model, corpus) in pos_cases {
+        let (lines, chars) = load_corpus_lines(corpus);
+        let segmenter = Segmenter::with_pos_learner(*language, load_perceptron_model(model));
+        group.throughput(Throughput::Elements(chars));
+        group.bench_function(*id, |b| {
+            b.iter(|| {
+                for line in &lines {
+                    black_box(segmenter.segment_with_pos(black_box(line)).unwrap());
+                }
+            });
+        });
+    }
+
+    group.finish();
+}
+
+// ---------------------------------------------------------------------------
 // Internal component benchmarks
 // ---------------------------------------------------------------------------
 
@@ -155,6 +229,7 @@ criterion_group!(
     benches,
     bench_segment_short,
     bench_segment_long,
+    bench_external_corpus,
     bench_char_type,
     bench_add_corpus,
     bench_predict_adaboost,

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+
+- An `external_corpus` Criterion benchmark group reproducing the seven
+  litsea benches of the external tokenizer-speed-bench harness in-repo
+  (#159): the same corpora (wagahaiwa_nekodearu / mujeong / rulin_waishi,
+  vendored byte-identical into `resources/`), the same per-line workload,
+  and `Throughput::Elements` so Criterion reports chars/sec directly.
+  Throughput regressions can now be caught with `cargo bench` alone.
+
 ### Performance
 
 - `segment()` scores the `WC*` (char + type) templates with one merged row
