@@ -132,6 +132,14 @@ Output:
 
 ## Sample Data
 
-The `resources/` directory also contains sample data:
+The `resources/` directory also contains sample data used for benchmarking:
 
-- **bocchan.txt** -- Sample Japanese corpus from the novel "Botchan" by Natsume Soseki (~307 KB). Used for benchmarking.
+- **bocchan.txt** -- 坊っちゃん (Natsume Soseki), ~307 KB. Used by the `segment_long_japanese` benchmarks and differential tests.
+- **wagahaiwa_nekodearu.txt** -- 吾輩は猫である (Natsume Soseki), ~1.1 MB, Aozora Bunko.
+- **mujeong.txt** -- 무정 (Yi Kwang-su, 1917), ~786 KB, ko.wikisource.
+- **rulin_waishi.txt** -- 儒林外史 (Wu Jingzi), ~985 KB, zh.wikisource.
+
+The last three are byte-identical to the corpora of the external
+[tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
+harness and feed the `external_corpus` benchmark group (see
+[Benchmarking](advanced/benchmarking.md)). All are public domain.

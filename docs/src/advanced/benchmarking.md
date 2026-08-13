@@ -23,11 +23,53 @@ The benchmarks are defined in `litsea/benches/bench.rs`:
 | `segment_short/adaboost/{japanese,chinese,korean}` | Segment a short sentence (AdaBoost) |
 | `segment_short/averaged_perceptron/{japanese,chinese,korean}` | Segment + POS tag a short sentence |
 | `segment_long_japanese/{adaboost,averaged_perceptron}` | Process the full Bocchan novel (~300 KB) |
+| `external_corpus/*` | Corpus throughput, mirroring tokenizer-speed-bench (see below) |
 | `char_type_hiragana` | Character type classification |
 | `add_corpus` | Corpus ingestion for training |
 | `predict_adaboost` | Single AdaBoost prediction |
 
 Models are loaded synchronously with `load_model_from_path` — no async runtime is involved in the benchmarks.
+
+## Corpus Throughput (`external_corpus`)
+
+The `external_corpus` group reproduces the seven litsea benches of the
+external [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
+harness in-repo, so throughput regressions can be caught with `cargo bench`
+alone:
+
+```sh
+cargo bench --bench bench -- external_corpus
+```
+
+| Bench id | Model | Corpus |
+|----------|-------|--------|
+| `japanese` | japanese.model | wagahaiwa_nekodearu.txt |
+| `japanese-rwcp` | RWCP.model | wagahaiwa_nekodearu.txt |
+| `japanese-pos` | japanese_pos.model | wagahaiwa_nekodearu.txt |
+| `korean` | korean.model | mujeong.txt |
+| `korean-pos` | korean_pos.model | mujeong.txt |
+| `chinese` | chinese.model | rulin_waishi.txt |
+| `chinese-pos` | chinese_pos.model | rulin_waishi.txt |
+
+One iteration segments every line of the corpus (unfiltered, like the
+external harness), and the group sets `Throughput::Elements` to the
+corpus's newline-free character count, so Criterion's `elem/s` figures
+read directly as **chars/sec**.
+
+The corpora live in `resources/`, byte-identical to the external harness:
+
+| Corpus | Size | Source |
+|--------|------|--------|
+| wagahaiwa_nekodearu.txt | ~1.1 MB | 吾輩は猫である (Natsume Soseki), Aozora Bunko, public domain |
+| mujeong.txt | ~786 KB | 무정 (Yi Kwang-su, 1917), ko.wikisource, public domain — naturally spaced modern Korean, matching the space-aware korean.model |
+| rulin_waishi.txt | ~985 KB | 儒林外史 (Wu Jingzi), zh.wikisource, public domain — Traditional Chinese, matching UD Chinese-GSD |
+
+Numbers are comparable to, but not identical with, the published
+tokenizer-speed-bench figures, for two methodological reasons: Criterion
+uses in-process warmup and sampling instead of 101 process-interleaved
+single passes, and `cargo bench` inherits litsea's tuned release profile
+(thin LTO, single codegen unit) while the external bench crates build with
+the default release profile.
 
 ## HTML Reports
 
