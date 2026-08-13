@@ -72,8 +72,10 @@ on earlier boundary decisions:
    - Each adjacent pair makes one merged `BW` probe and one direct `BC`
      vector load (three values each), and each triple one direct `TC`
      vector load (four values).
-   - For Japanese/Chinese, the four `WC` (char + type) weights are looked
-     up per position.
+   - For Japanese/Chinese, each character makes one merged `WC` row probe
+     (the row is direct-indexed by type id and scatter-added to the two
+     decision positions the character feeds); the block is skipped
+     entirely for models without `WC` features.
 2. **Sequential pass** -- at each position *i*, the score starts from the
    bias plus the precomputed static score, adds the 16 tag-dependent
    weights (`UP*`, `BP*`, `UQ*`, `BQ*`, `TQ*` -- all direct-indexed dense
@@ -109,7 +111,8 @@ The compiled model splits by key-space size and tag dependence:
 - **Merged-vector hash tables** for char n-grams: `UW1..6` collapse into
   one `char -> [f64; 6]` table and `BW1..3` into one
   `(char, char) -> [f64; 3]` table, so a whole family costs one probe.
-  `WC*` weights live in a small `(char, type)`-keyed map.
+  `WC1..4` likewise collapse into one `char -> [slot][type_id]` row table
+  (one probe per character, type dimension direct-indexed).
 - **Dense arrays** for tag/type-only templates: each of the 29 gets a
   direct-indexed table sized by the exact mixed-radix product (3 per tag
   slot, 8--10 per type slot; about 74 KB total for Japanese). The
