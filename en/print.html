@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bb2825ec.js";
+            window.path_to_searchindex_js = "searchindex-6c12c38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9fc4699e.js"></script>
@@ -1166,7 +1166,7 @@ real-text corpus – the same guarantee net as <code>segment()</code>’s.</p>
 <tbody>
 <tr><td>Japanese</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>91.48%</td></tr>
 <tr><td>Chinese</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>77.56%</td></tr>
-<tr><td>Korean</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>65.37%</td></tr>
+<tr><td>Korean</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>99.91%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1369,14 +1369,27 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <p>The 받침 (final consonant) distinction is linguistically significant because it affects how particles attach to words and where boundaries occur.</p>
 <h3 id="no-wc-features"><a class="header" href="#no-wc-features">No WC Features</a></h3>
 <p>Korean does <strong>not</strong> use WC (word + character-type) features. Since most Hangul syllables fall into only two types (SN and SF), WC features would produce low-entropy, noisy combinations that hurt model accuracy.</p>
+<h3 id="space-preserving-training"><a class="header" href="#space-preserving-training">Space-Preserving Training</a></h3>
+<p>Korean is written with spaces between eojeol (word phrases), and those
+spaces mark most word boundaries. The Korean model is therefore trained on
+a <strong>space-preserving TSV corpus</strong>: tokens are tab-separated and each
+inter-eojeol space is kept as its own token, so the training text contains
+the space characters of the original sentence and the model can use them as
+boundary context. Generate the corpus with <code>corpus_udtreebank.sh -s</code>
+(which reconstructs spacing from the treebank’s <code>SpaceAfter</code> annotations)
+and extract features with <code>litsea extract --format tsv</code>. At inference no
+special handling is needed: <code>segment()</code> receives the spaced text as-is and
+emits each space as its own token.</p>
 <h2 id="pre-trained-model-1"><a class="header" href="#pre-trained-model-1">Pre-trained Model</a></h2>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
-<li><strong>Training corpus</strong>: UD Korean-GSD</li>
-<li><strong>Training options</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>Word F1 (held-out)</strong>: 65.37%</li>
-<li><strong>Boundary F1 (held-out)</strong>: 82.32%</li>
+<li><strong>Training corpus</strong>: UD Korean-GSD (space-preserving TSV corpus)</li>
+<li><strong>Training options</strong>: <code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></li>
+<li><strong>Word F1 (held-out)</strong>: 99.91%</li>
+<li><strong>Boundary F1 (held-out)</strong>: 99.96%</li>
 </ul>
+<p>Held-out metrics are computed on the original spaced text with space tokens
+excluded from scoring.</p>
 <h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
@@ -1686,6 +1699,24 @@ where
     println!("Features: {:?}, Label: {}", attrs, label);
 });
 <span class="boring">}</span></code></pre>
+<h3 id="add_corpus_tsv--add_corpus_tsv_with_writer"><a class="header" href="#add_corpus_tsv--add_corpus_tsv_with_writer"><code>add_corpus_tsv</code> / <code>add_corpus_tsv_with_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_tsv(&amp;mut self, corpus: &amp;str)
+pub fn add_corpus_tsv_with_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, i8),
+<span class="boring">}</span></code></pre>
+<p>Tab-separated variants of <code>add_corpus</code> / <code>add_corpus_with_writer</code>: tokens
+are separated by tab characters, and a token may be a literal space <code>" "</code>.
+This preserves the original spacing of the sentence in the training text so
+the model can learn from space characters as boundary context (used for the
+Korean model; issue #152).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut segmenter = Segmenter::new(Language::Korean);
+segmenter.add_corpus_tsv("나는\t \t고양이");
+<span class="boring">}</span></code></pre>
 <h3 id="accessors"><a class="header" href="#accessors">Accessors</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1808,6 +1839,29 @@ extractor.extract(
 <li>Calls <code>Segmenter::add_corpus_with_writer()</code> to process each line</li>
 <li>Writes the label and feature set for each character position to the output file</li>
 </ol>
+<h3 id="extract_tsv"><a class="header" href="#extract_tsv"><code>extract_tsv</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_tsv(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads a tab-separated corpus file (tokens separated by tabs, one sentence
+per line; a token may be a literal space <code>" "</code>) and writes the extracted
+features. The preserved spaces let the model learn from space characters as
+boundary context — used to train the Korean model (issue #152). Output
+format is identical to <code>extract</code>.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+extractor.extract_tsv(
+    Path::new("./ko_corpus.tsv"),
+    Path::new("./ko_features.txt"),
+)?;
+<span class="boring">}</span></code></pre>
 <h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2560,6 +2614,7 @@ assert_eq!(err.input(), "french");
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--pos</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -2567,6 +2622,15 @@ assert_eq!(err.input(), "french");
 <p>The input corpus must have words separated by spaces, one sentence per line:</p>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h3 id="tsv-corpus-format---format-tsv"><a class="header" href="#tsv-corpus-format---format-tsv">TSV Corpus Format (<code>--format tsv</code>)</a></h3>
+<p>With <code>--format tsv</code>, tokens are separated by tab characters and a token may
+be a literal space <code>" "</code>. This preserves the original spacing of the
+sentence in the training text, which is essential for languages like Korean
+where spaces mark most word boundaries (see
+<a href="#korean">Korean</a>). Generate such a corpus from a UD
+Treebank with <code>corpus_udtreebank.sh -s</code>:</p>
+<pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
 </code></pre>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
 <p>The features file contains one line per character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>
@@ -2818,6 +2882,32 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 <li><a href="#extracting-features">Extract POS features</a>: <code>litsea extract --pos -l japanese pos_corpus.txt features.txt</code></li>
 <li><a href="#training-models">Train a POS model</a>: <code>litsea train --pos --num-epochs 10 features.txt model.model</code></li>
 </ol>
+<h2 id="per-language-differences"><a class="header" href="#per-language-differences">Per-Language Differences</a></h2>
+<p>The pipeline (prepare → extract → train), the scripts, and the training
+hyperparameters (<code>-t 0.0001 -i 20000</code> for the bundled models) are shared by
+all three languages. Only two things are language-specific:</p>
+<ol>
+<li><strong>The <code>-l</code> flag on <code>extract</code></strong> selects the language’s character-type
+classification (Japanese 8 types, Chinese 9, Korean 10; Korean uses no
+WC features — see the
+<a href="#language-support-overview">language support overview</a>). Models are
+therefore language-specific.</li>
+<li><strong>Korean uses the space-preserving TSV corpus format.</strong> Korean is
+written with spaces between eojeol, and those spaces are the strongest
+boundary signal, so the Korean corpus keeps them as tokens
+(<code>corpus_udtreebank.sh -s</code> + <code>litsea extract --format tsv</code>). Japanese
+and Chinese are written without spaces, so they use the plain
+space-separated format.</li>
+</ol>
+<pre><code class="language-sh"># Japanese / Chinese: space-separated corpus
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
+litsea extract -l japanese corpus.txt features.txt
+
+# Korean: space-preserving TSV corpus
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
+litsea extract -l korean --format tsv corpus.tsv features.txt
+</code></pre>
+<p>The <code>train</code> step is identical for all three languages.</p>
 <h2 id="additional-topics"><a class="header" href="#additional-topics">Additional Topics</a></h2>
 <ul>
 <li><a href="#evaluating-models">Evaluating Models</a> – assess model quality</li>
@@ -2861,6 +2951,19 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
 <p>This converts the CoNLL-U data into space-separated words (one sentence per line).</p>
+<h3 id="space-preserving-tsv-corpus-korean"><a class="header" href="#space-preserving-tsv-corpus-korean">Space-Preserving TSV Corpus (Korean)</a></h3>
+<p>The space-separated format above discards the original spacing of the
+sentence: the words are later concatenated without spaces for training. For
+Korean this loses the strongest boundary signal (the inter-eojeol space),
+so use the <code>-s</code> flag instead, which emits a <strong>tab-separated corpus</strong> in
+which every original space (reconstructed from the treebank’s <code>SpaceAfter</code>
+annotations) is kept as its own token:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+</code></pre>
+<p>Extract features from a TSV corpus with <code>litsea extract --format tsv</code>. The
+<code>-s</code> flag cannot be combined with <code>-p</code> (the POS pipeline has no TSV
+variant).</p>
 <h2 id="corpus-for-pos-tagging"><a class="header" href="#corpus-for-pos-tagging">Corpus for POS Tagging</a></h2>
 <p>For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.</p>
 <h3 id="pos-corpus-format-1"><a class="header" href="#pos-corpus-format-1">POS Corpus Format</a></h3>
@@ -3169,11 +3272,17 @@ exact word matches; <strong>Boundary F1</strong> scores individual boundary deci
 </thead>
 <tbody>
 <tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>65.37%</td><td>82.32%</td><td>UD Korean-GSD</td></tr>
+<tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
+<p>Korean is trained and evaluated on text that preserves the original
+inter-eojeol spaces (space-preserving TSV corpus; space tokens are excluded
+from the F1 computation). Since spaces mark most Korean word boundaries,
+this makes the task far easier than for Japanese and Chinese, which are
+written without spaces — the scores are not directly comparable across
+languages.</p>
 <h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>
@@ -3466,14 +3575,20 @@ held-out figures.</p>
 </thead>
 <tbody>
 <tr><td>Language</td><td>Korean</td></tr>
-<tr><td>Training Corpus</td><td>UD Korean-GSD</td></tr>
-<tr><td>Training Options</td><td><code>-t 0.0001 -i 20000</code></td></tr>
-<tr><td>Word F1 (held-out)</td><td>65.37%</td></tr>
-<tr><td>Boundary F1 (held-out)</td><td>82.32%</td></tr>
-<tr><td>File Size</td><td>~20 KB</td></tr>
+<tr><td>Training Corpus</td><td>UD Korean-GSD (space-preserving TSV corpus)</td></tr>
+<tr><td>Training Options</td><td><code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>Word F1 (held-out)</td><td>99.91%</td></tr>
+<tr><td>Boundary F1 (held-out)</td><td>99.96%</td></tr>
+<tr><td>File Size</td><td>~9.4 KB</td></tr>
 </tbody>
 </table>
 </div>
+<p>The Korean model is trained and evaluated on text that preserves the
+original inter-eojeol spaces (each space is its own token; space tokens are
+excluded from the F1 computation). Spaces mark most word boundaries in
+Korean, so a model that sees them during training resolves the UD
+Korean-GSD standard almost deterministically. Japanese and Chinese are
+written without spaces, so their protocol is unchanged.</p>
 <h3 id="chinesemodel-1"><a class="header" href="#chinesemodel-1">chinese.model</a></h3>
 <div class="table-wrapper">
 <table>

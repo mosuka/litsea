@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1945eee7.js";
+            window.path_to_searchindex_js = "searchindex-e85e1c74.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-59d64227.js"></script>
@@ -1158,7 +1158,7 @@ POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）�
 <tbody>
 <tr><td>日本語</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>91.48%</td></tr>
 <tr><td>中国語</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>77.56%</td></tr>
-<tr><td>韓国語</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>65.37%</td></tr>
+<tr><td>韓国語</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>99.91%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1361,14 +1361,17 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <p>받침（終声子音）の有無の区別は言語学的に重要であり、助詞が語にどのように接続するか、また境界がどこに生じるかに影響します。</p>
 <h3 id="wc特徴量なし"><a class="header" href="#wc特徴量なし">WC特徴量なし</a></h3>
 <p>韓国語ではWC（単語＋文字タイプ）特徴量を<strong>使用しません</strong>。ほとんどのハングル音節はSNとSFの2つのタイプにしか分類されないため、WC特徴量は低エントロピーでノイズの多い組み合わせを生成し、モデルの精度を低下させます。</p>
+<h3 id="空白保持学習space-preserving-training"><a class="header" href="#空白保持学習space-preserving-training">空白保持学習（Space-Preserving Training）</a></h3>
+<p>韓国語は語節（어절）の間に空白を入れて表記され、その空白がほとんどの語境界を示します。そのため韓国語モデルは <strong>空白保持 TSV コーパス</strong> で学習しています。トークンをタブで区切り、語節間の各空白を独立したトークンとして保持することで、学習テキストに元の文の空白文字が含まれ、モデルはそれを境界のコンテキストとして利用できます。コーパスは <code>corpus_udtreebank.sh -s</code>（ツリーバンクの <code>SpaceAfter</code> アノテーションから空白を復元）で生成し、特徴量は <code>litsea extract --format tsv</code> で抽出します。推論時に特別な処理は不要です: <code>segment()</code> は空白を含むテキストをそのまま受け取り、各空白を独立したトークンとして出力します。</p>
 <h2 id="学習済みモデル-2"><a class="header" href="#学習済みモデル-2">学習済みモデル</a></h2>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
-<li><strong>学習コーパス</strong>: UD Korean-GSD</li>
-<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>単語 F1（held-out）</strong>: 65.37%</li>
-<li><strong>境界 F1（held-out）</strong>: 82.32%</li>
+<li><strong>学習コーパス</strong>: UD Korean-GSD（空白保持 TSV コーパス）</li>
+<li><strong>学習オプション</strong>: <code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></li>
+<li><strong>単語 F1（held-out）</strong>: 99.91%</li>
+<li><strong>境界 F1（held-out）</strong>: 99.96%</li>
 </ul>
+<p>held-out 指標は、空白トークンをスコアリングから除外した上で、元の空白付きテキストに対して計算しています。</p>
 <h2 id="使用例-2"><a class="header" href="#使用例-2">使用例</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
@@ -1673,6 +1676,20 @@ where
     println!("Features: {:?}, Label: {}", attrs, label);
 });
 <span class="boring">}</span></code></pre>
+<h3 id="add_corpus_tsv--add_corpus_tsv_with_writer"><a class="header" href="#add_corpus_tsv--add_corpus_tsv_with_writer"><code>add_corpus_tsv</code> / <code>add_corpus_tsv_with_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_tsv(&amp;mut self, corpus: &amp;str)
+pub fn add_corpus_tsv_with_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, i8),
+<span class="boring">}</span></code></pre>
+<p><code>add_corpus</code> / <code>add_corpus_with_writer</code> のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルで使用。issue #152）。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut segmenter = Segmenter::new(Language::Korean);
+segmenter.add_corpus_tsv("나는\t \t고양이");
+<span class="boring">}</span></code></pre>
 <h3 id="アクセサ"><a class="header" href="#アクセサ">アクセサ</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1787,6 +1804,25 @@ extractor.extract(
 <li><code>Segmenter::add_corpus_with_writer()</code> を呼び出して各行を処理する</li>
 <li>各文字位置のラベルと特徴量セットを出力ファイルに書き込む</li>
 </ol>
+<h3 id="extract_tsv"><a class="header" href="#extract_tsv"><code>extract_tsv</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_tsv(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>タブ区切りのコーパスファイル（トークンをタブで区切り、1行1文。トークンとして空白文字そのもの（<code>" "</code>）を含められます）を読み込み、抽出した特徴量を書き込みます。保持された空白により、モデルは空白文字を境界のコンテキストとして学習できます — 韓国語モデルの学習に使用されています（issue #152）。出力形式は <code>extract</code> と同一です。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+extractor.extract_tsv(
+    Path::new("./ko_corpus.tsv"),
+    Path::new("./ko_features.txt"),
+)?;
+<span class="boring">}</span></code></pre>
 <h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2526,6 +2562,7 @@ assert_eq!(err.input(), "french");
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--pos</code> と併用できません</td></tr>
 </tbody>
 </table>
 </div>
@@ -2533,6 +2570,10 @@ assert_eq!(err.input(), "french");
 <p>入力コーパスは、単語をスペースで区切り、1行に1文とする形式です。</p>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h3 id="tsv-コーパス形式--format-tsv"><a class="header" href="#tsv-コーパス形式--format-tsv">TSV コーパス形式（<code>--format tsv</code>）</a></h3>
+<p><code>--format tsv</code> を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語のような言語では、これが不可欠です（<a href="#韓国語">韓国語</a>を参照）。このようなコーパスは UD Treebank から <code>corpus_udtreebank.sh -s</code> で生成できます:</p>
+<pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
 </code></pre>
 <h2 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h2>
 <p>特徴量ファイルには、文字位置ごとに1行が含まれます。コーパス行 <code>これ は テスト です 。</code> に対する最初の2行は次のとおりです。</p>
@@ -2784,6 +2825,30 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 <li><a href="#特徴量の抽出">品詞付き特徴量を抽出</a>: <code>litsea extract --pos -l japanese pos_corpus.txt features.txt</code></li>
 <li><a href="#モデルの学習">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.model</code></li>
 </ol>
+<h2 id="言語ごとの違い"><a class="header" href="#言語ごとの違い">言語ごとの違い</a></h2>
+<p>パイプライン（準備 → 抽出 → 学習）、スクリプト、学習ハイパーパラメータ
+（同梱モデルは <code>-t 0.0001 -i 20000</code>）は 3 言語で共通です。言語固有なのは
+次の 2 点だけです:</p>
+<ol>
+<li><strong><code>extract</code> の <code>-l</code> フラグ</strong> — 言語別の文字種分類を選択します（日本語 8 種、
+中国語 9 種、韓国語 10 種。韓国語は WC 特徴を使いません —
+<a href="#言語サポート概要">言語サポート概要</a>を参照）。このためモデルは
+言語専用になります</li>
+<li><strong>韓国語は空白保持 TSV コーパス形式を使用</strong> — 韓国語は語節（어절）間に空白を
+持つ表記で、空白が最も強い境界シグナルです。そのため韓国語のコーパスは空白を
+トークンとして保持します（<code>corpus_udtreebank.sh -s</code> +
+<code>litsea extract --format tsv</code>）。日本語・中国語は空白を使わない表記のため、
+従来の空白区切り形式を使います</li>
+</ol>
+<pre><code class="language-sh"># Japanese / Chinese: space-separated corpus
+bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
+litsea extract -l japanese corpus.txt features.txt
+
+# Korean: space-preserving TSV corpus
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
+litsea extract -l korean --format tsv corpus.tsv features.txt
+</code></pre>
+<p><code>train</code> ステップは 3 言語とも同一です。</p>
 <h2 id="その他のトピック"><a class="header" href="#その他のトピック">その他のトピック</a></h2>
 <ul>
 <li><a href="#モデルの評価">モデルの評価</a> – モデル品質の評価</li>
@@ -2827,6 +2892,12 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
 <p>これにより、CoNLL-U データがスペース区切りの単語（1行1文）に変換されます。</p>
+<h3 id="空白保持-tsv-コーパス韓国語"><a class="header" href="#空白保持-tsv-コーパス韓国語">空白保持 TSV コーパス（韓国語）</a></h3>
+<p>上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語ではこれにより最も強力な境界シグナルである語節間の空白が失われてしまうため、代わりに <code>-s</code> フラグを使用します。このフラグは、（ツリーバンクの <code>SpaceAfter</code> アノテーションから復元した）元の各空白を独立したトークンとして保持する <strong>タブ区切りコーパス</strong> を出力します:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+</code></pre>
+<p>TSV コーパスからの特徴量抽出には <code>litsea extract --format tsv</code> を使用します。<code>-s</code> フラグは <code>-p</code> と併用できません（POS パイプラインには TSV バリアントがありません）。</p>
 <h2 id="品詞推定用コーパス"><a class="header" href="#品詞推定用コーパス">品詞推定用コーパス</a></h2>
 <p>品詞推定（Averaged Perceptron）を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。</p>
 <h3 id="品詞付きコーパスの形式-1"><a class="header" href="#品詞付きコーパスの形式-1">品詞付きコーパスの形式</a></h3>
@@ -3134,11 +3205,15 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 </thead>
 <tbody>
 <tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>65.37%</td><td>82.32%</td><td>UD Korean-GSD</td></tr>
+<tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
+<p>韓国語は、元の語節（어절）間の空白を保持したテキスト（空白保持 TSV コーパス。
+空白トークンは F1 の計算から除外）で学習・評価しています。韓国語では空白が
+ほとんどの語境界を示すため、空白を使わずに表記される日本語・中国語に比べて
+タスクが大幅に容易になります — このスコアは言語間で直接比較できません。</p>
 <h2 id="モデル品質の改善"><a class="header" href="#モデル品質の改善">モデル品質の改善</a></h2>
 <p>精度が不十分な場合は、以下を検討してください:</p>
 <ol>
@@ -3420,14 +3495,19 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </thead>
 <tbody>
 <tr><td>言語</td><td>韓国語</td></tr>
-<tr><td>学習コーパス</td><td>UD Korean-GSD</td></tr>
-<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
-<tr><td>単語 F1（held-out）</td><td>65.37%</td></tr>
-<tr><td>境界 F1（held-out）</td><td>82.32%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 20 KB</td></tr>
+<tr><td>学習コーパス</td><td>UD Korean-GSD（空白保持 TSV コーパス）</td></tr>
+<tr><td>学習オプション</td><td><code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>99.91%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>99.96%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 9.4 KB</td></tr>
 </tbody>
 </table>
 </div>
+<p>韓国語モデルは、元の語節（어절）間の空白を保持したテキストで学習・評価して
+います（各空白は独立したトークンとして扱い、空白トークンは F1 の計算から
+除外します）。韓国語では空白がほとんどの語境界を示すため、学習時に空白を
+参照できるモデルは UD Korean-GSD の基準をほぼ決定的に解決できます。日本語と
+中国語は空白を使わずに表記されるため、プロトコルは従来のままです。</p>
 <h3 id="chinesemodel-1"><a class="header" href="#chinesemodel-1">chinese.model</a></h3>
 <div class="table-wrapper">
 <table>

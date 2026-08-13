@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
+            window.path_to_searchindex_js = "../searchindex-6c12c38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9fc4699e.js"></script>
@@ -206,6 +206,7 @@
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--pos</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -213,6 +214,15 @@
 <p>The input corpus must have words separated by spaces, one sentence per line:</p>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+</code></pre>
+<h3 id="tsv-corpus-format---format-tsv"><a class="header" href="#tsv-corpus-format---format-tsv">TSV Corpus Format (<code>--format tsv</code>)</a></h3>
+<p>With <code>--format tsv</code>, tokens are separated by tab characters and a token may
+be a literal space <code>" "</code>. This preserves the original spacing of the
+sentence in the training text, which is essential for languages like Korean
+where spaces mark most word boundaries (see
+<a href="../language-support/korean.html">Korean</a>). Generate such a corpus from a UD
+Treebank with <code>corpus_udtreebank.sh -s</code>:</p>
+<pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
 </code></pre>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
 <p>The features file contains one line per character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>

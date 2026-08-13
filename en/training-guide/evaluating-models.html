@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
+            window.path_to_searchindex_js = "../searchindex-6c12c38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9fc4699e.js"></script>
@@ -223,11 +223,17 @@ exact word matches; <strong>Boundary F1</strong> scores individual boundary deci
 </thead>
 <tbody>
 <tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>65.37%</td><td>82.32%</td><td>UD Korean-GSD</td></tr>
+<tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
+<p>Korean is trained and evaluated on text that preserves the original
+inter-eojeol spaces (space-preserving TSV corpus; space tokens are excluded
+from the F1 computation). Since spaces mark most Korean word boundaries,
+this makes the task far easier than for Japanese and Chinese, which are
+written without spaces — the scores are not directly comparable across
+languages.</p>
 <h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>

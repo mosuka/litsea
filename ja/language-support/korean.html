@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
+            window.path_to_searchindex_js = "../searchindex-e85e1c74.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-59d64227.js"></script>
@@ -229,14 +229,17 @@
 <p>받침（終声子音）の有無の区別は言語学的に重要であり、助詞が語にどのように接続するか、また境界がどこに生じるかに影響します。</p>
 <h3 id="wc特徴量なし"><a class="header" href="#wc特徴量なし">WC特徴量なし</a></h3>
 <p>韓国語ではWC（単語＋文字タイプ）特徴量を<strong>使用しません</strong>。ほとんどのハングル音節はSNとSFの2つのタイプにしか分類されないため、WC特徴量は低エントロピーでノイズの多い組み合わせを生成し、モデルの精度を低下させます。</p>
+<h3 id="空白保持学習space-preserving-training"><a class="header" href="#空白保持学習space-preserving-training">空白保持学習（Space-Preserving Training）</a></h3>
+<p>韓国語は語節（어절）の間に空白を入れて表記され、その空白がほとんどの語境界を示します。そのため韓国語モデルは <strong>空白保持 TSV コーパス</strong> で学習しています。トークンをタブで区切り、語節間の各空白を独立したトークンとして保持することで、学習テキストに元の文の空白文字が含まれ、モデルはそれを境界のコンテキストとして利用できます。コーパスは <code>corpus_udtreebank.sh -s</code>（ツリーバンクの <code>SpaceAfter</code> アノテーションから空白を復元）で生成し、特徴量は <code>litsea extract --format tsv</code> で抽出します。推論時に特別な処理は不要です: <code>segment()</code> は空白を含むテキストをそのまま受け取り、各空白を独立したトークンとして出力します。</p>
 <h2 id="学習済みモデル"><a class="header" href="#学習済みモデル">学習済みモデル</a></h2>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
-<li><strong>学習コーパス</strong>: UD Korean-GSD</li>
-<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>単語 F1（held-out）</strong>: 65.37%</li>
-<li><strong>境界 F1（held-out）</strong>: 82.32%</li>
+<li><strong>学習コーパス</strong>: UD Korean-GSD（空白保持 TSV コーパス）</li>
+<li><strong>学習オプション</strong>: <code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></li>
+<li><strong>単語 F1（held-out）</strong>: 99.91%</li>
+<li><strong>境界 F1（held-out）</strong>: 99.96%</li>
 </ul>
+<p>held-out 指標は、空白トークンをスコアリングから除外した上で、元の空白付きテキストに対して計算しています。</p>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>

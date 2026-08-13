@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1945eee7.js";
+            window.path_to_searchindex_js = "searchindex-e85e1c74.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-59d64227.js"></script>
@@ -212,14 +212,19 @@
 </thead>
 <tbody>
 <tr><td>言語</td><td>韓国語</td></tr>
-<tr><td>学習コーパス</td><td>UD Korean-GSD</td></tr>
-<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
-<tr><td>単語 F1（held-out）</td><td>65.37%</td></tr>
-<tr><td>境界 F1（held-out）</td><td>82.32%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 20 KB</td></tr>
+<tr><td>学習コーパス</td><td>UD Korean-GSD（空白保持 TSV コーパス）</td></tr>
+<tr><td>学習オプション</td><td><code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>99.91%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>99.96%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 9.4 KB</td></tr>
 </tbody>
 </table>
 </div>
+<p>韓国語モデルは、元の語節（어절）間の空白を保持したテキストで学習・評価して
+います（各空白は独立したトークンとして扱い、空白トークンは F1 の計算から
+除外します）。韓国語では空白がほとんどの語境界を示すため、学習時に空白を
+参照できるモデルは UD Korean-GSD の基準をほぼ決定的に解決できます。日本語と
+中国語は空白を使わずに表記されるため、プロトコルは従来のままです。</p>
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <div class="table-wrapper">
 <table>

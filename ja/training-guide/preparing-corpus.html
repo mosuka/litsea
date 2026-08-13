@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
+            window.path_to_searchindex_js = "../searchindex-e85e1c74.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-59d64227.js"></script>
@@ -217,6 +217,12 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
 <p>これにより、CoNLL-U データがスペース区切りの単語（1行1文）に変換されます。</p>
+<h3 id="空白保持-tsv-コーパス韓国語"><a class="header" href="#空白保持-tsv-コーパス韓国語">空白保持 TSV コーパス（韓国語）</a></h3>
+<p>上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語ではこれにより最も強力な境界シグナルである語節間の空白が失われてしまうため、代わりに <code>-s</code> フラグを使用します。このフラグは、（ツリーバンクの <code>SpaceAfter</code> アノテーションから復元した）元の各空白を独立したトークンとして保持する <strong>タブ区切りコーパス</strong> を出力します:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+</code></pre>
+<p>TSV コーパスからの特徴量抽出には <code>litsea extract --format tsv</code> を使用します。<code>-s</code> フラグは <code>-p</code> と併用できません（POS パイプラインには TSV バリアントがありません）。</p>
 <h2 id="品詞推定用コーパス"><a class="header" href="#品詞推定用コーパス">品詞推定用コーパス</a></h2>
 <p>品詞推定（Averaged Perceptron）を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。</p>
 <h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>

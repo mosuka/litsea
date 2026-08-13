@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
+            window.path_to_searchindex_js = "../searchindex-6c12c38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9fc4699e.js"></script>
@@ -270,6 +270,24 @@ where
 </span>segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
     println!("Features: {:?}, Label: {}", attrs, label);
 });
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus_tsv--add_corpus_tsv_with_writer"><a class="header" href="#add_corpus_tsv--add_corpus_tsv_with_writer"><code>add_corpus_tsv</code> / <code>add_corpus_tsv_with_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_tsv(&amp;mut self, corpus: &amp;str)
+pub fn add_corpus_tsv_with_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, i8),
+<span class="boring">}</span></code></pre>
+<p>Tab-separated variants of <code>add_corpus</code> / <code>add_corpus_with_writer</code>: tokens
+are separated by tab characters, and a token may be a literal space <code>" "</code>.
+This preserves the original spacing of the sentence in the training text so
+the model can learn from space characters as boundary context (used for the
+Korean model; issue #152).</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut segmenter = Segmenter::new(Language::Korean);
+segmenter.add_corpus_tsv("나는\t \t고양이");
 <span class="boring">}</span></code></pre>
 <h3 id="accessors"><a class="header" href="#accessors">Accessors</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

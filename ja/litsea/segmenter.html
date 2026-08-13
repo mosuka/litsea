@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
+            window.path_to_searchindex_js = "../searchindex-e85e1c74.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-59d64227.js"></script>
@@ -265,6 +265,20 @@ where
 </span>segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
     println!("Features: {:?}, Label: {}", attrs, label);
 });
+<span class="boring">}</span></code></pre>
+<h3 id="add_corpus_tsv--add_corpus_tsv_with_writer"><a class="header" href="#add_corpus_tsv--add_corpus_tsv_with_writer"><code>add_corpus_tsv</code> / <code>add_corpus_tsv_with_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_tsv(&amp;mut self, corpus: &amp;str)
+pub fn add_corpus_tsv_with_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, i8),
+<span class="boring">}</span></code></pre>
+<p><code>add_corpus</code> / <code>add_corpus_with_writer</code> のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルで使用。issue #152）。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let mut segmenter = Segmenter::new(Language::Korean);
+segmenter.add_corpus_tsv("나는\t \t고양이");
 <span class="boring">}</span></code></pre>
 <h3 id="アクセサ"><a class="header" href="#アクセサ">アクセサ</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

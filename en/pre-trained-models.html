@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-bb2825ec.js";
+            window.path_to_searchindex_js = "searchindex-6c12c38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9fc4699e.js"></script>
@@ -213,14 +213,20 @@ held-out figures.</p>
 </thead>
 <tbody>
 <tr><td>Language</td><td>Korean</td></tr>
-<tr><td>Training Corpus</td><td>UD Korean-GSD</td></tr>
-<tr><td>Training Options</td><td><code>-t 0.0001 -i 20000</code></td></tr>
-<tr><td>Word F1 (held-out)</td><td>65.37%</td></tr>
-<tr><td>Boundary F1 (held-out)</td><td>82.32%</td></tr>
-<tr><td>File Size</td><td>~20 KB</td></tr>
+<tr><td>Training Corpus</td><td>UD Korean-GSD (space-preserving TSV corpus)</td></tr>
+<tr><td>Training Options</td><td><code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></td></tr>
+<tr><td>Word F1 (held-out)</td><td>99.91%</td></tr>
+<tr><td>Boundary F1 (held-out)</td><td>99.96%</td></tr>
+<tr><td>File Size</td><td>~9.4 KB</td></tr>
 </tbody>
 </table>
 </div>
+<p>The Korean model is trained and evaluated on text that preserves the
+original inter-eojeol spaces (each space is its own token; space tokens are
+excluded from the F1 computation). Spaces mark most word boundaries in
+Korean, so a model that sees them during training resolves the UD
+Korean-GSD standard almost deterministically. Japanese and Chinese are
+written without spaces, so their protocol is unchanged.</p>
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <div class="table-wrapper">
 <table>

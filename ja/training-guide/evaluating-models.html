@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
+            window.path_to_searchindex_js = "../searchindex-e85e1c74.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-59d64227.js"></script>
@@ -222,11 +222,15 @@
 </thead>
 <tbody>
 <tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>65.37%</td><td>82.32%</td><td>UD Korean-GSD</td></tr>
+<tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
+<p>韓国語は、元の語節（어절）間の空白を保持したテキスト（空白保持 TSV コーパス。
+空白トークンは F1 の計算から除外）で学習・評価しています。韓国語では空白が
+ほとんどの語境界を示すため、空白を使わずに表記される日本語・中国語に比べて
+タスクが大幅に容易になります — このスコアは言語間で直接比較できません。</p>
 <h2 id="モデル品質の改善"><a class="header" href="#モデル品質の改善">モデル品質の改善</a></h2>
 <p>精度が不十分な場合は、以下を検討してください:</p>
 <ol>

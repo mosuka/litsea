@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1945eee7.js";
+            window.path_to_searchindex_js = "../searchindex-e85e1c74.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-59d64227.js"></script>
@@ -235,6 +235,25 @@ extractor.extract(
 <li><code>Segmenter::add_corpus_with_writer()</code> を呼び出して各行を処理する</li>
 <li>各文字位置のラベルと特徴量セットを出力ファイルに書き込む</li>
 </ol>
+<h3 id="extract_tsv"><a class="header" href="#extract_tsv"><code>extract_tsv</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_tsv(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>タブ区切りのコーパスファイル（トークンをタブで区切り、1行1文。トークンとして空白文字そのもの（<code>" "</code>）を含められます）を読み込み、抽出した特徴量を書き込みます。保持された空白により、モデルは空白文字を境界のコンテキストとして学習できます — 韓国語モデルの学習に使用されています（issue #152）。出力形式は <code>extract</code> と同一です。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+extractor.extract_tsv(
+    Path::new("./ko_corpus.tsv"),
+    Path::new("./ko_features.txt"),
+)?;
+<span class="boring">}</span></code></pre>
 <h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

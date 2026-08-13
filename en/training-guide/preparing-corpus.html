@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
+            window.path_to_searchindex_js = "../searchindex-6c12c38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9fc4699e.js"></script>
@@ -217,6 +217,19 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
 <p>This converts the CoNLL-U data into space-separated words (one sentence per line).</p>
+<h3 id="space-preserving-tsv-corpus-korean"><a class="header" href="#space-preserving-tsv-corpus-korean">Space-Preserving TSV Corpus (Korean)</a></h3>
+<p>The space-separated format above discards the original spacing of the
+sentence: the words are later concatenated without spaces for training. For
+Korean this loses the strongest boundary signal (the inter-eojeol space),
+so use the <code>-s</code> flag instead, which emits a <strong>tab-separated corpus</strong> in
+which every original space (reconstructed from the treebank’s <code>SpaceAfter</code>
+annotations) is kept as its own token:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+</code></pre>
+<p>Extract features from a TSV corpus with <code>litsea extract --format tsv</code>. The
+<code>-s</code> flag cannot be combined with <code>-p</code> (the POS pipeline has no TSV
+variant).</p>
 <h2 id="corpus-for-pos-tagging"><a class="header" href="#corpus-for-pos-tagging">Corpus for POS Tagging</a></h2>
 <p>For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.</p>
 <h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-bb2825ec.js";
+            window.path_to_searchindex_js = "../searchindex-6c12c38f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9fc4699e.js"></script>
@@ -229,14 +229,27 @@
 <p>The 받침 (final consonant) distinction is linguistically significant because it affects how particles attach to words and where boundaries occur.</p>
 <h3 id="no-wc-features"><a class="header" href="#no-wc-features">No WC Features</a></h3>
 <p>Korean does <strong>not</strong> use WC (word + character-type) features. Since most Hangul syllables fall into only two types (SN and SF), WC features would produce low-entropy, noisy combinations that hurt model accuracy.</p>
+<h3 id="space-preserving-training"><a class="header" href="#space-preserving-training">Space-Preserving Training</a></h3>
+<p>Korean is written with spaces between eojeol (word phrases), and those
+spaces mark most word boundaries. The Korean model is therefore trained on
+a <strong>space-preserving TSV corpus</strong>: tokens are tab-separated and each
+inter-eojeol space is kept as its own token, so the training text contains
+the space characters of the original sentence and the model can use them as
+boundary context. Generate the corpus with <code>corpus_udtreebank.sh -s</code>
+(which reconstructs spacing from the treebank’s <code>SpaceAfter</code> annotations)
+and extract features with <code>litsea extract --format tsv</code>. At inference no
+special handling is needed: <code>segment()</code> receives the spaced text as-is and
+emits each space as its own token.</p>
 <h2 id="pre-trained-model"><a class="header" href="#pre-trained-model">Pre-trained Model</a></h2>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
-<li><strong>Training corpus</strong>: UD Korean-GSD</li>
-<li><strong>Training options</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>Word F1 (held-out)</strong>: 65.37%</li>
-<li><strong>Boundary F1 (held-out)</strong>: 82.32%</li>
+<li><strong>Training corpus</strong>: UD Korean-GSD (space-preserving TSV corpus)</li>
+<li><strong>Training options</strong>: <code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></li>
+<li><strong>Word F1 (held-out)</strong>: 99.91%</li>
+<li><strong>Boundary F1 (held-out)</strong>: 99.96%</li>
 </ul>
+<p>Held-out metrics are computed on the original spaced text with space tokens
+excluded from scoring.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
