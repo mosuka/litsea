@@ -4,6 +4,15 @@
 
 ### Added
 
+- A `litsea evaluate` subcommand and a public `litsea::evaluation` module
+  for held-out quality measurement (#161): word/boundary precision, recall,
+  and F1 over exact character-offset spans (whitespace tokens excluded —
+  the Korean space-preserving protocol), plus tagged-word metrics with
+  `--pos`. The UD GSD test splits ship as gold data in `resources/eval/`
+  (CC BY-SA 4.0, attributed in its README), so every documented held-out
+  figure is reproducible with one command. First held-out POS measurements:
+  word / tagged-word F1 96.56 / 92.51 (japanese_pos), 80.51 / 71.03
+  (korean_pos), 90.52 / 81.18 (chinese_pos).
 - An `external_corpus` Criterion benchmark group reproducing the seven
   litsea benches of the external tokenizer-speed-bench harness in-repo
   (#159): the same corpora (wagahaiwa_nekodearu / mujeong / rulin_waishi,

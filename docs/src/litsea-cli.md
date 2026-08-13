@@ -17,6 +17,7 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 | [`extract`](litsea-cli/extract.md) | Extract features from a corpus for training |
 | [`train`](litsea-cli/train.md) | Train a word segmentation model |
 | [`segment`](litsea-cli/segment.md) | Segment text into words using a trained model |
+| [`evaluate`](litsea-cli/evaluate.md) | Evaluate a model against a held-out gold corpus |
 
 ## Global Options
 

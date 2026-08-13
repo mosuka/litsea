@@ -1,11 +1,13 @@
 //! Command-line interface for litsea.
 //!
-//! Provides three subcommands: `extract` (turn a corpus into training
+//! Provides four subcommands: `extract` (turn a corpus into training
 //! features), `train` (train an AdaBoost segmentation model or, with
-//! `--pos`, an Averaged Perceptron POS model), and `segment` (segment
-//! sentences from standard input with a trained model).
+//! `--pos`, an Averaged Perceptron POS model), `segment` (segment
+//! sentences from standard input with a trained model), and `evaluate`
+//! (measure held-out quality against a gold corpus).
 
 use std::error::Error;
+use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -15,7 +17,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use clap::{Args, Parser, Subcommand};
 
 use litsea::version;
-use litsea::{AdaBoost, AveragedPerceptron, Extractor, Language, PosTrainer, Segmenter, Trainer};
+use litsea::{
+    AdaBoost, AveragedPerceptron, Extractor, Language, PosTrainer, Segmenter, Trainer, evaluation,
+};
 
 /// Arguments for the extract command.
 #[derive(Debug, Args)]
@@ -86,6 +90,29 @@ struct SegmentArgs {
     model_uri: String,
 }
 
+/// Arguments for the evaluate command.
+#[derive(Debug, Args)]
+#[command(about = "Evaluate a model against a held-out gold corpus")]
+struct EvaluateArgs {
+    /// Language of the model and gold corpus (japanese, chinese, or korean)
+    #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
+    language: Language,
+
+    /// Evaluate joint segmentation + POS tagging (gold format: "word/POS word/POS ...")
+    #[arg(long)]
+    pos: bool,
+
+    /// Gold corpus format: "space" (space-separated tokens) or "tsv"
+    /// (tab-separated tokens; a token may be a literal space). Ignored with --pos
+    #[arg(long, default_value = "space", value_parser = ["space", "tsv"])]
+    format: String,
+
+    /// URI of the model to evaluate (path, file://, or http(s):// with remote_model)
+    model_uri: String,
+    /// Path to the gold corpus file (one sentence per line)
+    gold_file: PathBuf,
+}
+
 /// Subcommands for litsea CLI.
 #[derive(Debug, Subcommand)]
 enum Commands {
@@ -95,6 +122,8 @@ enum Commands {
     Train(TrainArgs),
     /// Segment a sentence
     Segment(SegmentArgs),
+    /// Evaluate a model against a held-out gold corpus
+    Evaluate(EvaluateArgs),
 }
 
 /// Arguments for the litsea command.
@@ -324,6 +353,70 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Evaluate a model against a held-out gold corpus and print quality
+/// metrics.
+///
+/// Loads an AdaBoost model (or an Averaged Perceptron model with `--pos`)
+/// from the model URI, parses the gold corpus in the selected format
+/// (space-separated tokens, tab-separated `tsv` tokens, or `word/POS` with
+/// `--pos`), and prints held-out precision/recall/F1 one metric per line.
+///
+/// # Arguments
+/// * `args` - The arguments for the evaluate command [`EvaluateArgs`].
+///
+/// # Returns
+/// Returns a Result indicating success or failure.
+async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
+    let gold_file = File::open(args.gold_file.as_path())?;
+    let reader = io::BufReader::new(gold_file);
+
+    if args.pos {
+        let mut pos_learner = AveragedPerceptron::new();
+        pos_learner.load_model(args.model_uri.as_str()).await?;
+        let segmenter = Segmenter::with_pos_learner(args.language, pos_learner);
+
+        let gold = reader
+            .lines()
+            .collect::<Result<Vec<String>, _>>()?
+            .into_iter()
+            .map(|line| evaluation::parse_gold_pos_line(&line));
+        let metrics = evaluation::evaluate_pos(&segmenter, gold)?;
+
+        let seg = &metrics.segmentation;
+        eprintln!("Evaluation Metrics (POS):");
+        eprintln!("  Sentences: {}", seg.sentences);
+        eprintln!("  Word Precision: {:.2}%", seg.word_precision);
+        eprintln!("  Word Recall: {:.2}%", seg.word_recall);
+        eprintln!("  Word F1: {:.2}%", seg.word_f1);
+        eprintln!("  Tagged Word Precision: {:.2}%", metrics.tagged_precision);
+        eprintln!("  Tagged Word Recall: {:.2}%", metrics.tagged_recall);
+        eprintln!("  Tagged Word F1: {:.2}%", metrics.tagged_f1);
+    } else {
+        let mut learner = AdaBoost::new(0.01, 100);
+        learner.load_model(args.model_uri.as_str()).await?;
+        let segmenter = Segmenter::with_learner(args.language, learner);
+
+        let tsv = args.format == "tsv";
+        let gold = reader
+            .lines()
+            .collect::<Result<Vec<String>, _>>()?
+            .into_iter()
+            .map(|line| evaluation::parse_gold_line(&line, tsv));
+        let metrics = evaluation::evaluate_segmentation(&segmenter, gold);
+
+        eprintln!("Evaluation Metrics:");
+        eprintln!("  Sentences: {}", metrics.sentences);
+        eprintln!("  Word Precision: {:.2}%", metrics.word_precision);
+        eprintln!("  Word Recall: {:.2}%", metrics.word_recall);
+        eprintln!("  Word F1: {:.2}%", metrics.word_f1);
+        eprintln!("  Boundary Precision: {:.2}%", metrics.boundary_precision);
+        eprintln!("  Boundary Recall: {:.2}%", metrics.boundary_recall);
+        eprintln!("  Boundary F1: {:.2}%", metrics.boundary_f1);
+    }
+
+    Ok(())
+}
+
 /// Parses the command-line arguments and dispatches to the selected
 /// subcommand.
 ///
@@ -336,6 +429,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Extract(args) => extract(args),
         Commands::Train(args) => train(args).await,
         Commands::Segment(args) => segment(args).await,
+        Commands::Evaluate(args) => evaluate(args).await,
     }
 }
 
