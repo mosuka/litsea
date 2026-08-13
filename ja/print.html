@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f903e752.js";
+            window.path_to_searchindex_js = "searchindex-3a92af0c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-59d64227.js"></script>
@@ -3439,6 +3439,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tr><td><code>segment_short/adaboost/{japanese,chinese,korean}</code></td><td>短い文の分割（AdaBoost）</td></tr>
 <tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean}</code></td><td>短い文の分割+品詞付与</td></tr>
 <tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>坊っちゃん全文の処理（約 300 KB）</td></tr>
+<tr><td><code>external_corpus/*</code></td><td>tokenizer-speed-bench と同一のコーパススループット計測（後述）</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>文字種分類</td></tr>
 <tr><td><code>add_corpus</code></td><td>学習用コーパスの取り込み</td></tr>
 <tr><td><code>predict_adaboost</code></td><td>単一の AdaBoost 予測</td></tr>
@@ -3446,6 +3447,50 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </table>
 </div>
 <p>モデルは <code>load_model_from_path</code> で同期的に読み込まれます。ベンチマークに非同期ランタイムは関与しません。</p>
+<h2 id="コーパススループットexternal_corpus"><a class="header" href="#コーパススループットexternal_corpus">コーパススループット（<code>external_corpus</code>）</a></h2>
+<p><code>external_corpus</code> グループは、外部の
+<a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
+にある litsea の 7 ベンチをリポジトリ内で再現します。これにより、
+スループットの回帰を <code>cargo bench</code> だけで検出できます:</p>
+<pre><code class="language-sh">cargo bench --bench bench -- external_corpus
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ベンチ ID</th><th>モデル</th><th>コーパス</th></tr>
+</thead>
+<tbody>
+<tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>japanese-pos</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
+<tr><td><code>korean-pos</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
+<tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>chinese-pos</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
+</tbody>
+</table>
+</div>
+<p>1 イテレーションでコーパス全行を分割し（外部ベンチと同様、行のフィルタなし）、
+グループの <code>Throughput::Elements</code> にコーパスの改行を除く文字数を設定しているため、
+Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</strong> として読めます。</p>
+<p>コーパスは <code>resources/</code> に外部ベンチとバイト同一で同梱しています:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>コーパス</th><th>サイズ</th><th>出典</th></tr>
+</thead>
+<tbody>
+<tr><td>wagahaiwa_nekodearu.txt</td><td>約 1.1 MB</td><td>吾輩は猫である（夏目漱石）、青空文庫、パブリックドメイン</td></tr>
+<tr><td>mujeong.txt</td><td>約 786 KB</td><td>무정（李光洙、1917）、ko.wikisource、パブリックドメイン — 分かち書きされた現代表記の韓国語で、空白対応 korean.model の想定入力</td></tr>
+<tr><td>rulin_waishi.txt</td><td>約 985 KB</td><td>儒林外史（呉敬梓）、zh.wikisource、パブリックドメイン — UD Chinese-GSD と同じ繁体字</td></tr>
+</tbody>
+</table>
+</div>
+<p>数値は公表されている tokenizer-speed-bench の値と比較可能ですが、方法論の違いに
+より完全には一致しません: Criterion はプロセス内のウォームアップ + サンプリング
+（外部ベンチは 101 回のプロセスインターリーブ実行）であり、<code>cargo bench</code> は litsea の
+チューニング済み release プロファイル（thin LTO、codegen-units=1）を継承します
+（外部ベンチのクレートはデフォルトの release プロファイル）。</p>
 <h2 id="html-レポート"><a class="header" href="#html-レポート">HTML レポート</a></h2>
 <p>Criterion は、統計情報と比較グラフを含む詳細な HTML レポートを以下の場所に生成します:</p>
 <pre><code class="language-text">target/criterion/report/index.html
@@ -3628,8 +3673,15 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <h2 id="サンプルデータ"><a class="header" href="#サンプルデータ">サンプルデータ</a></h2>
 <p><code>resources/</code> ディレクトリには以下も含まれています:</p>
 <ul>
-<li><strong>bocchan.txt</strong> – 夏目漱石の小説「坊っちゃん」のサンプル日本語コーパス（約 307 KB）。ベンチマークに使用されます。</li>
+<li><strong>bocchan.txt</strong> – 坊っちゃん（夏目漱石）、約 307 KB。<code>segment_long_japanese</code> ベンチマークと差分テストに使用。</li>
+<li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。</li>
+<li><strong>mujeong.txt</strong> – 무정（李光洙、1917）、約 786 KB、ko.wikisource。</li>
+<li><strong>rulin_waishi.txt</strong> – 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。</li>
 </ul>
+<p>後半の 3 つは外部の
+<a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
+のコーパスとバイト同一で、<code>external_corpus</code> ベンチマークグループが使用します
+（<a href="#ベンチマーク">ベンチマーク</a>を参照）。いずれもパブリックドメインです。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ライセンス"><a class="header" href="#ライセンス">ライセンス</a></h1>
 <p>Litsea はデュアルライセンスで配布されています。</p>

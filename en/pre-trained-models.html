@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-aa7b8a58.js";
+            window.path_to_searchindex_js = "searchindex-2d83884d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-9fc4699e.js"></script>
@@ -341,10 +341,17 @@ written without spaces, so their protocol is unchanged.</p>
 <li>For <strong>domain-specific</strong> needs, consider <a href="training-guide/preparing-corpus.html">training your own model</a> or <a href="training-guide/retraining-models.html">retraining</a> an existing one</li>
 </ul>
 <h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>
-<p>The <code>resources/</code> directory also contains sample data:</p>
+<p>The <code>resources/</code> directory also contains sample data used for benchmarking:</p>
 <ul>
-<li><strong>bocchan.txt</strong> – Sample Japanese corpus from the novel “Botchan” by Natsume Soseki (~307 KB). Used for benchmarking.</li>
+<li><strong>bocchan.txt</strong> – 坊っちゃん (Natsume Soseki), ~307 KB. Used by the <code>segment_long_japanese</code> benchmarks and differential tests.</li>
+<li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である (Natsume Soseki), ~1.1 MB, Aozora Bunko.</li>
+<li><strong>mujeong.txt</strong> – 무정 (Yi Kwang-su, 1917), ~786 KB, ko.wikisource.</li>
+<li><strong>rulin_waishi.txt</strong> – 儒林外史 (Wu Jingzi), ~985 KB, zh.wikisource.</li>
 </ul>
+<p>The last three are byte-identical to the corpora of the external
+<a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
+harness and feed the <code>external_corpus</code> benchmark group (see
+<a href="advanced/benchmarking.html">Benchmarking</a>). All are public domain.</p>
 
                     </main>
 

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-aa7b8a58.js";
+            window.path_to_searchindex_js = "../searchindex-2d83884d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-9fc4699e.js"></script>
@@ -199,6 +199,7 @@
 <tr><td><code>segment_short/adaboost/{japanese,chinese,korean}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
 <tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean}</code></td><td>Segment + POS tag a short sentence</td></tr>
 <tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~300 KB)</td></tr>
+<tr><td><code>external_corpus/*</code></td><td>Corpus throughput, mirroring tokenizer-speed-bench (see below)</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>Character type classification</td></tr>
 <tr><td><code>add_corpus</code></td><td>Corpus ingestion for training</td></tr>
 <tr><td><code>predict_adaboost</code></td><td>Single AdaBoost prediction</td></tr>
@@ -206,6 +207,52 @@
 </table>
 </div>
 <p>Models are loaded synchronously with <code>load_model_from_path</code> — no async runtime is involved in the benchmarks.</p>
+<h2 id="corpus-throughput-external_corpus"><a class="header" href="#corpus-throughput-external_corpus">Corpus Throughput (<code>external_corpus</code>)</a></h2>
+<p>The <code>external_corpus</code> group reproduces the seven litsea benches of the
+external <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
+harness in-repo, so throughput regressions can be caught with <code>cargo bench</code>
+alone:</p>
+<pre><code class="language-sh">cargo bench --bench bench -- external_corpus
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Bench id</th><th>Model</th><th>Corpus</th></tr>
+</thead>
+<tbody>
+<tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>japanese-pos</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
+<tr><td><code>korean-pos</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
+<tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>chinese-pos</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
+</tbody>
+</table>
+</div>
+<p>One iteration segments every line of the corpus (unfiltered, like the
+external harness), and the group sets <code>Throughput::Elements</code> to the
+corpus’s newline-free character count, so Criterion’s <code>elem/s</code> figures
+read directly as <strong>chars/sec</strong>.</p>
+<p>The corpora live in <code>resources/</code>, byte-identical to the external harness:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Corpus</th><th>Size</th><th>Source</th></tr>
+</thead>
+<tbody>
+<tr><td>wagahaiwa_nekodearu.txt</td><td>~1.1 MB</td><td>吾輩は猫である (Natsume Soseki), Aozora Bunko, public domain</td></tr>
+<tr><td>mujeong.txt</td><td>~786 KB</td><td>무정 (Yi Kwang-su, 1917), ko.wikisource, public domain — naturally spaced modern Korean, matching the space-aware korean.model</td></tr>
+<tr><td>rulin_waishi.txt</td><td>~985 KB</td><td>儒林外史 (Wu Jingzi), zh.wikisource, public domain — Traditional Chinese, matching UD Chinese-GSD</td></tr>
+</tbody>
+</table>
+</div>
+<p>Numbers are comparable to, but not identical with, the published
+tokenizer-speed-bench figures, for two methodological reasons: Criterion
+uses in-process warmup and sampling instead of 101 process-interleaved
+single passes, and <code>cargo bench</code> inherits litsea’s tuned release profile
+(thin LTO, single codegen unit) while the external bench crates build with
+the default release profile.</p>
 <h2 id="html-reports"><a class="header" href="#html-reports">HTML Reports</a></h2>
 <p>Criterion generates detailed HTML reports with statistics and comparison graphs at:</p>
 <pre><code class="language-text">target/criterion/report/index.html

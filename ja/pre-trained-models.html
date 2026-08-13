@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f903e752.js";
+            window.path_to_searchindex_js = "searchindex-3a92af0c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-59d64227.js"></script>
@@ -341,8 +341,15 @@
 <h2 id="サンプルデータ"><a class="header" href="#サンプルデータ">サンプルデータ</a></h2>
 <p><code>resources/</code> ディレクトリには以下も含まれています:</p>
 <ul>
-<li><strong>bocchan.txt</strong> – 夏目漱石の小説「坊っちゃん」のサンプル日本語コーパス（約 307 KB）。ベンチマークに使用されます。</li>
+<li><strong>bocchan.txt</strong> – 坊っちゃん（夏目漱石）、約 307 KB。<code>segment_long_japanese</code> ベンチマークと差分テストに使用。</li>
+<li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。</li>
+<li><strong>mujeong.txt</strong> – 무정（李光洙、1917）、約 786 KB、ko.wikisource。</li>
+<li><strong>rulin_waishi.txt</strong> – 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。</li>
 </ul>
+<p>後半の 3 つは外部の
+<a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
+のコーパスとバイト同一で、<code>external_corpus</code> ベンチマークグループが使用します
+（<a href="advanced/benchmarking.html">ベンチマーク</a>を参照）。いずれもパブリックドメインです。</p>
 
                     </main>
 
