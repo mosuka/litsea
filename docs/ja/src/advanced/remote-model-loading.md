@@ -34,7 +34,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 0.6.0 以降、`remote_model` フィーチャーは**オプトイン**です（ライブラリのデフォルトはローカル読み込みのみとし、依存関係のツリーをコンパクトに保っています）。CLI ではこのフィーチャーが有効化されているため、`litsea segment https://...` はそのまま動作します。ライブラリ利用者は以下が必要です:
 
 ```toml
-litsea = { version = "0.6.0", features = ["remote_model"] }
+litsea = { version = "0.8.0", features = ["remote_model"] }
 ```
 
 ## 実装の詳細
@@ -58,10 +58,17 @@ litsea = { version = "0.6.0", features = ["remote_model"] }
 
 ## WASM に関する注意事項
 
-`wasm32` ターゲットでは:
+`wasm32` ターゲットは、`remote_model` フィーチャーを**無効にした状態**でのみ CI で
+チェックされています
+（`cargo check -p litsea --target wasm32-unknown-unknown --no-default-features`）:
 
-- **ローカルファイルパスは非対応** -- ファイルシステムへのアクセスが利用できない
-- **`file://` スキームは非対応**
-- **HTTP/HTTPS の読み込みは動作する** -- ブラウザの fetch API 経由（reqwest の WASM サポート）
+- **`wasm32` では HTTP/HTTPS の読み込みは現在サポートされていません** -- HTTP
+  クライアントの構成が reqwest の `ClientBuilder::connect_timeout` と
+  `timeout` を使用しており、reqwest の WASM クライアントがこれらを提供していない
+  ため、`remote_model` フィーチャーはこのターゲットではビルドできません
+- **ローカルファイルパスと `file://` スキームも非対応です** --
+  ファイルシステムへのアクセスが利用できないため、`read_file_bytes` は
+  `Unsupported` エラーを返します
 
-WASM 環境で実行する場合、ファイルパスの代わりに URL を使用するようエラーメッセージが案内します。
+したがって `wasm32` では、ホスト環境から供給されたモデルのバイト列を
+`load_model_from_reader` に渡すなど、別の手段でモデルを与える必要があります。

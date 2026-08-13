@@ -118,7 +118,7 @@ fn bench_segment_long(c: &mut Criterion) {
 
 fn bench_char_type(c: &mut Criterion) {
     let segmenter = Segmenter::new(Language::Japanese);
-    c.bench_function("get_type_hiragana", |b| {
+    c.bench_function("char_type_hiragana", |b| {
         b.iter(|| black_box(segmenter.char_type(black_box('あ'))));
     });
 }

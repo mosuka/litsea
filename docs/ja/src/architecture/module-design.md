@@ -45,14 +45,15 @@ graph TD
 - **`Language`** -- `Japanese`・`Chinese`・`Korean` のバリアントを持つ enum
   - `FromStr` を実装（`"japanese"`・`"ja"`・`"chinese"`・`"zh"`・`"korean"`・`"ko"` をパース）
   - `Display` を実装（小文字名を出力）
-  - `char_type(c: char) -> &'static str` -- 文字範囲に対する `match` で文字を直接分類（アロケーションなし・正規表現不使用）。言語別関数（`japanese_char_type` など）が、共通の `"P"`/`"A"`/`"N"` クラス用の `punct_latin_digit()` ヘルパーを共有します。
+  - `char_type(c: char) -> &'static str` -- 非公開の `char_type_id()` が返す数値の type id に対するテーブル参照として文字を分類します。`char_type_id()` は言語別関数（`japanese_char_type_id` など）にディスパッチし、各関数は文字範囲に対する直接の `match` として実装されています（アロケーションなし・正規表現不使用）。言語別関数は、共通の `"P"`/`"A"`/`"N"` クラス用の `punct_latin_digit()` ヘルパーを共有します。
 
 ### `segmenter.rs` -- 単語分割と品詞付与
 
 主要なユーザー向けモジュールです。
 
 - **`Segmenter`** -- `Language`、`AdaBoost` 学習器、オプションの `AveragedPerceptron` 品詞学習器を保持（フィールドは非公開。`language()`・`learner()`・`learner_mut()`・`pos_learner()`・`pos_learner_mut()` を使用）
-  - `new(language, learner)` -- 学習済みモデル（任意）付きでセグメンターを作成
+  - `new(language)` -- デフォルト（空）の AdaBoost 学習器付きでセグメンターを作成
+  - `with_learner(language, learner)` -- 設定済みの AdaBoost 学習器（例: 学習済みモデルを読み込んだもの）付きでセグメンターを作成
   - `with_pos_learner(language, pos_learner)` -- 分割+品詞付与用のセグメンターを作成
   - `segment(sentence)` -- テキストを単語に分割し `Vec<String>` を返す
   - `segment_with_pos(sentence)` -- 分割と品詞付与を行い `Result<Vec<(String, Upos)>>` を返す（POS 学習器が未設定の場合は `PosLearnerNotSet`）
@@ -80,7 +81,7 @@ graph TD
 
 - **`AveragedPerceptron`**
   - `add_instance(features, label)` -- 学習インスタンスを追加
-  - `train(num_epochs, running)` -- 重み平均化付きで学習
+  - `train(num_epochs, running)` -- 重み平均化付きで学習（`running: &AtomicBool`）
   - `predict(&features)` -- 最良クラスのラベルを予測
   - `load_model(uri)`（async）/ `load_model_from_path(path)` / `load_model_from_reader(reader)` -- モデルの読み込み
   - `save_model(path)` -- モデルを保存
@@ -114,7 +115,7 @@ graph TD
 
 ### `error.rs` -- エラー処理
 
-- **`LitseaError`** -- エラー enum（`Io`・`InvalidData`・`InvalidInput`・`Unsupported`、`remote_model` フィーチャー時は `Download` も）
+- **`LitseaError`** -- エラー enum（`Io`・`InvalidData`・`InvalidInput`・`Unsupported`・`PosLearnerNotSet`、`remote_model` フィーチャー時は `Download` も）。`#[non_exhaustive]` が付与されているため、外部の `match` 式にはワイルドカードアームが必要です
 - **`Result<T>`** -- すべての失敗しうるAPIが使うエイリアス
 
 ### `metrics.rs` -- 評価指標
@@ -155,12 +156,12 @@ pub mod upos;
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
 pub use extractor::Extractor;
-pub use language::Language;
+pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
 pub use trainer::{PosTrainer, Trainer};
-pub use upos::{SegmentLabel, Upos};
+pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 pub fn version() -> &'static str { ... }
 ```

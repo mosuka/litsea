@@ -1,10 +1,122 @@
 # Changelog
 
-## 0.6.0 (unreleased)
+## Unreleased
 
-Note: crates.io already has 0.5.0 published, so the accumulated unreleased
-changes below (originally drafted under a "0.5.0 (unreleased)" heading)
-will ship as 0.6.0. This release contains the breaking API changes from
+### Changed
+
+- The bundled AdaBoost segmentation models were retrained with more boosting
+  iterations (#151). The previous models were trained with the CLI defaults
+  (`-t 0.01 -i 100`); AdaBoost selects one feature per boosting iteration, so
+  they contained only 40-50 features and performed far below their potential
+  on held-out text. All three models are retrained on their existing UD GSD
+  training corpora with `-t 0.0001 -i 20000`. Held-out test-split word F1:
+  `japanese.model` 75.44 → 91.48, `korean.model` 40.96 → 65.37, and
+  `chinese.model` 64.39 → 77.56. The model files grow from ~1.1-1.4 KB to
+  ~18-20 KB each; the file format is unchanged. Golden test expectations were
+  updated for the retrained models.
+
+### Documentation
+
+- The documentation (English and Japanese) now reports held-out word and
+  boundary F1 for the bundled models together with the training options used,
+  and clarifies that the `train` command prints in-sample metrics (#151).
+- The mdbook documentation and source doc comments are re-synchronized with
+  the current implementation (#153). The architecture "Workspace Structure"
+  page is removed: it duplicated `Cargo.toml` and the repository layout and
+  went stale on every release.
+
+## 0.8.0
+
+### Performance
+
+`segment_with_pos()` on the packed two-pass pipeline (#144):
+`segment_with_pos()` still ran the pre-#137 string-keyed pipeline — 42
+feature strings built and double-copied per character, 42 string-keyed hash
+probes, and a per-character class-name parse. The Averaged Perceptron is now
+compiled once at model load into a `PackedPosModel`, the multiclass
+counterpart of the `segment()` scoring tables: char-bearing templates become
+one packed-u64-key hash map with sparse per-class weight rows (perceptron
+updates touch only the gold/predicted pair, so features average 3.3 non-zero
+classes), tag/type-only templates become direct-indexed dense tables with a
+presence bitset so the sequential pass skips rows of absent features
+entirely, and class labels are parsed once at build time. Each sentence is
+scored in two passes: a static pass scatter-adds every tag-free feature into
+an n × n_classes score matrix, and a sequential pass adds the 16
+tag-dependent dense rows and takes the argmax. Long Japanese text:
+198.1 ms → 54.6 ms (3.6x raw, ~3.2x normalized by the untouched AdaBoost
+benchmark). The string-keyed path is kept test-only, and differential tests
+over all three bundled POS models, bocchan lines, and stress sentences
+measure zero output divergence.
+
+An f32 variant of the scoring tables was evaluated and rejected (#145): it
+also measured zero output divergence, but an A/B benchmark in matched
+machine states showed no speedup beyond noise, so the f64 tables stay.
+
+### Documentation
+
+- The prediction-pipeline page describes the packed two-pass POS scorer, and
+  the `packed_model` / `packed_pos_model` private modules were added to the
+  module-design pages and the `lib.rs` listing (English and Japanese) (#144).
+
+## 0.7.0
+
+This release completes the `segment()` scoring rework begun with the packed
+u64 feature keys of #137. There are no API changes, and the on-disk model
+files are unchanged.
+
+### Performance
+
+Packed u64 feature keys (#137; merged as the final commit of v0.6.0 and not
+covered by the 0.6.0 entry below, so described here with the rest of the
+campaign): the AdaBoost model's string feature keys are compiled into packed
+u64 keys (template id in the top byte, tag/type ids in 8 bits, char codes in
+24 bits with sentinels just above the Unicode scalar range) once at model
+load, and `segment()`'s hot loop scores by integer map probes instead of
+formatting 42 `String`s per character and hashing them. The feature strings
+are derived from a declarative 42-entry template table (`packed_model.rs`),
+and `Language::char_type` became a table lookup over numeric char-type ids.
+The compiled table is invalidated by the two learner-mutation gateways
+(`learner_mut`, `add_corpus`) and lazily rebuilt. A miss adds 0.0, so the
+f64 accumulation sequence matches the string-keyed reference bit for bit;
+differential tests pin equality across all bundled models. Throughput on
+the local tinysegmenter comparison harness rose from 698K to ~3.6M chars/s
+(~5x). The on-disk model format is unchanged.
+
+Direct-indexed dense tables for tag/type-only templates (#140): 29 of the 42
+feature templates contain only tag/type slots, whose mixed-radix key spaces
+are tiny (about 9.3K entries / 74 KB total for Japanese). Their weights are
+compiled into per-template dense f64 arrays at model load and scored with a
+single array load instead of a hashed map probe; the 13 char-bearing
+templates (UW/BW/WC) keep the packed-u64 map. Unset dense entries hold 0.0
+and the template iteration order is unchanged, so the segmentation output
+stays bit-for-bit identical.
+
+Two-pass scatter-add scoring (#141): only 16 of the 38-42 feature templates
+depend on earlier boundary decisions. The model is compiled into
+merged-vector tables (char → [UW1..6], char pair → [BW1..3],
+(char, type) → WC, plus scatter-vector views of the UC/BC/TC dense tables),
+and each sentence is scored in two passes: a static pass scatter-adds every
+tag-free feature into a per-position buffer in one sweep, and a sequential
+pass adds the 16 tag-dependent dense loads and decides boundaries.
+Per-position hash probes drop from 13 to about 2 plus WC. The f64
+accumulation order now differs from the string-keyed reference, so
+bit-for-bit output identity is no longer structural; the exact-equality
+differential suite (all bundled models, sentinel stress strings, 100 lines
+of bocchan.txt) passes unchanged and remains the detection net. In-process
+A/B against the previous stage: japanese.model 3.00x, RWCP.model 4.11x
+(11-12M chars/s under load); instruction count drops 3.1x and cycles 3.25x.
+
+### Documentation
+
+- The prediction-pipeline, adaboost, feature-extraction, model-file-format,
+  and adding-a-new-language pages (English and Japanese) were rewritten for
+  the compiled scoring tables and the two-pass scorer (#137, #140, #141).
+
+## 0.6.0
+
+Note: crates.io already had 0.5.0 published, so the accumulated changes
+below (originally drafted under a "0.5.0 (unreleased)" heading) shipped
+as 0.6.0. This release contains the breaking API changes from
 Phase 3 of the refactoring plan (`REFACTORING_PLAN.md`) plus the #97
 quality campaign. Model files remain fully compatible: all pre-trained
 models in `models/` load unchanged.

@@ -90,7 +90,7 @@ litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 | Classification | Binary (boundary / non-boundary) | Multiclass (18 segment labels) |
 | Labels | `1`, `-1` | `B-NOUN`, `B-VERB`, ..., `O` |
 | Hyperparameters | Threshold, Iterations | Number of epochs |
-| Model size | ~18-22 KB | ~11 MB |
+| Model size | ~18-22 KB | ~9-19 MB |
 
 ### POS Hyperparameters
 
@@ -101,7 +101,7 @@ litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 ### POS Training Output
 
 ```text
-Result Metrics:
+Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%

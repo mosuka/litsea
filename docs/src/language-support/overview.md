@@ -14,6 +14,7 @@ Litsea supports word segmentation for three languages through a unified framewor
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -23,6 +24,7 @@ pub enum Language {
 ```
 
 - **Default** is `Japanese`
+- Marked `#[non_exhaustive]` -- new languages can be added without a breaking change, so external `match` expressions need a wildcard arm
 - Implements `FromStr` -- parses from full name or ISO 639-1 code (case-insensitive)
 - Implements `Display` -- outputs the lowercase full name
 
@@ -46,7 +48,7 @@ Each language defines its own **character type patterns** that classify characte
 | Character types | 8 (M, H, I, K, P, A, N, O) | 9 (F, C, X, R, P, B, A, N, O) | 10 (E, SN, SF, J, G, H, P, A, N, O) |
 | WC features | Yes (4 extra) | Yes (4 extra) | No |
 | Total features | 42 | 42 | 38 |
-| Matching method | `match` on char ranges | `match` on char ranges | `match` with a range guard |
+| Matching method | `match` on char ranges | `match` on char ranges | `match` on char ranges + codepoint test |
 
 ### Why Korean Has Fewer Features
 

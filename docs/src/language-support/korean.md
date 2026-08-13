@@ -32,7 +32,7 @@ These particles frequently appear at word boundaries and are given a distinct ty
 
 ### Hangul Syllable Structure (받침 Detection)
 
-Korean uses a **`match` arm with a range guard** for the SN and SF types. This exploits the systematic Unicode Hangul encoding:
+Korean uses a **range arm with a codepoint test in its body** for the SN and SF types. This exploits the systematic Unicode Hangul encoding:
 
 - Hangul Syllables: U+AC00--U+D7AF (11,172 syllables)
 - Each syllable = `(initial * 21 + medial) * 28 + final + 0xAC00`

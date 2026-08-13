@@ -6,7 +6,7 @@ The `litsea` crate provides a Rust API for word segmentation, model training, an
 
 ```toml
 [dependencies]
-litsea = "0.6.0"
+litsea = "0.8.0"
 ```
 
 Loading models from local files is synchronous and needs no async runtime. An async runtime such as `tokio` is only required when loading models over HTTP/HTTPS with the async `load_model` method.

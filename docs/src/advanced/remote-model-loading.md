@@ -37,7 +37,7 @@ so `litsea segment https://...` keeps working out of the box; library users
 need:
 
 ```toml
-litsea = { version = "0.6.0", features = ["remote_model"] }
+litsea = { version = "0.8.0", features = ["remote_model"] }
 ```
 
 ## Implementation Details
@@ -62,10 +62,16 @@ litsea = { version = "0.6.0", features = ["remote_model"] }
 
 ## WASM Considerations
 
-On `wasm32` targets:
+The `wasm32` target is CI-checked only **without** the `remote_model` feature
+(`cargo check -p litsea --target wasm32-unknown-unknown --no-default-features`):
 
-- **Local file paths are not supported** -- file system access is unavailable
-- **`file://` scheme is not supported**
-- **HTTP/HTTPS loading works** via the browser's fetch API (through reqwest's WASM support)
+- **HTTP/HTTPS loading is not currently supported on `wasm32`** -- the HTTP
+  client configuration uses reqwest's `ClientBuilder::connect_timeout` and
+  `timeout`, which reqwest's WASM client does not provide, so the
+  `remote_model` feature does not build for this target
+- **Local file paths and the `file://` scheme are not supported either** --
+  file system access is unavailable, so `read_file_bytes` returns an
+  `Unsupported` error
 
-Error messages guide users to use URLs instead of file paths when running in WASM.
+Models must therefore be supplied by other means on `wasm32`, e.g. by calling
+`load_model_from_reader` with model bytes provided by the host environment.

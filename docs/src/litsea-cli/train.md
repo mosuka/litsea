@@ -23,7 +23,7 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | Maximum number of boosting iterations |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | URI of an existing model to resume training from (file path or HTTP/HTTPS URL) |
 | `--pos` | off | Enable POS (Part-of-Speech) training mode using Averaged Perceptron |
-| `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (POS mode only) |
+| `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (POS mode only) |
 
 ## Output
 
@@ -95,13 +95,13 @@ litsea train --pos [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `--pos` | off | Enable POS training mode |
-| `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs |
+| `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs |
 
 ### Examples
 
 ```sh
 # Train a POS model from POS features
-litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
+litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.model
 ```
 
 ### Output
@@ -109,7 +109,7 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 POS training metrics are printed to stderr (macro-averaged precision and recall):
 
 ```text
-Result Metrics:
+Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%

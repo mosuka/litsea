@@ -64,7 +64,7 @@ pub const ALL: [Upos; 17]
 ### トレイト実装
 
 - `Display`: `"NOUN"`, `"VERB"` などの文字列に変換
-- `FromStr`: 文字列から `Upos` にパース。不正な文字列にはエラーを返す
+- `FromStr`: 文字列から `Upos` にパース。不正な文字列には `ParseUposError` を返す
 
 ```rust
 use litsea::upos::Upos;
@@ -72,6 +72,10 @@ use litsea::upos::Upos;
 let pos: Upos = "NOUN".parse().unwrap();
 assert_eq!(pos.to_string(), "NOUN");
 ```
+
+### ParseUposError
+
+`ParseUposError`（クレートルートから `litsea::ParseUposError` として再エクスポート）は、文字列が有効な UPOS タグでない場合に返されます。`input()` アクセサはパースに失敗した文字列を返し、エラーメッセージは `Unknown UPOS tag: '<input>'` となります。
 
 ## SegmentLabel
 
@@ -107,7 +111,7 @@ use litsea::upos::SegmentLabel;
 pub fn all_labels() -> Vec<SegmentLabel>
 ```
 
-全 18 ラベル（B-ADJ, B-ADP, ..., B-X, O）の一覧を返します。
+全 18 個の `SegmentLabel` 値（文字列ではありません）のベクタを返します: 17 個の `B(Upos)` ラベルの後に `O` が続きます。
 
 #### `is_boundary`
 
@@ -128,7 +132,7 @@ pub fn pos(&self) -> Option<Upos>
 ### トレイト実装
 
 - `Display`: `"B-NOUN"`, `"O"` などの文字列に変換
-- `FromStr`: 文字列から `SegmentLabel` にパース
+- `FromStr`: 文字列から `SegmentLabel` にパース。不正な文字列には `ParseSegmentLabelError` を返す
 
 ```rust
 use litsea::upos::{SegmentLabel, Upos};
@@ -141,3 +145,10 @@ let label_o: SegmentLabel = "O".parse().unwrap();
 assert!(!label_o.is_boundary());
 assert_eq!(label_o.pos(), None);
 ```
+
+### ParseSegmentLabelError
+
+`ParseSegmentLabelError`（クレートルートから `litsea::ParseSegmentLabelError` として再エクスポート）は、文字列が有効なセグメントラベルでない場合に返されます。2 つのバリアントがあります:
+
+- `InvalidFormat` -- 文字列が `O` でも `B-<UPOS>` 形式でもない（メッセージ: `Invalid segment label: '<input>'. Expected 'O' or 'B-<UPOS>'`）
+- `InvalidPos` -- `B-` プレフィックスはあるが POS 部分のパースに失敗した（内部の `ParseUposError` をラップする）

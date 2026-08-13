@@ -32,7 +32,7 @@ types: [..., "P",  "O",  "O",  "O" ]
 
 ### Step 4: Iterate and Predict
 
-For each position `i` from 4 to `len(chars) - 3`:
+For each position `i` from 4 through `len(chars) - 4` (inclusive):
 
 ```text
 i=4 (れ): Extract features → predict → label=-1 (O) → word="これ"

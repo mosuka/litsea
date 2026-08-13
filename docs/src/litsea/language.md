@@ -6,6 +6,7 @@ The `Language` enum defines language-specific behavior, including character type
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -13,6 +14,8 @@ pub enum Language {
     Korean,
 }
 ```
+
+The enum is marked `#[non_exhaustive]` because new languages are expected to be added without a breaking change; external `match` expressions over `Language` therefore need a wildcard arm (`_ => ...`).
 
 ### Traits
 
@@ -61,4 +64,18 @@ assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 ```
 
-Internally, `char_type` dispatches to a private per-language function (`japanese_char_type`, `chinese_char_type`, `korean_char_type`). The classes common to all languages -- `"P"` (punctuation), `"A"` (Latin), and `"N"` (digits) -- are handled by a shared helper that is checked after the language-specific classes.
+Internally, `char_type` is a table lookup over the numeric type id returned by a private per-language function (`japanese_char_type_id`, `chinese_char_type_id`, `korean_char_type_id`), so string codes and numeric ids cannot drift apart. The classes common to all languages -- `"P"` (punctuation), `"A"` (Latin), and `"N"` (digits) -- are handled by a shared helper that is checked after the language-specific classes.
+
+## ParseLanguageError
+
+Parsing a `Language` from a string fails with `ParseLanguageError`, which is re-exported at the crate root (`litsea::ParseLanguageError`):
+
+```rust
+use litsea::language::{Language, ParseLanguageError};
+
+let err: ParseLanguageError = "french".parse::<Language>().unwrap_err();
+assert_eq!(err.input(), "french");
+```
+
+- `input()` -- Returns the string that failed to parse
+- The error message enumerates the supported languages: `Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)`

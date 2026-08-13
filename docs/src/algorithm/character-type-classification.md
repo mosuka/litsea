@@ -6,7 +6,7 @@ Each language in Litsea defines a set of **character type patterns** that classi
 
 `Language::char_type(c: char) -> &'static str` classifies a character with a direct `match` expression on Unicode character ranges — no regex, no allocation. Match arms are tried top to bottom, so the **first matching arm** determines the type code. If no arm matches, the character is classified as `"O"` (Other).
 
-Each language has its own classification function (`japanese_char_type`, `chinese_char_type`, `korean_char_type`); the classes shared by all languages — `"P"` (punctuation), `"A"` (Latin), `"N"` (digits) — live in a common `punct_latin_digit()` helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with match guards (e.g., Korean Hangul syllable structure).
+Each language has its own classification function returning a numeric type id (`japanese_char_type_id`, `chinese_char_type_id`, `korean_char_type_id`); `char_type` is a table lookup over the returned id, so string codes and numeric ids stay consistent by construction. The classes shared by all languages — `"P"` (punctuation), `"A"` (Latin), `"N"` (digits) — live in a common `punct_latin_digit()` helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with extra code inside an arm body (e.g., Korean's codepoint test for Hangul syllable structure).
 
 ## Japanese Character Types
 
@@ -62,7 +62,7 @@ Each language has its own classification function (`japanese_char_type`, `chines
 
 ### Korean Hangul Syllable Detection
 
-Korean uses a **match guard** for the SN and SF types. This leverages Unicode's systematic Hangul encoding:
+Korean uses a **range arm with a codepoint test** for the SN and SF types. This leverages Unicode's systematic Hangul encoding:
 
 - Hangul Syllables occupy U+AC00--U+D7AF
 - Each syllable is encoded as: `(initial * 21 + medial) * 28 + final + 0xAC00`
@@ -78,5 +78,5 @@ This distinction is important because the presence of a final consonant (받침)
 | Total types | 8 | 9 | 10 |
 | Unique types | M, H, I, K | F, C, X, R, B | E, SN, SF, J, G |
 | Shared types | P, A, N, O | P, A, N, O | P, A, N, O (H shared with JP) |
-| Matching method | Range match | Range match | Range match + guard |
+| Matching method | Range match | Range match | Range match + codepoint test |
 | WC features used | Yes | Yes | No |

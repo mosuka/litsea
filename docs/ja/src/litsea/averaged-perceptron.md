@@ -61,7 +61,7 @@ pub fn train(&mut self, num_epochs: usize, running: &AtomicBool)
 use std::sync::atomic::AtomicBool;
 
 let running = AtomicBool::new(true);
-learner.train(10, running);
+learner.train(10, &running);
 ```
 
 ## 予測

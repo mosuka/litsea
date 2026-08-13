@@ -64,7 +64,7 @@ Returns an array of all 17 UPOS tags.
 ### Trait Implementations
 
 - `Display`: Converts to a string such as `"NOUN"`, `"VERB"`, etc.
-- `FromStr`: Parses a string into `Upos`. Returns an error for invalid strings.
+- `FromStr`: Parses a string into `Upos`. Returns a `ParseUposError` for invalid strings.
 
 ```rust
 use litsea::upos::Upos;
@@ -72,6 +72,10 @@ use litsea::upos::Upos;
 let pos: Upos = "NOUN".parse().unwrap();
 assert_eq!(pos.to_string(), "NOUN");
 ```
+
+### ParseUposError
+
+`ParseUposError` (re-exported at the crate root as `litsea::ParseUposError`) is returned when a string is not a valid UPOS tag. Its `input()` accessor returns the string that failed to parse, and the message reads `Unknown UPOS tag: '<input>'`.
 
 ## SegmentLabel
 
@@ -107,7 +111,7 @@ use litsea::upos::SegmentLabel;
 pub fn all_labels() -> Vec<SegmentLabel>
 ```
 
-Returns a vector of all 18 segment label strings.
+Returns a vector of all 18 `SegmentLabel` values (not strings): the 17 `B(Upos)` labels followed by `O`.
 
 #### `is_boundary`
 
@@ -128,7 +132,7 @@ Returns the UPOS tag. Returns `None` for the non-boundary label (`O`).
 ### Trait Implementations
 
 - `Display`: Converts to a string such as `"B-NOUN"`, `"O"`, etc.
-- `FromStr`: Parses a string into `SegmentLabel`.
+- `FromStr`: Parses a string into `SegmentLabel`. Returns a `ParseSegmentLabelError` for invalid strings.
 
 ```rust
 use litsea::upos::{SegmentLabel, Upos};
@@ -141,3 +145,10 @@ let label_o: SegmentLabel = "O".parse().unwrap();
 assert!(!label_o.is_boundary());
 assert_eq!(label_o.pos(), None);
 ```
+
+### ParseSegmentLabelError
+
+`ParseSegmentLabelError` (re-exported at the crate root as `litsea::ParseSegmentLabelError`) is returned when a string is not a valid segment label. It has two variants:
+
+- `InvalidFormat` -- the string is neither `O` nor of the form `B-<UPOS>` (message: `Invalid segment label: '<input>'. Expected 'O' or 'B-<UPOS>'`)
+- `InvalidPos` -- the `B-` prefix was present but the POS part failed to parse (wraps the underlying `ParseUposError`)

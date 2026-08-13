@@ -33,19 +33,19 @@ flowchart TD
 
 1. `Extractor` がコーパスの各行を読み込む
 2. 各文に対して、文字配列・文字種配列・タグ配列を持つ `Segmenter` コンテキストを作成する
-3. 各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む
+3. 各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む。`--pos` パイプラインでは先頭位置も出力され、最初の単語の品詞タグが学習データに含まれるようになっている
 
 ## 特徴量ファイルの形式
 
-各行は1つの文字位置を表します:
+各行は1つの文字位置を表します。コーパス行 `これ は テスト です 。` に対する最初の2行は次のとおりです:
 
 ```text
-1	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
--1	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
+-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 ```
 
 - 最初の列: ラベル（`1` = 境界、`-1` = 非境界）
-- 残りの列: 特徴量（タブ区切り）
+- 残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は `BC1:` 特徴量から始まる）
 
 ## 品詞付き特徴量の抽出
 
@@ -74,14 +74,16 @@ litsea extract --pos -l japanese ./corpus.txt ./features.txt
 
 ### 品詞特徴量ファイルの形式
 
+品詞付きコーパス行 `これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT` に対する最初の3行は次のとおりです:
+
 ```text
-B-NOUN	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
-O	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
-B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
+B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 ```
 
-- 最初の列: セグメントラベル（例: `B-NOUN`、`O`）
-- 残りの列: 特徴量（タブ区切り）
+- 最初の列: セグメントラベル（例: `B-PRON`、`O`）
+- 残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は `BC1:` 特徴量から始まる）
 
 ## ファイルサイズの目安
 

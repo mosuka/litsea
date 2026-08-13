@@ -14,6 +14,7 @@ Litseaは、`Language` 列挙型に基づく統一的なフレームワークを
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -23,6 +24,7 @@ pub enum Language {
 ```
 
 - **デフォルト**は `Japanese`
+- `#[non_exhaustive]` 付き -- 新しい言語を破壊的変更なしに追加できるため、外部の `match` 式にはワイルドカードアームが必要
 - `FromStr` を実装 -- 完全な言語名またはISO 639-1コードからパース可能（大文字小文字を区別しない）
 - `Display` を実装 -- 小文字の完全な言語名を出力
 
@@ -46,7 +48,7 @@ let err = "french".parse::<Language>();          // Err(...)
 | 文字タイプ数 | 8 (M, H, I, K, P, A, N, O) | 9 (F, C, X, R, P, B, A, N, O) | 10 (E, SN, SF, J, G, H, P, A, N, O) |
 | WC特徴量 | あり（4個追加） | あり（4個追加） | なし |
 | 総特徴量数 | 42 | 42 | 38 |
-| マッチング方式 | `match`（文字範囲） | `match`（文字範囲） | `match`（範囲ガード） |
+| マッチング方式 | `match`（文字範囲） | `match`（文字範囲） | `match`（文字範囲）+ コードポイント判定 |
 
 ### 韓国語の特徴量が少ない理由
 

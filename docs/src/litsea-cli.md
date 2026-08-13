@@ -2,6 +2,8 @@
 
 The `litsea` CLI provides commands for word segmentation, model training, and text processing.
 
+The CLI binary is built with the library's `remote_model` feature enabled, so `http(s)://` model URIs work out of the box -- unlike the `litsea` library itself, whose default features do not include remote loading.
+
 ## Usage
 
 ```sh

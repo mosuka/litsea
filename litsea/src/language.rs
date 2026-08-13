@@ -1,3 +1,10 @@
+//! Supported languages and character type classification.
+//!
+//! Defines [`Language`] and the per-language character classification
+//! rules: every character maps to a language-specific type code (e.g. "H"
+//! for hiragana) through direct `match`-based Unicode range checks, feeding
+//! the type-based feature templates of the segmenter.
+
 use std::fmt;
 use std::str::FromStr;
 
@@ -103,6 +110,9 @@ impl Language {
     /// Returns "O" (Other) if the character does not belong to any class.
     /// Implemented as a table lookup over [`char_type_id`](Self::char_type_id),
     /// so the string codes and the numeric ids are consistent by construction.
+    ///
+    /// # Arguments
+    /// * `c` - The character to classify.
     #[must_use]
     pub fn char_type(&self, c: char) -> &'static str {
         self.type_codes()[self.char_type_id(c) as usize]

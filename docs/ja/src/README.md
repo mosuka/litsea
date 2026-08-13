@@ -48,7 +48,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 
 ## 現在のバージョン
 
-Litsea v0.6.0（未リリース） -- Rust Edition 2024、最低 Rust バージョン 1.87。
+Litsea v0.8.0 -- Rust Edition 2024、最低 Rust バージョン 1.87。
 
 ## リンク
 

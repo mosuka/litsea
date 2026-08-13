@@ -1,3 +1,10 @@
+//! Text segmentation engine.
+//!
+//! Defines [`Segmenter`], which performs word segmentation (AdaBoost) and
+//! joint segmentation + POS tagging (Averaged Perceptron), scoring through
+//! the packed tables of [`crate::packed_model`] / [`crate::packed_pos_model`].
+//! Also hosts the corpus-processing pipeline used to build training features.
+
 use std::collections::HashSet;
 use std::sync::{PoisonError, RwLock};
 
@@ -371,7 +378,11 @@ impl Segmenter {
     /// * `writer` - A closure that takes a HashSet of attributes and a label (i8) and writes them.
     ///
     /// # Note
-    /// The writer function is called for each word in the corpus, allowing for custom handling of the attributes and labels.
+    /// The writer function is called once for each character position in the
+    /// corpus except the first (whose boundary label is degenerate: it always
+    /// starts a word), receiving the position's attribute set and boundary
+    /// label (1 = word start, -1 = continuation). For example, "テスト です"
+    /// has five characters, so the writer is invoked four times.
     ///
     /// # Example
     /// ```
@@ -384,7 +395,8 @@ impl Segmenter {
     /// });
     /// ```
     ///
-    /// This will process the corpus and call the writer function for each word, passing the attributes and label.
+    /// This will process the corpus and call the writer function for each
+    /// character position except the first, passing the attributes and label.
     pub fn add_corpus_with_writer<F>(&self, corpus: &str, writer: F)
     where
         F: FnMut(HashSet<String>, i8),
@@ -470,8 +482,13 @@ impl Segmenter {
     /// A vector of strings, where each string is a segmented word from the sentence.
     ///
     /// # Note
-    /// The method processes the sentence character by character, using the AdaBoost learner to predict whether a character is the beginning of a new word or not.
-    /// It constructs attributes based on the surrounding characters and their types, allowing for accurate segmentation.
+    /// The method scores each character position through the compiled
+    /// [`crate::packed_model::PackedModel`] in two passes — a scatter-add
+    /// static pass over the tag-independent features and a sequential pass
+    /// over the 16 tag-dependent dense templates — deciding at each position
+    /// whether it starts a new word. No attribute strings are constructed:
+    /// the AdaBoost learner is only consulted for its bias term and to
+    /// (re)build the packed table after a learner mutation.
     /// If the sentence is empty, it returns an empty vector.
     ///
     /// # Example
@@ -1144,7 +1161,7 @@ mod tests {
         assert!(attrs.contains("WC2:Oい")); // c3 + w4
         assert!(attrs.contains("WC3:あO")); // w3 + c3
         assert!(attrs.contains("WC4:いI")); // w4 + c4
-        // 38 base features (UW/BW/TW/UC/BC/TC/UP/BP/TP) + 4 WC features (Japanese-specific)
+        // 38 base features (UP/BP/UW/BW/UC/BC/TC/UQ/BQ/TQ) + 4 WC features (Japanese-specific)
         assert_eq!(attrs.len(), 42);
     }
 

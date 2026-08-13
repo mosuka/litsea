@@ -41,7 +41,7 @@ Patterns are evaluated in order. Notably:
 
 - **Training corpus**: JEITA Project Sugita Genpaku corpus
 - **Tokenizer**: ChaSen with IPAdic dictionary
-- **Size**: ~17 KB
+- **Size**: ~16 KB
 
 ## Example
 
