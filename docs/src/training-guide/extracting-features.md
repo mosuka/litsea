@@ -33,19 +33,19 @@ flowchart TD
 
 1. The `Extractor` reads each line from the corpus
 2. For each sentence, it creates a `Segmenter` context with character arrays, type arrays, and tag arrays
-3. For each character position (except the first), it extracts features and writes them with the correct label
+3. For each character position (except the first), it extracts features and writes them with the correct label. The `--pos` pipeline also emits the first position, so that the first word's POS tag is part of the training data
 
 ## Feature File Format
 
-Each line represents one character position:
+Each line represents one character position. For the corpus line `これ は テスト です 。`, the first two lines are:
 
 ```text
-1	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
--1	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
+-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 ```
 
 - First column: label (`1` = boundary, `-1` = non-boundary)
-- Remaining columns: features (tab-separated)
+- Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the `BC1:` feature)
 
 ## POS Feature Extraction
 
@@ -74,14 +74,16 @@ The feature template (character n-grams, type n-grams, etc.) is the same as for 
 
 ### POS Feature File Format
 
+For the POS corpus line `これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT`, the first three lines are:
+
 ```text
-B-NOUN	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:は ...
-O	UP1:U	UP2:U	UP3:B	BP1:UB	BP2:BU	UW1:B1	UW2:は	UW3:テ ...
-B-VERB	UP1:U	UP2:U	UP3:U	BP1:UU	BP2:UU	UW1:B2	UW2:B1	UW3:い ...
+B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
+B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 ```
 
-- First column: segment label (e.g., `B-NOUN`, `O`)
-- Remaining columns: features (tab-separated)
+- First column: segment label (e.g., `B-PRON`, `O`)
+- Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the `BC1:` feature)
 
 ## File Size Expectations
 

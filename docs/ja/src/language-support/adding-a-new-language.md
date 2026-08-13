@@ -17,6 +17,7 @@ Litseaの多言語フレームワークは、容易に拡張できるよう設�
 `litsea/src/language.rs` で、`Language` 列挙型に新しいバリアントを追加します。
 
 ```rust
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -25,6 +26,8 @@ pub enum Language {
     Thai,       // ← new language
 }
 ```
+
+この列挙型に `#[non_exhaustive]` が付いているのは、まさに新しい言語の追加が想定されているためです。したがってバリアントの追加は、下流クレートにとって破壊的変更にはなりません。
 
 ## 手順2: Display と FromStr を実装
 
@@ -37,6 +40,8 @@ Language::Thai => write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" => Ok(Language::Thai),
 ```
+
+あわせて `language.rs` の `ParseLanguageError` のメッセージも更新してください。このメッセージはサポート言語を列挙しており（`Supported: japanese (ja), chinese (zh), korean (ko)`）、ユニットテストで固定されているため、メッセージとテストの両方に新しい言語を含める必要があります。
 
 ## 手順3: 文字タイプパターンを作成
 
@@ -62,7 +67,7 @@ fn thai_char_type_id(c: char) -> u8 {
 - 語境界パターンと相関する**言語学的に異なるカテゴリ**を特定する
 - **順序は重要** -- 最初にマッチしたものが優先されるため、より具体的なパターンを汎用的なパターンの前に配置する
 - 中国語の「F」のように、**高頻度の機能語**を別のタイプとして検討する
-- 単純な範囲比較では対応できないロジックには**matchガード**を使用する（韓国語が받침の有無で音節を分割する際に使用しているように）
+- 単純な範囲だけでは足りない場合は**アーム本体内の追加ロジック**を使用する（韓国語が받침の有無で音節を分割するためにコードポイント判定を使用しているように）
 - 共通の「P」/「A」/「N」クラスには、共有ヘルパー `punct_latin_digit()` を再利用する
 - **コード集合は prefix-free に保つ** -- どのコードも他のコードのプレフィックスであってはならない（韓国語の `SN`/`SF` が成立するのは `S` 単独がコードでないため）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証する（言語ごとにユニットテストで固定される）
 
@@ -139,7 +144,7 @@ fn test_thai_char_types() {
 #[test]
 fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type("ก"), "T");
+    assert_eq!(segmenter.char_type('ก'), "T");
 }
 ```
 

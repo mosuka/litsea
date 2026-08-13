@@ -85,12 +85,12 @@ Model files are very compact:
 | japanese_pos.model | ~11 MB | UD Japanese-GSD (POS) |
 | chinese_pos.model | ~19 MB | UD Chinese-GSD (POS) |
 | korean_pos.model | ~8.9 MB | UD Korean-GSD (POS) |
-| JEITA_Genpaku_ChaSen_IPAdic.model | ~17 KB | JEITA corpus |
+| JEITA_Genpaku_ChaSen_IPAdic.model | ~16 KB | JEITA corpus |
 
 The compact size of the word-segmentation models is a key advantage of Litsea -- they can be embedded directly in applications or served over HTTP with minimal overhead. The joint segmentation + POS models are larger (megabytes) because they carry per-class weights.
 
 ## Compatibility
 
 - Model files are **encoding-agnostic** (feature names are stored as-is)
-- The format is **deterministic** (features are sorted via BTreeMap)
+- The format is **deterministic** for the usual training workflow: `save_model` writes features in the learner's feature order, which is sorted (via `BTreeMap`) for learners initialized from a features file or loaded from disk. A learner populated only via `add_instance()` writes features in insertion order instead
 - Models are **forward-compatible** -- new features in the input that are not in the model are simply ignored during prediction

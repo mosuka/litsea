@@ -14,7 +14,7 @@ Both workflows use [Universal Dependencies (UD)](https://universaldependencies.o
 
 1. [Prepare a POS corpus](training-guide/preparing-corpus.md) from a UD Treebank: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) && bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt`
 2. [Extract POS features](training-guide/extracting-features.md): `litsea extract --pos -l japanese pos_corpus.txt features.txt`
-3. [Train a POS model](training-guide/training-models.md): `litsea train --pos --num-epochs 10 features.txt model.txt`
+3. [Train a POS model](training-guide/training-models.md): `litsea train --pos --num-epochs 10 features.txt model.model`
 
 ## Additional Topics
 

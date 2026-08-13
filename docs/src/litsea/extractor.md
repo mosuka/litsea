@@ -18,14 +18,16 @@ pub struct Extractor {
 pub fn new(language: Language) -> Self
 ```
 
-Creates a new extractor for the specified language. Internally creates a `Segmenter` without a pre-trained model.
+Creates a new extractor for the specified language. Internally creates a `Segmenter` without a pre-trained model. `Extractor` also implements `Default`, which is equivalent to `Extractor::new(Language::Japanese)`.
 
 ```rust
 use litsea::extractor::Extractor;
 use litsea::language::Language;
 
-let mut extractor = Extractor::new(Language::Japanese);
+let extractor = Extractor::new(Language::Japanese);
 ```
+
+The extraction methods take `&self`, so the binding does not need to be mutable.
 
 ## Methods
 

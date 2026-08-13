@@ -90,7 +90,7 @@ litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 | 分類 | 二値（境界 / 非境界） | 多クラス（18 セグメントラベル） |
 | ラベル | `1`, `-1` | `B-NOUN`, `B-VERB`, ..., `O` |
 | ハイパーパラメータ | 閾値、反復回数 | エポック数 |
-| モデルサイズ | 約 18-22 KB | 約 11 MB |
+| モデルサイズ | 約 18-22 KB | 約 9-19 MB |
 
 ### 品詞学習のハイパーパラメータ
 
@@ -101,7 +101,7 @@ litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 ### 品詞学習の出力
 
 ```text
-Result Metrics:
+Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%

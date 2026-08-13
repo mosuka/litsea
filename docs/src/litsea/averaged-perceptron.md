@@ -61,7 +61,7 @@ Runs the Averaged Perceptron training loop for the given number of epochs. Set `
 use std::sync::atomic::AtomicBool;
 
 let running = AtomicBool::new(true);
-learner.train(10, running);
+learner.train(10, &running);
 ```
 
 ## Prediction

@@ -45,14 +45,15 @@ Defines the `Language` enum and character type classification.
 - **`Language`** -- Enum with variants `Japanese`, `Chinese`, `Korean`
   - Implements `FromStr` (parses `"japanese"`, `"ja"`, `"chinese"`, `"zh"`, `"korean"`, `"ko"`)
   - Implements `Display` (outputs lowercase name)
-  - `char_type(c: char) -> &'static str` -- Classifies a character with a direct `match` on character ranges (allocation-free; no regex). Language-specific functions (`japanese_char_type`, etc.) share a `punct_latin_digit()` helper for the common `"P"`/`"A"`/`"N"` classes.
+  - `char_type(c: char) -> &'static str` -- Classifies a character as a table lookup over the numeric type id returned by the private `char_type_id()`, which dispatches to a per-language function (`japanese_char_type_id`, etc.) implemented as a direct `match` on character ranges (allocation-free; no regex). The language-specific functions share a `punct_latin_digit()` helper for the common `"P"`/`"A"`/`"N"` classes.
 
 ### `segmenter.rs` -- Word Segmentation and POS Tagging
 
 The main user-facing module.
 
 - **`Segmenter`** -- Holds a `Language`, an `AdaBoost` learner, and an optional `AveragedPerceptron` POS learner (fields are private; use `language()`, `learner()`, `learner_mut()`, `pos_learner()`, `pos_learner_mut()`)
-  - `new(language, learner)` -- Create a segmenter with an optional pre-trained model
+  - `new(language)` -- Create a segmenter with a default (empty) AdaBoost learner
+  - `with_learner(language, learner)` -- Create a segmenter with a pre-configured AdaBoost learner (e.g. one that has loaded a pre-trained model)
   - `with_pos_learner(language, pos_learner)` -- Create a segmenter for joint segmentation + POS tagging
   - `segment(sentence)` -- Segment text into words, returns `Vec<String>`
   - `segment_with_pos(sentence)` -- Segment and tag, returns `Result<Vec<(String, Upos)>>` (`PosLearnerNotSet` without a POS learner)
@@ -114,7 +115,7 @@ High-level training workflows.
 
 ### `error.rs` -- Error Handling
 
-- **`LitseaError`** -- Error enum (`Io`, `InvalidData`, `InvalidInput`, `Unsupported`, and `Download` with the `remote_model` feature)
+- **`LitseaError`** -- Error enum (`Io`, `InvalidData`, `InvalidInput`, `Unsupported`, `PosLearnerNotSet`, and `Download` with the `remote_model` feature). Marked `#[non_exhaustive]`, so downstream `match` expressions need a wildcard arm
 - **`Result<T>`** -- Alias used by every fallible API
 
 ### `metrics.rs` -- Evaluation Metrics
@@ -155,12 +156,12 @@ pub mod upos;
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
 pub use extractor::Extractor;
-pub use language::Language;
+pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
 pub use trainer::{PosTrainer, Trainer};
-pub use upos::{SegmentLabel, Upos};
+pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 pub fn version() -> &'static str { ... }
 ```

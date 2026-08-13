@@ -1,3 +1,10 @@
+//! High-level training front-ends.
+//!
+//! Defines [`Trainer`] (AdaBoost word-boundary model) and [`PosTrainer`]
+//! (Averaged Perceptron POS model). Each reads a features file produced by
+//! [`Extractor`](crate::extractor::Extractor), optionally loads an existing
+//! model, trains, saves the result, and reports training metrics.
+
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -69,7 +76,9 @@ impl Trainer {
     /// * `model_path` - The path to save the trained model.
     ///
     /// # Returns
-    /// Returns a Result indicating success or failure.
+    /// Returns the [`BinaryMetrics`] of the trained model measured on the
+    /// training data: accuracy, precision, recall, and the confusion-matrix
+    /// counts.
     ///
     /// # Errors
     /// Returns an error if the training fails or if the model cannot be saved.
@@ -92,6 +101,14 @@ impl PosTrainer {
     /// # Arguments
     /// * `num_epochs` - The number of training epochs
     /// * `features_path` - The path to the features file
+    ///
+    /// # Returns
+    /// Returns a new instance of `PosTrainer` with the training instances
+    /// loaded from the features file.
+    ///
+    /// # Errors
+    /// Returns an error if the features file cannot be opened or read, or
+    /// if a feature line is missing its label.
     pub fn new(num_epochs: usize, features_path: &Path) -> Result<Self> {
         let mut learner = AveragedPerceptron::new();
 
@@ -125,6 +142,12 @@ impl PosTrainer {
     }
 
     /// Loads an existing model from a URI.
+    ///
+    /// # Arguments
+    /// * `model_uri` - The URI of the model to load (file path or http/https URL).
+    ///
+    /// # Errors
+    /// Returns an error if the model cannot be loaded.
     pub async fn load_model(&mut self, model_uri: &str) -> Result<()> {
         self.learner.load_model(model_uri).await
     }
@@ -134,6 +157,13 @@ impl PosTrainer {
     /// # Arguments
     /// * `running` - A flag for interrupting the training
     /// * `model_path` - The path to save the model to
+    ///
+    /// # Returns
+    /// Returns the [`MulticlassMetrics`] of the trained model measured on
+    /// the training data: accuracy plus macro-averaged precision and recall.
+    ///
+    /// # Errors
+    /// Returns an error if the trained model cannot be saved.
     pub fn train(&mut self, running: &AtomicBool, model_path: &Path) -> Result<MulticlassMetrics> {
         self.learner.train(self.num_epochs, running);
         self.learner.save_model(model_path)?;

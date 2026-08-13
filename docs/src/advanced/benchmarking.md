@@ -20,10 +20,10 @@ The benchmarks are defined in `litsea/benches/bench.rs`:
 
 | Benchmark | Description |
 |-----------|------------|
-| `segment_short/adaboost/{ja,zh,ko}` | Segment a short sentence (AdaBoost) |
-| `segment_short/averaged_perceptron/{ja,zh,ko}` | Segment + POS tag a short sentence |
+| `segment_short/adaboost/{japanese,chinese,korean}` | Segment a short sentence (AdaBoost) |
+| `segment_short/averaged_perceptron/{japanese,chinese,korean}` | Segment + POS tag a short sentence |
 | `segment_long_japanese/{adaboost,averaged_perceptron}` | Process the full Bocchan novel (~300 KB) |
-| `get_type_hiragana` | Character type classification |
+| `char_type_hiragana` | Character type classification |
 | `add_corpus` | Corpus ingestion for training |
 | `predict_adaboost` | Single AdaBoost prediction |
 

@@ -60,7 +60,7 @@ held-out figures.
 | Language | Japanese |
 | Training Corpus | JEITA Project Sugita Genpaku corpus |
 | Tokenizer | ChaSen with IPAdic |
-| File Size | ~17 KB |
+| File Size | ~16 KB |
 
 ## POS Tagging Models
 

@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-litsea = "0.6.0"
+litsea = "0.8.0"
 ```
 
 ローカルファイルからのモデル読み込みは同期 API（`load_model_from_path`）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（`load_model`）を使う場合のみ、非同期ランタイムを追加してください。

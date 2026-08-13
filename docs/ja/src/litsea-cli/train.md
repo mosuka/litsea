@@ -23,7 +23,7 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | ブースティング反復の最大回数 |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | 学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL） |
 | `--pos` | off | 品詞（POS）学習モードを有効にする（Averaged Perceptron を使用） |
-| `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（POS モードのみ） |
+| `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（POS モードのみ） |
 
 ## 出力
 
@@ -95,13 +95,13 @@ litsea train --pos [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `--pos` | off | 品詞推定モデル（Averaged Perceptron）を学習する |
-| `-e`, `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数 |
+| `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数 |
 
 ### 使用例
 
 ```sh
-# 品詞モデルの学習（10エポック）
-litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
+# 品詞特徴量から品詞モデルを学習
+litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.model
 ```
 
 ### 出力
@@ -109,7 +109,7 @@ litsea train --pos -e 10 ./pos_features.txt ./models/japanese_pos.model
 学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。
 
 ```text
-Result Metrics:
+Result Metrics (POS):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%

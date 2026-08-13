@@ -32,7 +32,7 @@ types: [..., "P",  "O",  "O",  "O" ]
 
 ### ステップ 4: 反復と予測
 
-位置 `i` を 4 から `len(chars) - 3` まで繰り返します:
+位置 `i` を 4 から `len(chars) - 4` まで（両端を含む）繰り返します:
 
 ```text
 i=4 (れ): Extract features → predict → label=-1 (O) → word="これ"

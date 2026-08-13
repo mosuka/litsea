@@ -28,6 +28,28 @@ use litsea::adaboost::AdaBoost;
 let mut learner = AdaBoost::new(0.01, 100);
 ```
 
+### `AdaBoost::default`
+
+`AdaBoost` は `Default` も実装しており、`AdaBoost::new(0.01, 100)` と等価です -- これはライブラリと CLI 全体で使われるデフォルトのハイパーパラメータです。
+
+## アクセサ
+
+### `threshold`
+
+```rust
+pub fn threshold(&self) -> f64
+```
+
+この学習器の作成時に指定した早期停止の閾値を返します。
+
+### `num_iterations`
+
+```rust
+pub fn num_iterations(&self) -> usize
+```
+
+ブースティング反復の最大回数を返します。
+
 ## モデルの読み込み
 
 ### `load_model_from_path`

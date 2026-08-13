@@ -1,3 +1,10 @@
+//! Command-line interface for litsea.
+//!
+//! Provides three subcommands: `extract` (turn a corpus into training
+//! features), `train` (train an AdaBoost segmentation model or, with
+//! `--pos`, an Averaged Perceptron POS model), and `segment` (segment
+//! sentences from standard input with a trained model).
+
 use std::error::Error;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
@@ -14,6 +21,7 @@ use litsea::{AdaBoost, AveragedPerceptron, Extractor, Language, PosTrainer, Segm
 #[derive(Debug, Args)]
 #[command(about = "Extract features from a corpus")]
 struct ExtractArgs {
+    /// Language of the corpus (japanese, chinese, or korean)
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
@@ -21,7 +29,9 @@ struct ExtractArgs {
     #[arg(long)]
     pos: bool,
 
+    /// Path to the input corpus file (one pre-segmented sentence per line)
     corpus_file: PathBuf,
+    /// Path to the output features file
     features_file: PathBuf,
 }
 
@@ -29,12 +39,15 @@ struct ExtractArgs {
 #[derive(Debug, Args)]
 #[command(about = "Train a segmenter")]
 struct TrainArgs {
+    /// Early-stopping threshold for AdaBoost training
     #[arg(short, long, default_value = "0.01")]
     threshold: f64,
 
+    /// Maximum number of AdaBoost boosting iterations
     #[arg(short = 'i', long, default_value = "100")]
     num_iterations: usize,
 
+    /// URI of an existing model to load before training (incremental training)
     #[arg(short = 'm', long)]
     load_model_uri: Option<String>,
 
@@ -46,7 +59,9 @@ struct TrainArgs {
     #[arg(long, default_value = "10")]
     num_epochs: usize,
 
+    /// Path to the features file produced by the extract command
     features_file: PathBuf,
+    /// Path to write the trained model to
     model_file: PathBuf,
 }
 
@@ -54,6 +69,7 @@ struct TrainArgs {
 #[derive(Debug, Args)]
 #[command(about = "Segment a sentence")]
 struct SegmentArgs {
+    /// Language of the input text (japanese, chinese, or korean)
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
@@ -61,14 +77,18 @@ struct SegmentArgs {
     #[arg(long)]
     pos: bool,
 
+    /// Model URI: a plain path, file:// path, or http(s):// URL
     model_uri: String,
 }
 
 /// Subcommands for litsea CLI.
 #[derive(Debug, Subcommand)]
 enum Commands {
+    /// Extract features from a corpus
     Extract(ExtractArgs),
+    /// Train a segmenter
     Train(TrainArgs),
+    /// Segment a sentence
     Segment(SegmentArgs),
 }
 
@@ -87,8 +107,11 @@ struct CommandArgs {
 }
 
 /// Extract features from a corpus file and write them to a specified output file.
-/// This function reads sentences from the corpus file, segments them into words,
-/// and writes the extracted features to the output file.
+/// This function reads pre-segmented sentences from the corpus file (the
+/// word boundaries come from the corpus itself) and writes the extracted
+/// features to the output file. With `--pos` the corpus is POS-tagged
+/// ("word/POS word/POS ...") and features are extracted via
+/// `extract_with_pos`; otherwise each line is space-separated words.
 ///
 /// # Arguments
 /// * `args` - The arguments for the extract command [`ExtractArgs`].
@@ -221,10 +244,12 @@ fn flush_output<W: Write>(writer: &mut W) -> io::Result<()> {
     }
 }
 
-/// Segment a sentence using the trained model.
-/// This function loads the AdaBoost model from the specified file,
-/// reads sentences from standard input, segments them into words,
-/// and writes the segmented sentences to standard output.
+/// Segment sentences read from standard input using a trained model.
+/// This function loads the model from the given model URI (a plain path, a
+/// `file://` path, or an `http(s)://` URL with the `remote_model` feature):
+/// an Averaged Perceptron model with `--pos` (joint segmentation + POS
+/// tagging), otherwise an AdaBoost model (word segmentation only). The
+/// segmented sentences are written to standard output.
 ///
 /// A downstream consumer closing stdout early (broken pipe) terminates the
 /// command successfully instead of reporting an error.
@@ -285,6 +310,11 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+/// Parses the command-line arguments and dispatches to the selected
+/// subcommand.
+///
+/// # Returns
+/// Returns a Result carrying the outcome of the executed subcommand.
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let args = CommandArgs::parse();
 
@@ -295,6 +325,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
+/// Entry point: runs the CLI and exits with status 1 after printing the
+/// error message if a subcommand fails.
 #[tokio::main]
 async fn main() {
     if let Err(e) = run().await {

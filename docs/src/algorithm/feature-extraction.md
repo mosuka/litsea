@@ -91,18 +91,18 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 - **B** -- "Boundary" tag (word start)
 - **O** -- "Other" tag (continuation)
 
-Features are extracted for positions 4 through len-3 for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because `segment_with_pos` predicts there to derive the first word's POS (#100). Positions run 4 (or 3) through len-3, where the full window of i-3 to i+2 is available.
+Features are extracted for positions 4 through len-4 (inclusive) for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because `segment_with_pos` predicts there to derive the first word's POS (#100). Positions run 4 (or 3) through len-4 (inclusive), where the full window of i-3 to i+2 is available.
 
 ## Training Data Format
 
-The `extract` command writes features to a file in this format:
+The `extract` command writes features to a file in this format (real output for the corpus line `これ は テスト です 。`):
 
 ```text
-1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	...
 ```
 
 Each line contains:
 
 1. A label (`1` for boundary, `-1` for non-boundary)
-2. Tab-separated feature strings
+2. Tab-separated feature strings, written in alphabetically sorted order (not template emission order), so each line starts with the `BC1:` feature

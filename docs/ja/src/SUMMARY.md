@@ -8,7 +8,6 @@
   - [インストール](getting-started/installation.md)
   - [クイックスタート](getting-started/quick-start.md)
 - [アーキテクチャ概要](architecture/overview.md)
-  - [ワークスペース構成](architecture/workspace-structure.md)
   - [モジュール設計](architecture/module-design.md)
 
 # コアコンセプト

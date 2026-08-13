@@ -160,7 +160,7 @@ Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese).
 Use the `--pos` flag with the `extract` command to extract features from the POS corpus:
 
 ```sh
-./target/release/litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
+./target/release/litsea extract --pos -l japanese ./pos_corpus.txt ./features_pos.txt
 ```
 
 ### Step 3: Train the POS model
@@ -187,6 +187,8 @@ Use the `scripts/split_sentences.sh` shell script to split text into sentences u
 ```sh
 echo "これはテストです。次の文です。" | bash scripts/split_sentences.sh -l ja
 ```
+
+The `-l` flag is currently accepted but unused; the splitting rules are language-independent.
 
 The output will look like:
 

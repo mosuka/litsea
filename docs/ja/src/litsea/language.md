@@ -6,6 +6,7 @@
 
 ```rust
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -13,6 +14,8 @@ pub enum Language {
     Korean,
 }
 ```
+
+この列挙型に `#[non_exhaustive]` が付いているのは、新しい言語が破壊的変更なしに追加されることを想定しているためです。したがって、外部クレートで `Language` に対する `match` 式を書く場合はワイルドカードアーム（`_ => ...`）が必要です。
 
 ### トレイト
 
@@ -61,4 +64,18 @@ assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 ```
 
-内部的には、`char_type` は言語ごとの非公開関数（`japanese_char_type`、`chinese_char_type`、`korean_char_type`）にディスパッチします。全言語に共通のクラス -- `"P"`（句読点）、`"A"`（ラテン文字）、`"N"`（数字） -- は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。
+内部的には、`char_type` は言語ごとの非公開関数（`japanese_char_type_id`、`chinese_char_type_id`、`korean_char_type_id`）が返す数値の type id に対するテーブル参照になっており、文字列コードと数値 id が食い違うことはありません。全言語に共通のクラス -- `"P"`（句読点）、`"A"`（ラテン文字）、`"N"`（数字） -- は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。
+
+## ParseLanguageError
+
+文字列からの `Language` のパースに失敗すると `ParseLanguageError` が返されます。この型はクレートルートから再エクスポートされています（`litsea::ParseLanguageError`）:
+
+```rust
+use litsea::language::{Language, ParseLanguageError};
+
+let err: ParseLanguageError = "french".parse::<Language>().unwrap_err();
+assert_eq!(err.input(), "french");
+```
+
+- `input()` -- パースに失敗した文字列を返す
+- エラーメッセージにはサポートされている言語が列挙されます: `Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)`

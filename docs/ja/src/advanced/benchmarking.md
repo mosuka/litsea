@@ -20,10 +20,10 @@ make bench
 
 | ベンチマーク | 説明 |
 |-----------|------------|
-| `segment_short/adaboost/{ja,zh,ko}` | 短い文の分割（AdaBoost） |
-| `segment_short/averaged_perceptron/{ja,zh,ko}` | 短い文の分割+品詞付与 |
+| `segment_short/adaboost/{japanese,chinese,korean}` | 短い文の分割（AdaBoost） |
+| `segment_short/averaged_perceptron/{japanese,chinese,korean}` | 短い文の分割+品詞付与 |
 | `segment_long_japanese/{adaboost,averaged_perceptron}` | 坊っちゃん全文の処理（約 300 KB） |
-| `get_type_hiragana` | 文字種分類 |
+| `char_type_hiragana` | 文字種分類 |
 | `add_corpus` | 学習用コーパスの取り込み |
 | `predict_adaboost` | 単一の AdaBoost 予測 |
 

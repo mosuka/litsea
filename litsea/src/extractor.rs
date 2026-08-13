@@ -1,3 +1,10 @@
+//! Feature extraction from training corpora.
+//!
+//! Defines [`Extractor`], which converts a pre-segmented corpus file (or,
+//! for POS tagging, a "word/POS"-tagged corpus) into the tab-separated
+//! label + feature rows consumed by the trainers
+//! ([`Trainer`](crate::trainer::Trainer) / [`PosTrainer`](crate::trainer::PosTrainer)).
+
 use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
@@ -9,8 +16,10 @@ use crate::language::Language;
 use crate::segmenter::Segmenter;
 
 /// Extractor struct for processing text data and extracting features.
-/// It reads sentences from a corpus file, segments them into words,
-/// and writes the extracted features to a specified output file.
+/// It reads pre-segmented sentences from a corpus file (the word boundaries
+/// are given by the corpus itself) and writes the extracted training
+/// features to a specified output file. The internal `Segmenter` is used
+/// only as the feature generator; its model is never used to segment.
 #[derive(Debug)]
 pub struct Extractor {
     segmenter: Segmenter,
@@ -42,12 +51,21 @@ impl Extractor {
 
     /// Extracts features from a corpus file and writes them to a specified output file.
     ///
+    /// Corpus format: one sentence per line, each line consisting of
+    /// space-separated words (the words define the boundary labels).
+    /// Output format: each line is "label\tfeature1\tfeature2\t..." with
+    /// label 1 (word start) or -1 (continuation).
+    ///
     /// # Arguments
     /// * `corpus_path` - The path to the input corpus file containing sentences.
     /// * `features_path` - The path to the output file where extracted features will be written.
     ///
     /// # Returns
     /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an I/O error if the corpus file cannot be opened or read, or
+    /// if the features file cannot be created or written.
     pub fn extract(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
@@ -66,6 +84,13 @@ impl Extractor {
     /// # Arguments
     /// * `corpus_path` - The path to the POS-tagged corpus file
     /// * `features_path` - The path to the features output file
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an I/O error if the corpus file cannot be opened or read, or
+    /// if the features file cannot be created or written.
     pub fn extract_with_pos(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {

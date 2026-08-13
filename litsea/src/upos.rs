@@ -1,3 +1,10 @@
+//! Universal POS tags and joint segmentation labels.
+//!
+//! Defines [`Upos`], the 17 part-of-speech categories of Universal
+//! Dependencies, and [`SegmentLabel`], the per-character label
+//! ("B-\<POS\>" / "O") predicted by the joint segmentation + POS tagging
+//! pipeline, together with their string parsing and formatting.
+
 use std::fmt;
 use std::str::FromStr;
 

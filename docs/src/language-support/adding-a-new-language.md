@@ -17,6 +17,7 @@ Litsea's multilingual framework is designed to be easily extensible. This guide 
 In `litsea/src/language.rs`, add a new variant to the `Language` enum:
 
 ```rust
+#[non_exhaustive]
 pub enum Language {
     #[default]
     Japanese,
@@ -25,6 +26,8 @@ pub enum Language {
     Thai,       // ← new language
 }
 ```
+
+The enum is marked `#[non_exhaustive]` precisely because new languages are expected to be added, so adding a variant is not a breaking change for downstream crates.
 
 ## Step 2: Implement Display and FromStr
 
@@ -37,6 +40,8 @@ Language::Thai => write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" => Ok(Language::Thai),
 ```
+
+Also update the `ParseLanguageError` message in `language.rs`: it enumerates the supported languages (`Supported: japanese (ja), chinese (zh), korean (ko)`) and is pinned by a unit test, so both the message and the test must include the new language.
 
 ## Step 3: Create a Character Classification Function
 
@@ -62,7 +67,7 @@ fn thai_char_type_id(c: char) -> u8 {
 - **Identify linguistically distinct categories** that correlate with word boundary patterns
 - **Order matters** -- match arms are tried top to bottom, so put more specific classes before general ones
 - **Consider high-frequency function words** as a separate type (as Chinese does with "F")
-- **Use match guards** for logic beyond plain ranges (as Korean does to split syllables with/without 받침)
+- **Use extra logic inside an arm body** when a plain range is not enough (as Korean does with a codepoint test to split syllables with/without 받침)
 - Reuse the shared `punct_latin_digit()` helper for the common "P"/"A"/"N" classes
 - **Keep the code set prefix-free** -- no code may be a prefix of another (Korean's `SN`/`SF` work because `S` alone is not a code). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous (a unit test pins this per language)
 
@@ -139,7 +144,7 @@ fn test_thai_char_types() {
 #[test]
 fn test_char_type_thai() {
     let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type("ก"), "T");
+    assert_eq!(segmenter.char_type('ก'), "T");
 }
 ```
 

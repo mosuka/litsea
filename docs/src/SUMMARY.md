@@ -8,7 +8,6 @@
   - [Installation](getting-started/installation.md)
   - [Quick Start](getting-started/quick-start.md)
 - [Architecture Overview](architecture/overview.md)
-  - [Workspace Structure](architecture/workspace-structure.md)
   - [Module Design](architecture/module-design.md)
 
 # Core Concepts

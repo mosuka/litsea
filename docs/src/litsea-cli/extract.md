@@ -33,16 +33,16 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 
 ## Output Format
 
-The features file contains one line per character position:
+The features file contains one line per character position. For the corpus line `これ は テスト です 。`, the first two lines are:
 
 ```text
-1	UW1:B2	UW2:B1	UW3:L	UW4:i	UW5:t	UC1:O	UC2:O	UC3:A	UC4:A ...
--1	UW1:B1	UW2:L	UW3:i	UW4:t	UW5:s	UC1:O	UC2:A	UC3:A	UC4:A ...
+-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	BW2:これ	...
+1	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	BW1:これ	BW2:れは	...
 ```
 
 - `1` = word boundary
 - `-1` = non-boundary
-- Features are tab-separated
+- Features are written tab-separated in alphabetically sorted order, so each line starts with the `BC1:` feature rather than following the template definition order
 
 ## Examples
 
@@ -76,11 +76,11 @@ When the `--pos` flag is specified, `extract` expects a **POS corpus** instead o
 
 ### POS Feature Output Format
 
-In POS mode, the label column uses segment labels (`B-NOUN`, `B-VERB`, ..., `B-X`, `O`) instead of binary `1`/`-1`:
+In POS mode, the label column uses segment labels (`B-NOUN`, `B-VERB`, ..., `B-X`, `O`) instead of binary `1`/`-1`. Features are again written tab-separated in alphabetically sorted order:
 
 ```text
-B-NOUN	UW1:B2 UW2:B1 UW3:こ UW4:れ UW5:は UC1:O UC2:O UC3:I UC4:I ...
-O	UW1:B1 UW2:こ UW3:れ UW4:は UW5:テ UC1:O UC2:I UC3:I UC4:I ...
+B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	BW1:B2B1	...
+O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
 ```
 
 ### POS Extraction Example

@@ -1,3 +1,10 @@
+//! AdaBoost binary classifier for word-boundary prediction.
+//!
+//! Defines [`AdaBoost`]: training over presence stumps on string features,
+//! text-format model I/O, and training-set metrics. Its weights back
+//! [`Segmenter::segment`](crate::segmenter::Segmenter::segment) through the
+//! packed scoring table compiled in [`crate::packed_model`].
+
 use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
@@ -5,9 +12,10 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // Internal maps use FxHashMap: the keys are internally generated feature
-// strings (no HashDoS exposure) and the hot path performs dozens of
-// short-string lookups per character, where FxHash is significantly faster
-// than the default SipHash.
+// strings (no HashDoS exposure). The packed scoring pipeline does zero
+// string lookups during segment() inference; feature_index is hashed when
+// loading models, adding instances, building the PackedModel, and in the
+// public predict(), where FxHash is still faster than the default SipHash.
 use rustc_hash::FxHashMap;
 
 use crate::error::{LitseaError, Result};
@@ -19,8 +27,10 @@ type Label = i8;
 ///
 /// Weak hypotheses are presence stumps over string features. The learner
 /// stores the model as a dense weight vector with an `FxHashMap` feature
-/// index and a cached bias term, so single-feature lookups on the inference
-/// hot path are O(1).
+/// index and a cached bias term. Single-feature lookups are O(1) when the
+/// packed scoring table (`crate::packed_model`) is compiled from the weights
+/// and in the public [`predict`](Self::predict); the `segment()` hot path
+/// itself scores by packed integer key and never consults the index.
 #[derive(Debug)]
 pub struct AdaBoost {
     /// The threshold for stopping the training.
@@ -196,7 +206,8 @@ impl AdaBoost {
     ///
     /// This method reads the file line by line, extracts the label and features,
     /// and initializes the instances with their corresponding weights.
-    /// It calculates the score for each instance based on the features and updates the model accordingly.
+    /// It calculates the score for each instance from the current model
+    /// weights (the model itself is only read, never modified here).
     /// The instance weights are initialized based on the label and score.
     pub fn initialize_instances(&mut self, filename: &Path) -> Result<()> {
         let file = File::open(filename)?;
@@ -762,7 +773,8 @@ mod tests {
 
         // Create a dummy instance file
         let mut instance_file = NamedTempFile::new()?;
-        // Example: "1 feat1" line. The learner will consider feat1 as a candidate if found by binary_search.
+        // Example: "1 feat1" line. The learner resolves feat1 through the
+        // feature_index hash lookup built by initialize_features.
         writeln!(instance_file, "1\tfeat1")?;
         instance_file.as_file().sync_all()?;
 

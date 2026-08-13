@@ -302,6 +302,7 @@ const TAG_RADIX: usize = 3;
 /// sequential passes. The ids are pinned by `test_template_ids_match_indices`
 /// and the partition by `test_family_ranges_match_predicates`.
 pub(crate) const UW_IDS: std::ops::Range<usize> = 5..11;
+/// `BW*`: sparse (char-bigram keyed), tag-free — scored in the static pass.
 pub(crate) const BW_IDS: std::ops::Range<usize> = 11..14;
 /// `UC*`, `BC*`, `TC*`: dense, tag-free — scored in the static pass.
 pub(crate) const TYPE_ONLY_IDS: std::ops::Range<usize> = 14..27;
@@ -317,6 +318,8 @@ pub(crate) const TAG_HEAD_IDS: std::ops::Range<usize> = 0..5;
 /// pass (via hard-coded indices pinned by tests against these ranges).
 #[cfg(test)]
 pub(crate) const TAG_TAIL_IDS: std::ops::Range<usize> = 27..38;
+/// `WC*`: sparse (char/type keyed), tag-free — scored in the static pass;
+/// emitted only for languages using all templates (see [`templates_for`]).
 pub(crate) const WC_IDS: std::ops::Range<usize> = 38..42;
 
 /// Builds the slot-order-normalized key of a `WC*` weight in

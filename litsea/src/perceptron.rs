@@ -1,3 +1,10 @@
+//! Multiclass Averaged Perceptron for joint segmentation + POS tagging.
+//!
+//! Defines [`AveragedPerceptron`]: training with weight averaging,
+//! text-format model I/O, and training-set metrics. Its weights back
+//! [`Segmenter::segment_with_pos`](crate::segmenter::Segmenter::segment_with_pos)
+//! through the packed POS tables compiled in [`crate::packed_pos_model`].
+
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Write};
@@ -5,8 +12,11 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // Internal weight maps use FxHashMap: keys are internally generated feature
-// strings (no HashDoS exposure) and prediction probes dozens of short keys
-// per character, where FxHash beats the default SipHash.
+// strings (no HashDoS exposure). Since the packed POS scorer (issue #143),
+// segment_with_pos() inference performs no per-key string probing (that
+// survives only in the test-only reference path); the map is hashed during
+// training, model I/O, and packed-table compilation, where FxHash beats the
+// default SipHash.
 use rustc_hash::FxHashMap;
 
 use crate::error::{LitseaError, Result};
@@ -55,9 +65,11 @@ impl FeatureSlot {
 /// During training it keeps a running average of the weights to reduce
 /// overfitting.
 ///
-/// Weights are stored in a feature -> per-class vector layout. This reduces
-/// the number of hash lookups per prediction from features x classes to
-/// features, which makes the inference hot path significantly faster.
+/// Weights are stored in a feature -> per-class vector layout, so one hashed
+/// lookup yields the weights of every class at once. Production inference
+/// goes through the packed POS tables compiled from these weights
+/// (`crate::packed_pos_model`); the string-keyed prediction here serves
+/// training and the test-only reference path.
 #[derive(Debug)]
 pub struct AveragedPerceptron {
     /// Per-feature training state: slots\[feature\] holds the live weights,
@@ -79,6 +91,10 @@ impl Default for AveragedPerceptron {
 
 impl AveragedPerceptron {
     /// Creates a new Averaged Perceptron instance.
+    ///
+    /// # Returns
+    /// A new [`AveragedPerceptron`] with no classes, weights, or training
+    /// instances.
     pub fn new() -> Self {
         AveragedPerceptron {
             slots: FxHashMap::default(),
@@ -321,6 +337,14 @@ impl AveragedPerceptron {
     /// <feature>\t<class>\t<weight>
     /// ...
     /// ```
+    ///
+    /// # Arguments
+    /// * `path` - The path of the file to write the model to.
+    ///
+    /// # Errors
+    /// Returns [`LitseaError::InvalidInput`] if no classes are registered
+    /// (an empty model), or an I/O error if the file cannot be created or
+    /// written.
     pub fn save_model(&self, path: &Path) -> Result<()> {
         if self.classes.is_empty() {
             return Err(LitseaError::InvalidInput("Cannot save an empty model".to_string()));
@@ -356,12 +380,29 @@ impl AveragedPerceptron {
     /// (the latter requires the `remote_model` feature).
     /// For local files, prefer the synchronous
     /// [`load_model_from_path`](Self::load_model_from_path).
+    ///
+    /// # Arguments
+    /// * `uri` - The URI of the model to load.
+    ///
+    /// # Errors
+    /// Returns an error if the model bytes cannot be fetched from the URI
+    /// (unsupported scheme, missing file, or network failure) or if the
+    /// model content is malformed (see
+    /// [`load_model_from_reader`](Self::load_model_from_reader)).
     pub async fn load_model(&mut self, uri: &str) -> Result<()> {
         let bytes = crate::model_io::read_model_bytes(uri).await?;
         self.load_model_from_reader(bytes.as_slice())
     }
 
     /// Loads a model from a local file path (synchronous).
+    ///
+    /// # Arguments
+    /// * `path` - The path of the model file to load.
+    ///
+    /// # Errors
+    /// Returns an I/O error if the file cannot be opened, or a parse error
+    /// if the model content is malformed (see
+    /// [`load_model_from_reader`](Self::load_model_from_reader)).
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load_model_from_path(&mut self, path: &Path) -> Result<()> {
         let file = File::open(path)?;
@@ -373,6 +414,18 @@ impl AveragedPerceptron {
     /// If classes are already registered from training instances, the classes
     /// in the model file are merged into the existing class list so that gold
     /// label classes are not lost during incremental training.
+    ///
+    /// # Arguments
+    /// * `reader` - The buffered reader providing the model content (the
+    ///   text format written by [`save_model`](Self::save_model)).
+    ///
+    /// # Errors
+    /// Returns [`LitseaError::InvalidData`] if the model file is empty, the
+    /// class count is not a valid number, the file ends while reading the
+    /// class names, a weight line does not have exactly three tab-separated
+    /// fields, a weight line names an unknown class, or a weight value is
+    /// unparsable or non-finite. I/O errors from the reader are also
+    /// propagated.
     pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()> {
         let mut lines = reader.lines();
 
