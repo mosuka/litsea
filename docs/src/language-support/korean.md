@@ -45,14 +45,30 @@ The 받침 (final consonant) distinction is linguistically significant because i
 
 Korean does **not** use WC (word + character-type) features. Since most Hangul syllables fall into only two types (SN and SF), WC features would produce low-entropy, noisy combinations that hurt model accuracy.
 
+### Space-Preserving Training
+
+Korean is written with spaces between eojeol (word phrases), and those
+spaces mark most word boundaries. The Korean model is therefore trained on
+a **space-preserving TSV corpus**: tokens are tab-separated and each
+inter-eojeol space is kept as its own token, so the training text contains
+the space characters of the original sentence and the model can use them as
+boundary context. Generate the corpus with `corpus_udtreebank.sh -s`
+(which reconstructs spacing from the treebank's `SpaceAfter` annotations)
+and extract features with `litsea extract --format tsv`. At inference no
+special handling is needed: `segment()` receives the spaced text as-is and
+emits each space as its own token.
+
 ## Pre-trained Model
 
 ### korean.model
 
-- **Training corpus**: UD Korean-GSD
-- **Training options**: `-t 0.0001 -i 20000`
-- **Word F1 (held-out)**: 65.37%
-- **Boundary F1 (held-out)**: 82.32%
+- **Training corpus**: UD Korean-GSD (space-preserving TSV corpus)
+- **Training options**: `--format tsv`, `-t 0.0001 -i 20000`
+- **Word F1 (held-out)**: 99.91%
+- **Boundary F1 (held-out)**: 99.96%
+
+Held-out metrics are computed on the original spaced text with space tokens
+excluded from scoring.
 
 ## Example
 

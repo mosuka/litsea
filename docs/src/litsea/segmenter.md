@@ -107,6 +107,26 @@ segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
 });
 ```
 
+### `add_corpus_tsv` / `add_corpus_tsv_with_writer`
+
+```rust
+pub fn add_corpus_tsv(&mut self, corpus: &str)
+pub fn add_corpus_tsv_with_writer<F>(&self, corpus: &str, writer: F)
+where
+    F: FnMut(HashSet<String>, i8),
+```
+
+Tab-separated variants of `add_corpus` / `add_corpus_with_writer`: tokens
+are separated by tab characters, and a token may be a literal space `" "`.
+This preserves the original spacing of the sentence in the training text so
+the model can learn from space characters as boundary context (used for the
+Korean model; issue #152).
+
+```rust
+let mut segmenter = Segmenter::new(Language::Korean);
+segmenter.add_corpus_tsv("나는\t \t고양이");
+```
+
 ### Accessors
 
 ```rust

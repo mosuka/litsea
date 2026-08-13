@@ -29,6 +29,11 @@ struct ExtractArgs {
     #[arg(long)]
     pos: bool,
 
+    /// Corpus format: "space" (space-separated words) or "tsv" (tab-separated
+    /// tokens; a token may be a literal space, preserving original spacing)
+    #[arg(long, default_value = "space", value_parser = ["space", "tsv"])]
+    format: String,
+
     /// Path to the input corpus file (one pre-segmented sentence per line)
     corpus_file: PathBuf,
     /// Path to the output features file
@@ -111,7 +116,9 @@ struct CommandArgs {
 /// word boundaries come from the corpus itself) and writes the extracted
 /// features to the output file. With `--pos` the corpus is POS-tagged
 /// ("word/POS word/POS ...") and features are extracted via
-/// `extract_with_pos`; otherwise each line is space-separated words.
+/// `extract_with_pos`; otherwise each line is space-separated words, or
+/// tab-separated tokens with `--format tsv` (a token may be a literal
+/// space, preserving the original spacing; not supported with `--pos`).
 ///
 /// # Arguments
 /// * `args` - The arguments for the extract command [`ExtractArgs`].
@@ -122,7 +129,14 @@ fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
     let extractor = Extractor::new(args.language);
 
     if args.pos {
+        // The POS pipeline has no TSV variant (issue #152 covers the
+        // word-segmentation path only).
+        if args.format == "tsv" {
+            return Err("--format tsv is not supported together with --pos".into());
+        }
         extractor.extract_with_pos(args.corpus_file.as_path(), args.features_file.as_path())?;
+    } else if args.format == "tsv" {
+        extractor.extract_tsv(args.corpus_file.as_path(), args.features_file.as_path())?;
     } else {
         extractor.extract(args.corpus_file.as_path(), args.features_file.as_path())?;
     }

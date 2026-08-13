@@ -66,6 +66,31 @@ The extractor:
 2. Calls `Segmenter::add_corpus_with_writer()` to process each line
 3. Writes the label and feature set for each character position to the output file
 
+### `extract_tsv`
+
+```rust
+pub fn extract_tsv(
+    &self,
+    corpus_path: &Path,
+    features_path: &Path,
+) -> litsea::Result<()>
+```
+
+Reads a tab-separated corpus file (tokens separated by tabs, one sentence
+per line; a token may be a literal space `" "`) and writes the extracted
+features. The preserved spaces let the model learn from space characters as
+boundary context — used to train the Korean model (issue #152). Output
+format is identical to `extract`.
+
+```rust
+use std::path::Path;
+
+extractor.extract_tsv(
+    Path::new("./ko_corpus.tsv"),
+    Path::new("./ko_features.txt"),
+)?;
+```
+
 ### `extract_with_pos`
 
 ```rust

@@ -90,6 +90,67 @@ fn test_extract_features_format() {
     }
 }
 
+/// Pins extract's `--format tsv` routing: tab-separated tokens with a
+/// literal space token are accepted, and the preserved space shows up
+/// inside character-context features (issue #152).
+#[test]
+fn test_extract_tsv_format() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let corpus = dir.path().join("corpus.tsv");
+    std::fs::write(&corpus, "나는\t \t봄\t.\n").expect("write corpus");
+    let features = dir.path().join("features.txt");
+
+    let output = run_litsea(
+        &[
+            "extract",
+            "-l",
+            "korean",
+            "--format",
+            "tsv",
+            corpus.to_str().unwrap(),
+            features.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let content = std::fs::read_to_string(&features).expect("read features");
+    // "나는 봄." = 5 chars -> 4 rows (first position skipped).
+    assert_eq!(content.lines().count(), 4);
+    let has_space_feature = content
+        .lines()
+        .flat_map(|l| l.split('\t').skip(1))
+        .any(|f| f.starts_with("UW") && f.ends_with(' '));
+    assert!(has_space_feature, "expected a UW feature containing the space character");
+}
+
+/// Pins the `--pos --format tsv` combination as an explicit error: the POS
+/// pipeline has no TSV variant.
+#[test]
+fn test_extract_pos_rejects_tsv_format() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let corpus = dir.path().join("corpus.tsv");
+    std::fs::write(&corpus, "나는\t \t봄\t.\n").expect("write corpus");
+    let features = dir.path().join("features.txt");
+
+    let output = run_litsea(
+        &[
+            "extract",
+            "--pos",
+            "-l",
+            "korean",
+            "--format",
+            "tsv",
+            corpus.to_str().unwrap(),
+            features.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(!output.status.success(), "expected --pos --format tsv to fail");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("not supported"), "unexpected stderr: {stderr}");
+}
+
 /// Pins extract's `--pos` routing: labels become SegmentLabel strings
 /// (O / B-<UPOS>) instead of boundary labels.
 #[test]

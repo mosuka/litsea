@@ -21,6 +21,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
 | `--pos` | off | 品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です |
+| `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--pos` と併用できません |
 
 ## コーパスの形式
 
@@ -29,6 +30,14 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 ```text
 Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+```
+
+### TSV コーパス形式（`--format tsv`）
+
+`--format tsv` を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（`" "`）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語のような言語では、これが不可欠です（[韓国語](../language-support/korean.md)を参照）。このようなコーパスは UD Treebank から `corpus_udtreebank.sh -s` で生成できます:
+
+```sh
+litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
 ```
 
 ## 出力形式

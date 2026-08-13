@@ -2,7 +2,28 @@
 
 ## Unreleased
 
+### Added
+
+- Space-preserving TSV corpus format for word-segmentation training (#152):
+  `Segmenter::add_corpus_tsv` / `add_corpus_tsv_with_writer`,
+  `Extractor::extract_tsv`, the `litsea extract --format tsv` CLI flag, and
+  a `-s` flag on `scripts/corpus_udtreebank.sh` that reconstructs the
+  original spacing from `SpaceAfter` annotations. Tokens are tab-separated
+  and a token may be a literal space, so the training text keeps the
+  sentence's original spaces.
+
 ### Changed
+
+- `korean.model` is retrained on the space-preserving TSV corpus (#152).
+  The previous pipeline concatenated the training words without spaces, so
+  the model never saw the inter-eojeol space — Korean's strongest boundary
+  signal — during training. Held-out word F1 on real spaced text improves
+  from 92.91 to 99.91 (boundary F1 97.30 → 99.96) and the model shrinks
+  from ~20 KB to ~9.4 KB. The previously documented word F1 of 65.37
+  measured a space-stripped protocol that does not reflect real input;
+  metrics are now reported on the original spaced text (space tokens
+  excluded from scoring). Golden test expectations were updated
+  (이것은 / 고양이를 are now single words).
 
 - The bundled AdaBoost segmentation models were retrained with more boosting
   iterations (#151). The previous models were trained with the CLI defaults
