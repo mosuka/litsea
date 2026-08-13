@@ -667,18 +667,25 @@ impl Segmenter {
                     }
                 }
             }
-            // WC probes (Japanese/Chinese only), gathered per position with
-            // the slot layout of WC1..WC4: (w3,c4), (c3,w4), (w3,c3),
-            // (w4,c4) — pinned against TEMPLATES by a unit test.
+            // WC templates (Japanese/Chinese only): one merged-row probe per
+            // character instead of four keyed probes per position (#157).
+            // Char q feeds position q+1 as c[i-1] (WC1 with t[i], WC3 with
+            // t[i-1] = t[q]) and position q as c[i] (WC2 with t[i-1], WC4
+            // with t[i] = t[q]); rows are laid out [slot][type_id], with the
+            // slot order pinned against TEMPLATES by a unit test.
             if templates_for(self.language).len() == TEMPLATES.len() && !packed.wc.is_empty() {
-                for i in lo..=hi {
-                    let w = |idx: usize, chr: u32, typ: u8| {
-                        packed.wc.get(&wc_key(idx, chr, typ)).copied().unwrap_or(0.0)
-                    };
-                    static_scores[i] += w(0, char_codes[i - 1], type_ids[i])
-                        + w(1, char_codes[i], type_ids[i - 1])
-                        + w(2, char_codes[i - 1], type_ids[i - 1])
-                        + w(3, char_codes[i], type_ids[i]);
+                let t = type_radix;
+                for (q, code) in char_codes.iter().enumerate() {
+                    let Some(row) = packed.wc.get(code) else { continue };
+                    let i = q + 1;
+                    if (lo..=hi).contains(&i) {
+                        static_scores[i] +=
+                            row[type_ids[i] as usize] + row[2 * t + type_ids[i - 1] as usize];
+                    }
+                    if (lo..=hi).contains(&q) {
+                        static_scores[q] +=
+                            row[t + type_ids[q - 1] as usize] + row[3 * t + type_ids[q] as usize];
+                    }
                 }
             }
 
@@ -1834,6 +1841,31 @@ mod tests {
         let segmenter =
             Segmenter::with_pos_learner(Language::Japanese, load_perceptron("japanese_pos.model"));
         assert_pos_matches_reference(&segmenter, &lines);
+    }
+
+    #[test]
+    #[ignore = "full-corpus sweep (slow with the string-keyed reference); run explicitly with --ignored"]
+    fn test_segment_differential_bocchan_full() {
+        // Full-corpus differential net for the packed AdaBoost scorer:
+        // every non-empty bocchan line must match the string-keyed
+        // reference exactly, for every bundled Japanese model. Added with
+        // the WC merged-row restructuring (#157); japanese.model exercises
+        // the WC scatter path (96 WC features), RWCP.model the empty-map
+        // skip, and JEITA the small-model path.
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
+        let text = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
+        assert!(lines.len() > 400, "bocchan corpus unexpectedly small: {}", lines.len());
+        for model in ["japanese.model", "RWCP.model", "JEITA_Genpaku_ChaSen_IPAdic.model"] {
+            let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost(model));
+            let mut diverged = 0usize;
+            for line in &lines {
+                if segmenter.segment(line) != segmenter.segment_reference(line) {
+                    diverged += 1;
+                }
+            }
+            assert_eq!(diverged, 0, "{model}: {diverged} of {} lines diverged", lines.len());
+        }
     }
 
     #[test]

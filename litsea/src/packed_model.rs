@@ -437,8 +437,12 @@ pub(crate) struct PackedModel {
     /// `(a << 24) | b` (adjacent char codes) -> `[BW1..BW3]` weights: one
     /// probe per adjacent pair covers all three bigram-word templates.
     pub(crate) bw: FxHashMap<u64, [f64; 3]>,
-    /// [`wc_key`]-keyed `WC*` weights (Japanese/Chinese only).
-    pub(crate) wc: FxHashMap<u64, f64>,
+    /// Char code -> merged `WC*` row (Japanese/Chinese only): a flat
+    /// `[slot 0..4][type_id 0..type_radix]` array (length
+    /// `4 * type_radix`), so one probe per text position covers all four
+    /// char/type templates; the type dimension is direct-indexed. Slot
+    /// order follows the `WC1`..`WC4` template order (#157).
+    pub(crate) wc: FxHashMap<u32, Box<[f64]>>,
     /// Type id -> `[UC1..UC6]` weights: the scatter twin of the `UC*`
     /// dense tables (derived from `dense`, one direct index per position).
     pub(crate) uc: Vec<[f64; 6]>,
@@ -464,7 +468,8 @@ impl PackedModel {
     /// Dense-eligible templates get a 0.0-initialized table sized by
     /// [`Template::dense_size`]; `UW*`/`BW*` keys are decoded into the
     /// merged-vector maps (family slot = template id offset within the
-    /// family); `WC*` keys are normalized via [`wc_key`].
+    /// family); `WC*` keys are decoded into per-character rows laid out
+    /// `[slot][type_id]` (see the `wc` field docs).
     ///
     /// # Arguments
     /// * `language` - The language whose templates to compile for.
@@ -477,7 +482,7 @@ impl PackedModel {
         let type_radix = language.type_codes().len();
         let mut uw: FxHashMap<u32, [f64; 6]> = FxHashMap::default();
         let mut bw: FxHashMap<u64, [f64; 3]> = FxHashMap::default();
-        let mut wc: FxHashMap<u64, f64> = FxHashMap::default();
+        let mut wc: FxHashMap<u32, Box<[f64]>> = FxHashMap::default();
         let mut dense: Vec<Vec<f64>> = TEMPLATES
             .iter()
             .map(|t| if t.is_dense() { vec![0.0; t.dense_size(type_radix)] } else { Vec::new() })
@@ -504,7 +509,10 @@ impl PackedModel {
                         weight;
                 } else {
                     let (chr, typ) = template.decode_chr_typ(key);
-                    wc.insert(wc_key(tid - WC_IDS.start, chr, typ), weight);
+                    let row = wc
+                        .entry(chr)
+                        .or_insert_with(|| vec![0.0; 4 * type_radix].into_boxed_slice());
+                    row[(tid - WC_IDS.start) * type_radix + typ as usize] = weight;
                 }
             }
         }
@@ -1000,9 +1008,15 @@ mod tests {
         let bw3_key = (u64::from('あ') << 24) | u64::from('い');
         assert_eq!(packed.bw.get(&bw1_key), Some(&[0.3, 0.0, 0.0]));
         assert_eq!(packed.bw.get(&bw3_key), Some(&[0.0, 0.0, 0.4]));
-        // Japanese type id I = 6; WC family indices are 1 (WC2) and 3 (WC4).
-        assert_eq!(packed.wc.get(&wc_key(1, u32::from('い'), 6)), Some(&0.5));
-        assert_eq!(packed.wc.get(&wc_key(3, u32::from('い'), 6)), Some(&0.6));
-        assert_eq!(packed.wc.len(), 2);
+        // Japanese type id I = 6; both WC features share the char 'い', so
+        // they land in one row, laid out [slot 0..4][type_id 0..radix] with
+        // WC2 at slot 1 and WC4 at slot 3.
+        let radix = Language::Japanese.type_codes().len();
+        let row = packed.wc.get(&u32::from('い')).expect("row for い");
+        assert_eq!(row.len(), 4 * radix);
+        assert_eq!(row[radix + 6], 0.5);
+        assert_eq!(row[3 * radix + 6], 0.6);
+        assert_eq!(row.iter().filter(|w| **w != 0.0).count(), 2);
+        assert_eq!(packed.wc.len(), 1);
     }
 }

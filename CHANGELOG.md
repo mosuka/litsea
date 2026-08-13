@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Performance
+
+- `segment()` scores the `WC*` (char + type) templates with one merged row
+  probe per character instead of four keyed hash probes per decision
+  position (#157). Weights and outputs are unchanged (pinned by the
+  packed-vs-reference differential tests, including a new full-corpus
+  sweep over every bundled Japanese model). On the external benchmark
+  corpus this recovers most of the WC cost the retrained `japanese.model`
+  pays for its 96 `WC` features: ~10.6M → ~11.8M chars/s (interleaved
+  A/B, medians); models without `WC` features (e.g. `RWCP.model`) are
+  unaffected. The POS path keeps the keyed gather: its per-class rows
+  would make per-character merged rows memory-heavy, and its throughput
+  is bounded by 17-class scoring (#147).
+
+## 0.9.0
+
 ### Added
 
 - Space-preserving TSV corpus format for word-segmentation training (#152):
