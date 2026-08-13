@@ -102,6 +102,22 @@ segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
 });
 ```
 
+### `add_corpus_tsv` / `add_corpus_tsv_with_writer`
+
+```rust
+pub fn add_corpus_tsv(&mut self, corpus: &str)
+pub fn add_corpus_tsv_with_writer<F>(&self, corpus: &str, writer: F)
+where
+    F: FnMut(HashSet<String>, i8),
+```
+
+`add_corpus` / `add_corpus_with_writer` のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（`" "`）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルで使用。issue #152）。
+
+```rust
+let mut segmenter = Segmenter::new(Language::Korean);
+segmenter.add_corpus_tsv("나는\t \t고양이");
+```
+
 ### アクセサ
 
 ```rust

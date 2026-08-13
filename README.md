@@ -203,7 +203,7 @@ The output will look like:
   Trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank. Held-out word F1: 91.48%.
 
 - **korean.model**
-  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank. Held-out word F1: 65.37%.
+  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank with a space-preserving corpus. Held-out word F1: 99.91%.
 
 - **chinese.model**
   Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank. Held-out word F1: 77.56%.

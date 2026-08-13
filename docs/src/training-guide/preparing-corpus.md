@@ -47,6 +47,24 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 
 This converts the CoNLL-U data into space-separated words (one sentence per line).
 
+### Space-Preserving TSV Corpus (Korean)
+
+The space-separated format above discards the original spacing of the
+sentence: the words are later concatenated without spaces for training. For
+Korean this loses the strongest boundary signal (the inter-eojeol space),
+so use the `-s` flag instead, which emits a **tab-separated corpus** in
+which every original space (reconstructed from the treebank's `SpaceAfter`
+annotations) is kept as its own token:
+
+```sh
+conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+```
+
+Extract features from a TSV corpus with `litsea extract --format tsv`. The
+`-s` flag cannot be combined with `-p` (the POS pipeline has no TSV
+variant).
+
 ## Corpus for POS Tagging
 
 For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.

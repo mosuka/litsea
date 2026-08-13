@@ -349,6 +349,21 @@ impl Segmenter {
         self.process_tokens(corpus.split(' ').map(|word| (word, 1i8)), -1i8, false, callback);
     }
 
+    /// Processes a tab-separated corpus line ("word\tword\t..."), calling the
+    /// callback for each character position except the first with its
+    /// attributes and boundary label (1 = word start, -1 = continuation).
+    ///
+    /// Unlike [`process_corpus`](Self::process_corpus), a token may be a
+    /// literal space `" "` (e.g. the inter-eojeol space in Korean), so the
+    /// training text preserves the original spacing of the sentence. Empty
+    /// tokens are ignored by the shared pipeline.
+    fn process_corpus_tsv<F>(&self, corpus: &str, callback: F)
+    where
+        F: FnMut(HashSet<String>, i8),
+    {
+        self.process_tokens(corpus.split('\t').map(|word| (word, 1i8)), -1i8, false, callback);
+    }
+
     /// Processes a POS-tagged corpus, yielding the attributes and
     /// SegmentLabel for every character position, including the first one
     /// (whose label carries the first word's POS; see
@@ -424,6 +439,74 @@ impl Segmenter {
     pub fn add_corpus(&mut self, corpus: &str) {
         let mut instances = Vec::new();
         self.process_corpus(corpus, |attrs, label| {
+            instances.push((attrs, label));
+        });
+        // Mutate through learner_mut() so the packed scoring table is
+        // invalidated alongside the learner change.
+        let learner = self.learner_mut();
+        for (attrs, label) in instances {
+            learner.add_instance(attrs, label);
+        }
+    }
+
+    /// Adds a tab-separated corpus line to the segmenter with a custom
+    /// writer function.
+    ///
+    /// Corpus format: tokens separated by tab characters. A token may be a
+    /// literal space `" "` (e.g. the inter-eojeol space in Korean), which
+    /// lets the training text preserve the original spacing so the model can
+    /// learn from space characters as boundary context (issue #152).
+    ///
+    /// # Arguments
+    /// * `corpus` - A tab-separated corpus line ("word\tword\t...").
+    /// * `writer` - A closure that receives each character position's
+    ///   attribute set and boundary label (1 = word start, -1 = continuation).
+    ///
+    /// # Note
+    /// Like [`add_corpus_with_writer`](Self::add_corpus_with_writer), the
+    /// writer is called once for each character position except the first.
+    ///
+    /// # Example
+    /// ```
+    /// use litsea::language::Language;
+    /// use litsea::segmenter::Segmenter;
+    ///
+    /// let segmenter = Segmenter::new(Language::Korean);
+    /// segmenter.add_corpus_tsv_with_writer("나는\t \t고양이", |attrs, label| {
+    ///    println!("Attributes: {:?}, Label: {}", attrs, label);
+    /// });
+    /// ```
+    pub fn add_corpus_tsv_with_writer<F>(&self, corpus: &str, writer: F)
+    where
+        F: FnMut(HashSet<String>, i8),
+    {
+        self.process_corpus_tsv(corpus, writer);
+    }
+
+    /// Adds a tab-separated corpus line to the segmenter.
+    ///
+    /// Corpus format: tokens separated by tab characters; a token may be a
+    /// literal space `" "` (see
+    /// [`add_corpus_tsv_with_writer`](Self::add_corpus_tsv_with_writer)).
+    ///
+    /// # Arguments
+    /// * `corpus` - A tab-separated corpus line ("word\tword\t...").
+    ///
+    /// This method processes the corpus, extracts features, and adds
+    /// instances to the AdaBoost learner. If the corpus is empty, it does
+    /// nothing.
+    ///
+    /// # Example
+    /// ```
+    /// use litsea::language::Language;
+    /// use litsea::segmenter::Segmenter;
+    ///
+    /// let mut segmenter = Segmenter::new(Language::Korean);
+    /// segmenter.add_corpus_tsv("나는\t \t고양이");
+    /// ```
+    pub fn add_corpus_tsv(&mut self, corpus: &str) {
+        let mut instances = Vec::new();
+        self.process_corpus_tsv(corpus, |attrs, label| {
             instances.push((attrs, label));
         });
         // Mutate through learner_mut() so the packed scoring table is
@@ -1086,6 +1169,50 @@ mod tests {
         let (attrs, _) = &collected[0];
         assert!(attrs.iter().any(|a| a.starts_with("UW")));
         assert!(attrs.iter().any(|a| a.starts_with("UC")));
+    }
+
+    #[test]
+    fn test_add_corpus_tsv_with_writer() {
+        let segmenter = Segmenter::new(Language::Korean);
+        // Space-preserving TSV corpus: 나는 + inter-eojeol space + 봄 + period.
+        // Training text is "나는 봄." (5 chars); the callback skips the first
+        // character, producing 4 instances: 는, ' ', 봄, '.'.
+        let sentence = "나는\t \t봄\t.";
+        let mut collected = Vec::new();
+
+        segmenter.add_corpus_tsv_with_writer(sentence, |attrs, label| {
+            collected.push((attrs, label));
+        });
+
+        assert_eq!(collected.len(), 4);
+
+        // Per-position boundary labels: 는 is a continuation of 나는; the
+        // space, 봄, and '.' each start a token.
+        let labels: Vec<i8> = collected.iter().map(|(_, label)| *label).collect();
+        assert_eq!(labels, vec![-1, 1, 1, 1]);
+
+        // The space character must appear inside UW context features, proving
+        // the training text preserved it.
+        let has_space_feature = collected
+            .iter()
+            .any(|(attrs, _)| attrs.iter().any(|a| a.starts_with("UW") && a.ends_with(' ')));
+        assert!(has_space_feature, "expected a UW feature whose value is the space character");
+    }
+
+    #[test]
+    fn test_add_corpus_tsv_ignores_empty_tokens() {
+        let segmenter = Segmenter::new(Language::Korean);
+        let mut with_empty = Vec::new();
+        segmenter.add_corpus_tsv_with_writer("나는\t\t봄", |attrs, label| {
+            with_empty.push((attrs, label));
+        });
+        let mut without_empty = Vec::new();
+        segmenter.add_corpus_tsv_with_writer("나는\t봄", |attrs, label| {
+            without_empty.push((attrs, label));
+        });
+        // The empty token contributes no characters, so both corpora are
+        // identical to the pipeline.
+        assert_eq!(with_empty, without_empty);
     }
 
     #[test]

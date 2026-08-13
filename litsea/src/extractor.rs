@@ -75,6 +75,36 @@ impl Extractor {
         })
     }
 
+    /// Extracts features from a tab-separated corpus file and writes them to
+    /// a specified output file.
+    ///
+    /// Corpus format: one sentence per line, tokens separated by tab
+    /// characters. A token may be a literal space `" "` (e.g. the
+    /// inter-eojeol space in Korean), which preserves the original spacing of
+    /// the sentence in the training text so the model can learn from space
+    /// characters as boundary context (issue #152). Output format is the same
+    /// as [`extract`](Self::extract): one `label\tfeature\t...` row per
+    /// character position, with features in sorted order.
+    ///
+    /// # Arguments
+    /// * `corpus_path` - The path to the input tab-separated corpus file.
+    /// * `features_path` - The path to the output file where extracted features will be written.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if the corpus file cannot be read or the features
+    /// file cannot be created or written to.
+    pub fn extract_tsv(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
+        let segmenter = &self.segmenter;
+        Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_tsv_with_writer(line, |attrs, label| {
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
+    }
+
     /// Extracts features from a POS-tagged corpus and writes them to a file.
     ///
     /// Corpus format: each line is "word/POS word/POS ...".
@@ -194,6 +224,55 @@ mod tests {
                 assert!(!feat.is_empty(), "Feature name should not be empty");
             }
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_tsv() -> Result<()> {
+        use crate::language::Language;
+
+        // Space-preserving TSV corpus: tab-separated tokens, with the
+        // inter-eojeol space as its own token.
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "나는\t \t봄\t.")?;
+        writeln!(corpus_file, "한국어\t \t분석기\t.")?;
+        corpus_file.as_file().sync_all()?;
+
+        let features_file = NamedTempFile::new()?;
+
+        let extractor = Extractor::new(Language::Korean);
+        extractor.extract_tsv(corpus_file.path(), features_file.path())?;
+
+        let mut output = String::new();
+        File::open(features_file.path())?.read_to_string(&mut output)?;
+
+        assert!(!output.is_empty(), "Extracted features should not be empty");
+
+        // Sentence 1: "나는 봄." = 5 chars -> 4 rows; sentence 2:
+        // "한국어 분석기." = 8 chars -> 7 rows.
+        assert_eq!(output.lines().count(), 11);
+
+        let mut boundary_labels = 0usize;
+        let mut space_features = 0usize;
+        for line in output.lines() {
+            let fields: Vec<&str> = line.split('\t').collect();
+            assert!(fields.len() >= 2, "Line should have label + features: {line}");
+            let label = fields[0];
+            assert!(label == "1" || label == "-1", "Label should be 1 or -1, got: {label}");
+            if label == "1" {
+                boundary_labels += 1;
+            }
+            // The preserved space must show up inside character-context
+            // features (e.g. "UW3: ").
+            if fields[1..].iter().any(|f| f.starts_with("UW") && f.ends_with(' ')) {
+                space_features += 1;
+            }
+        }
+        // Boundaries: sentence 1 has 3 (space, 봄, '.'); sentence 2 has 3
+        // (space, 분석기 start, '.').
+        assert_eq!(boundary_labels, 6);
+        assert!(space_features > 0, "expected space characters inside UW context features");
 
         Ok(())
     }

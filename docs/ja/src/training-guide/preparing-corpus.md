@@ -47,6 +47,17 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 
 これにより、CoNLL-U データがスペース区切りの単語（1行1文）に変換されます。
 
+### 空白保持 TSV コーパス（韓国語）
+
+上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語ではこれにより最も強力な境界シグナルである語節間の空白が失われてしまうため、代わりに `-s` フラグを使用します。このフラグは、（ツリーバンクの `SpaceAfter` アノテーションから復元した）元の各空白を独立したトークンとして保持する **タブ区切りコーパス** を出力します:
+
+```sh
+conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+```
+
+TSV コーパスからの特徴量抽出には `litsea extract --format tsv` を使用します。`-s` フラグは `-p` と併用できません（POS パイプラインには TSV バリアントがありません）。
+
 ## 品詞推定用コーパス
 
 品詞推定（Averaged Perceptron）を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。

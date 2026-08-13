@@ -66,6 +66,27 @@ Extractor は以下の処理を行います:
 2. `Segmenter::add_corpus_with_writer()` を呼び出して各行を処理する
 3. 各文字位置のラベルと特徴量セットを出力ファイルに書き込む
 
+### `extract_tsv`
+
+```rust
+pub fn extract_tsv(
+    &self,
+    corpus_path: &Path,
+    features_path: &Path,
+) -> litsea::Result<()>
+```
+
+タブ区切りのコーパスファイル（トークンをタブで区切り、1行1文。トークンとして空白文字そのもの（`" "`）を含められます）を読み込み、抽出した特徴量を書き込みます。保持された空白により、モデルは空白文字を境界のコンテキストとして学習できます — 韓国語モデルの学習に使用されています（issue #152）。出力形式は `extract` と同一です。
+
+```rust
+use std::path::Path;
+
+extractor.extract_tsv(
+    Path::new("./ko_corpus.tsv"),
+    Path::new("./ko_features.txt"),
+)?;
+```
+
 ### `extract_with_pos`
 
 ```rust

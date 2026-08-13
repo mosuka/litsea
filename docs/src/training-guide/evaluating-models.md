@@ -50,8 +50,15 @@ exact word matches; **Boundary F1** scores individual boundary decisions.
 | Model | Word F1 | Boundary F1 | Training Corpus |
 |-------|---------|-------------|-----------------|
 | japanese.model | 91.48% | 96.31% | UD Japanese-GSD |
-| korean.model | 65.37% | 82.32% | UD Korean-GSD |
+| korean.model | 99.91% | 99.96% | UD Korean-GSD |
 | chinese.model | 77.56% | 87.81% | UD Chinese-GSD |
+
+Korean is trained and evaluated on text that preserves the original
+inter-eojeol spaces (space-preserving TSV corpus; space tokens are excluded
+from the F1 computation). Since spaces mark most Korean word boundaries,
+this makes the task far easier than for Japanese and Chinese, which are
+written without spaces — the scores are not directly comparable across
+languages.
 
 ## Improving Model Quality
 

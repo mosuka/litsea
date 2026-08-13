@@ -27,11 +27,18 @@ held-out figures.
 | Property | Value |
 |----------|-------|
 | Language | Korean |
-| Training Corpus | UD Korean-GSD |
-| Training Options | `-t 0.0001 -i 20000` |
-| Word F1 (held-out) | 65.37% |
-| Boundary F1 (held-out) | 82.32% |
-| File Size | ~20 KB |
+| Training Corpus | UD Korean-GSD (space-preserving TSV corpus) |
+| Training Options | `--format tsv`, `-t 0.0001 -i 20000` |
+| Word F1 (held-out) | 99.91% |
+| Boundary F1 (held-out) | 99.96% |
+| File Size | ~9.4 KB |
+
+The Korean model is trained and evaluated on text that preserves the
+original inter-eojeol spaces (each space is its own token; space tokens are
+excluded from the F1 computation). Spaces mark most word boundaries in
+Korean, so a model that sees them during training resolves the UD
+Korean-GSD standard almost deterministically. Japanese and Chinese are
+written without spaces, so their protocol is unchanged.
 
 ### chinese.model
 

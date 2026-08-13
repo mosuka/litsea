@@ -21,6 +21,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
 | `--pos` | off | Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input |
+| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--pos` |
 
 ## Corpus Format
 
@@ -29,6 +30,19 @@ The input corpus must have words separated by spaces, one sentence per line:
 ```text
 Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
+```
+
+### TSV Corpus Format (`--format tsv`)
+
+With `--format tsv`, tokens are separated by tab characters and a token may
+be a literal space `" "`. This preserves the original spacing of the
+sentence in the training text, which is essential for languages like Korean
+where spaces mark most word boundaries (see
+[Korean](../language-support/korean.md)). Generate such a corpus from a UD
+Treebank with `corpus_udtreebank.sh -s`:
+
+```sh
+litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
 ```
 
 ## Output Format
