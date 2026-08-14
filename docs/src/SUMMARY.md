@@ -36,6 +36,7 @@
   - [Averaged Perceptron](litsea/averaged-perceptron.md)
   - [UPOS](litsea/upos.md)
   - [Language](litsea/language.md)
+  - [Evaluation](litsea/evaluation.md)
 
 # litsea-cli (CLI)
 
@@ -43,6 +44,7 @@
   - [extract](litsea-cli/extract.md)
   - [train](litsea-cli/train.md)
   - [segment](litsea-cli/segment.md)
+  - [evaluate](litsea-cli/evaluate.md)
 
 # Training Guide
 

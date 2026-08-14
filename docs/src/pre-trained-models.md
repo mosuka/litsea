@@ -71,6 +71,13 @@ written without spaces, so their protocol is unchanged.
 
 ## POS Tagging Models
 
+In-sample rows are the `train` command's metrics on the training data;
+held-out rows are word / tagged-word F1 measured with `litsea evaluate
+--pos` on the UD GSD test splits (see
+[Evaluating Models](training-guide/evaluating-models.md)). The Korean POS
+gold follows the POS pipeline's convention (no space tokens), so it is
+evaluated on unspaced text.
+
 ### japanese_pos.model
 
 | Property | Value |
@@ -79,9 +86,11 @@ written without spaces, so their protocol is unchanged.
 | Algorithm | Averaged Perceptron |
 | Training Corpus | UD Japanese-GSD (7,050 sentences) |
 | Epochs | 10 |
-| Accuracy | 98.23% |
-| Macro Precision | 96.82% |
-| Macro Recall | 93.30% |
+| Accuracy (in-sample) | 98.23% |
+| Macro Precision (in-sample) | 96.82% |
+| Macro Recall (in-sample) | 93.30% |
+| Word F1 (held-out) | 96.56% |
+| Tagged Word F1 (held-out) | 92.51% |
 | File Size | ~11 MB |
 
 ### chinese_pos.model
@@ -92,9 +101,11 @@ written without spaces, so their protocol is unchanged.
 | Algorithm | Averaged Perceptron |
 | Training Corpus | UD Chinese-GSD (3,997 sentences) |
 | Epochs | 10 |
-| Accuracy | 97.04% |
-| Macro Precision | 97.17% |
-| Macro Recall | 96.14% |
+| Accuracy (in-sample) | 97.04% |
+| Macro Precision (in-sample) | 97.17% |
+| Macro Recall (in-sample) | 96.14% |
+| Word F1 (held-out) | 90.52% |
+| Tagged Word F1 (held-out) | 81.18% |
 | File Size | ~19 MB |
 
 ### korean_pos.model
@@ -105,9 +116,11 @@ written without spaces, so their protocol is unchanged.
 | Algorithm | Averaged Perceptron |
 | Training Corpus | UD Korean-GSD (4,400 sentences) |
 | Epochs | 10 |
-| Accuracy | 95.14% |
-| Macro Precision | 95.00% |
-| Macro Recall | 86.15% |
+| Accuracy (in-sample) | 95.14% |
+| Macro Precision (in-sample) | 95.00% |
+| Macro Recall (in-sample) | 86.15% |
+| Word F1 (held-out) | 80.51% |
+| Tagged Word F1 (held-out) | 71.03% |
 | File Size | ~8.9 MB |
 
 #### Usage

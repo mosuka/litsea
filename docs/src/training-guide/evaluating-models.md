@@ -60,6 +60,26 @@ this makes the task far easier than for Japanese and Chinese, which are
 written without spaces — the scores are not directly comparable across
 languages.
 
+### Reproducing the Benchmarks
+
+Every figure in the table above is reproducible with one command using the
+bundled gold data (`resources/eval/`, converted from the UD GSD **test**
+splits — held-out for the bundled models, which are trained on the train
+splits):
+
+```sh
+litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
+litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+```
+
+See [evaluate](../litsea-cli/evaluate.md) for the command reference. POS
+models are evaluated with `--pos` against the `*_gsd_test_pos.txt` files;
+their held-out figures are listed in
+[Pre-trained Models](../pre-trained-models.md). Note the Korean POS gold
+follows the POS pipeline's convention (no space tokens), so unlike the
+segmentation row above it is evaluated on unspaced text.
+
 ## Improving Model Quality
 
 If accuracy is unsatisfactory, consider:

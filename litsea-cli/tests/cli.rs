@@ -151,6 +151,85 @@ fn test_extract_pos_rejects_tsv_format() {
     assert!(stderr.contains("not supported"), "unexpected stderr: {stderr}");
 }
 
+/// Pins the evaluate subcommand: known model + tiny gold corpus must print
+/// the metrics block with plausible percentages.
+#[test]
+fn test_evaluate_segmentation_output() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let gold = dir.path().join("gold.txt");
+    std::fs::write(&gold, "これ は テスト です 。\n").expect("write gold");
+
+    let output = run_litsea(
+        &[
+            "evaluate",
+            "-l",
+            "japanese",
+            model_path("japanese.model").to_str().unwrap(),
+            gold.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Evaluation Metrics:"), "unexpected output: {stderr}");
+    assert!(stderr.contains("Sentences: 1"), "unexpected output: {stderr}");
+    // japanese.model segments this sentence exactly (golden test), so the
+    // tiny corpus scores 100%.
+    assert!(stderr.contains("Word F1: 100.00%"), "unexpected output: {stderr}");
+}
+
+/// Pins evaluate's `--format tsv` routing: a space token in the gold TSV is
+/// excluded from scoring but preserved in the reconstructed text.
+#[test]
+fn test_evaluate_tsv_format() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let gold = dir.path().join("gold.tsv");
+    std::fs::write(&gold, "이것은\t \t테스트입니다\t.\n").expect("write gold");
+
+    let output = run_litsea(
+        &[
+            "evaluate",
+            "-l",
+            "korean",
+            "--format",
+            "tsv",
+            model_path("korean.model").to_str().unwrap(),
+            gold.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    // korean.model reproduces this segmentation exactly (golden test).
+    assert!(stderr.contains("Word F1: 100.00%"), "unexpected output: {stderr}");
+}
+
+/// Pins evaluate's `--pos` routing: POS gold + perceptron model prints the
+/// tagged-word metrics block.
+#[test]
+fn test_evaluate_pos_output() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let gold = dir.path().join("gold_pos.txt");
+    std::fs::write(&gold, "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT\n").expect("write gold");
+
+    let output = run_litsea(
+        &[
+            "evaluate",
+            "--pos",
+            "-l",
+            "japanese",
+            model_path("japanese_pos.model").to_str().unwrap(),
+            gold.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Evaluation Metrics (POS):"), "unexpected output: {stderr}");
+    // japanese_pos.model reproduces this tagging exactly (golden test).
+    assert!(stderr.contains("Tagged Word F1: 100.00%"), "unexpected output: {stderr}");
+}
+
 /// Pins extract's `--pos` routing: labels become SegmentLabel strings
 /// (O / B-<UPOS>) instead of boundary labels.
 #[test]

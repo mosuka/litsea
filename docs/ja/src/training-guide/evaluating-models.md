@@ -57,6 +57,25 @@ Recall = TP / (TP + FN)
 ほとんどの語境界を示すため、空白を使わずに表記される日本語・中国語に比べて
 タスクが大幅に容易になります — このスコアは言語間で直接比較できません。
 
+### ベンチマークの再現
+
+上の表のすべての数値は、同梱のゴールドデータ（`resources/eval/`、UD GSD の
+**test** 分割から変換。同梱モデルは train 分割で学習しているため held-out に
+あたります）を使って、それぞれ 1 コマンドで再現できます:
+
+```sh
+litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
+litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+```
+
+コマンドリファレンスは [evaluate](../litsea-cli/evaluate.md) を参照して
+ください。POS モデルは `*_gsd_test_pos.txt` ファイルに対して `--pos` で評価し、
+その held-out の数値は[事前学習済みモデル](../pre-trained-models.md)に記載して
+います。なお、韓国語の POS ゴールドは POS パイプラインの慣例（空白トークン
+なし）に従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
+評価します。
+
 ## モデル品質の改善
 
 精度が不十分な場合は、以下を検討してください:

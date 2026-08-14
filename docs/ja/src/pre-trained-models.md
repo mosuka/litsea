@@ -69,6 +69,12 @@ Litsea は `models/` ディレクトリに複数の事前学習済みモデル�
 
 ## 品詞推定モデル
 
+in-sample 行は `train` コマンドが学習データ自身で測ったメトリクス、held-out
+行は UD GSD テスト分割に対して `litsea evaluate --pos` で測定した単語 /
+タグ付き単語 F1 です（[モデルの評価](training-guide/evaluating-models.md)を
+参照）。韓国語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
+従うため、空白なしのテキストで評価しています。
+
 ### japanese_pos.model
 
 | プロパティ | 値 |
@@ -77,9 +83,11 @@ Litsea は `models/` ディレクトリに複数の事前学習済みモデル�
 | アルゴリズム | Averaged Perceptron |
 | 学習コーパス | UD Japanese-GSD（7,050 文） |
 | エポック数 | 10 |
-| 正解率 | 98.23% |
-| マクロ適合率 | 96.82% |
-| マクロ再現率 | 93.30% |
+| 正解率（in-sample） | 98.23% |
+| マクロ適合率（in-sample） | 96.82% |
+| マクロ再現率（in-sample） | 93.30% |
+| 単語 F1（held-out） | 96.56% |
+| タグ付き単語 F1（held-out） | 92.51% |
 | ファイルサイズ | 約 11 MB |
 
 ### chinese_pos.model
@@ -90,9 +98,11 @@ Litsea は `models/` ディレクトリに複数の事前学習済みモデル�
 | アルゴリズム | Averaged Perceptron |
 | 学習コーパス | UD Chinese-GSD（3,997 文） |
 | エポック数 | 10 |
-| 正解率 | 97.04% |
-| マクロ適合率 | 97.17% |
-| マクロ再現率 | 96.14% |
+| 正解率（in-sample） | 97.04% |
+| マクロ適合率（in-sample） | 97.17% |
+| マクロ再現率（in-sample） | 96.14% |
+| 単語 F1（held-out） | 90.52% |
+| タグ付き単語 F1（held-out） | 81.18% |
 | ファイルサイズ | 約 19 MB |
 
 ### korean_pos.model
@@ -103,9 +113,11 @@ Litsea は `models/` ディレクトリに複数の事前学習済みモデル�
 | アルゴリズム | Averaged Perceptron |
 | 学習コーパス | UD Korean-GSD（4,400 文） |
 | エポック数 | 10 |
-| 正解率 | 95.14% |
-| マクロ適合率 | 95.00% |
-| マクロ再現率 | 86.15% |
+| 正解率（in-sample） | 95.14% |
+| マクロ適合率（in-sample） | 95.00% |
+| マクロ再現率（in-sample） | 86.15% |
+| 単語 F1（held-out） | 80.51% |
+| タグ付き単語 F1（held-out） | 71.03% |
 | ファイルサイズ | 約 8.9 MB |
 
 #### 使用方法

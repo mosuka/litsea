@@ -17,6 +17,7 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 | [`extract`](litsea-cli/extract.md) | 学習用にコーパスから特徴量を抽出 |
 | [`train`](litsea-cli/train.md) | 単語分割モデルを学習 |
 | [`segment`](litsea-cli/segment.md) | 学習済みモデルを使用してテキストを単語に分割 |
+| [`evaluate`](litsea-cli/evaluate.md) | held-out のゴールドコーパスに対してモデルを評価 |
 
 ## グローバルオプション
 
