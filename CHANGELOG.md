@@ -71,6 +71,35 @@
   `{japanese,chinese,korean}-two-stage` cases alongside the existing
   AdaBoost/joint ones.
 
+### Changed
+
+- `japanese.model`, `chinese.model`, and `korean.model` are retrained as a
+  2-class (boundary/non-boundary) Averaged Perceptron and collapsed to
+  scalar per-feature weights in the existing AdaBoost model format (#165)
+  -- a lossless transform (see `scripts/collapse_binary_perceptron.py`'s
+  docstring for the derivation), not an approximation; the file format and
+  `Segmenter`/`AdaBoost` loading are unchanged. Held-out Word F1: Japanese
+  91.48 -> 96.70 (+5.22), Chinese 77.56 -> 90.69 (+13.13), Korean 99.91 ->
+  99.90 (space-preserving protocol, unchanged within measurement noise --
+  Korean's space signal already made the task nearly deterministic for the
+  prior AdaBoost model). An epoch sweep (10-200) and a magnitude-pruning
+  sweep were run per language before settling on the shipped
+  hyperparameters (Japanese: 50 epochs, pruned to the top 40,000 features;
+  Chinese: 100 epochs, pruned to the top 70,000; Korean: 30 epochs,
+  unpruned at 3,994 features) -- see `docs/src/pre-trained-models.md`'s
+  new "Training Procedure" section for the reproducible recipe (two new
+  scripts, `scripts/collapse_binary_perceptron.py` and
+  `scripts/prune_adaboost_model.py`, no crate changes). Model files grow
+  substantially (Japanese ~20 KB -> ~1.1 MB, Chinese ~18 KB -> ~2.0 MB,
+  Korean ~9.4 KB -> ~110 KB), but a paired `cargo bench --
+  external_corpus` comparison against the previous bundled files showed no
+  measurable throughput regression (within run-to-run noise on this
+  project's development machine) after pruning -- substantially better
+  than the ~20% regression anticipated when this issue was filed. Two
+  `litsea/tests/golden.rs` segmentation snapshots changed accordingly
+  (`"こんにちは"` and `"我喜欢吃中国菜。"`) and were updated to the new,
+  measurably better output.
+
 ## 0.10.0
 
 ### Added
