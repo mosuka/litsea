@@ -20,7 +20,12 @@ fn run_litsea(args: &[&str], stdin: Option<&str>) -> Output {
         .expect("failed to spawn litsea");
     if let Some(input) = stdin {
         let mut handle = child.stdin.take().expect("stdin");
-        handle.write_all(input.as_bytes()).expect("write stdin");
+        // A child that fails fast (e.g. a missing model) may exit before
+        // reading stdin, closing the pipe; that BrokenPipe is part of the
+        // scenario under test, not a harness error.
+        if let Err(e) = handle.write_all(input.as_bytes()) {
+            assert_eq!(e.kind(), std::io::ErrorKind::BrokenPipe, "write stdin: {e}");
+        }
     }
     drop(child.stdin.take());
     child.wait_with_output().expect("wait")
