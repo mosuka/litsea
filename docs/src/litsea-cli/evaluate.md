@@ -32,11 +32,20 @@ the reconstructed sentence (the concatenation of the gold tokens).
 Pure-whitespace tokens are excluded from scoring, so the Korean
 space-preserving protocol does not inflate the numbers.
 
-- **Word precision / recall / F1** -- exact token matches
-- **Boundary precision / recall / F1** -- individual start-of-token
-  decisions (excluding the sentence start)
-- With `--pos`: **tagged-word precision / recall / F1** -- span **and**
-  POS tag both match
+| Metric | Measures | A low value means |
+|--------|----------|-------------------|
+| Word Precision | Of the **predicted** words, the fraction that exactly matches a gold word (both ends correct) | many spurious words: over-segmentation or wrongly merged words |
+| Word Recall | Of the **gold** words, the fraction recovered exactly | many gold words missed |
+| Word F1 | Harmonic mean of word precision and recall | overall segmentation quality |
+| Boundary Precision | Of the **predicted** word-start positions, the fraction that is a gold boundary | many false boundaries (over-segmentation) |
+| Boundary Recall | Of the **gold** word-start positions, the fraction found | many missed boundaries (under-segmentation) |
+| Boundary F1 | Harmonic mean of boundary precision and recall | overall boundary quality |
+| Tagged Word Precision / Recall / F1 (`--pos`) | Like the word metrics, but the predicted POS tag must also match | correct spans carrying wrong tags |
+
+A word counts as correct only when **both** of its boundaries are correct,
+so word metrics are always at least as strict as boundary metrics — a
+single misplaced boundary invalidates the two words on either side of it.
+`Sentences` is the number of evaluated (non-empty) gold sentences.
 
 ## Examples
 
