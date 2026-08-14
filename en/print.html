@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6864ffcf.js";
+            window.path_to_searchindex_js = "searchindex-0eb3eeb8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-05aca925.js"></script>
@@ -1750,8 +1750,9 @@ an Averaged Perceptron model.</p>
 <p>Segments a sentence and jointly predicts each word’s UPOS tag. The
 prediction at the first character position determines the first word’s POS.
 An empty sentence yields <code>Ok</code> with an empty vector.</p>
-<p><strong>Errors</strong> with <code>LitseaError::PosLearnerNotSet</code> if no POS learner is set —
-build the segmenter with <code>with_pos_learner()</code> or register training data with
+<p><strong>Errors</strong> with <code>LitseaError::PosLearnerNotSet</code> if neither a POS learner nor
+a two-stage learner is set — build the segmenter with <code>with_pos_learner()</code>
+or <code>with_two_stage_learner()</code>, or register training data with
 <code>add_corpus_with_pos()</code> first.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1769,6 +1770,22 @@ let tokens = segmenter.segment_with_pos("これはテストです。")?;
 // [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
 //  ("です", Upos::AUX), ("。", Upos::PUNCT)]
 <span class="boring">}</span></code></pre>
+<h3 id="with_two_stage_learner"><a class="header" href="#with_two_stage_learner"><code>with_two_stage_learner</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_two_stage_learner(language: Language, learner: TwoStageLearner) -&gt; Self
+<span class="boring">}</span></code></pre>
+<p>Creates a segmenter with a two-stage model (a <code>litsea-two-stage v1</code> file
+loaded into a <code>TwoStageLearner</code>): the model’s stage-1 boundary classifier
+becomes the segmenter’s AdaBoost-path learner (so <code>segment</code> works
+naturally), and <code>segment_with_pos</code> tags each segmented word through the
+candidate-tag lexicon — single-candidate and dominant surfaces skip the
+classifier entirely — with the stage-2 word-level tagger deciding ambiguous
+surfaces (candidate-masked argmax) and unknown surfaces (full argmax over
+all classes). The <code>segment_with_pos</code> signature and return type are
+identical to the joint mode; only the model type selects the pipeline. See
+<a href="#model-file-format-2">Model File Format</a> for the two-stage
+format.</p>
 <h3 id="add_corpus_with_pos"><a class="header" href="#add_corpus_with_pos"><code>add_corpus_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
