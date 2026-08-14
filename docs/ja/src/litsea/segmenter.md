@@ -152,7 +152,7 @@ pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>>
 
 文を単語に分割すると同時に、各単語の UPOS タグを予測します。最初の文字位置での予測結果が最初の単語の品詞を決定します。空の文に対しては、空のベクターを持つ `Ok` を返します。
 
-**エラー**: POS 学習器が設定されていない場合は `LitseaError::PosLearnerNotSet` を返します — `with_pos_learner()` で Segmenter を作成するか、事前に `add_corpus_with_pos()` で学習データを登録してください。
+**エラー**: POS 学習器も二段構成学習器も設定されていない場合は `LitseaError::PosLearnerNotSet` を返します — `with_pos_learner()` または `with_two_stage_learner()` で Segmenter を作成するか、事前に `add_corpus_with_pos()` で学習データを登録してください。
 
 ```rust
 use std::path::Path;
@@ -169,6 +169,22 @@ let tokens = segmenter.segment_with_pos("これはテストです。")?;
 // [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
 //  ("です", Upos::AUX), ("。", Upos::PUNCT)]
 ```
+
+### `with_two_stage_learner`
+
+```rust
+pub fn with_two_stage_learner(language: Language, learner: TwoStageLearner) -> Self
+```
+
+二段構成モデル（`litsea-two-stage v1` ファイルを読み込んだ `TwoStageLearner`）を持つ
+Segmenter を作成します。モデルの stage-1 境界分類器はそのまま Segmenter の
+AdaBoost 経路の学習器になり（`segment` は自然に動作します）、`segment_with_pos` は
+分割された各単語を候補タグ語彙表（lexicon）でタグ付けします — 単一候補・優勢候補の
+表層は分類器を完全にスキップし、曖昧な表層は候補マスク付き argmax、未知の表層は
+全クラスの argmax を stage-2 の単語単位タガーが決定します。`segment_with_pos` の
+シグネチャと戻り値は joint モードと同一で、モデル種別だけがパイプラインを選択します。
+二段構成形式については[モデルファイル形式](../advanced/model-file-format.md)を
+参照してください。
 
 ### `add_corpus_with_pos`
 

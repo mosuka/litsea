@@ -15,8 +15,23 @@ use crate::packed_model::{
     PackedModel, SENTINEL_BASE, Slot, TAG_B, TAG_O, TAG_U, TEMPLATES, templates_for, wc_key,
 };
 use crate::packed_pos_model::PackedPosModel;
+use crate::packed_two_stage::PackedTwoStageModel;
 use crate::perceptron::AveragedPerceptron;
+use crate::two_stage::TwoStageLearner;
 use crate::upos::{SegmentLabel, Upos};
+
+/// The stage-2 half of a decomposed [`TwoStageLearner`], retained so the
+/// packed tagging tables can be rebuilt if they are ever invalidated
+/// (mirroring how the segmenter retains its other learners).
+#[derive(Debug)]
+struct TwoStageState {
+    /// Stage-2 word-level tagger.
+    stage2: AveragedPerceptron,
+    /// Surface -> observed `(tag, count)` candidates, most frequent first.
+    lexicon: rustc_hash::FxHashMap<String, Vec<(Upos, u32)>>,
+    /// Classifier-skip dominance threshold.
+    dominance: f64,
+}
 
 /// Text segmenter supporting two modes: word segmentation via AdaBoost
 /// binary classification, and joint word segmentation + POS tagging via an
@@ -43,6 +58,16 @@ pub struct Segmenter {
     /// [`add_corpus_with_pos`](Self::add_corpus_with_pos), which invalidate
     /// it); lazily rebuilt on the next `segment_with_pos` call.
     packed_pos: RwLock<Option<PackedPosModel>>,
+    /// The stage-2 state of a two-stage model, set by
+    /// [`with_two_stage_learner`](Self::with_two_stage_learner) (the
+    /// stage-1 half lives in `learner`). When present,
+    /// [`segment_with_pos`](Self::segment_with_pos) takes the two-stage
+    /// path instead of the joint POS path.
+    two_stage: Option<TwoStageState>,
+    /// The two-stage state compiled into packed tagging tables. `None`
+    /// when no two-stage learner is set; built eagerly by
+    /// [`with_two_stage_learner`](Self::with_two_stage_learner).
+    packed_two_stage: RwLock<Option<PackedTwoStageModel>>,
 }
 
 impl Segmenter {
@@ -91,6 +116,8 @@ impl Segmenter {
             pos_learner: None,
             packed,
             packed_pos: RwLock::new(None),
+            two_stage: None,
+            packed_two_stage: RwLock::new(None),
         }
     }
 
@@ -121,6 +148,45 @@ impl Segmenter {
             pos_learner: Some(pos_learner),
             packed,
             packed_pos,
+            two_stage: None,
+            packed_two_stage: RwLock::new(None),
+        }
+    }
+
+    /// Creates a new instance of [`Segmenter`] with a two-stage model
+    /// (issue #147): the learner's stage-1 boundary classifier becomes the
+    /// segmenter's AdaBoost-path learner (so [`segment`](Self::segment)
+    /// works naturally), and [`segment_with_pos`](Self::segment_with_pos)
+    /// tags each segmented word through the lexicon (candidate
+    /// restriction, dominance skip) and the stage-2 word-level tagger.
+    ///
+    /// # Arguments
+    /// * `language` - The language to use for character type classification.
+    /// * `learner` - The two-stage learner (typically one that has loaded
+    ///   a `litsea-two-stage v1` model).
+    ///
+    /// # Returns
+    /// A new Segmenter instance configured for two-stage segmentation +
+    /// POS tagging.
+    pub fn with_two_stage_learner(language: Language, learner: TwoStageLearner) -> Self {
+        let (stage1, stage2, lexicon, dominance) = learner.into_parts();
+        // Compile both packed tables eagerly so the common
+        // load-then-segment path never rebuilds mid-stream.
+        let packed = RwLock::new(Some(PackedModel::build(language, &stage1)));
+        let packed_two_stage =
+            RwLock::new(Some(PackedTwoStageModel::build(language, &stage2, &lexicon, dominance)));
+        Segmenter {
+            language,
+            learner: stage1,
+            pos_learner: None,
+            packed,
+            packed_pos: RwLock::new(None),
+            two_stage: Some(TwoStageState {
+                stage2,
+                lexicon,
+                dominance,
+            }),
+            packed_two_stage,
         }
     }
 
@@ -275,6 +341,36 @@ impl Segmenter {
         // get_or_insert_with covers the race where another thread rebuilt
         // the table between the two lock acquisitions.
         let packed = guard.get_or_insert_with(|| PackedPosModel::build(self.language, pos_learner));
+        f(packed)
+    }
+
+    /// Runs `f` with the packed two-stage tagging tables, rebuilding them
+    /// first if they were invalidated. The fast path takes only an
+    /// uncontended read lock (one per sentence). The caller passes the
+    /// two-stage state it already borrowed (presence is checked by
+    /// [`segment_with_pos`](Self::segment_with_pos)).
+    fn with_packed_two_stage<R>(
+        &self,
+        state: &TwoStageState,
+        f: impl FnOnce(&PackedTwoStageModel) -> R,
+    ) -> R {
+        {
+            let guard = self.packed_two_stage.read().unwrap_or_else(PoisonError::into_inner);
+            if let Some(packed) = guard.as_ref() {
+                return f(packed);
+            }
+        }
+        let mut guard = self.packed_two_stage.write().unwrap_or_else(PoisonError::into_inner);
+        // get_or_insert_with covers the race where another thread rebuilt
+        // the table between the two lock acquisitions.
+        let packed = guard.get_or_insert_with(|| {
+            PackedTwoStageModel::build(
+                self.language,
+                &state.stage2,
+                &state.lexicon,
+                state.dominance,
+            )
+        });
         f(packed)
     }
 
@@ -800,13 +896,32 @@ impl Segmenter {
     /// `Result<Vec<(String, Upos)>>` - Pairs of words and their POS tags.
     /// An empty sentence yields `Ok` with an empty vector.
     ///
+    /// # Two-stage mode
+    /// When the segmenter was built with
+    /// [`with_two_stage_learner`](Self::with_two_stage_learner), this
+    /// method instead runs the two-stage pipeline (issue #147): the
+    /// sentence is segmented by the stage-1 boundary classifier (exactly
+    /// as [`segment`](Self::segment)), then each word is tagged through
+    /// the candidate-tag lexicon — single-candidate and dominant surfaces
+    /// skip the classifier entirely — with the stage-2 word-level tagger
+    /// deciding ambiguous surfaces (candidate-masked argmax) and unknown
+    /// surfaces (full argmax).
+    ///
     /// # Errors
-    /// Returns [`LitseaError::PosLearnerNotSet`] if no POS learner is set.
-    /// Set one beforehand with [`with_pos_learner`](Self::with_pos_learner)
-    /// or [`add_corpus_with_pos`](Self::add_corpus_with_pos).
+    /// Returns [`LitseaError::PosLearnerNotSet`] if neither a POS learner
+    /// nor a two-stage learner is set. Set one beforehand with
+    /// [`with_pos_learner`](Self::with_pos_learner),
+    /// [`with_two_stage_learner`](Self::with_two_stage_learner), or
+    /// [`add_corpus_with_pos`](Self::add_corpus_with_pos).
     pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>> {
         if sentence.is_empty() {
             return Ok(Vec::new());
+        }
+        if let Some(state) = self.two_stage.as_ref() {
+            let words = self.segment(sentence);
+            let tags =
+                self.with_packed_two_stage(state, |packed| packed.tag_words(self.language, &words));
+            return Ok(words.into_iter().zip(tags).collect());
         }
         let pos_learner = self.pos_learner.as_ref().ok_or(LitseaError::PosLearnerNotSet)?;
         let (chars, char_codes, type_ids) = self.packed_context(sentence);
