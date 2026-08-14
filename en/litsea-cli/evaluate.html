@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0eb3eeb8.js";
+            window.path_to_searchindex_js = "../searchindex-3420ea92.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-05aca925.js"></script>
@@ -215,7 +215,7 @@ train the model — the bundled files in <code>resources/eval/</code> are the UD
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language of the model and gold corpus. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Evaluate joint segmentation + POS tagging. The gold corpus must then be in <code>word/POS</code> format</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Evaluate segmentation + POS tagging. The gold corpus must then be in <code>word/POS</code> format. Accepts a joint model (<code>train --pos</code>) or a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --two-stage</code>), auto-detected from the file</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean space-preserving corpus). Ignored with <code>--pos</code></td></tr>
 </tbody>
 </table>

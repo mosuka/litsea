@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8d7213ce.js";
+            window.path_to_searchindex_js = "../searchindex-a5ab5cd8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-5f7904d8.js"></script>
@@ -208,7 +208,9 @@
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）学習モードを有効にする（Averaged Perceptron を使用）</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（POS モードのみ）</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（POS モードおよび <code>--two-stage</code> モード）</td></tr>
+<tr><td><code>--two-stage</code></td><td>off</td><td>代わりに<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">二段構成</a>モデルを学習する。<code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code>（<code>extract --two-stage</code> の出力）を読み込む。<code>--pos</code> および <code>-m</code>/<code>--load-model-uri</code>（増分学習は非対応）とは併用できない</td></tr>
+<tr><td><code>--dominance &lt;DOMINANCE&gt;</code></td><td><code>0.99</code></td><td><code>--two-stage</code> 用の分類器スキップ閾値、範囲は <code>(0.5, 1.0]</code>。既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされる</td></tr>
 </tbody>
 </table>
 </div>
@@ -296,6 +298,36 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 </tbody>
 </table>
 </div>
+<h2 id="二段構成モデルの学習"><a class="header" href="#二段構成モデルの学習">二段構成モデルの学習</a></h2>
+<p><code>--two-stage</code> を指定すると、
+<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">二段構成モデル</a>
+を構築します: 二値の境界分類器（stage 1）と単語単位の品詞タガー（stage 2）を、
+候補タグ語彙表とともに単一の <code>litsea-two-stage v1</code> ファイルに組み立てます。
+両ステージとも <code>--num-epochs</code> エポック分 Averaged Perceptron として学習し、
+その後 stage 1 は既存の AdaBoost 形式のスカラー重みに畳み込まれます
+（品質を損なわない変換 — 導出は <code>litsea::trainer</code> のモジュールドキュメントを参照）。
+これによりランタイムは通常の <code>segment()</code> モデルと全く同じ方法で採点します。</p>
+<h3 id="使い方-2"><a class="header" href="#使い方-2">使い方</a></h3>
+<pre><code class="language-sh">litsea train --two-stage [OPTIONS] &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<p><code>FEATURES_PREFIX</code> は <code>extract --two-stage</code> に渡したものと同じプレフィックスです。</p>
+<h3 id="例"><a class="header" href="#例">例</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea train --two-stage --num-epochs 10 ./two_stage_features ./models/japanese_two_stage.model
+</code></pre>
+<h3 id="出力-2"><a class="header" href="#出力-2">出力</a></h3>
+<pre><code class="language-text">Result Metrics (Two-Stage):
+  Stage 1 (boundary) Accuracy: 99.36% ( 277213 )
+  Stage 1 Macro Precision: 99.30%
+  Stage 1 Macro Recall: 99.35%
+  Stage 2 (tagging) Accuracy: 98.53% ( 168333 )
+  Stage 2 Macro Precision: 98.39%
+  Stage 2 Macro Recall: 97.59%
+</code></pre>
+<p>他のモードと同様、これらは in-sample のメトリクスです。現実的な品質を見積もるには
+<code>litsea evaluate --pos</code> でホールドアウトされたテキストを評価してください。
+<code>segment --pos</code> と <code>evaluate --pos</code> はファイルヘッダから二段構成モデルを自動判別するため、
+利用に追加のフラグは不要です。</p>
 
                     </main>
 

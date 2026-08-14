@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0eb3eeb8.js";
+            window.path_to_searchindex_js = "../searchindex-3420ea92.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-05aca925.js"></script>
@@ -208,7 +208,9 @@
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) training mode using Averaged Perceptron</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS mode only)</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS and <code>--two-stage</code> modes)</td></tr>
+<tr><td><code>--two-stage</code></td><td>off</td><td>Train a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model instead. Reads <code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code> (from <code>extract --two-stage</code>). Cannot be combined with <code>--pos</code> or <code>-m</code>/<code>--load-model-uri</code> (incremental training is not supported)</td></tr>
+<tr><td><code>--dominance &lt;DOMINANCE&gt;</code></td><td><code>0.99</code></td><td>Classifier-skip threshold for <code>--two-stage</code>, in <code>(0.5, 1.0]</code>: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier</td></tr>
 </tbody>
 </table>
 </div>
@@ -296,6 +298,36 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 </tbody>
 </table>
 </div>
+<h2 id="two-stage-model-training"><a class="header" href="#two-stage-model-training">Two-Stage Model Training</a></h2>
+<p>With <code>--two-stage</code>, <code>train</code> builds a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage
+model</a>:
+a binary boundary classifier (stage 1) plus a word-level POS tagger
+(stage 2), assembled with the candidate-tag lexicon into a single
+<code>litsea-two-stage v1</code> file. Both stages train as Averaged Perceptrons for
+<code>--num-epochs</code> epochs; stage 1 is then collapsed to scalar weights in the
+existing AdaBoost format (a lossless transformation — see the module docs
+of <code>litsea::trainer</code> for the derivation) so the runtime scores it exactly
+as it scores a plain <code>segment()</code> model.</p>
+<h3 id="usage-2"><a class="header" href="#usage-2">Usage</a></h3>
+<pre><code class="language-sh">litsea train --two-stage [OPTIONS] &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<p><code>FEATURES_PREFIX</code> is the same prefix passed to <code>extract --two-stage</code>.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea train --two-stage --num-epochs 10 ./two_stage_features ./models/japanese_two_stage.model
+</code></pre>
+<h3 id="output-2"><a class="header" href="#output-2">Output</a></h3>
+<pre><code class="language-text">Result Metrics (Two-Stage):
+  Stage 1 (boundary) Accuracy: 99.36% ( 277213 )
+  Stage 1 Macro Precision: 99.30%
+  Stage 1 Macro Recall: 99.35%
+  Stage 2 (tagging) Accuracy: 98.53% ( 168333 )
+  Stage 2 Macro Precision: 98.39%
+  Stage 2 Macro Recall: 97.59%
+</code></pre>
+<p>As with the other modes, these are in-sample metrics; evaluate on held-out
+text with <code>litsea evaluate --pos</code> for a realistic quality estimate. <code>segment --pos</code> and <code>evaluate --pos</code> auto-detect a two-stage model from its file
+header, so no extra flag is needed to use it.</p>
 
                     </main>
 

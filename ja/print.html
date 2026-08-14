@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-8d7213ce.js";
+            window.path_to_searchindex_js = "searchindex-a5ab5cd8.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-5f7904d8.js"></script>
@@ -2664,7 +2664,9 @@ println!("word F1: {:.2}%", metrics.word_f1);
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です</td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--pos</code> と併用できません</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--pos</code> および <code>--two-stage</code> と併用できません</td></tr>
+<tr><td><code>--two-stage</code></td><td>off</td><td>通常の品詞特徴量の代わりに<a href="#two-stage-model-format-litsea-two-stage-v1">二段構成</a>の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。<code>--pos</code> とは併用できません</td></tr>
+<tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td><code>--two-stage</code> 用の stage-2 単語特徴セット: <code>full</code>（品質最優先）、<code>balanced</code>、<code>fast</code>（速度最優先）</td></tr>
 </tbody>
 </table>
 </div>
@@ -2714,6 +2716,27 @@ O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	.
 <h3 id="品詞付き特徴量抽出の例"><a class="header" href="#品詞付き特徴量抽出の例">品詞付き特徴量抽出の例</a></h3>
 <pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
 </code></pre>
+<h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
+<p><code>--two-stage</code> を指定すると、<code>extract</code> は <code>--pos</code> と同じ品詞付きコーパス形式
+（<code>単語/品詞 単語/品詞 ...</code>）を読み込みますが、
+<a href="#two-stage-model-format-litsea-two-stage-v1">二段構成アーキテクチャ</a>
+向けに <code>FEATURES_FILE</code> をプレフィックスとした<strong>3つ</strong>のファイルを書き出します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ファイル</th><th>内容</th></tr>
+</thead>
+<tbody>
+<tr><td><code>{FEATURES_FILE}.stage1</code></td><td>境界特徴量。文字位置ごとに1行、ラベルは <code>B</code> または <code>O</code>（<code>--pos</code> と同じ特徴量テンプレート）</td></tr>
+<tr><td><code>{FEATURES_FILE}.stage2</code></td><td>単語単位の特徴量。単語ごとに1行、ラベルは UPOS タグ。書き出すテンプレートは <code>--stage2-features</code> で制御</td></tr>
+<tr><td><code>{FEATURES_FILE}.lexicon</code></td><td>候補タグ語彙表: <code>surface\tTAG:count[,TAG:count...]</code>（出現頻度の降順）</td></tr>
+</tbody>
+</table>
+</div>
+<p>同じプレフィックスを <code>litsea train --two-stage</code> に渡します:</p>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+# ./two_stage_features.stage1, .stage2, .lexicon を書き出す
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="train-3"><a class="header" href="#train-3">train</a></h1>
 <p>AdaBoostを使用して単語分割モデルを学習します。</p>
@@ -2743,7 +2766,9 @@ O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	.
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）学習モードを有効にする（Averaged Perceptron を使用）</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（POS モードのみ）</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（POS モードおよび <code>--two-stage</code> モード）</td></tr>
+<tr><td><code>--two-stage</code></td><td>off</td><td>代わりに<a href="#two-stage-model-format-litsea-two-stage-v1">二段構成</a>モデルを学習する。<code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code>（<code>extract --two-stage</code> の出力）を読み込む。<code>--pos</code> および <code>-m</code>/<code>--load-model-uri</code>（増分学習は非対応）とは併用できない</td></tr>
+<tr><td><code>--dominance &lt;DOMINANCE&gt;</code></td><td><code>0.99</code></td><td><code>--two-stage</code> 用の分類器スキップ閾値、範囲は <code>(0.5, 1.0]</code>。既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされる</td></tr>
 </tbody>
 </table>
 </div>
@@ -2831,6 +2856,36 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 </tbody>
 </table>
 </div>
+<h2 id="二段構成モデルの学習"><a class="header" href="#二段構成モデルの学習">二段構成モデルの学習</a></h2>
+<p><code>--two-stage</code> を指定すると、
+<a href="#two-stage-model-format-litsea-two-stage-v1">二段構成モデル</a>
+を構築します: 二値の境界分類器（stage 1）と単語単位の品詞タガー（stage 2）を、
+候補タグ語彙表とともに単一の <code>litsea-two-stage v1</code> ファイルに組み立てます。
+両ステージとも <code>--num-epochs</code> エポック分 Averaged Perceptron として学習し、
+その後 stage 1 は既存の AdaBoost 形式のスカラー重みに畳み込まれます
+（品質を損なわない変換 — 導出は <code>litsea::trainer</code> のモジュールドキュメントを参照）。
+これによりランタイムは通常の <code>segment()</code> モデルと全く同じ方法で採点します。</p>
+<h3 id="使い方-2-1"><a class="header" href="#使い方-2-1">使い方</a></h3>
+<pre><code class="language-sh">litsea train --two-stage [OPTIONS] &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<p><code>FEATURES_PREFIX</code> は <code>extract --two-stage</code> に渡したものと同じプレフィックスです。</p>
+<h3 id="例"><a class="header" href="#例">例</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea train --two-stage --num-epochs 10 ./two_stage_features ./models/japanese_two_stage.model
+</code></pre>
+<h3 id="出力-2"><a class="header" href="#出力-2">出力</a></h3>
+<pre><code class="language-text">Result Metrics (Two-Stage):
+  Stage 1 (boundary) Accuracy: 99.36% ( 277213 )
+  Stage 1 Macro Precision: 99.30%
+  Stage 1 Macro Recall: 99.35%
+  Stage 2 (tagging) Accuracy: 98.53% ( 168333 )
+  Stage 2 Macro Precision: 98.39%
+  Stage 2 Macro Recall: 97.59%
+</code></pre>
+<p>他のモードと同様、これらは in-sample のメトリクスです。現実的な品質を見積もるには
+<code>litsea evaluate --pos</code> でホールドアウトされたテキストを評価してください。
+<code>segment --pos</code> と <code>evaluate --pos</code> はファイルヘッダから二段構成モデルを自動判別するため、
+利用に追加のフラグは不要です。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="segment-1"><a class="header" href="#segment-1">segment</a></h1>
 <p>学習済みモデルを使用してテキストを単語に分割します。</p>
@@ -2856,7 +2911,7 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<code>train --pos</code> で学習したPOSモデルが必要です</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。joint モデル（<code>train --pos</code>）または<a href="#two-stage-model-format-litsea-two-stage-v1">二段構成</a>モデル（<code>train --two-stage</code>）のいずれも使用でき、ファイルから自動判別されます</td></tr>
 </tbody>
 </table>
 </div>
@@ -2890,7 +2945,11 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
   | litsea segment -l japanese https://example.com/models/japanese.model
 </code></pre>
 <h2 id="品詞推定付き分割--pos"><a class="header" href="#品詞推定付き分割--pos">品詞推定付き分割（<code>--pos</code>）</a></h2>
-<p><code>--pos</code> フラグを指定すると、Averaged Perceptron モデルを使用して単語分割と品詞推定を同時に行います。</p>
+<p><code>--pos</code> フラグを指定すると、単語分割と品詞推定を同時に行います。モデルの種類
+（joint な Averaged Perceptron モデルか、
+<a href="#two-stage-model-format-litsea-two-stage-v1">二段構成</a>モデルか）
+はファイルヘッダから自動判別されるため、<code>train --two-stage</code> で学習したモデルでも
+同じコマンドがそのまま使えます。</p>
 <h3 id="使い方-1-2"><a class="header" href="#使い方-1-2">使い方</a></h3>
 <pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
 </code></pre>
@@ -2909,7 +2968,7 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
 <li>CLIは非同期のURI APIを通じてモデルを読み込み、TLS（rustls）を使用したHTTP/HTTPSをサポートしています。ライブラリには同期的なローカル読み込み（<code>load_model_from_path</code>）も用意されています</li>
 <li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
-<li><code>--pos</code> を使用する場合、モデルは <code>train --pos</code> で学習したPOSモデルである必要があります</li>
+<li><code>--pos</code> を使用する場合、モデルは <code>train --pos</code> または <code>train --two-stage</code> で学習した品詞推定対応モデルである必要があります</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="evaluate"><a class="header" href="#evaluate">evaluate</a></h1>
@@ -2946,7 +3005,7 @@ train 分割で学習されているため、この条件を満たします。</
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは <code>word/POS</code> 形式である必要があります</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは <code>word/POS</code> 形式である必要があります。joint モデル（<code>train --pos</code>）または<a href="#two-stage-model-format-litsea-two-stage-v1">二段構成</a>モデル（<code>train --two-stage</code>）のいずれも使用でき、ファイルから自動判別されます</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> 指定時は無視されます</td></tr>
 </tbody>
 </table>
@@ -3486,7 +3545,7 @@ litsea train -t 0.0001 -i 20000 \
 <li><strong>重みがゼロの特徴量</strong>は、ファイルをコンパクトに保つために省略される</li>
 <li><strong>最終行</strong>はバイアス項を単一の数値として含む</li>
 </ul>
-<h2 id="例"><a class="header" href="#例">例</a></h2>
+<h2 id="例-1"><a class="header" href="#例-1">例</a></h2>
 <pre><code class="language-text">BC1:IK	0.3456
 BC2:KI	-0.1234
 UW4:は	0.5678

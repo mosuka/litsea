@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0eb3eeb8.js";
+            window.path_to_searchindex_js = "../searchindex-3420ea92.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-05aca925.js"></script>
@@ -204,7 +204,7 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a POS model trained with <code>train --pos</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Accepts a joint model (<code>train --pos</code>) or a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --two-stage</code>), auto-detected from the file</td></tr>
 </tbody>
 </table>
 </div>
@@ -238,7 +238,11 @@
   | litsea segment -l japanese https://example.com/models/japanese.model
 </code></pre>
 <h2 id="pos-tagged-segmentation---pos"><a class="header" href="#pos-tagged-segmentation---pos">POS-Tagged Segmentation (<code>--pos</code>)</a></h2>
-<p>When the <code>--pos</code> flag is specified, segmentation and POS tagging are performed simultaneously using an Averaged Perceptron model.</p>
+<p>When the <code>--pos</code> flag is specified, segmentation and POS tagging are
+performed simultaneously. The model kind (joint Averaged Perceptron or
+<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a>)
+is auto-detected from the file header, so the same command works for
+either — including a model produced by <code>train --two-stage</code>.</p>
 <h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
 <pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
 </code></pre>
@@ -257,7 +261,7 @@
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
 <li>The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (<code>load_model_from_path</code>)</li>
 <li>The model URI is not restricted to file paths – any valid URL is accepted</li>
-<li>When using <code>--pos</code>, the model must be a POS model trained with <code>train --pos</code></li>
+<li>When using <code>--pos</code>, the model must be a POS-capable model trained with <code>train --pos</code> or <code>train --two-stage</code></li>
 </ul>
 
                     </main>
