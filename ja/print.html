@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-22da2903.js";
+            window.path_to_searchindex_js = "searchindex-f3ad43b9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-5f7904d8.js"></script>
@@ -3512,6 +3512,42 @@ packed <code>u64</code> 整数キーへコンパイルされます
 を参照）。セグメンタの言語では生成し得ない特徴量（例: 他言語の文字種コード）は
 このコンパイルで無視されます – 従来も入力属性にマッチし得なかったものと完全に
 同じ扱いです。一方、バイアスは常にファイル内のすべての重みから計算されます。</p>
+<h2 id="二段構成モデル形式litsea-two-stage-v1"><a class="header" href="#二段構成モデル形式litsea-two-stage-v1">二段構成モデル形式（<code>litsea-two-stage v1</code>）</a></h2>
+<p>二段構成モデルは、stage-1 の境界分類器、候補タグ語彙表（lexicon）、stage-2 の
+単語単位タガーを、マジック行とセクションマーカーを持つ 1 つのプレーンテキスト
+ファイルにまとめたものです。セクションの順序は固定です:</p>
+<pre><code class="language-text">litsea-two-stage v1
+[params]
+dominance\t0.99
+[stage1]
+&lt;AdaBoost モデル形式: "feature\tweight" 行 + バイアス行 1 行&gt;
+[lexicon]
+&lt;surface&gt;\t&lt;TAG&gt;:&lt;count&gt;[,&lt;TAG&gt;:&lt;count&gt;...]
+[stage2]
+&lt;Averaged Perceptron モデル形式: クラス数、クラス名、重み&gt;
+</code></pre>
+<ul>
+<li><code>[stage1]</code> と <code>[stage2]</code> セクションには、上で説明した既存の形式がそのまま
+埋め込まれ、既存のローダーで解析されます。</li>
+<li><code>[lexicon]</code> の各行は、単語表層を学習コーパスで観測された UPOS タグと出現数に
+対応付けます。出現数の多い順（同数はタグ名の昇順）に並びます。表層はタブと
+改行を除く任意の文字を含むことができ、trim されないため、空白トークンも
+表現できます。</li>
+<li><code>[params]</code> セクションは省略可能です。唯一のキー <code>dominance</code> は分類器スキップの
+閾値で、範囲は <code>(0.5, 1.0]</code> です: 既知の表層のうち最頻タグが学習時の出現の
+この割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされます。
+セクションが無い場合の既定値は <code>0.99</code> です。</li>
+<li>stage-2 のクラス名は有効な UPOS タグでなければなりません。すべての重み行と
+lexicon 行がタブを含むことと合わせて、内容行がセクションマーカーと衝突しない
+ことが保証されます。</li>
+</ul>
+<p>この形式は<strong>純粋に追加的</strong>です: マジック行は AdaBoost の weight/bias 行としても
+Perceptron のクラス数としても解釈できないため、既存のローダーは二段構成ファイルを
+明示的なエラーで拒否し、既存のモデルファイルはこれまでどおり読み込めます。
+将来の形式改訂では別のマジック行（例: <code>litsea-two-stage v2</code>）を使用し、v1 の
+ローダーはそれを未対応バージョンとして拒否します。ローダーはセクションの順序、
+上記の lexicon 規則、パラメータの範囲を検証し、エラーにはセクション名を付けて
+報告します（例: <code>[stage2] section: ...</code>）。</p>
 <h2 id="ファイルサイズ"><a class="header" href="#ファイルサイズ">ファイルサイズ</a></h2>
 <p>モデルファイルは非常にコンパクトです:</p>
 <div class="table-wrapper">

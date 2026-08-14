@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e7e6ce99.js";
+            window.path_to_searchindex_js = "../searchindex-6864ffcf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-05aca925.js"></script>
@@ -236,6 +236,45 @@ Features that the segmenter’s language could never generate (for example
 type codes of another language) are ignored by that compilation – exactly
 as they could never match an input attribute before – while the bias is
 always computed over every weight in the file.</p>
+<h2 id="two-stage-model-format-litsea-two-stage-v1"><a class="header" href="#two-stage-model-format-litsea-two-stage-v1">Two-Stage Model Format (<code>litsea-two-stage v1</code>)</a></h2>
+<p>A two-stage model bundles a stage-1 boundary classifier, a candidate-tag
+lexicon, and a stage-2 word-level tagger into a single plain-text file with
+a magic first line and marker-delimited sections in a fixed order:</p>
+<pre><code class="language-text">litsea-two-stage v1
+[params]
+dominance\t0.99
+[stage1]
+&lt;AdaBoost model format: "feature\tweight" lines + one bias line&gt;
+[lexicon]
+&lt;surface&gt;\t&lt;TAG&gt;:&lt;count&gt;[,&lt;TAG&gt;:&lt;count&gt;...]
+[stage2]
+&lt;Averaged Perceptron model format: class count, class names, weights&gt;
+</code></pre>
+<ul>
+<li>The <code>[stage1]</code> and <code>[stage2]</code> sections embed the existing formats
+described above verbatim and are parsed by the existing loaders.</li>
+<li>Each <code>[lexicon]</code> line maps a word surface to the UPOS tags observed for
+it in the training corpus with their occurrence counts, most frequent
+first (ties broken by tag name). Surfaces may contain any character
+except tab and newline and are not trimmed, so whitespace tokens stay
+representable.</li>
+<li>The <code>[params]</code> section is optional. Its only key, <code>dominance</code>, is the
+classifier-skip threshold in <code>(0.5, 1.0]</code>: a known surface whose most
+frequent tag covers at least this fraction of its training occurrences is
+tagged without invoking the stage-2 classifier. It defaults to <code>0.99</code>
+when the section is absent.</li>
+<li>Stage-2 class names must be valid UPOS tags; together with every weight
+and lexicon line containing a tab, this guarantees no content line can
+collide with a section marker.</li>
+</ul>
+<p>The format is <strong>purely additive</strong>: the magic line is neither a valid
+AdaBoost weight/bias line nor a perceptron class count, so the existing
+loaders reject two-stage files with an explicit error, and existing model
+files keep loading unchanged. A future format revision will use a different
+magic line (e.g. <code>litsea-two-stage v2</code>); the v1 loader rejects it as an
+unsupported version. The loader validates section order, the lexicon rules
+above, and the parameter range, and reports errors with the section name
+(e.g. <code>[stage2] section: ...</code>).</p>
 <h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
 <p>Model files are very compact:</p>
 <div class="table-wrapper">
