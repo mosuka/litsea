@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a5ab5cd8.js";
+            window.path_to_searchindex_js = "../searchindex-2f9a509a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5f7904d8.js"></script>
+        <script src="../toc-ef307d1e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -207,7 +207,7 @@
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--pos</code> および <code>--two-stage</code> と併用できません</td></tr>
-<tr><td><code>--two-stage</code></td><td>off</td><td>通常の品詞特徴量の代わりに<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">二段構成</a>の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。<code>--pos</code> とは併用できません</td></tr>
+<tr><td><code>--two-stage</code></td><td>off</td><td>通常の品詞特徴量の代わりに<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。<code>--pos</code> とは併用できません</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td><code>--two-stage</code> 用の stage-2 単語特徴セット: <code>full</code>（品質最優先）、<code>balanced</code>、<code>fast</code>（速度最優先）</td></tr>
 </tbody>
 </table>
@@ -261,7 +261,7 @@ O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	.
 <h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
 <p><code>--two-stage</code> を指定すると、<code>extract</code> は <code>--pos</code> と同じ品詞付きコーパス形式
 （<code>単語/品詞 単語/品詞 ...</code>）を読み込みますが、
-<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">二段構成アーキテクチャ</a>
+<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成アーキテクチャ</a>
 向けに <code>FEATURES_FILE</code> をプレフィックスとした<strong>3つ</strong>のファイルを書き出します。</p>
 <div class="table-wrapper">
 <table>

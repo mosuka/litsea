@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a5ab5cd8.js";
+            window.path_to_searchindex_js = "../searchindex-2f9a509a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5f7904d8.js"></script>
+        <script src="../toc-ef307d1e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -285,6 +285,53 @@
 </ul>
 <h3 id="品詞学習の途中停止"><a class="header" href="#品詞学習の途中停止">品詞学習の途中停止</a></h3>
 <p>品詞学習中に <strong>Ctrl+C を1回</strong>押すと、現在の状態でモデルを保存して停止します。<strong>Ctrl+C を2回</strong>押すと、保存せずに即時終了します。</p>
+<h2 id="二段構成モデルの学習"><a class="header" href="#二段構成モデルの学習">二段構成モデルの学習</a></h2>
+<p>より速い品詞推定には、<code>--pos</code> の代わりに <code>--two-stage</code> フラグを使用します。
+<a href="../algorithm/two-stage-tagging.html">二段構成モデル</a>（issue #147）を学習します:
+二値の境界分類器（stage 1）と単語単位のタガー（stage 2）を、候補タグ語彙表と
+ともに単一の <code>litsea-two-stage v1</code> ファイルに組み立てます。アーキテクチャ、
+実測の品質・速度比較、新規用途で推奨する理由については
+<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint タグ付け</a>を参照してください。</p>
+<h3 id="二段構成学習コマンド"><a class="header" href="#二段構成学習コマンド">二段構成学習コマンド</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+litsea train --two-stage --num-epochs 50 &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<p><code>extract --two-stage</code> は <code>--pos</code> と同じ <code>word/POS</code> コーパスを読み込み、
+<code>FEATURES_PREFIX</code> から 3 つのファイルを書き出します。<code>train --two-stage</code>
+は同じプレフィックスからそれらを読み込みます。</p>
+<h3 id="二段構成学習の使用例"><a class="header" href="#二段構成学習の使用例">二段構成学習の使用例</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+</code></pre>
+<h3 id="二段構成学習のハイパーパラメータ"><a class="header" href="#二段構成学習のハイパーパラメータ">二段構成学習のハイパーパラメータ</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>パラメータ</th><th>フラグ</th><th>デフォルト値</th><th>ガイダンス</th></tr>
+</thead>
+<tbody>
+<tr><td>エポック数</td><td><code>--num-epochs</code></td><td>10</td><td>同梱モデル作成時のエポックスイープ（<a href="../algorithm/two-stage-tagging.html#方法論についての注記-学習エポック数はアーキテクチャ以上に効く">二段構成 vs Joint タグ付け</a>を参照）で、分割品質が既定値を大きく超えて向上し続け <strong>50</strong> 付近でプラトーに達すると判明しました – 同梱モデルは 10 ではなく 50 を使用しています</td></tr>
+<tr><td>Dominance</td><td><code>--dominance</code></td><td>0.99</td><td>分類器スキップの閾値、範囲は <code>(0.5, 1.0]</code>: 既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされます。値を小さくするとより頻繁に分類器をスキップします（高速だが語彙表への依存度が上がる）。既定値は同梱モデルと同じです</td></tr>
+<tr><td>stage-2 特徴量セット</td><td><code>extract --two-stage</code> の <code>--stage2-features</code></td><td><code>fast</code></td><td><code>full</code>、<code>balanced</code>、<code>fast</code>。<a href="extracting-features.html">特徴量の抽出</a>と<a href="../algorithm/two-stage-tagging.html#stage-2-特徴量セットの選び方">特徴量セットの選び方</a>を参照</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="二段構成学習の出力"><a class="header" href="#二段構成学習の出力">二段構成学習の出力</a></h3>
+<pre><code class="language-text">Result Metrics (Two-Stage):
+  Stage 1 (boundary) Accuracy: 99.86% ( 277213 )
+  Stage 1 Macro Precision: 99.85%
+  Stage 1 Macro Recall: 99.86%
+  Stage 2 (tagging) Accuracy: 99.09% ( 168333 )
+  Stage 2 Macro Precision: 98.96%
+  Stage 2 Macro Recall: 98.77%
+</code></pre>
+<p>AdaBoost・joint 品詞学習と同様、これらは in-sample のメトリクスです。
+現実的な品質を見積もるには <code>litsea evaluate --pos</code> でホールドアウトされた
+テキストを評価してください。<code>segment --pos</code> と <code>evaluate --pos</code> は
+ファイルヘッダから二段構成モデルを自動判別するため、学習後の利用に
+追加のフラグは不要です。</p>
+<h3 id="二段構成学習の途中停止"><a class="header" href="#二段構成学習の途中停止">二段構成学習の途中停止</a></h3>
+<p>二段構成学習中に <strong>Ctrl+C を1回</strong>押すと、現在の状態でモデルを保存して停止します。<strong>Ctrl+C を2回</strong>押すと、保存せずに即時終了します。</p>
 
                     </main>
 

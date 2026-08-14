@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a5ab5cd8.js";
+            window.path_to_searchindex_js = "../searchindex-2f9a509a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5f7904d8.js"></script>
+        <script src="../toc-ef307d1e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,7 +204,7 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。joint モデル（<code>train --pos</code>）または<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">二段構成</a>モデル（<code>train --two-stage</code>）のいずれも使用でき、ファイルから自動判別されます</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。joint モデル（<code>train --pos</code>）または<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --two-stage</code>）のいずれも使用でき、ファイルから自動判別されます</td></tr>
 </tbody>
 </table>
 </div>
@@ -240,7 +240,7 @@
 <h2 id="品詞推定付き分割--pos"><a class="header" href="#品詞推定付き分割--pos">品詞推定付き分割（<code>--pos</code>）</a></h2>
 <p><code>--pos</code> フラグを指定すると、単語分割と品詞推定を同時に行います。モデルの種類
 （joint な Averaged Perceptron モデルか、
-<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">二段構成</a>モデルか）
+<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデルか）
 はファイルヘッダから自動判別されるため、<code>train --two-stage</code> で学習したモデルでも
 同じコマンドがそのまま使えます。</p>
 <h3 id="使い方-1"><a class="header" href="#使い方-1">使い方</a></h3>

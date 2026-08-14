@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3420ea92.js";
+            window.path_to_searchindex_js = "../searchindex-e75169e6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-05aca925.js"></script>
+        <script src="../toc-ffba73c1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -223,13 +223,19 @@ alone:</p>
 <tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-pos</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>japanese-two-stage</code></td><td>japanese_two_stage.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>korean-pos</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
+<tr><td><code>korean-two-stage</code></td><td>korean_two_stage.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
 <tr><td><code>chinese-pos</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>chinese-two-stage</code></td><td>chinese_two_stage.model</td><td>rulin_waishi.txt</td></tr>
 </tbody>
 </table>
 </div>
+<p>The <code>*-two-stage</code> benches were added alongside the <a href="../algorithm/two-stage-tagging.html">two-stage
+architecture</a> (#147/#169); they are not
+part of the original seven tokenizer-speed-bench-mirroring benches above.</p>
 <p>One iteration segments every line of the corpus (unfiltered, like the
 external harness), and the group sets <code>Throughput::Elements</code> to the
 corpus’s newline-free character count, so Criterion’s <code>elem/s</code> figures
@@ -253,6 +259,20 @@ uses in-process warmup and sampling instead of 101 process-interleaved
 single passes, and <code>cargo bench</code> inherits litsea’s tuned release profile
 (thin LTO, single codegen unit) while the external bench crates build with
 the default release profile.</p>
+<h3 id="run-to-run-variance"><a class="header" href="#run-to-run-variance">Run-to-Run Variance</a></h3>
+<p>The published figures in this book (including the two-stage vs. joint
+comparisons on the <a href="../algorithm/two-stage-tagging.html">Two-Stage vs. Joint
+Tagging</a> and <a href="../pre-trained-models.html">Pre-trained
+Models</a> pages) are measured on this project’s
+development machine, not dedicated, idle benchmarking hardware. Three
+consecutive <code>external_corpus</code> runs of the same build showed spreads of
+10-20% on individual bench ids – large enough that a single run should
+not be read as a precise figure. Where a page reports a range or an
+explicit “N runs” note, that reflects this variance directly; where a
+single number is given, treat it as accurate to roughly this same range.
+Comparing two models measured <em>in the same run</em> (rather than against a
+previously published number from a different run) cancels out most of
+this variance, since both models see the same machine state.</p>
 <h2 id="html-reports"><a class="header" href="#html-reports">HTML Reports</a></h2>
 <p>Criterion generates detailed HTML reports with statistics and comparison graphs at:</p>
 <pre><code class="language-text">target/criterion/report/index.html

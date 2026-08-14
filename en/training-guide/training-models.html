@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3420ea92.js";
+            window.path_to_searchindex_js = "../searchindex-e75169e6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-05aca925.js"></script>
+        <script src="../toc-ffba73c1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -285,6 +285,54 @@
 </ul>
 <h3 id="pos-graceful-interruption"><a class="header" href="#pos-graceful-interruption">POS Graceful Interruption</a></h3>
 <p>Press <strong>Ctrl+C once</strong> during POS training to stop and save the model at its current state. Press <strong>Ctrl+C twice</strong> to exit immediately without saving.</p>
+<h2 id="two-stage-model-training"><a class="header" href="#two-stage-model-training">Two-Stage Model Training</a></h2>
+<p>For faster POS tagging, use the <code>--two-stage</code> flag instead of <code>--pos</code>. It
+trains a <a href="../algorithm/two-stage-tagging.html">two-stage model</a> (issue #147):
+a binary boundary classifier (stage 1) plus a word-level tagger (stage 2),
+assembled with a candidate-tag lexicon into a single <code>litsea-two-stage v1</code>
+file. See <a href="../algorithm/two-stage-tagging.html">Two-Stage vs. Joint Tagging</a>
+for the architecture, the measured quality/speed comparison, and why to
+prefer it for new work.</p>
+<h3 id="two-stage-training-command"><a class="header" href="#two-stage-training-command">Two-Stage Training Command</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+litsea train --two-stage --num-epochs 50 &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+</code></pre>
+<p><code>extract --two-stage</code> reads the same <code>word/POS</code> corpus as <code>--pos</code> and
+writes three files from <code>FEATURES_PREFIX</code>; <code>train --two-stage</code> reads them
+back from the same prefix.</p>
+<h3 id="two-stage-training-example"><a class="header" href="#two-stage-training-example">Two-Stage Training Example</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+</code></pre>
+<h3 id="two-stage-hyperparameters"><a class="header" href="#two-stage-hyperparameters">Two-Stage Hyperparameters</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Parameter</th><th>Flag</th><th>Default</th><th>Guidance</th></tr>
+</thead>
+<tbody>
+<tr><td>Epochs</td><td><code>--num-epochs</code></td><td>10</td><td>An epoch sweep during bundling (see <a href="../algorithm/two-stage-tagging.html#a-methodology-note-training-epochs-matter-more-than-architecture">Two-Stage vs. Joint Tagging</a>) found segmentation quality still improving well past the default and plateauing around <strong>50</strong> – the bundled models use 50, not 10</td></tr>
+<tr><td>Dominance</td><td><code>--dominance</code></td><td>0.99</td><td>Classifier-skip threshold in <code>(0.5, 1.0]</code>: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier. Lower values skip the classifier more often (faster, more reliant on the lexicon); the default matches the bundled models</td></tr>
+<tr><td>Stage-2 feature set</td><td><code>--stage2-features</code> on <code>extract --two-stage</code></td><td><code>fast</code></td><td><code>full</code>, <code>balanced</code>, or <code>fast</code>; see <a href="extracting-features.html">Extracting Features</a> and <a href="../algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">choosing a feature set</a></td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="two-stage-training-output"><a class="header" href="#two-stage-training-output">Two-Stage Training Output</a></h3>
+<pre><code class="language-text">Result Metrics (Two-Stage):
+  Stage 1 (boundary) Accuracy: 99.86% ( 277213 )
+  Stage 1 Macro Precision: 99.85%
+  Stage 1 Macro Recall: 99.86%
+  Stage 2 (tagging) Accuracy: 99.09% ( 168333 )
+  Stage 2 Macro Precision: 98.96%
+  Stage 2 Macro Recall: 98.77%
+</code></pre>
+<p>As with AdaBoost and joint POS training, these are in-sample metrics;
+evaluate on held-out text with <code>litsea evaluate --pos</code> for a realistic
+quality estimate. <code>segment --pos</code> and <code>evaluate --pos</code> auto-detect a
+two-stage model from its file header, so no extra flag is needed to use
+one once trained.</p>
+<h3 id="two-stage-graceful-interruption"><a class="header" href="#two-stage-graceful-interruption">Two-Stage Graceful Interruption</a></h3>
+<p>Press <strong>Ctrl+C once</strong> during two-stage training to stop and save the model at its current state. Press <strong>Ctrl+C twice</strong> to exit immediately without saving.</p>
 
                     </main>
 

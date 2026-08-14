@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3420ea92.js";
+            window.path_to_searchindex_js = "../searchindex-e75169e6.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-05aca925.js"></script>
+        <script src="../toc-ffba73c1.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -314,7 +314,7 @@ as it scores a plain <code>segment()</code> model.</p>
 <p><code>FEATURES_PREFIX</code> is the same prefix passed to <code>extract --two-stage</code>.</p>
 <h3 id="example"><a class="header" href="#example">Example</a></h3>
 <pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 10 ./two_stage_features ./models/japanese_two_stage.model
+litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
 </code></pre>
 <h3 id="output-2"><a class="header" href="#output-2">Output</a></h3>
 <pre><code class="language-text">Result Metrics (Two-Stage):

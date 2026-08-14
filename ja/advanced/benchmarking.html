@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a5ab5cd8.js";
+            window.path_to_searchindex_js = "../searchindex-2f9a509a.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5f7904d8.js"></script>
+        <script src="../toc-ef307d1e.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -223,13 +223,19 @@
 <tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-pos</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>japanese-two-stage</code></td><td>japanese_two_stage.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>korean-pos</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
+<tr><td><code>korean-two-stage</code></td><td>korean_two_stage.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
 <tr><td><code>chinese-pos</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>chinese-two-stage</code></td><td>chinese_two_stage.model</td><td>rulin_waishi.txt</td></tr>
 </tbody>
 </table>
 </div>
+<p><code>*-two-stage</code> ベンチは<a href="../algorithm/two-stage-tagging.html">二段構成アーキテクチャ</a>
+（#147/#169）と合わせて追加したもので、上記の元々の tokenizer-speed-bench
+を再現する 7 ベンチには含まれません。</p>
 <p>1 イテレーションでコーパス全行を分割し（外部ベンチと同様、行のフィルタなし）、
 グループの <code>Throughput::Elements</code> にコーパスの改行を除く文字数を設定しているため、
 Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</strong> として読めます。</p>
@@ -251,6 +257,17 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 （外部ベンチは 101 回のプロセスインターリーブ実行）であり、<code>cargo bench</code> は litsea の
 チューニング済み release プロファイル（thin LTO、codegen-units=1）を継承します
 （外部ベンチのクレートはデフォルトの release プロファイル）。</p>
+<h3 id="実行間のばらつき"><a class="header" href="#実行間のばらつき">実行間のばらつき</a></h3>
+<p>本ドキュメントに掲載している数値（<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint タグ付け</a>や
+<a href="../pre-trained-models.html">事前学習済みモデル</a>ページの二段構成 vs joint の比較を含む）は、
+専用のアイドルなベンチマーク用ハードウェアではなく、本プロジェクトの開発機で
+計測しています。同一ビルドで <code>external_corpus</code> を 3 回連続実行したところ、
+個々のベンチ ID で 10〜20% の振れ幅が見られました – 1 回の実行を精密な数値と
+読むには大きすぎる幅です。ページ内で範囲や「N 回計測」の注記がある場合は
+この振れ幅をそのまま反映したものであり、単一の数値のみが示されている場合も
+概ね同程度の誤差があるものとして扱ってください。（別の実行で計測した過去の
+公表値と比較するのではなく）<strong>同一実行内で</strong>2 つのモデルを比較すると、
+両方が同じマシン状態を経験するため、この振れ幅の大半が相殺されます。</p>
 <h2 id="html-レポート"><a class="header" href="#html-レポート">HTML レポート</a></h2>
 <p>Criterion は、統計情報と比較グラフを含む詳細な HTML レポートを以下の場所に生成します:</p>
 <pre><code class="language-text">target/criterion/report/index.html
