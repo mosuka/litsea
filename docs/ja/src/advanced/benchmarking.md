@@ -46,10 +46,17 @@ cargo bench --bench bench -- external_corpus
 | `japanese` | japanese.model | wagahaiwa_nekodearu.txt |
 | `japanese-rwcp` | RWCP.model | wagahaiwa_nekodearu.txt |
 | `japanese-pos` | japanese_pos.model | wagahaiwa_nekodearu.txt |
+| `japanese-two-stage` | japanese_two_stage.model | wagahaiwa_nekodearu.txt |
 | `korean` | korean.model | mujeong.txt |
 | `korean-pos` | korean_pos.model | mujeong.txt |
+| `korean-two-stage` | korean_two_stage.model | mujeong.txt |
 | `chinese` | chinese.model | rulin_waishi.txt |
 | `chinese-pos` | chinese_pos.model | rulin_waishi.txt |
+| `chinese-two-stage` | chinese_two_stage.model | rulin_waishi.txt |
+
+`*-two-stage` ベンチは[二段構成アーキテクチャ](../algorithm/two-stage-tagging.md)
+（#147/#169）と合わせて追加したもので、上記の元々の tokenizer-speed-bench
+を再現する 7 ベンチには含まれません。
 
 1 イテレーションでコーパス全行を分割し（外部ベンチと同様、行のフィルタなし）、
 グループの `Throughput::Elements` にコーパスの改行を除く文字数を設定しているため、
@@ -68,6 +75,19 @@ Criterion の `elem/s` 表示がそのまま **chars/sec** として読めます
 （外部ベンチは 101 回のプロセスインターリーブ実行）であり、`cargo bench` は litsea の
 チューニング済み release プロファイル（thin LTO、codegen-units=1）を継承します
 （外部ベンチのクレートはデフォルトの release プロファイル）。
+
+### 実行間のばらつき
+
+本ドキュメントに掲載している数値（[二段構成 vs Joint タグ付け](../algorithm/two-stage-tagging.md)や
+[事前学習済みモデル](../pre-trained-models.md)ページの二段構成 vs joint の比較を含む）は、
+専用のアイドルなベンチマーク用ハードウェアではなく、本プロジェクトの開発機で
+計測しています。同一ビルドで `external_corpus` を 3 回連続実行したところ、
+個々のベンチ ID で 10〜20% の振れ幅が見られました -- 1 回の実行を精密な数値と
+読むには大きすぎる幅です。ページ内で範囲や「N 回計測」の注記がある場合は
+この振れ幅をそのまま反映したものであり、単一の数値のみが示されている場合も
+概ね同程度の誤差があるものとして扱ってください。（別の実行で計測した過去の
+公表値と比較するのではなく）**同一実行内で**2 つのモデルを比較すると、
+両方が同じマシン状態を経験するため、この振れ幅の大半が相殺されます。
 
 ## HTML レポート
 

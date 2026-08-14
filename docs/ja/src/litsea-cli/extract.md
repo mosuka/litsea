@@ -22,7 +22,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
 | `--pos` | off | 品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です |
 | `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--pos` および `--two-stage` と併用できません |
-| `--two-stage` | off | 通常の品詞特徴量の代わりに[二段構成](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。`--pos` とは併用できません |
+| `--two-stage` | off | 通常の品詞特徴量の代わりに[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。`--pos` とは併用できません |
 | `--stage2-features <SET>` | `fast` | `--two-stage` 用の stage-2 単語特徴セット: `full`（品質最優先）、`balanced`、`fast`（速度最優先） |
 
 ## コーパスの形式
@@ -104,7 +104,7 @@ litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
 
 `--two-stage` を指定すると、`extract` は `--pos` と同じ品詞付きコーパス形式
 （`単語/品詞 単語/品詞 ...`）を読み込みますが、
-[二段構成アーキテクチャ](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)
+[二段構成アーキテクチャ](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)
 向けに `FEATURES_FILE` をプレフィックスとした**3つ**のファイルを書き出します。
 
 | ファイル | 内容 |

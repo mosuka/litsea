@@ -46,10 +46,17 @@ cargo bench --bench bench -- external_corpus
 | `japanese` | japanese.model | wagahaiwa_nekodearu.txt |
 | `japanese-rwcp` | RWCP.model | wagahaiwa_nekodearu.txt |
 | `japanese-pos` | japanese_pos.model | wagahaiwa_nekodearu.txt |
+| `japanese-two-stage` | japanese_two_stage.model | wagahaiwa_nekodearu.txt |
 | `korean` | korean.model | mujeong.txt |
 | `korean-pos` | korean_pos.model | mujeong.txt |
+| `korean-two-stage` | korean_two_stage.model | mujeong.txt |
 | `chinese` | chinese.model | rulin_waishi.txt |
 | `chinese-pos` | chinese_pos.model | rulin_waishi.txt |
+| `chinese-two-stage` | chinese_two_stage.model | rulin_waishi.txt |
+
+The `*-two-stage` benches were added alongside the [two-stage
+architecture](../algorithm/two-stage-tagging.md) (#147/#169); they are not
+part of the original seven tokenizer-speed-bench-mirroring benches above.
 
 One iteration segments every line of the corpus (unfiltered, like the
 external harness), and the group sets `Throughput::Elements` to the
@@ -70,6 +77,22 @@ uses in-process warmup and sampling instead of 101 process-interleaved
 single passes, and `cargo bench` inherits litsea's tuned release profile
 (thin LTO, single codegen unit) while the external bench crates build with
 the default release profile.
+
+### Run-to-Run Variance
+
+The published figures in this book (including the two-stage vs. joint
+comparisons on the [Two-Stage vs. Joint
+Tagging](../algorithm/two-stage-tagging.md) and [Pre-trained
+Models](../pre-trained-models.md) pages) are measured on this project's
+development machine, not dedicated, idle benchmarking hardware. Three
+consecutive `external_corpus` runs of the same build showed spreads of
+10-20% on individual bench ids -- large enough that a single run should
+not be read as a precise figure. Where a page reports a range or an
+explicit "N runs" note, that reflects this variance directly; where a
+single number is given, treat it as accurate to roughly this same range.
+Comparing two models measured *in the same run* (rather than against a
+previously published number from a different run) cancels out most of
+this variance, since both models see the same machine state.
 
 ## HTML Reports
 

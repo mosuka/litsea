@@ -8,6 +8,7 @@ use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
 
 /// Load an AdaBoost model file from the models directory.
 fn load_adaboost_model(model_name: &str) -> AdaBoost {
@@ -23,6 +24,16 @@ fn load_adaboost_model(model_name: &str) -> AdaBoost {
 fn load_perceptron_model(model_name: &str) -> AveragedPerceptron {
     let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
     let mut learner = AveragedPerceptron::new();
+    learner
+        .load_model_from_path(&model_path)
+        .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
+    learner
+}
+
+/// Load a two-stage model file from the models directory.
+fn load_two_stage_model(model_name: &str) -> TwoStageLearner {
+    let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
+    let mut learner = TwoStageLearner::new();
     learner
         .load_model_from_path(&model_path)
         .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
@@ -173,6 +184,35 @@ fn bench_external_corpus(c: &mut Criterion) {
     for (id, language, model, corpus) in pos_cases {
         let (lines, chars) = load_corpus_lines(corpus);
         let segmenter = Segmenter::with_pos_learner(*language, load_perceptron_model(model));
+        group.throughput(Throughput::Elements(chars));
+        group.bench_function(*id, |b| {
+            b.iter(|| {
+                for line in &lines {
+                    black_box(segmenter.segment_with_pos(black_box(line)).unwrap());
+                }
+            });
+        });
+    }
+
+    // (bench id, language, two-stage model, corpus) -- issue #147/#169
+    let two_stage_cases: &[(&str, Language, &str, &str)] = &[
+        (
+            "japanese-two-stage",
+            Language::Japanese,
+            "japanese_two_stage.model",
+            "wagahaiwa_nekodearu.txt",
+        ),
+        ("korean-two-stage", Language::Korean, "korean_two_stage.model", "mujeong.txt"),
+        (
+            "chinese-two-stage",
+            Language::Chinese,
+            "chinese_two_stage.model",
+            "rulin_waishi.txt",
+        ),
+    ];
+    for (id, language, model, corpus) in two_stage_cases {
+        let (lines, chars) = load_corpus_lines(corpus);
+        let segmenter = Segmenter::with_two_stage_learner(*language, load_two_stage_model(model));
         group.throughput(Throughput::Elements(chars));
         group.bench_function(*id, |b| {
             b.iter(|| {

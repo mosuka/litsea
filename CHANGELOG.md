@@ -48,6 +48,28 @@
   Japanese-GSD: `extract --two-stage` + `train --two-stage` (fast set)
   reproduces the #167 runtime numbers exactly (held-out word F1 96.48,
   tagged F1 92.71) in a 5.1 MB model file (vs. 11 MB for the joint model).
+- Bundled two-stage models, cross-language validation, benches, and docs
+  (#169): `models/{japanese,chinese,korean}_two_stage.model`, trained at
+  50 epochs (chosen from an epoch sweep -- see below) with `fast`
+  (Japanese) or `balanced` (Chinese, Korean) stage-2 features. As bundled,
+  every language beats the currently published joint model on both Word
+  F1 and Tagged F1: Japanese 96.78/92.95 (joint 96.56/92.51), Chinese
+  90.82/82.29 (joint 90.52/81.18), Korean 83.24/78.86 (joint 80.51/71.03),
+  at 1.8-2.8x the joint throughput on `cargo bench -- external_corpus`
+  (three-run ranges: Japanese 2.65-3.05x, Chinese 2.13-2.44x, Korean
+  1.75-1.90x). An epoch sweep (10-150 epochs) run during bundling found
+  that stage-1 segmentation quality continues improving well past the
+  joint models' original 10-epoch convention and plateaus around 50; at
+  matched epoch counts, joint retains a small (~0.5-0.9pt), reproducible
+  Chinese segmentation edge, documented rather than papered over. Korean
+  two-stage uses the same unspaced `word/POS` protocol as `korean_pos.model`
+  (not the space-preserving protocol `korean.model` uses), also documented
+  explicitly. New docs: `docs/src/algorithm/two-stage-tagging.md` (+ JA)
+  compares the two architectures and their tradeoffs; `pre-trained-models.md`
+  and `training-guide/training-models.md` (+ JA mirrors) gain two-stage
+  sections; `litsea/benches/bench.rs`'s `external_corpus` group gains
+  `{japanese,chinese,korean}-two-stage` cases alongside the existing
+  AdaBoost/joint ones.
 
 ## 0.10.0
 

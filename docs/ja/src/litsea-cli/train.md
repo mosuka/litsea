@@ -24,7 +24,7 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | 学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL） |
 | `--pos` | off | 品詞（POS）学習モードを有効にする（Averaged Perceptron を使用） |
 | `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（POS モードおよび `--two-stage` モード） |
-| `--two-stage` | off | 代わりに[二段構成](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)モデルを学習する。`{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon`（`extract --two-stage` の出力）を読み込む。`--pos` および `-m`/`--load-model-uri`（増分学習は非対応）とは併用できない |
+| `--two-stage` | off | 代わりに[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデルを学習する。`{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon`（`extract --two-stage` の出力）を読み込む。`--pos` および `-m`/`--load-model-uri`（増分学習は非対応）とは併用できない |
 | `--dominance <DOMINANCE>` | `0.99` | `--two-stage` 用の分類器スキップ閾値、範囲は `(0.5, 1.0]`。既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされる |
 
 ## 出力
@@ -130,7 +130,7 @@ AdaBoost と同様に、品詞モデルの学習も優雅な中断をサポー�
 ## 二段構成モデルの学習
 
 `--two-stage` を指定すると、
-[二段構成モデル](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)
+[二段構成モデル](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)
 を構築します: 二値の境界分類器（stage 1）と単語単位の品詞タガー（stage 2）を、
 候補タグ語彙表とともに単一の `litsea-two-stage v1` ファイルに組み立てます。
 両ステージとも `--num-epochs` エポック分 Averaged Perceptron として学習し、
@@ -150,7 +150,7 @@ litsea train --two-stage [OPTIONS] <FEATURES_PREFIX> <MODEL_FILE>
 
 ```sh
 litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 10 ./two_stage_features ./models/japanese_two_stage.model
+litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
 ```
 
 ### 出力
