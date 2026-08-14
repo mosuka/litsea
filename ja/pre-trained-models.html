@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2f9a509a.js";
+            window.path_to_searchindex_js = "searchindex-1073d414.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ef307d1e.js"></script>
@@ -188,6 +188,17 @@
 は個々の境界判定のスコアです。なお <code>train</code> コマンドが出力するのは学習データ自身で
 測った <em>in-sample</em> 指標であり、ここに示す held-out の値より高くなる点に注意して
 ください。</p>
+<p><strong>アルゴリズムについての注記</strong>: <code>japanese.model</code>、<code>chinese.model</code>、
+<code>korean.model</code> は 2 クラス（境界／非境界）の Averaged Perceptron として学習した後、
+スカラーの特徴量重みへ畳み込んでいます（issue #165）。ファイル自体は従来どおり
+プレーンな AdaBoost テキスト形式のままで、<code>Segmenter::with_learner</code> /
+<code>AdaBoost::load_model_from_path</code> は無変更で動作します。この畳み込みは
+無損失な変換であり（導出は <code>scripts/collapse_binary_perceptron.py</code> の
+docstring を参照）近似ではありません: この方法で学習した perceptron は、
+同じコーパス・同じテンプレートで AdaBoost の presence-stump 弱学習器より
+大幅に高い held-out 品質に達します。代わりにモデルファイルは大きくなり
+（非ゼロ重みを持つ特徴量が増えるため）、学習手順も通常の <code>train</code> ではなく
+<code>train --pos</code> を経由します（詳細は下記の<a href="#学習手順">学習手順</a>を参照）。</p>
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -197,10 +208,11 @@
 <tbody>
 <tr><td>言語</td><td>日本語</td></tr>
 <tr><td>学習コーパス</td><td>UD Japanese-GSD</td></tr>
-<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
-<tr><td>単語 F1（held-out）</td><td>91.48%</td></tr>
-<tr><td>境界 F1（held-out）</td><td>96.31%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 20 KB</td></tr>
+<tr><td>エポック数</td><td>50</td></tr>
+<tr><td>剪定後の特徴量数</td><td>|重み| 上位 40,000</td></tr>
+<tr><td>単語 F1（held-out）</td><td>96.70%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>98.59%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 1.1 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -213,17 +225,21 @@
 <tbody>
 <tr><td>言語</td><td>韓国語</td></tr>
 <tr><td>学習コーパス</td><td>UD Korean-GSD（空白保持 TSV コーパス）</td></tr>
-<tr><td>学習オプション</td><td><code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></td></tr>
-<tr><td>単語 F1（held-out）</td><td>99.91%</td></tr>
-<tr><td>境界 F1（held-out）</td><td>99.96%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 9.4 KB</td></tr>
+<tr><td>エポック数</td><td>30</td></tr>
+<tr><td>剪定後の特徴量数</td><td>剪定なし（3,994 特徴量）</td></tr>
+<tr><td>単語 F1（held-out）</td><td>99.90%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>99.95%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 110 KB</td></tr>
 </tbody>
 </table>
 </div>
 <p>韓国語モデルは、元の語節（어절）間の空白を保持したテキストで学習・評価して
 います（各空白は独立したトークンとして扱い、空白トークンは F1 の計算から
 除外します）。韓国語では空白がほとんどの語境界を示すため、学習時に空白を
-参照できるモデルは UD Korean-GSD の基準をほぼ決定的に解決できます。日本語と
+参照できるモデルは UD Korean-GSD の基準をほぼ決定的に解決できます – これが
+韓国語の特徴量数・ファイルサイズが小さいままである理由でもあります（モデルが
+学習すべき曖昧性がほとんど残っていないため）。品質も旧 AdaBoost モデルから
+実質的に変化していません（99.90% vs 99.91%、計測誤差の範囲内）。日本語と
 中国語は空白を使わずに表記されるため、プロトコルは従来のままです。</p>
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <div class="table-wrapper">
@@ -234,10 +250,11 @@
 <tbody>
 <tr><td>言語</td><td>中国語（簡体字・繁体字）</td></tr>
 <tr><td>学習コーパス</td><td>UD Chinese-GSD</td></tr>
-<tr><td>学習オプション</td><td><code>-t 0.0001 -i 20000</code></td></tr>
-<tr><td>単語 F1（held-out）</td><td>77.56%</td></tr>
-<tr><td>境界 F1（held-out）</td><td>87.81%</td></tr>
-<tr><td>ファイルサイズ</td><td>約 18 KB</td></tr>
+<tr><td>エポック数</td><td>100</td></tr>
+<tr><td>剪定後の特徴量数</td><td>|重み| 上位 70,000</td></tr>
+<tr><td>単語 F1（held-out）</td><td>90.69%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>95.64%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 2.0 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -269,6 +286,46 @@
 </tbody>
 </table>
 </div>
+<h2 id="学習手順"><a class="header" href="#学習手順">学習手順</a></h2>
+<p><code>RWCP.model</code> と <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はレガシー・互換用モデルで、
+従来どおりに学習（または取得）しています – 通常の AdaBoost 手順は
+<a href="training-guide/training-models.html">モデルの学習</a>を参照してください。
+<code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は binary-perceptron 畳み込み手順
+（issue #165）で再学習しています。エンジンの変更は不要ですが、通常の
+<code>litsea train</code> に加えて数ステップが必要です:</p>
+<pre><code class="language-sh"># 1. プレーンな境界特徴量を抽出（従来と同じステップ）。
+litsea extract -l &lt;language&gt; [韓国語なら --format tsv] &lt;corpus&gt; &lt;features.txt&gt;
+
+# 2. 境界ラベル 1/-1 を B/O にリマップする。これは見た目の問題ではなく
+#    正しさのために必須: perceptron 自身のタイブレーク（クラスインデックスが
+#    小さい方が勝つ）を、AdaBoost の「score &gt;= 0.0 は境界を優先する」という
+#    規約と一致させるためのもの。"1"/"-1" のまま学習すると、タイの解決方向が
+#    黙って逆転してしまう。
+sed -i 's/^1\t/B\t/; s/^-1\t/O\t/' &lt;features.txt&gt;
+
+# 3. 2 クラスの Averaged Perceptron として学習する。--pos はここでは
+#    汎用的に流用しているだけで（PosTrainer はラベルを不透明な文字列として
+#    扱う）、実際の品詞タグ付けのためではない。
+litsea train --pos --num-epochs &lt;N&gt; &lt;features.txt&gt; &lt;perceptron.model&gt;
+
+# 4. プレーンな AdaBoost モデル形式へ畳み込む（無損失 -- 導出はスクリプトの
+#    docstring を参照）。
+scripts/collapse_binary_perceptron.py &lt;perceptron.model&gt; &lt;collapsed.model&gt;
+
+# 5. 任意: 特徴量数の増加が `cargo bench -- external_corpus` のスループットを
+#    許容範囲を超えて悪化させる場合、上位 N 特徴量に剪定し held-out 品質と
+#    速度の両方を再確認する。
+scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt;n&gt;
+</code></pre>
+<p>エポック数と剪定閾値は固定値ではなく言語ごとのチューニング項目です –
+上記の同梱モデルを選んだのと同じように、エポックスイープと品質・スループットの
+トレードオフスイープから決めてください（スイープの全データは issue を参照）。
+大まかな傾向として、品質は少数のエポックを大きく超えて向上し続け、最終的には
+プラトーに達するか（日本語は約 50 エポックを超えると軽度のオーバーフィットが
+見られます）、単一の「正しい」エポック数があるわけではありません。剪定による
+品質劣化は言語固有の崖に達するまで緩やかに進む傾向があるため、数値を推測するの
+ではなく、<code>cargo bench</code> のスループットが回復し始める付近の剪定レベルを
+いくつか試してください。</p>
 <h2 id="品詞推定モデル"><a class="header" href="#品詞推定モデル">品詞推定モデル</a></h2>
 <p>in-sample 行は <code>train</code> コマンドが学習データ自身で測ったメトリクス、held-out
 行は UD GSD テスト分割に対して <code>litsea evaluate --pos</code> で測定した単語 /
