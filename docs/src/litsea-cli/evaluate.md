@@ -27,10 +27,20 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 
 ## Metrics
 
+Two token sequences are compared for every sentence:
+
+- **Gold tokens** -- the reference segmentation from the gold corpus: the
+  human-annotated correct answer (here, the tokenization of the UD GSD
+  treebank test split). The evaluated sentence text is reconstructed by
+  concatenating them.
+- **Predicted tokens** -- what the model produces when the reconstructed
+  sentence text is fed to `segment` (or `segment --pos`), exactly as a
+  user would at inference time.
+
 Predicted and gold tokens are matched by exact character-offset spans over
-the reconstructed sentence (the concatenation of the gold tokens).
-Pure-whitespace tokens are excluded from scoring, so the Korean
-space-preserving protocol does not inflate the numbers.
+the reconstructed sentence. Pure-whitespace tokens are excluded from
+scoring, so the Korean space-preserving protocol does not inflate the
+numbers.
 
 | Metric | Measures | A low value means |
 |--------|----------|-------------------|
