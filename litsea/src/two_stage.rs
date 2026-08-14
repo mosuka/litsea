@@ -268,6 +268,18 @@ impl TwoStageLearner {
         })
     }
 
+    /// Decomposes the learner into its parts. Crate-private: used by the
+    /// segmenter runtime, which installs stage-1 as its boundary learner
+    /// and compiles the rest into packed tagging tables.
+    ///
+    /// # Returns
+    /// `(stage1, stage2, lexicon, dominance)`.
+    pub(crate) fn into_parts(
+        self,
+    ) -> (AdaBoost, AveragedPerceptron, FxHashMap<String, LexiconEntry>, f64) {
+        (self.stage1, self.stage2, self.lexicon, self.dominance)
+    }
+
     /// Returns the stage-1 boundary classifier.
     #[must_use]
     pub fn stage1(&self) -> &AdaBoost {

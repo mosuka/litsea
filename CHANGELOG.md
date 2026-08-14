@@ -18,6 +18,18 @@
   `AveragedPerceptron::save_model_to_writer` (the format-producing cores of
   the existing `save_model` methods, enabling section embedding), and an
   `AveragedPerceptron::classes()` accessor.
+- The two-stage runtime behind the unchanged `segment_with_pos()` signature
+  (#167): `Segmenter::with_two_stage_learner` installs a two-stage model's
+  stage-1 boundary classifier as the segmenter's AdaBoost-path learner and
+  tags each segmented word through the candidate-tag lexicon
+  (single-candidate and dominance-dominant surfaces skip the classifier
+  entirely) and a packed word-level stage-2 tagger (candidate-masked argmax
+  for ambiguous surfaces, full argmax fallback for unknown surfaces). On
+  the held-out UD GSD test the runtime reproduces the #147 prototype:
+  Japanese word F1 96.48 (joint: 96.56) with tagged-word F1 92.71-93.41
+  depending on the stage-2 feature set (joint: 92.51) at 1.5-2.5x the
+  joint throughput. Word-level feature templates live in a single
+  crate-private module shared with the upcoming training extractor.
 
 ## 0.10.0
 

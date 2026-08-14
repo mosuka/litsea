@@ -164,8 +164,9 @@ Segments a sentence and jointly predicts each word's UPOS tag. The
 prediction at the first character position determines the first word's POS.
 An empty sentence yields `Ok` with an empty vector.
 
-**Errors** with `LitseaError::PosLearnerNotSet` if no POS learner is set —
-build the segmenter with `with_pos_learner()` or register training data with
+**Errors** with `LitseaError::PosLearnerNotSet` if neither a POS learner nor
+a two-stage learner is set — build the segmenter with `with_pos_learner()`
+or `with_two_stage_learner()`, or register training data with
 `add_corpus_with_pos()` first.
 
 ```rust
@@ -183,6 +184,24 @@ let tokens = segmenter.segment_with_pos("これはテストです。")?;
 // [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
 //  ("です", Upos::AUX), ("。", Upos::PUNCT)]
 ```
+
+### `with_two_stage_learner`
+
+```rust
+pub fn with_two_stage_learner(language: Language, learner: TwoStageLearner) -> Self
+```
+
+Creates a segmenter with a two-stage model (a `litsea-two-stage v1` file
+loaded into a `TwoStageLearner`): the model's stage-1 boundary classifier
+becomes the segmenter's AdaBoost-path learner (so `segment` works
+naturally), and `segment_with_pos` tags each segmented word through the
+candidate-tag lexicon — single-candidate and dominant surfaces skip the
+classifier entirely — with the stage-2 word-level tagger deciding ambiguous
+surfaces (candidate-masked argmax) and unknown surfaces (full argmax over
+all classes). The `segment_with_pos` signature and return type are
+identical to the joint mode; only the model type selects the pipeline. See
+[Model File Format](../advanced/model-file-format.md) for the two-stage
+format.
 
 ### `add_corpus_with_pos`
 

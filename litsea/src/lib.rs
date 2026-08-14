@@ -19,11 +19,13 @@ pub mod metrics;
 mod model_io;
 mod packed_model;
 mod packed_pos_model;
+mod packed_two_stage;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
 pub mod two_stage;
 pub mod upos;
+mod word_features;
 
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
