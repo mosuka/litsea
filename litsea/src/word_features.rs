@@ -239,32 +239,34 @@ fn parse_type_code(language: Language, s: &str) -> Option<(u8, &str)> {
     None
 }
 
-/// Writes every word feature of the word spanning `[start, end)` as
-/// strings, in template order.
+/// Writes the word features of the word spanning `[start, end)` as
+/// strings, in template order, restricted to templates for which
+/// `select(template_id)` returns true.
 ///
 /// This is the training-side twin of the packed runtime's key computation;
-/// both are pinned together by the round-trip test in this module.
+/// both are pinned together by the round-trip test in this module (with
+/// `select` always true — a real extractor passes
+/// `TwoStageFeatureSet::includes`).
 ///
 /// # Arguments
 /// * `language` - The language whose type codes to write.
 /// * `sent` - The sentence characters (no sentinels).
 /// * `type_ids` - The per-character language type ids of `sent`.
 /// * `start` / `end` - The word's char span (`start < end <= sent.len()`).
-/// * `push` - Receives each feature string.
-// Production callers arrive with the two-stage training extractor (#168);
-// until then the writer is exercised by this module's round-trip test.
-#[cfg_attr(not(test), allow(dead_code))]
+/// * `select` - Called with each template id ([`T_WS`] etc.); only
+///   templates for which it returns true are written.
+/// * `push` - Receives each selected feature string.
 pub(crate) fn write_word_features(
     language: Language,
     sent: &[char],
     type_ids: &[u8],
     start: usize,
     end: usize,
+    select: impl Fn(usize) -> bool,
     push: &mut impl FnMut(String),
 ) {
     let codes = language.type_codes();
     let n = end - start;
-    let surface: String = sent[start..end].iter().collect();
     let lc = |k: usize| if start >= k { sent[start - k] } else { BOS_CHAR };
     let rc = |k: usize| sent.get(end + k - 1).copied().unwrap_or(EOS_CHAR);
     let type_code = |c: char| -> &str {
@@ -274,35 +276,40 @@ pub(crate) fn write_word_features(
             _ => codes[language.char_type_id(c) as usize],
         }
     };
+    let mut emit = |tid: usize, s: String| {
+        if select(tid) {
+            push(s);
+        }
+    };
 
-    push(format!("WS:{}", surface));
-    push(format!("WL:{}", n.min(WL_CAP)));
-    push(format!("FC:{}", sent[start]));
-    push(format!("LC:{}", sent[end - 1]));
-    push(format!("ft:{}", codes[type_ids[start] as usize]));
-    push(format!("lt:{}", codes[type_ids[end - 1] as usize]));
+    emit(T_WS, format!("WS:{}", sent[start..end].iter().collect::<String>()));
+    emit(T_WL, format!("WL:{}", n.min(WL_CAP)));
+    emit(T_FC, format!("FC:{}", sent[start]));
+    emit(T_LC, format!("LC:{}", sent[end - 1]));
+    emit(T_FT, format!("ft:{}", codes[type_ids[start] as usize]));
+    emit(T_LT, format!("lt:{}", codes[type_ids[end - 1] as usize]));
     let ts: String = type_ids[start..end.min(start + TS_CAP)]
         .iter()
         .map(|&t| codes[t as usize])
         .collect();
-    push(format!("TS:{}", ts));
+    emit(T_TS, format!("TS:{}", ts));
     for k in 1..=CONTEXT_WINDOW {
-        push(format!("L{}:{}", k, lc(k)));
+        emit(T_L1 + k - 1, format!("L{}:{}", k, lc(k)));
     }
     for k in 1..=CONTEXT_WINDOW {
-        push(format!("R{}:{}", k, rc(k)));
+        emit(T_R1 + k - 1, format!("R{}:{}", k, rc(k)));
     }
     for k in 1..=CONTEXT_WINDOW {
-        push(format!("cl{}:{}", k, type_code(lc(k))));
+        emit(T_CL1 + k - 1, format!("cl{}:{}", k, type_code(lc(k))));
     }
     for k in 1..=CONTEXT_WINDOW {
-        push(format!("cr{}:{}", k, type_code(rc(k))));
+        emit(T_CR1 + k - 1, format!("cr{}:{}", k, type_code(rc(k))));
     }
-    push(format!("LB:{}{}", lc(2), lc(1)));
-    push(format!("RB:{}{}", rc(1), rc(2)));
+    emit(T_LB, format!("LB:{}{}", lc(2), lc(1)));
+    emit(T_RB, format!("RB:{}{}", rc(1), rc(2)));
     if n >= 2 {
-        push(format!("P2:{}{}", sent[start], sent[start + 1]));
-        push(format!("S2:{}{}", sent[end - 2], sent[end - 1]));
+        emit(T_P2, format!("P2:{}{}", sent[start], sent[start + 1]));
+        emit(T_S2, format!("S2:{}{}", sent[end - 2], sent[end - 1]));
     }
 }
 
@@ -404,9 +411,17 @@ mod tests {
             for start in 0..sent.len() {
                 for end in start + 1..=sent.len() {
                     let mut written = Vec::new();
-                    write_word_features(language, &sent, &type_ids, start, end, &mut |f| {
-                        written.push(f);
-                    });
+                    write_word_features(
+                        language,
+                        &sent,
+                        &type_ids,
+                        start,
+                        end,
+                        |_| true,
+                        &mut |f| {
+                            written.push(f);
+                        },
+                    );
                     let parsed: Vec<WordFeature> = written
                         .iter()
                         .map(|f| {

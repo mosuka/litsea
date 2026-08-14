@@ -21,7 +21,9 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
 | `--pos` | off | 品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です |
-| `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--pos` と併用できません |
+| `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--pos` および `--two-stage` と併用できません |
+| `--two-stage` | off | 通常の品詞特徴量の代わりに[二段構成](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。`--pos` とは併用できません |
+| `--stage2-features <SET>` | `fast` | `--two-stage` 用の stage-2 単語特徴セット: `full`（品質最優先）、`balanced`、`fast`（速度最優先） |
 
 ## コーパスの形式
 
@@ -96,4 +98,24 @@ O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	.
 
 ```sh
 litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
+```
+
+## 二段構成の特徴量抽出
+
+`--two-stage` を指定すると、`extract` は `--pos` と同じ品詞付きコーパス形式
+（`単語/品詞 単語/品詞 ...`）を読み込みますが、
+[二段構成アーキテクチャ](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)
+向けに `FEATURES_FILE` をプレフィックスとした**3つ**のファイルを書き出します。
+
+| ファイル | 内容 |
+|------|---------|
+| `{FEATURES_FILE}.stage1` | 境界特徴量。文字位置ごとに1行、ラベルは `B` または `O`（`--pos` と同じ特徴量テンプレート） |
+| `{FEATURES_FILE}.stage2` | 単語単位の特徴量。単語ごとに1行、ラベルは UPOS タグ。書き出すテンプレートは `--stage2-features` で制御 |
+| `{FEATURES_FILE}.lexicon` | 候補タグ語彙表: `surface\tTAG:count[,TAG:count...]`（出現頻度の降順） |
+
+同じプレフィックスを `litsea train --two-stage` に渡します:
+
+```sh
+litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+# ./two_stage_features.stage1, .stage2, .lexicon を書き出す
 ```

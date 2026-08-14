@@ -11,9 +11,15 @@ use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
+use rustc_hash::FxHashMap;
+
 use crate::error::Result;
+use crate::evaluation::parse_gold_pos_line;
 use crate::language::Language;
 use crate::segmenter::Segmenter;
+use crate::two_stage::{TwoStageFeatureSet, sort_lexicon_entry, two_stage_paths, write_lexicon};
+use crate::upos::{SegmentLabel, Upos};
+use crate::word_features::write_word_features;
 
 /// Extractor struct for processing text data and extracting features.
 /// It reads pre-segmented sentences from a corpus file (the word boundaries
@@ -128,6 +134,121 @@ impl Extractor {
                 rows.push(Self::format_row(attrs, label));
             });
         })
+    }
+
+    /// Extracts two-stage training features (issue #147) from a POS-tagged
+    /// corpus in a single pass: stage-1 boundary features (2-class labels
+    /// `B`/`O`, using the same feature templates as
+    /// [`extract_with_pos`](Self::extract_with_pos)), stage-2 word-level
+    /// features (UPOS labels, using the templates selected by
+    /// `feature_set`), and the candidate-tag lexicon.
+    ///
+    /// Corpus format: `"word/POS word/POS ..."`, parsed with
+    /// [`crate::evaluation::parse_gold_pos_line`] (last-`/`-wins, a
+    /// slash-less token gets [`Upos::X`]) — the same rule the joint
+    /// pipeline uses.
+    ///
+    /// # Arguments
+    /// * `corpus_path` - The path to the POS-tagged corpus file.
+    /// * `output_prefix` - Base path for the three output files, written as
+    ///   `{output_prefix}.stage1`, `{output_prefix}.stage2`, and
+    ///   `{output_prefix}.lexicon`: stage-1 boundary features
+    ///   (`label\tfeature\t...` rows, label `B` or `O`), stage-2 word-level
+    ///   features (`label\tfeature\t...` rows, label a UPOS tag), and the
+    ///   candidate-tag lexicon in the `litsea-two-stage` model's
+    ///   `[lexicon]` section format (`surface\tTAG:count[,TAG:count...]`,
+    ///   most-frequent-first). [`crate::trainer::TwoStageTrainer::new`]
+    ///   reads the same three paths from the same prefix.
+    /// * `feature_set` - Which stage-2 word templates to write; see
+    ///   [`TwoStageFeatureSet`].
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an I/O error if the corpus file cannot be opened or read, or
+    /// if any output file cannot be created or written.
+    pub fn extract_two_stage(
+        &self,
+        corpus_path: &Path,
+        output_prefix: &Path,
+        feature_set: TwoStageFeatureSet,
+    ) -> Result<()> {
+        let segmenter = &self.segmenter;
+        let language = segmenter.language();
+        let (stage1_path, stage2_path, lexicon_path) = two_stage_paths(output_prefix);
+
+        let corpus_file = File::open(corpus_path)?;
+        let corpus = io::BufReader::new(corpus_file);
+        let mut stage1_out = io::BufWriter::new(File::create(stage1_path)?);
+        let mut stage2_out = io::BufWriter::new(File::create(stage2_path)?);
+        let mut lexicon: FxHashMap<String, FxHashMap<Upos, u32>> = FxHashMap::default();
+
+        let mut stage1_rows: Vec<String> = Vec::new();
+        let mut stage2_feats: Vec<String> = Vec::new();
+        for line in corpus.lines() {
+            let line = line?;
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            // Stage 1: the same attribute generation as the joint pipeline
+            // (segment_with_pos's training data), with the label collapsed
+            // to the boundary class.
+            segmenter.add_corpus_with_pos_writer(line, |attrs, label| {
+                let boundary = match label {
+                    SegmentLabel::B(_) => "B",
+                    SegmentLabel::O => "O",
+                };
+                stage1_rows.push(Self::format_row(attrs, boundary));
+            });
+            for row in stage1_rows.drain(..) {
+                writeln!(stage1_out, "{}", row)?;
+            }
+
+            // Stage 2 + lexicon: one row per word, keyed by its UPOS tag.
+            let tokens = parse_gold_pos_line(line);
+            let sent: Vec<char> = tokens.iter().flat_map(|(w, _)| w.chars()).collect();
+            let type_ids: Vec<u8> = sent.iter().map(|&c| language.char_type_id(c)).collect();
+            let mut start = 0usize;
+            for (surface, tag) in &tokens {
+                let wlen = surface.chars().count();
+                if wlen == 0 {
+                    continue;
+                }
+                let end = start + wlen;
+                stage2_feats.clear();
+                write_word_features(
+                    language,
+                    &sent,
+                    &type_ids,
+                    start,
+                    end,
+                    |tid| feature_set.includes(tid),
+                    &mut |f| stage2_feats.push(f),
+                );
+                writeln!(stage2_out, "{}\t{}", tag, stage2_feats.join("\t"))?;
+                *lexicon.entry(surface.clone()).or_default().entry(*tag).or_insert(0) += 1;
+                start = end;
+            }
+        }
+        stage1_out.flush()?;
+        stage2_out.flush()?;
+
+        let lexicon: FxHashMap<String, Vec<(Upos, u32)>> = lexicon
+            .into_iter()
+            .map(|(surface, counts)| {
+                let mut entry: Vec<(Upos, u32)> = counts.into_iter().collect();
+                sort_lexicon_entry(&mut entry);
+                (surface, entry)
+            })
+            .collect();
+        let mut lexicon_out = io::BufWriter::new(File::create(lexicon_path)?);
+        write_lexicon(&lexicon, &mut lexicon_out)?;
+        lexicon_out.flush()?;
+
+        Ok(())
     }
 
     /// Shared extraction pipeline: reads the corpus line by line, lets
@@ -313,6 +434,83 @@ mod tests {
                 );
             }
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_two_stage() -> Result<()> {
+        use std::collections::HashMap;
+
+        // "これ" and "テスト" and "。" each repeat with the same tag, so the
+        // lexicon should accumulate their counts.
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT")?;
+        writeln!(corpus_file, "これ/PRON も/PART テスト/NOUN 。/PUNCT")?;
+        corpus_file.as_file().sync_all()?;
+
+        let dir = tempfile::tempdir()?;
+        let prefix = dir.path().join("out");
+
+        let extractor = Extractor::default();
+        extractor.extract_two_stage(corpus_file.path(), &prefix, TwoStageFeatureSet::Fast)?;
+
+        let mut stage1 = String::new();
+        File::open(dir.path().join("out.stage1"))?.read_to_string(&mut stage1)?;
+        let mut stage2 = String::new();
+        File::open(dir.path().join("out.stage2"))?.read_to_string(&mut stage2)?;
+        let mut lexicon = String::new();
+        File::open(dir.path().join("out.lexicon"))?.read_to_string(&mut lexicon)?;
+
+        // Stage 1: one row per character (the joint pipeline predicts at
+        // the first position too), label collapsed to the boundary class.
+        // Line 1 has 9 chars ("これはテストです。"), line 2 has 7
+        // ("これもテスト。").
+        let stage1_lines: Vec<&str> = stage1.lines().collect();
+        assert_eq!(stage1_lines.len(), 16);
+        for line in &stage1_lines {
+            let label = line.split('\t').next().unwrap();
+            assert!(label == "B" || label == "O", "unexpected stage-1 label: {label}");
+        }
+
+        // Stage 2: one row per word, label a UPOS tag; the Fast feature set
+        // excludes FC/LC, so no "FC:"/"LC:" feature should appear, but WS:
+        // (always included in Fast) should.
+        let stage2_lines: Vec<&str> = stage2.lines().collect();
+        assert_eq!(stage2_lines.len(), 9);
+        let mut tag_counts: HashMap<&str, usize> = HashMap::new();
+        for line in &stage2_lines {
+            let mut fields = line.split('\t');
+            let label = fields.next().unwrap();
+            assert!(label.parse::<crate::upos::Upos>().is_ok(), "not a UPOS tag: {label}");
+            *tag_counts.entry(label).or_insert(0) += 1;
+            let feats: Vec<&str> = fields.collect();
+            assert!(feats.iter().any(|f| f.starts_with("WS:")), "missing WS feature in {line}");
+            assert!(
+                !feats.iter().any(|f| f.starts_with("FC:") || f.starts_with("LC:")),
+                "Fast feature set should not emit FC:/LC: in {line}"
+            );
+        }
+        assert_eq!(tag_counts.get("PRON"), Some(&2));
+        assert_eq!(tag_counts.get("NOUN"), Some(&2));
+        assert_eq!(tag_counts.get("PUNCT"), Some(&2));
+        assert_eq!(tag_counts.get("PART"), Some(&2));
+        assert_eq!(tag_counts.get("AUX"), Some(&1));
+
+        // Lexicon: one line per unique surface, counts accumulated across
+        // both occurrences of "これ"/"テスト"/"。".
+        let mut entries: HashMap<&str, &str> = HashMap::new();
+        for line in lexicon.lines() {
+            let (surface, tags) = line.split_once('\t').unwrap();
+            entries.insert(surface, tags);
+        }
+        assert_eq!(entries.len(), 6);
+        assert_eq!(entries.get("これ"), Some(&"PRON:2"));
+        assert_eq!(entries.get("テスト"), Some(&"NOUN:2"));
+        assert_eq!(entries.get("。"), Some(&"PUNCT:2"));
+        assert_eq!(entries.get("は"), Some(&"PART:1"));
+        assert_eq!(entries.get("も"), Some(&"PART:1"));
+        assert_eq!(entries.get("です"), Some(&"AUX:1"));
 
         Ok(())
     }

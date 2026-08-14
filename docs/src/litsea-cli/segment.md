@@ -19,7 +19,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | Enable POS-tagged segmentation output. Requires a POS model trained with `train --pos` |
+| `--pos` | off | Enable POS-tagged segmentation output. Accepts a joint model (`train --pos`) or a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --two-stage`), auto-detected from the file |
 
 ## Input / Output
 
@@ -70,7 +70,11 @@ echo "テスト文です。" \
 
 ## POS-Tagged Segmentation (`--pos`)
 
-When the `--pos` flag is specified, segmentation and POS tagging are performed simultaneously using an Averaged Perceptron model.
+When the `--pos` flag is specified, segmentation and POS tagging are
+performed simultaneously. The model kind (joint Averaged Perceptron or
+[two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1))
+is auto-detected from the file header, so the same command works for
+either — including a model produced by `train --two-stage`.
 
 ### Usage
 
@@ -102,4 +106,4 @@ cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > o
 - The `--language` flag must match the language the model was trained for
 - The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (`load_model_from_path`)
 - The model URI is not restricted to file paths -- any valid URL is accepted
-- When using `--pos`, the model must be a POS model trained with `train --pos`
+- When using `--pos`, the model must be a POS-capable model trained with `train --pos` or `train --two-stage`
