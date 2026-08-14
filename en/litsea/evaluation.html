@@ -1,44 +1,44 @@
 <!DOCTYPE HTML>
-<html lang="ja" class="light sidebar-visible" dir="ltr">
+<html lang="en" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>はじめに - Litsea ドキュメント</title>
+        <title>Evaluation - Litsea Documentation</title>
 
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Litsea - Rust製コンパクト単語分割ライブラリのドキュメント">
+        <meta name="description" content="Documentation for Litsea - a compact word segmentation library in Rust">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
-        <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-e96d0476.css">
-        <link rel="stylesheet" href="css/chrome-d279d366.css">
-        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
-        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
-        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
-            const path_to_root = "";
+            const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-22da2903.js";
+            window.path_to_searchindex_js = "../searchindex-e7e6ce99.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5f7904d8.js"></script>
+        <script src="../toc-05aca925.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -105,7 +105,7 @@
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
-                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
             </noscript>
             <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -137,16 +137,16 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Litsea ドキュメント</h1>
+                    <h1 class="menu-title">Litsea Documentation</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
                         <a href="https://github.com/mosuka/litsea" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/mosuka/litsea/edit/main/docs/ja/src/README.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/mosuka/litsea/edit/main/docs/src/litsea/evaluation.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,56 +180,96 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="はじめに"><a class="header" href="#はじめに">はじめに</a></h1>
-<p><strong>Litsea</strong> は、<a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> および <a href="https://github.com/shogo82148/TinySegmenterMaker">TinySegmenterMaker</a> に触発されて開発された、Rust で実装された極めてコンパクトな単語分割ライブラリです。</p>
-<p><a href="https://taku910.github.io/mecab/">MeCab</a> や <a href="https://github.com/lindera/lindera">Lindera</a> などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、<strong>AdaBoost 二値分類</strong>アルゴリズムに基づくコンパクトな学習済みモデルを使用して単語分割を行います。また、<strong>Averaged Perceptron</strong> 多クラス分類器と <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットを用いた<strong>単語分割と品詞推定の同時実行</strong>もサポートしています。</p>
-<h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
-<ul>
-<li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
-<li><strong>コンパクトな学習済みモデル</strong> – モデルファイルはわずか数キロバイト</li>
-<li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
-<li><strong>品詞推定（POS Tagging）</strong> – Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定</li>
-<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
-<li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
-<li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL（オプトインの <code>remote_model</code> フィーチャー）またはローカルファイルからモデルを読み込み</li>
-<li><strong>シンプルで拡張性の高い API</strong> – Rust プロジェクトへのライブラリとしての統合が容易</li>
-</ul>
-<h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
-<p>Litsea は単語分割を<strong>二値分類問題</strong>として扱います。文中の各文字位置について、モデルがその位置が<strong>単語境界</strong>（+1）か<strong>非境界</strong>（-1）かを予測します。分類器は、各言語固有の文字 n-gram 特徴量と文字種情報を使用します。</p>
-<pre><code class="language-text">Input:  "これはテストです。"
-         こ れ は テ ス ト で す 。
-         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
-Output: ["これ", "は", "テスト", "です", "。"]
-</code></pre>
-<h3 id="品詞推定pos-tagging"><a class="header" href="#品詞推定pos-tagging">品詞推定（POS Tagging）</a></h3>
-<p>Litsea は単語分割に加えて、<strong>品詞推定</strong>（Part-of-Speech Tagging）もサポートしています。<strong>Averaged Perceptron</strong> 多クラス分類器を使用し、単語分割と品詞推定を同時に（Joint方式で）行います。</p>
-<p>各文字位置に対して、18 クラスの <strong>SegmentLabel</strong> を予測します:</p>
-<ul>
-<li><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>（17 品詞の境界ラベル）</li>
-<li><code>O</code>（非境界 = 単語の継続）</li>
-</ul>
-<p>品詞タグには <a href="https://universaldependencies.org/">Universal Dependencies</a> の <strong>UPOS タグセット</strong>（17 品詞）を採用しています。</p>
-<pre><code class="language-text">Input:  "今日はいい天気ですね。"
-Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
-</code></pre>
-<h2 id="名前の由来"><a class="header" href="#名前の由来">名前の由来</a></h2>
-<p>クスノキ科には <em>Lindera</em>（クロモジ）と同じ科に属する <em>Litsea cubeba</em>（アオモジ）という小さな植物があります。これが <strong>Litsea</strong> という名前の由来です。</p>
-<h2 id="現在のバージョン"><a class="header" href="#現在のバージョン">現在のバージョン</a></h2>
-<p>Litsea v0.8.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
-<h2 id="リンク"><a class="header" href="#リンク">リンク</a></h2>
-<ul>
-<li><a href="https://github.com/mosuka/litsea">GitHub リポジトリ</a></li>
-<li><a href="https://crates.io/crates/litsea">crates.io</a></li>
-<li><a href="https://docs.rs/litsea">API ドキュメント (docs.rs)</a></li>
-<li><a href="../../">English Documentation</a></li>
-</ul>
+                        <h1 id="evaluation"><a class="header" href="#evaluation">Evaluation</a></h1>
+<p>Held-out quality evaluation of segmentation and joint POS tagging
+(<code>litsea::evaluation</code>). This is the library API behind the
+<a href="../litsea-cli/evaluate.html"><code>litsea evaluate</code></a> subcommand.</p>
+<h2 id="metrics-types"><a class="header" href="#metrics-types">Metrics Types</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SegmentationMetrics {
+    pub word_precision: f64,     // %
+    pub word_recall: f64,        // %
+    pub word_f1: f64,            // %
+    pub boundary_precision: f64, // %
+    pub boundary_recall: f64,    // %
+    pub boundary_f1: f64,        // %
+    pub sentences: usize,
+    pub gold_words: usize,
+    pub predicted_words: usize,
+}
+
+pub struct PosMetrics {
+    pub segmentation: SegmentationMetrics,
+    pub tagged_precision: f64, // %: span and tag both match
+    pub tagged_recall: f64,    // %
+    pub tagged_f1: f64,        // %
+}
+<span class="boring">}</span></code></pre>
+<p>Both are re-exported at the crate root. Tokens are matched by exact
+character-offset spans over the concatenation of the gold tokens;
+pure-whitespace tokens are excluded from scoring (the Korean
+space-preserving protocol; a no-op for languages written without spaces).</p>
+<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<h3 id="evaluate_segmentation"><a class="header" href="#evaluate_segmentation"><code>evaluate_segmentation</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn evaluate_segmentation&lt;I, S&gt;(segmenter: &amp;Segmenter, gold: I) -&gt; SegmentationMetrics
+where
+    I: IntoIterator&lt;Item = Vec&lt;S&gt;&gt;,
+    S: Into&lt;String&gt;,
+<span class="boring">}</span></code></pre>
+<p>Segments the concatenation of each gold sentence’s tokens with
+[<code>Segmenter::segment</code>] and scores the result. Empty sentences are skipped.</p>
+<h3 id="evaluate_pos"><a class="header" href="#evaluate_pos"><code>evaluate_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn evaluate_pos&lt;I, S&gt;(segmenter: &amp;Segmenter, gold: I) -&gt; litsea::Result&lt;PosMetrics&gt;
+where
+    I: IntoIterator&lt;Item = Vec&lt;(S, Upos)&gt;&gt;,
+    S: Into&lt;String&gt;,
+<span class="boring">}</span></code></pre>
+<p>Like <code>evaluate_segmentation</code> but drives [<code>Segmenter::segment_with_pos</code>]
+and additionally scores tagged words. Returns
+<code>LitseaError::PosLearnerNotSet</code> if the segmenter has no POS learner.</p>
+<h3 id="gold-line-parsers"><a class="header" href="#gold-line-parsers">Gold-line parsers</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parse_gold_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;String&gt;
+pub fn parse_gold_pos_line(line: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+<span class="boring">}</span></code></pre>
+<p><code>parse_gold_line</code> splits on spaces (or tabs with <code>tsv = true</code>, where a
+token may be a literal space); <code>parse_gold_pos_line</code> splits each token at
+its <strong>last</strong> <code>/</code> (the training pipeline’s rule), defaulting to <code>Upos::X</code>
+for missing or unparsable tags.</p>
+<h2 id="example"><a class="header" href="#example">Example</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::adaboost::AdaBoost;
+use litsea::evaluation::{evaluate_segmentation, parse_gold_line};
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+let mut learner = AdaBoost::new(0.01, 100);
+learner.load_model_from_path(std::path::Path::new("./models/japanese.model"))?;
+let segmenter = Segmenter::with_learner(Language::Japanese, learner);
+
+let gold = std::fs::read_to_string("./resources/eval/japanese_gsd_test.txt")?;
+let sentences = gold.lines().map(|l| parse_gold_line(l, false));
+let metrics = evaluate_segmentation(&amp;segmenter, sentences);
+println!("word F1: {:.2}%", metrics.word_f1);
+<span class="boring">Ok::&lt;(), Box&lt;dyn std::error::Error&gt;&gt;(())
+</span><span class="boring">}</span></code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../litsea/language.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
 
-                            <a rel="next prefetch" href="getting-started.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../litsea-cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -239,8 +279,11 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../litsea/language.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
 
-                    <a rel="next prefetch" href="getting-started.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../litsea-cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
@@ -260,17 +303,17 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
         </script>
 
 
-        <script src="elasticlunr-ef4e11c1.min.js"></script>
-        <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-09f2665d.js"></script>
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
-        <script src="clipboard-1626706a.min.js"></script>
-        <script src="highlight-abc7f01d.js"></script>
-        <script src="book-609e4cb8.js"></script>
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
 
 
 

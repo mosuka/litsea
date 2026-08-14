@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3a92af0c.js";
+            window.path_to_searchindex_js = "searchindex-22da2903.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-59d64227.js"></script>
+        <script src="toc-5f7904d8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -270,6 +270,11 @@
 </table>
 </div>
 <h2 id="品詞推定モデル"><a class="header" href="#品詞推定モデル">品詞推定モデル</a></h2>
+<p>in-sample 行は <code>train</code> コマンドが学習データ自身で測ったメトリクス、held-out
+行は UD GSD テスト分割に対して <code>litsea evaluate --pos</code> で測定した単語 /
+タグ付き単語 F1 です（<a href="training-guide/evaluating-models.html">モデルの評価</a>を
+参照）。韓国語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
+従うため、空白なしのテキストで評価しています。</p>
 <h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -281,9 +286,11 @@
 <tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
 <tr><td>学習コーパス</td><td>UD Japanese-GSD（7,050 文）</td></tr>
 <tr><td>エポック数</td><td>10</td></tr>
-<tr><td>正解率</td><td>98.23%</td></tr>
-<tr><td>マクロ適合率</td><td>96.82%</td></tr>
-<tr><td>マクロ再現率</td><td>93.30%</td></tr>
+<tr><td>正解率（in-sample）</td><td>98.23%</td></tr>
+<tr><td>マクロ適合率（in-sample）</td><td>96.82%</td></tr>
+<tr><td>マクロ再現率（in-sample）</td><td>93.30%</td></tr>
+<tr><td>単語 F1（held-out）</td><td>96.56%</td></tr>
+<tr><td>タグ付き単語 F1（held-out）</td><td>92.51%</td></tr>
 <tr><td>ファイルサイズ</td><td>約 11 MB</td></tr>
 </tbody>
 </table>
@@ -299,9 +306,11 @@
 <tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
 <tr><td>学習コーパス</td><td>UD Chinese-GSD（3,997 文）</td></tr>
 <tr><td>エポック数</td><td>10</td></tr>
-<tr><td>正解率</td><td>97.04%</td></tr>
-<tr><td>マクロ適合率</td><td>97.17%</td></tr>
-<tr><td>マクロ再現率</td><td>96.14%</td></tr>
+<tr><td>正解率（in-sample）</td><td>97.04%</td></tr>
+<tr><td>マクロ適合率（in-sample）</td><td>97.17%</td></tr>
+<tr><td>マクロ再現率（in-sample）</td><td>96.14%</td></tr>
+<tr><td>単語 F1（held-out）</td><td>90.52%</td></tr>
+<tr><td>タグ付き単語 F1（held-out）</td><td>81.18%</td></tr>
 <tr><td>ファイルサイズ</td><td>約 19 MB</td></tr>
 </tbody>
 </table>
@@ -317,9 +326,11 @@
 <tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
 <tr><td>学習コーパス</td><td>UD Korean-GSD（4,400 文）</td></tr>
 <tr><td>エポック数</td><td>10</td></tr>
-<tr><td>正解率</td><td>95.14%</td></tr>
-<tr><td>マクロ適合率</td><td>95.00%</td></tr>
-<tr><td>マクロ再現率</td><td>86.15%</td></tr>
+<tr><td>正解率（in-sample）</td><td>95.14%</td></tr>
+<tr><td>マクロ適合率（in-sample）</td><td>95.00%</td></tr>
+<tr><td>マクロ再現率（in-sample）</td><td>86.15%</td></tr>
+<tr><td>単語 F1（held-out）</td><td>80.51%</td></tr>
+<tr><td>タグ付き単語 F1（held-out）</td><td>71.03%</td></tr>
 <tr><td>ファイルサイズ</td><td>約 8.9 MB</td></tr>
 </tbody>
 </table>

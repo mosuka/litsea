@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2d83884d.js";
+            window.path_to_searchindex_js = "searchindex-e7e6ce99.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9fc4699e.js"></script>
+        <script src="toc-05aca925.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -2530,6 +2530,87 @@ assert_eq!(err.input(), "french");
 <li>The error message enumerates the supported languages: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="evaluation-2"><a class="header" href="#evaluation-2">Evaluation</a></h1>
+<p>Held-out quality evaluation of segmentation and joint POS tagging
+(<code>litsea::evaluation</code>). This is the library API behind the
+<a href="#evaluate"><code>litsea evaluate</code></a> subcommand.</p>
+<h2 id="metrics-types"><a class="header" href="#metrics-types">Metrics Types</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SegmentationMetrics {
+    pub word_precision: f64,     // %
+    pub word_recall: f64,        // %
+    pub word_f1: f64,            // %
+    pub boundary_precision: f64, // %
+    pub boundary_recall: f64,    // %
+    pub boundary_f1: f64,        // %
+    pub sentences: usize,
+    pub gold_words: usize,
+    pub predicted_words: usize,
+}
+
+pub struct PosMetrics {
+    pub segmentation: SegmentationMetrics,
+    pub tagged_precision: f64, // %: span and tag both match
+    pub tagged_recall: f64,    // %
+    pub tagged_f1: f64,        // %
+}
+<span class="boring">}</span></code></pre>
+<p>Both are re-exported at the crate root. Tokens are matched by exact
+character-offset spans over the concatenation of the gold tokens;
+pure-whitespace tokens are excluded from scoring (the Korean
+space-preserving protocol; a no-op for languages written without spaces).</p>
+<h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
+<h3 id="evaluate_segmentation"><a class="header" href="#evaluate_segmentation"><code>evaluate_segmentation</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn evaluate_segmentation&lt;I, S&gt;(segmenter: &amp;Segmenter, gold: I) -&gt; SegmentationMetrics
+where
+    I: IntoIterator&lt;Item = Vec&lt;S&gt;&gt;,
+    S: Into&lt;String&gt;,
+<span class="boring">}</span></code></pre>
+<p>Segments the concatenation of each gold sentence’s tokens with
+[<code>Segmenter::segment</code>] and scores the result. Empty sentences are skipped.</p>
+<h3 id="evaluate_pos"><a class="header" href="#evaluate_pos"><code>evaluate_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn evaluate_pos&lt;I, S&gt;(segmenter: &amp;Segmenter, gold: I) -&gt; litsea::Result&lt;PosMetrics&gt;
+where
+    I: IntoIterator&lt;Item = Vec&lt;(S, Upos)&gt;&gt;,
+    S: Into&lt;String&gt;,
+<span class="boring">}</span></code></pre>
+<p>Like <code>evaluate_segmentation</code> but drives [<code>Segmenter::segment_with_pos</code>]
+and additionally scores tagged words. Returns
+<code>LitseaError::PosLearnerNotSet</code> if the segmenter has no POS learner.</p>
+<h3 id="gold-line-parsers"><a class="header" href="#gold-line-parsers">Gold-line parsers</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parse_gold_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;String&gt;
+pub fn parse_gold_pos_line(line: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+<span class="boring">}</span></code></pre>
+<p><code>parse_gold_line</code> splits on spaces (or tabs with <code>tsv = true</code>, where a
+token may be a literal space); <code>parse_gold_pos_line</code> splits each token at
+its <strong>last</strong> <code>/</code> (the training pipeline’s rule), defaulting to <code>Upos::X</code>
+for missing or unparsable tags.</p>
+<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::adaboost::AdaBoost;
+use litsea::evaluation::{evaluate_segmentation, parse_gold_line};
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+let mut learner = AdaBoost::new(0.01, 100);
+learner.load_model_from_path(std::path::Path::new("./models/japanese.model"))?;
+let segmenter = Segmenter::with_learner(Language::Japanese, learner);
+
+let gold = std::fs::read_to_string("./resources/eval/japanese_gsd_test.txt")?;
+let sentences = gold.lines().map(|l| parse_gold_line(l, false));
+let metrics = evaluate_segmentation(&amp;segmenter, sentences);
+println!("word F1: {:.2}%", metrics.word_f1);
+<span class="boring">Ok::&lt;(), Box&lt;dyn std::error::Error&gt;&gt;(())
+</span><span class="boring">}</span></code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cli-reference-overview"><a class="header" href="#cli-reference-overview">CLI Reference Overview</a></h1>
 <p>The <code>litsea</code> CLI provides commands for word segmentation, model training, and text processing.</p>
 <p>The CLI binary is built with the library’s <code>remote_model</code> feature enabled, so <code>http(s)://</code> model URIs work out of the box – unlike the <code>litsea</code> library itself, whose default features do not include remote loading.</p>
@@ -2546,6 +2627,7 @@ assert_eq!(err.input(), "french");
 <tr><td><a href="#extract-1"><code>extract</code></a></td><td>Extract features from a corpus for training</td></tr>
 <tr><td><a href="#train-3"><code>train</code></a></td><td>Train a word segmentation model</td></tr>
 <tr><td><a href="#segment-1"><code>segment</code></a></td><td>Segment text into words using a trained model</td></tr>
+<tr><td><a href="#evaluate"><code>evaluate</code></a></td><td>Evaluate a model against a held-out gold corpus</td></tr>
 </tbody>
 </table>
 </div>
@@ -2870,6 +2952,100 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 <li>When using <code>--pos</code>, the model must be a POS model trained with <code>train --pos</code></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="evaluate"><a class="header" href="#evaluate">evaluate</a></h1>
+<p>Evaluate a trained model against a held-out gold corpus and print quality
+metrics. Unlike the in-sample metrics printed by <code>train</code>, this measures
+quality on text the model has never seen.</p>
+<p>A <strong>gold corpus</strong> is a text file containing the correct answers: one
+sentence per line, already segmented into the correct tokens by human
+annotation (the same file formats used for training corpora — space- or
+tab-separated tokens, or <code>word/POS</code> with <code>--pos</code>). “Gold” refers to the
+gold standard the model’s output is judged against. For a meaningful
+<strong>held-out</strong> evaluation it must contain sentences that were <em>not</em> used to
+train the model — the bundled files in <code>resources/eval/</code> are the UD GSD
+<strong>test</strong> splits, while the bundled models are trained on the train splits.</p>
+<h2 id="usage-4"><a class="header" href="#usage-4">Usage</a></h2>
+<pre><code class="language-sh">litsea evaluate [OPTIONS] &lt;MODEL_URI&gt; &lt;GOLD_FILE&gt;
+</code></pre>
+<h2 id="arguments-3"><a class="header" href="#arguments-3">Arguments</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>MODEL_URI</code></td><td>Path or URL to the trained model file. Supports: local file paths, <code>file://</code>, <code>http://</code>, <code>https://</code></td></tr>
+<tr><td><code>GOLD_FILE</code></td><td>Path to the gold corpus (one sentence per line)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="options-3"><a class="header" href="#options-3">Options</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language of the model and gold corpus. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Evaluate joint segmentation + POS tagging. The gold corpus must then be in <code>word/POS</code> format</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean space-preserving corpus). Ignored with <code>--pos</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="metrics-2"><a class="header" href="#metrics-2">Metrics</a></h2>
+<p>Two token sequences are compared for every sentence:</p>
+<ul>
+<li><strong>Gold tokens</strong> – the reference segmentation from the gold corpus: the
+human-annotated correct answer (here, the tokenization of the UD GSD
+treebank test split). The evaluated sentence text is reconstructed by
+concatenating them.</li>
+<li><strong>Predicted tokens</strong> – what the model produces when the reconstructed
+sentence text is fed to <code>segment</code> (or <code>segment --pos</code>), exactly as a
+user would at inference time.</li>
+</ul>
+<p>Predicted and gold tokens are matched by exact character-offset spans over
+the reconstructed sentence. Pure-whitespace tokens are excluded from
+scoring, so the Korean space-preserving protocol does not inflate the
+numbers.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Metric</th><th>Measures</th><th>A low value means</th></tr>
+</thead>
+<tbody>
+<tr><td>Word Precision</td><td>Of the <strong>predicted</strong> words, the fraction that exactly matches a gold word (both ends correct)</td><td>many spurious words: over-segmentation or wrongly merged words</td></tr>
+<tr><td>Word Recall</td><td>Of the <strong>gold</strong> words, the fraction recovered exactly</td><td>many gold words missed</td></tr>
+<tr><td>Word F1</td><td>Harmonic mean of word precision and recall</td><td>overall segmentation quality</td></tr>
+<tr><td>Boundary Precision</td><td>Of the <strong>predicted</strong> word-start positions, the fraction that is a gold boundary</td><td>many false boundaries (over-segmentation)</td></tr>
+<tr><td>Boundary Recall</td><td>Of the <strong>gold</strong> word-start positions, the fraction found</td><td>many missed boundaries (under-segmentation)</td></tr>
+<tr><td>Boundary F1</td><td>Harmonic mean of boundary precision and recall</td><td>overall boundary quality</td></tr>
+<tr><td>Tagged Word Precision / Recall / F1 (<code>--pos</code>)</td><td>Like the word metrics, but the predicted POS tag must also match</td><td>correct spans carrying wrong tags</td></tr>
+</tbody>
+</table>
+</div>
+<p>A word counts as correct only when <strong>both</strong> of its boundaries are correct,
+so word metrics are always at least as strict as boundary metrics — a
+single misplaced boundary invalidates the two words on either side of it.
+<code>Sentences</code> is the number of evaluated (non-empty) gold sentences.</p>
+<h2 id="examples-3"><a class="header" href="#examples-3">Examples</a></h2>
+<p>Reproduce the documented held-out figures with the bundled gold data
+(<code>resources/eval/</code>, converted from the UD GSD test splits):</p>
+<pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
+litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+</code></pre>
+<p>Output:</p>
+<pre><code class="language-text">Evaluation Metrics:
+  Sentences: 543
+  Word Precision: 91.50%
+  Word Recall: 91.47%
+  Word F1: 91.48%
+  Boundary Precision: 96.32%
+  Boundary Recall: 96.29%
+  Boundary F1: 96.31%
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="training-guide"><a class="header" href="#training-guide">Training Guide</a></h1>
 <p>This guide walks you through training custom word segmentation and POS tagging models with Litsea.</p>
 <p>Both workflows use <a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> Treebanks as the data source.</p>
@@ -2999,7 +3175,7 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 <p>Supported languages for <code>download_udtreebank.sh</code>: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese).</p>
 <h2 id="corpus-from-wikipedia-dump"><a class="header" href="#corpus-from-wikipedia-dump">Corpus from Wikipedia Dump</a></h2>
 <p>For larger-scale training, you can build a corpus from a full Wikipedia dump using <code>scripts/corpus_wikidump.sh</code>. This extracts plain text with <a href="https://github.com/mosuka/wicket">wicket</a>, filters for actual sentences, and tokenizes with <a href="https://github.com/lindera/lindera">lindera</a>.</p>
-<h3 id="usage-4"><a class="header" href="#usage-4">Usage</a></h3>
+<h3 id="usage-5"><a class="header" href="#usage-5">Usage</a></h3>
 <pre><code class="language-sh"># Japanese (default)
 bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
 
@@ -3009,7 +3185,7 @@ bash scripts/corpus_wikidump.sh -l ko kowiki-latest-pages-articles.xml.bz2 corpu
 # Chinese
 bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpus_zh.txt
 </code></pre>
-<h3 id="options-3"><a class="header" href="#options-3">Options</a></h3>
+<h3 id="options-4"><a class="header" href="#options-4">Options</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -3070,7 +3246,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <h2 id="command"><a class="header" href="#command">Command</a></h2>
 <pre><code class="language-sh">litsea extract -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
 </code></pre>
-<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
+<h2 id="example-4"><a class="header" href="#example-4">Example</a></h2>
 <pre><code class="language-sh">litsea extract -l japanese ./corpus.txt ./features.txt
 </code></pre>
 <p>Output:</p>
@@ -3234,7 +3410,7 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="evaluating-models"><a class="header" href="#evaluating-models">Evaluating Models</a></h1>
 <p>Understanding model quality is essential for producing good segmentation results.</p>
-<h2 id="metrics-2"><a class="header" href="#metrics-2">Metrics</a></h2>
+<h2 id="metrics-3"><a class="header" href="#metrics-3">Metrics</a></h2>
 <p>The <code>train</code> command outputs three key metrics after training. These are
 <strong>in-sample</strong> metrics: they are measured on the training data itself, so
 they overestimate how the model performs on unseen text. For a realistic
@@ -3286,6 +3462,21 @@ from the F1 computation). Since spaces mark most Korean word boundaries,
 this makes the task far easier than for Japanese and Chinese, which are
 written without spaces — the scores are not directly comparable across
 languages.</p>
+<h3 id="reproducing-the-benchmarks"><a class="header" href="#reproducing-the-benchmarks">Reproducing the Benchmarks</a></h3>
+<p>Every figure in the table above is reproducible with one command using the
+bundled gold data (<code>resources/eval/</code>, converted from the UD GSD <strong>test</strong>
+splits — held-out for the bundled models, which are trained on the train
+splits):</p>
+<pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
+litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+</code></pre>
+<p>See <a href="#evaluate">evaluate</a> for the command reference. POS
+models are evaluated with <code>--pos</code> against the <code>*_gsd_test_pos.txt</code> files;
+their held-out figures are listed in
+<a href="#pre-trained-models-1">Pre-trained Models</a>. Note the Korean POS gold
+follows the POS pipeline’s convention (no space tokens), so unlike the
+segmentation row above it is evaluated on unspaced text.</p>
 <h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>
@@ -3304,7 +3495,7 @@ very small models with much lower held-out accuracy</li>
 <h2 id="command-3"><a class="header" href="#command-3">Command</a></h2>
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
 </code></pre>
-<h2 id="example-4"><a class="header" href="#example-4">Example</a></h2>
+<h2 id="example-5"><a class="header" href="#example-5">Example</a></h2>
 <pre><code class="language-sh"># Extract features from new corpus
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
@@ -3352,7 +3543,7 @@ litsea train -t 0.0001 -i 20000 \
 <li><strong>Zero-weight features</strong> are omitted to keep the file compact</li>
 <li>The <strong>last line</strong> contains the bias term as a single number</li>
 </ul>
-<h2 id="example-5"><a class="header" href="#example-5">Example</a></h2>
+<h2 id="example-6"><a class="header" href="#example-6">Example</a></h2>
 <pre><code class="language-text">BC1:IK	0.3456
 BC2:KI	-0.1234
 UW4:は	0.5678
@@ -3684,6 +3875,11 @@ written without spaces, so their protocol is unchanged.</p>
 </table>
 </div>
 <h2 id="pos-tagging-models"><a class="header" href="#pos-tagging-models">POS Tagging Models</a></h2>
+<p>In-sample rows are the <code>train</code> command’s metrics on the training data;
+held-out rows are word / tagged-word F1 measured with <code>litsea evaluate --pos</code> on the UD GSD test splits (see
+<a href="#evaluating-models">Evaluating Models</a>). The Korean POS
+gold follows the POS pipeline’s convention (no space tokens), so it is
+evaluated on unspaced text.</p>
 <h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -3695,9 +3891,11 @@ written without spaces, so their protocol is unchanged.</p>
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Japanese-GSD (7,050 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>98.23%</td></tr>
-<tr><td>Macro Precision</td><td>96.82%</td></tr>
-<tr><td>Macro Recall</td><td>93.30%</td></tr>
+<tr><td>Accuracy (in-sample)</td><td>98.23%</td></tr>
+<tr><td>Macro Precision (in-sample)</td><td>96.82%</td></tr>
+<tr><td>Macro Recall (in-sample)</td><td>93.30%</td></tr>
+<tr><td>Word F1 (held-out)</td><td>96.56%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>92.51%</td></tr>
 <tr><td>File Size</td><td>~11 MB</td></tr>
 </tbody>
 </table>
@@ -3713,9 +3911,11 @@ written without spaces, so their protocol is unchanged.</p>
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Chinese-GSD (3,997 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>97.04%</td></tr>
-<tr><td>Macro Precision</td><td>97.17%</td></tr>
-<tr><td>Macro Recall</td><td>96.14%</td></tr>
+<tr><td>Accuracy (in-sample)</td><td>97.04%</td></tr>
+<tr><td>Macro Precision (in-sample)</td><td>97.17%</td></tr>
+<tr><td>Macro Recall (in-sample)</td><td>96.14%</td></tr>
+<tr><td>Word F1 (held-out)</td><td>90.52%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>81.18%</td></tr>
 <tr><td>File Size</td><td>~19 MB</td></tr>
 </tbody>
 </table>
@@ -3731,14 +3931,16 @@ written without spaces, so their protocol is unchanged.</p>
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Korean-GSD (4,400 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>95.14%</td></tr>
-<tr><td>Macro Precision</td><td>95.00%</td></tr>
-<tr><td>Macro Recall</td><td>86.15%</td></tr>
+<tr><td>Accuracy (in-sample)</td><td>95.14%</td></tr>
+<tr><td>Macro Precision (in-sample)</td><td>95.00%</td></tr>
+<tr><td>Macro Recall (in-sample)</td><td>86.15%</td></tr>
+<tr><td>Word F1 (held-out)</td><td>80.51%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>71.03%</td></tr>
 <tr><td>File Size</td><td>~8.9 MB</td></tr>
 </tbody>
 </table>
 </div>
-<h4 id="usage-5"><a class="header" href="#usage-5">Usage</a></h4>
+<h4 id="usage-6"><a class="header" href="#usage-6">Usage</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
 <p>Output:</p>

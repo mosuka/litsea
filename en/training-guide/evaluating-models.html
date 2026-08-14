@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2d83884d.js";
+            window.path_to_searchindex_js = "../searchindex-e7e6ce99.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-9fc4699e.js"></script>
+        <script src="../toc-05aca925.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -234,6 +234,21 @@ from the F1 computation). Since spaces mark most Korean word boundaries,
 this makes the task far easier than for Japanese and Chinese, which are
 written without spaces — the scores are not directly comparable across
 languages.</p>
+<h3 id="reproducing-the-benchmarks"><a class="header" href="#reproducing-the-benchmarks">Reproducing the Benchmarks</a></h3>
+<p>Every figure in the table above is reproducible with one command using the
+bundled gold data (<code>resources/eval/</code>, converted from the UD GSD <strong>test</strong>
+splits — held-out for the bundled models, which are trained on the train
+splits):</p>
+<pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
+litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+</code></pre>
+<p>See <a href="../litsea-cli/evaluate.html">evaluate</a> for the command reference. POS
+models are evaluated with <code>--pos</code> against the <code>*_gsd_test_pos.txt</code> files;
+their held-out figures are listed in
+<a href="../pre-trained-models.html">Pre-trained Models</a>. Note the Korean POS gold
+follows the POS pipeline’s convention (no space tokens), so unlike the
+segmentation row above it is evaluated on unspaced text.</p>
 <h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>

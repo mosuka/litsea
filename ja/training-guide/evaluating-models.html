@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-3a92af0c.js";
+            window.path_to_searchindex_js = "../searchindex-22da2903.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-59d64227.js"></script>
+        <script src="../toc-5f7904d8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -231,6 +231,20 @@
 空白トークンは F1 の計算から除外）で学習・評価しています。韓国語では空白が
 ほとんどの語境界を示すため、空白を使わずに表記される日本語・中国語に比べて
 タスクが大幅に容易になります — このスコアは言語間で直接比較できません。</p>
+<h3 id="ベンチマークの再現"><a class="header" href="#ベンチマークの再現">ベンチマークの再現</a></h3>
+<p>上の表のすべての数値は、同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD の
+<strong>test</strong> 分割から変換。同梱モデルは train 分割で学習しているため held-out に
+あたります）を使って、それぞれ 1 コマンドで再現できます:</p>
+<pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
+litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+</code></pre>
+<p>コマンドリファレンスは <a href="../litsea-cli/evaluate.html">evaluate</a> を参照して
+ください。POS モデルは <code>*_gsd_test_pos.txt</code> ファイルに対して <code>--pos</code> で評価し、
+その held-out の数値は<a href="../pre-trained-models.html">事前学習済みモデル</a>に記載して
+います。なお、韓国語の POS ゴールドは POS パイプラインの慣例（空白トークン
+なし）に従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
+評価します。</p>
 <h2 id="モデル品質の改善"><a class="header" href="#モデル品質の改善">モデル品質の改善</a></h2>
 <p>精度が不十分な場合は、以下を検討してください:</p>
 <ol>

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3a92af0c.js";
+            window.path_to_searchindex_js = "searchindex-22da2903.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-59d64227.js"></script>
+        <script src="toc-5f7904d8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -2479,6 +2479,89 @@ assert_eq!(err.input(), "french");
 <li>エラーメッセージにはサポートされている言語が列挙されます: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="評価-2"><a class="header" href="#評価-2">評価</a></h1>
+<p>セグメンテーションおよび品詞推定同時実行の held-out 品質評価
+（<code>litsea::evaluation</code>）です。
+<a href="#evaluate"><code>litsea evaluate</code></a> サブコマンドの背後にある
+ライブラリ API です。</p>
+<h2 id="メトリクス型"><a class="header" href="#メトリクス型">メトリクス型</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SegmentationMetrics {
+    pub word_precision: f64,     // %
+    pub word_recall: f64,        // %
+    pub word_f1: f64,            // %
+    pub boundary_precision: f64, // %
+    pub boundary_recall: f64,    // %
+    pub boundary_f1: f64,        // %
+    pub sentences: usize,
+    pub gold_words: usize,
+    pub predicted_words: usize,
+}
+
+pub struct PosMetrics {
+    pub segmentation: SegmentationMetrics,
+    pub tagged_precision: f64, // %: span and tag both match
+    pub tagged_recall: f64,    // %
+    pub tagged_f1: f64,        // %
+}
+<span class="boring">}</span></code></pre>
+<p>いずれの型もクレートルートで再エクスポートされています。トークンは、
+ゴールドトークンを連結した文字列上の文字オフセットスパンの完全一致で
+対応付けます。空白のみのトークンはスコア計算から除外されます（韓国語の
+空白保持プロトコル。空白を使わずに表記される言語では no-op です）。</p>
+<h2 id="関数"><a class="header" href="#関数">関数</a></h2>
+<h3 id="evaluate_segmentation"><a class="header" href="#evaluate_segmentation"><code>evaluate_segmentation</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn evaluate_segmentation&lt;I, S&gt;(segmenter: &amp;Segmenter, gold: I) -&gt; SegmentationMetrics
+where
+    I: IntoIterator&lt;Item = Vec&lt;S&gt;&gt;,
+    S: Into&lt;String&gt;,
+<span class="boring">}</span></code></pre>
+<p>各ゴールド文のトークンを連結したものを [<code>Segmenter::segment</code>] で分割し、
+その結果をスコアリングします。空の文はスキップされます。</p>
+<h3 id="evaluate_pos"><a class="header" href="#evaluate_pos"><code>evaluate_pos</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn evaluate_pos&lt;I, S&gt;(segmenter: &amp;Segmenter, gold: I) -&gt; litsea::Result&lt;PosMetrics&gt;
+where
+    I: IntoIterator&lt;Item = Vec&lt;(S, Upos)&gt;&gt;,
+    S: Into&lt;String&gt;,
+<span class="boring">}</span></code></pre>
+<p><code>evaluate_segmentation</code> と同様ですが、[<code>Segmenter::segment_with_pos</code>] を
+実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器が
+設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を返します。</p>
+<h3 id="ゴールド行パーサ"><a class="header" href="#ゴールド行パーサ">ゴールド行パーサ</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn parse_gold_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;String&gt;
+pub fn parse_gold_pos_line(line: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+<span class="boring">}</span></code></pre>
+<p><code>parse_gold_line</code> はスペースで分割します（<code>tsv = true</code> の場合はタブで分割し、
+トークンとして空白文字そのもの（<code>" "</code>）を含められます）。
+<code>parse_gold_pos_line</code> は各トークンを<strong>最後の</strong> <code>/</code> で分割し（学習
+パイプラインと同じルール）、タグが欠落しているか解析できない場合は
+<code>Upos::X</code> を既定値とします。</p>
+<h2 id="使用例-3"><a class="header" href="#使用例-3">使用例</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::adaboost::AdaBoost;
+use litsea::evaluation::{evaluate_segmentation, parse_gold_line};
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+
+let mut learner = AdaBoost::new(0.01, 100);
+learner.load_model_from_path(std::path::Path::new("./models/japanese.model"))?;
+let segmenter = Segmenter::with_learner(Language::Japanese, learner);
+
+let gold = std::fs::read_to_string("./resources/eval/japanese_gsd_test.txt")?;
+let sentences = gold.lines().map(|l| parse_gold_line(l, false));
+let metrics = evaluate_segmentation(&amp;segmenter, sentences);
+println!("word F1: {:.2}%", metrics.word_f1);
+<span class="boring">Ok::&lt;(), Box&lt;dyn std::error::Error&gt;&gt;(())
+</span><span class="boring">}</span></code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cliリファレンス概要"><a class="header" href="#cliリファレンス概要">CLIリファレンス概要</a></h1>
 <p><code>litsea</code> CLIは、単語分割、モデル学習、テキスト処理のためのコマンドを提供します。</p>
 <p>CLI バイナリはライブラリの <code>remote_model</code> フィーチャーを有効にしてビルドされているため、<code>http(s)://</code> のモデル URI を追加設定なしでそのまま利用できます。一方、<code>litsea</code> ライブラリ自体はデフォルトフィーチャーにリモート読み込みを含みません。</p>
@@ -2495,6 +2578,7 @@ assert_eq!(err.input(), "french");
 <tr><td><a href="#extract-1"><code>extract</code></a></td><td>学習用にコーパスから特徴量を抽出</td></tr>
 <tr><td><a href="#train-3"><code>train</code></a></td><td>単語分割モデルを学習</td></tr>
 <tr><td><a href="#segment-1"><code>segment</code></a></td><td>学習済みモデルを使用してテキストを単語に分割</td></tr>
+<tr><td><a href="#evaluate"><code>evaluate</code></a></td><td>held-out のゴールドコーパスに対してモデルを評価</td></tr>
 </tbody>
 </table>
 </div>
@@ -2589,7 +2673,7 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 <li><code>-1</code> = 非境界</li>
 <li>特徴量はアルファベット順にソートされてタブ区切りで書き出されます。そのため各行はテンプレート定義順ではなく <code>BC1:</code> 特徴量から始まります</li>
 </ul>
-<h2 id="使用例-3"><a class="header" href="#使用例-3">使用例</a></h2>
+<h2 id="使用例-4"><a class="header" href="#使用例-4">使用例</a></h2>
 <pre><code class="language-sh"># Japanese
 litsea extract -l japanese ./corpus.txt ./features.txt
 
@@ -2669,7 +2753,7 @@ O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	.
 <li><strong>2回目のCtrl+C</strong>: 保存せずに即座に終了する</li>
 </ul>
 <p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
-<h2 id="使用例-4"><a class="header" href="#使用例-4">使用例</a></h2>
+<h2 id="使用例-5"><a class="header" href="#使用例-5">使用例</a></h2>
 <p>基本的な学習:</p>
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
 </code></pre>
@@ -2770,7 +2854,7 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 <code>litsea segment model | head -1</code>）、コマンドは正常終了します（終了コード0）。
 そのため <code>segment</code> はシェルのパイプライン内で問題なく連携できます。</li>
 </ul>
-<h2 id="使用例-5"><a class="header" href="#使用例-5">使用例</a></h2>
+<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
 <p><strong>日本語:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
   | litsea segment -l japanese ./models/RWCP.model
@@ -2813,6 +2897,96 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 <li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
 <li><code>--pos</code> を使用する場合、モデルは <code>train --pos</code> で学習したPOSモデルである必要があります</li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="evaluate"><a class="header" href="#evaluate">evaluate</a></h1>
+<p>学習済みモデルを held-out のゴールドコーパスに対して評価し、品質メトリクスを
+出力します。<code>train</code> が出力する in-sample 指標とは異なり、モデルが学習で一度も
+見ていないテキストに対する品質を測定します。</p>
+<p><strong>ゴールドコーパス</strong>とは、正解が書かれたテキストファイルです: 1 行 1 文で、
+人手アノテーションにより正しいトークンへ分割済みのもの（学習用コーパスと同じ
+ファイル形式 — 空白区切り・タブ区切り、<code>--pos</code> 時は <code>word/POS</code>）。「ゴールド」は
+モデル出力の採点基準となる正解（ゴールドスタンダード）を指します。意味のある
+<strong>held-out</strong> 評価にするには、モデルの学習に使っていない文で構成されている必要が
+あります — 同梱の <code>resources/eval/</code> は UD GSD の <strong>test</strong> 分割で、同梱モデルは
+train 分割で学習されているため、この条件を満たします。</p>
+<h2 id="使い方-4"><a class="header" href="#使い方-4">使い方</a></h2>
+<pre><code class="language-sh">litsea evaluate [OPTIONS] &lt;MODEL_URI&gt; &lt;GOLD_FILE&gt;
+</code></pre>
+<h2 id="引数-3"><a class="header" href="#引数-3">引数</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Argument</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>MODEL_URI</code></td><td>学習済みモデルファイルのパスまたはURL。サポート形式: ローカルファイルパス, <code>file://</code>, <code>http://</code>, <code>https://</code></td></tr>
+<tr><td><code>GOLD_FILE</code></td><td>ゴールドコーパスのパス（1行1文）</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="オプション-3"><a class="header" href="#オプション-3">オプション</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Option</th><th>Default</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは <code>word/POS</code> 形式である必要があります</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> 指定時は無視されます</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="メトリクス"><a class="header" href="#メトリクス">メトリクス</a></h2>
+<p>各文について、次の 2 つのトークン列を比較します:</p>
+<ul>
+<li><strong>ゴールドトークン</strong> – ゴールドコーパスに記録された基準の分割。人手で
+アノテーションされた正解（ここでは UD GSD ツリーバンク test 分割の
+トークン分割）です。評価対象の文テキストは、これらを連結して復元します</li>
+<li><strong>予測トークン</strong> – 復元した文テキストを <code>segment</code>（<code>--pos</code> 時は
+<code>segment --pos</code>）に与えたときにモデルが出力する分割。ユーザーが推論時に
+得るものと完全に同じです</li>
+</ul>
+<p>予測トークンとゴールドトークンは、復元した文上の文字オフセットスパンの
+完全一致で対応付けます。空白のみのトークンはスコア計算から除外されるため、
+韓国語の空白保持プロトコルが数値を押し上げることはありません。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>メトリクス</th><th>測るもの</th><th>低い場合の意味</th></tr>
+</thead>
+<tbody>
+<tr><td>Word Precision（単語適合率）</td><td><strong>予測</strong>した単語のうち、ゴールドの単語と完全一致（両端が正しい）した割合</td><td>余計な単語が多い: 過分割、または誤った結合</td></tr>
+<tr><td>Word Recall（単語再現率）</td><td><strong>ゴールド</strong>の単語のうち、完全一致で復元できた割合</td><td>取りこぼしたゴールド単語が多い</td></tr>
+<tr><td>Word F1（単語 F1）</td><td>単語適合率と再現率の調和平均</td><td>分割品質の総合指標</td></tr>
+<tr><td>Boundary Precision（境界適合率）</td><td><strong>予測</strong>した単語開始位置のうち、ゴールドの境界だった割合</td><td>誤った境界が多い（過分割）</td></tr>
+<tr><td>Boundary Recall（境界再現率）</td><td><strong>ゴールド</strong>の単語開始位置のうち、検出できた割合</td><td>見逃した境界が多い（分割不足）</td></tr>
+<tr><td>Boundary F1（境界 F1）</td><td>境界適合率と再現率の調和平均</td><td>境界判定の総合指標</td></tr>
+<tr><td>Tagged Word Precision / Recall / F1（<code>--pos</code>）</td><td>単語メトリクスと同様だが、予測 POS タグの一致も必要</td><td>スパンは正しいがタグが誤っている</td></tr>
+</tbody>
+</table>
+</div>
+<p>単語は<strong>両端の境界がともに正しい</strong>場合のみ正解と数えるため、単語メトリクスは
+常に境界メトリクスと同等以上に厳しくなります — 境界が 1 つずれるだけで、その
+両側の 2 単語が不正解になります。<code>Sentences</code> は評価対象（非空）のゴールド文数です。</p>
+<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
+<p>同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD テスト分割から変換）を使って、
+ドキュメントに記載の held-out の数値を再現します:</p>
+<pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
+litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+</code></pre>
+<p>出力:</p>
+<pre><code class="language-text">Evaluation Metrics:
+  Sentences: 543
+  Word Precision: 91.50%
+  Word Recall: 91.47%
+  Word F1: 91.48%
+  Boundary Precision: 96.32%
+  Boundary Recall: 96.29%
+  Boundary F1: 96.31%
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>
@@ -2934,7 +3108,7 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 <p><code>download_udtreebank.sh</code> の対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。</p>
 <h2 id="wikipedia-ダンプからのコーパス作成"><a class="header" href="#wikipedia-ダンプからのコーパス作成">Wikipedia ダンプからのコーパス作成</a></h2>
 <p>大規模な学習データが必要な場合、Wikipedia の全文ダンプから <code>scripts/corpus_wikidump.sh</code> を使ってコーパスを作成できます。このスクリプトは <a href="https://github.com/mosuka/wicket">wicket</a> でプレーンテキストを抽出し、文章のみをフィルタリングした後、<a href="https://github.com/lindera/lindera">lindera</a> でトークナイズします。</p>
-<h3 id="使い方-4"><a class="header" href="#使い方-4">使い方</a></h3>
+<h3 id="使い方-5"><a class="header" href="#使い方-5">使い方</a></h3>
 <pre><code class="language-sh"># 日本語（デフォルト）
 bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
 
@@ -2944,7 +3118,7 @@ bash scripts/corpus_wikidump.sh -l ko kowiki-latest-pages-articles.xml.bz2 corpu
 # 中国語
 bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpus_zh.txt
 </code></pre>
-<h3 id="オプション-3"><a class="header" href="#オプション-3">オプション</a></h3>
+<h3 id="オプション-4"><a class="header" href="#オプション-4">オプション</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -3005,7 +3179,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <h2 id="コマンド"><a class="header" href="#コマンド">コマンド</a></h2>
 <pre><code class="language-sh">litsea extract -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
 </code></pre>
-<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
+<h2 id="使用例-8"><a class="header" href="#使用例-8">使用例</a></h2>
 <pre><code class="language-sh">litsea extract -l japanese ./corpus.txt ./features.txt
 </code></pre>
 <p>出力:</p>
@@ -3169,7 +3343,7 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="モデルの評価"><a class="header" href="#モデルの評価">モデルの評価</a></h1>
 <p>モデルの品質を理解することは、良好な分割結果を得るために不可欠です。</p>
-<h2 id="メトリクス"><a class="header" href="#メトリクス">メトリクス</a></h2>
+<h2 id="メトリクス-1"><a class="header" href="#メトリクス-1">メトリクス</a></h2>
 <p><code>train</code> コマンドは学習後に3つの主要なメトリクスを出力します。これらは
 <strong>in-sample</strong> 指標（学習データ自身で測った値）であり、未知のテキストに対する
 性能を過大評価します。実際の品質を知るには、必ず学習に使用していない held-out
@@ -3218,6 +3392,20 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 空白トークンは F1 の計算から除外）で学習・評価しています。韓国語では空白が
 ほとんどの語境界を示すため、空白を使わずに表記される日本語・中国語に比べて
 タスクが大幅に容易になります — このスコアは言語間で直接比較できません。</p>
+<h3 id="ベンチマークの再現"><a class="header" href="#ベンチマークの再現">ベンチマークの再現</a></h3>
+<p>上の表のすべての数値は、同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD の
+<strong>test</strong> 分割から変換。同梱モデルは train 分割で学習しているため held-out に
+あたります）を使って、それぞれ 1 コマンドで再現できます:</p>
+<pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
+litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+</code></pre>
+<p>コマンドリファレンスは <a href="#evaluate">evaluate</a> を参照して
+ください。POS モデルは <code>*_gsd_test_pos.txt</code> ファイルに対して <code>--pos</code> で評価し、
+その held-out の数値は<a href="#事前学習済みモデル">事前学習済みモデル</a>に記載して
+います。なお、韓国語の POS ゴールドは POS パイプラインの慣例（空白トークン
+なし）に従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
+評価します。</p>
 <h2 id="モデル品質の改善"><a class="header" href="#モデル品質の改善">モデル品質の改善</a></h2>
 <p>精度が不十分な場合は、以下を検討してください:</p>
 <ol>
@@ -3236,7 +3424,7 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <h2 id="コマンド-3"><a class="header" href="#コマンド-3">コマンド</a></h2>
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
 </code></pre>
-<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
+<h2 id="使用例-9"><a class="header" href="#使用例-9">使用例</a></h2>
 <pre><code class="language-sh"># 新しいコーパスから特徴量を抽出
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
@@ -3602,6 +3790,11 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 </table>
 </div>
 <h2 id="品詞推定モデル"><a class="header" href="#品詞推定モデル">品詞推定モデル</a></h2>
+<p>in-sample 行は <code>train</code> コマンドが学習データ自身で測ったメトリクス、held-out
+行は UD GSD テスト分割に対して <code>litsea evaluate --pos</code> で測定した単語 /
+タグ付き単語 F1 です（<a href="#モデルの評価">モデルの評価</a>を
+参照）。韓国語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
+従うため、空白なしのテキストで評価しています。</p>
 <h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -3613,9 +3806,11 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 <tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
 <tr><td>学習コーパス</td><td>UD Japanese-GSD（7,050 文）</td></tr>
 <tr><td>エポック数</td><td>10</td></tr>
-<tr><td>正解率</td><td>98.23%</td></tr>
-<tr><td>マクロ適合率</td><td>96.82%</td></tr>
-<tr><td>マクロ再現率</td><td>93.30%</td></tr>
+<tr><td>正解率（in-sample）</td><td>98.23%</td></tr>
+<tr><td>マクロ適合率（in-sample）</td><td>96.82%</td></tr>
+<tr><td>マクロ再現率（in-sample）</td><td>93.30%</td></tr>
+<tr><td>単語 F1（held-out）</td><td>96.56%</td></tr>
+<tr><td>タグ付き単語 F1（held-out）</td><td>92.51%</td></tr>
 <tr><td>ファイルサイズ</td><td>約 11 MB</td></tr>
 </tbody>
 </table>
@@ -3631,9 +3826,11 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 <tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
 <tr><td>学習コーパス</td><td>UD Chinese-GSD（3,997 文）</td></tr>
 <tr><td>エポック数</td><td>10</td></tr>
-<tr><td>正解率</td><td>97.04%</td></tr>
-<tr><td>マクロ適合率</td><td>97.17%</td></tr>
-<tr><td>マクロ再現率</td><td>96.14%</td></tr>
+<tr><td>正解率（in-sample）</td><td>97.04%</td></tr>
+<tr><td>マクロ適合率（in-sample）</td><td>97.17%</td></tr>
+<tr><td>マクロ再現率（in-sample）</td><td>96.14%</td></tr>
+<tr><td>単語 F1（held-out）</td><td>90.52%</td></tr>
+<tr><td>タグ付き単語 F1（held-out）</td><td>81.18%</td></tr>
 <tr><td>ファイルサイズ</td><td>約 19 MB</td></tr>
 </tbody>
 </table>
@@ -3649,9 +3846,11 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 <tr><td>アルゴリズム</td><td>Averaged Perceptron</td></tr>
 <tr><td>学習コーパス</td><td>UD Korean-GSD（4,400 文）</td></tr>
 <tr><td>エポック数</td><td>10</td></tr>
-<tr><td>正解率</td><td>95.14%</td></tr>
-<tr><td>マクロ適合率</td><td>95.00%</td></tr>
-<tr><td>マクロ再現率</td><td>86.15%</td></tr>
+<tr><td>正解率（in-sample）</td><td>95.14%</td></tr>
+<tr><td>マクロ適合率（in-sample）</td><td>95.00%</td></tr>
+<tr><td>マクロ再現率（in-sample）</td><td>86.15%</td></tr>
+<tr><td>単語 F1（held-out）</td><td>80.51%</td></tr>
+<tr><td>タグ付き単語 F1（held-out）</td><td>71.03%</td></tr>
 <tr><td>ファイルサイズ</td><td>約 8.9 MB</td></tr>
 </tbody>
 </table>

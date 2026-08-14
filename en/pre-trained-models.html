@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-2d83884d.js";
+            window.path_to_searchindex_js = "searchindex-e7e6ce99.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-9fc4699e.js"></script>
+        <script src="toc-05aca925.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -272,6 +272,11 @@ written without spaces, so their protocol is unchanged.</p>
 </table>
 </div>
 <h2 id="pos-tagging-models"><a class="header" href="#pos-tagging-models">POS Tagging Models</a></h2>
+<p>In-sample rows are the <code>train</code> command’s metrics on the training data;
+held-out rows are word / tagged-word F1 measured with <code>litsea evaluate --pos</code> on the UD GSD test splits (see
+<a href="training-guide/evaluating-models.html">Evaluating Models</a>). The Korean POS
+gold follows the POS pipeline’s convention (no space tokens), so it is
+evaluated on unspaced text.</p>
 <h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -283,9 +288,11 @@ written without spaces, so their protocol is unchanged.</p>
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Japanese-GSD (7,050 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>98.23%</td></tr>
-<tr><td>Macro Precision</td><td>96.82%</td></tr>
-<tr><td>Macro Recall</td><td>93.30%</td></tr>
+<tr><td>Accuracy (in-sample)</td><td>98.23%</td></tr>
+<tr><td>Macro Precision (in-sample)</td><td>96.82%</td></tr>
+<tr><td>Macro Recall (in-sample)</td><td>93.30%</td></tr>
+<tr><td>Word F1 (held-out)</td><td>96.56%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>92.51%</td></tr>
 <tr><td>File Size</td><td>~11 MB</td></tr>
 </tbody>
 </table>
@@ -301,9 +308,11 @@ written without spaces, so their protocol is unchanged.</p>
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Chinese-GSD (3,997 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>97.04%</td></tr>
-<tr><td>Macro Precision</td><td>97.17%</td></tr>
-<tr><td>Macro Recall</td><td>96.14%</td></tr>
+<tr><td>Accuracy (in-sample)</td><td>97.04%</td></tr>
+<tr><td>Macro Precision (in-sample)</td><td>97.17%</td></tr>
+<tr><td>Macro Recall (in-sample)</td><td>96.14%</td></tr>
+<tr><td>Word F1 (held-out)</td><td>90.52%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>81.18%</td></tr>
 <tr><td>File Size</td><td>~19 MB</td></tr>
 </tbody>
 </table>
@@ -319,9 +328,11 @@ written without spaces, so their protocol is unchanged.</p>
 <tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
 <tr><td>Training Corpus</td><td>UD Korean-GSD (4,400 sentences)</td></tr>
 <tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy</td><td>95.14%</td></tr>
-<tr><td>Macro Precision</td><td>95.00%</td></tr>
-<tr><td>Macro Recall</td><td>86.15%</td></tr>
+<tr><td>Accuracy (in-sample)</td><td>95.14%</td></tr>
+<tr><td>Macro Precision (in-sample)</td><td>95.00%</td></tr>
+<tr><td>Macro Recall (in-sample)</td><td>86.15%</td></tr>
+<tr><td>Word F1 (held-out)</td><td>80.51%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>71.03%</td></tr>
 <tr><td>File Size</td><td>~8.9 MB</td></tr>
 </tbody>
 </table>
