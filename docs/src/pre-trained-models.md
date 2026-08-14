@@ -11,16 +11,31 @@ decisions. Note that the `train` command prints *in-sample* metrics
 (measured on the training data itself), which are higher than these
 held-out figures.
 
+**Algorithm note**: `japanese.model`, `chinese.model`, and `korean.model`
+are trained as a 2-class (boundary/non-boundary) Averaged Perceptron and
+then collapsed to scalar per-feature weights (issue #165) -- the file is
+still the plain AdaBoost text format the engine has always loaded, and
+`Segmenter::with_learner` / `AdaBoost::load_model_from_path` work
+unchanged. The collapse is a lossless transform (see
+`scripts/collapse_binary_perceptron.py`'s docstring for the derivation),
+not an approximation: a perceptron trained this way reaches substantially
+higher held-out quality than AdaBoost's presence-stump weak learners on the
+same corpus and templates, at the cost of a larger model file (more
+distinct features get non-zero weight) and a training procedure that goes
+through `train --pos` (see [Training Procedure](#training-procedure)
+below) rather than plain `train`.
+
 ### japanese.model
 
 | Property | Value |
 |----------|-------|
 | Language | Japanese |
 | Training Corpus | UD Japanese-GSD |
-| Training Options | `-t 0.0001 -i 20000` |
-| Word F1 (held-out) | 91.48% |
-| Boundary F1 (held-out) | 96.31% |
-| File Size | ~20 KB |
+| Epochs | 50 |
+| Pruned To | top 40,000 features by \|weight\| |
+| Word F1 (held-out) | 96.70% |
+| Boundary F1 (held-out) | 98.59% |
+| File Size | ~1.1 MB |
 
 ### korean.model
 
@@ -28,17 +43,21 @@ held-out figures.
 |----------|-------|
 | Language | Korean |
 | Training Corpus | UD Korean-GSD (space-preserving TSV corpus) |
-| Training Options | `--format tsv`, `-t 0.0001 -i 20000` |
-| Word F1 (held-out) | 99.91% |
-| Boundary F1 (held-out) | 99.96% |
-| File Size | ~9.4 KB |
+| Epochs | 30 |
+| Pruned To | not pruned (3,994 features) |
+| Word F1 (held-out) | 99.90% |
+| Boundary F1 (held-out) | 99.95% |
+| File Size | ~110 KB |
 
 The Korean model is trained and evaluated on text that preserves the
 original inter-eojeol spaces (each space is its own token; space tokens are
 excluded from the F1 computation). Spaces mark most word boundaries in
 Korean, so a model that sees them during training resolves the UD
-Korean-GSD standard almost deterministically. Japanese and Chinese are
-written without spaces, so their protocol is unchanged.
+Korean-GSD standard almost deterministically -- this is also why Korean's
+feature count and file size stay small (there is little ambiguity left for
+the model to learn) and its quality is essentially unchanged from the prior
+AdaBoost model (99.90% vs. 99.91%, within measurement noise). Japanese and
+Chinese are written without spaces, so their protocol is unchanged.
 
 ### chinese.model
 
@@ -46,10 +65,11 @@ written without spaces, so their protocol is unchanged.
 |----------|-------|
 | Language | Chinese (Simplified & Traditional) |
 | Training Corpus | UD Chinese-GSD |
-| Training Options | `-t 0.0001 -i 20000` |
-| Word F1 (held-out) | 77.56% |
-| Boundary F1 (held-out) | 87.81% |
-| File Size | ~18 KB |
+| Epochs | 100 |
+| Pruned To | top 70,000 features by \|weight\| |
+| Word F1 (held-out) | 90.69% |
+| Boundary F1 (held-out) | 95.64% |
+| File Size | ~2.0 MB |
 
 ### RWCP.model
 
@@ -68,6 +88,50 @@ written without spaces, so their protocol is unchanged.
 | Training Corpus | JEITA Project Sugita Genpaku corpus |
 | Tokenizer | ChaSen with IPAdic |
 | File Size | ~16 KB |
+
+## Training Procedure
+
+`RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model` are legacy/compatibility
+models and are trained (or sourced) as before -- see [Training
+Models](training-guide/training-models.md) for the plain AdaBoost procedure.
+`japanese.model`, `chinese.model`, and `korean.model` are retrained with the
+binary-perceptron-collapse procedure (#165), which needs no engine changes
+but does need a few extra steps beyond plain `litsea train`:
+
+```sh
+# 1. Extract plain boundary features (the same step as before).
+litsea extract -l <language> [--format tsv for Korean] <corpus> <features.txt>
+
+# 2. Remap boundary labels 1/-1 -> B/O. This is required for correctness. not
+#    cosmetic: it makes the perceptron's own tie-break (lowest class index
+#    wins) agree with AdaBoost's "score >= 0.0 favors boundary" convention.
+#    Training directly on "1"/"-1" would silently invert what ties resolve to.
+sed -i 's/^1\t/B\t/; s/^-1\t/O\t/' <features.txt>
+
+# 3. Train a 2-class Averaged Perceptron. --pos is being reused generically
+#    here (PosTrainer treats labels as opaque strings), not for POS tagging.
+litsea train --pos --num-epochs <N> <features.txt> <perceptron.model>
+
+# 4. Collapse to the plain AdaBoost model format (lossless -- see the
+#    script's docstring for the derivation).
+scripts/collapse_binary_perceptron.py <perceptron.model> <collapsed.model>
+
+# 5. Optional: if the larger feature count regresses `cargo bench --
+#    external_corpus` throughput more than acceptable, prune to the top-N
+#    features by magnitude and re-check both held-out quality and speed.
+scripts/prune_adaboost_model.py <collapsed.model> <pruned.model> <n>
+```
+
+Epoch count and pruning threshold are per-language tuning knobs, not fixed
+constants -- pick them from an epoch sweep and a quality-vs-throughput
+sweep on held-out data, the same way the bundled models above were chosen
+(see the issue for the full sweep data). As a general shape: quality keeps
+improving well past a handful of epochs and eventually plateaus (or
+mildly overfits, as Japanese does past ~50 epochs) rather than needing a
+single "correct" epoch count; pruning quality tends to degrade gracefully
+until a language-specific cliff, so sweep a few pruning levels around
+where `cargo bench` throughput starts recovering rather than guessing one
+number.
 
 ## POS Tagging Models
 
