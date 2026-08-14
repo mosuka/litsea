@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- The `litsea-two-stage v1` model file format and its container type
+  `TwoStageLearner` (#166, part of the two-stage segmentation + per-word
+  POS tagging architecture, #147): a single headered text file bundling a
+  stage-1 boundary classifier (embedded AdaBoost format), a candidate-tag
+  lexicon with occurrence counts, a stage-2 word-level tagger (embedded
+  Averaged Perceptron format), and an optional `dominance` classifier-skip
+  threshold. A `ModelKind::detect` helper identifies the three model
+  formats for loader dispatch. The format is purely additive: existing
+  model files load unchanged and the existing loaders reject two-stage
+  files with an explicit error.
+- `AdaBoost::save_model_to_writer` and
+  `AveragedPerceptron::save_model_to_writer` (the format-producing cores of
+  the existing `save_model` methods, enabling section embedding), and an
+  `AveragedPerceptron::classes()` accessor.
+
 ## 0.10.0
 
 ### Added

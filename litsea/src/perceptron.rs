@@ -346,16 +346,34 @@ impl AveragedPerceptron {
     /// (an empty model), or an I/O error if the file cannot be created or
     /// written.
     pub fn save_model(&self, path: &Path) -> Result<()> {
+        let mut file = io::BufWriter::new(File::create(path)?);
+        self.save_model_to_writer(&mut file)?;
+        file.flush()?;
+        Ok(())
+    }
+
+    /// Writes the model to an arbitrary writer in the same text format as
+    /// [`save_model`](Self::save_model).
+    ///
+    /// This is the format-producing core of `save_model`; it exists so the
+    /// model can be embedded as a section of a larger file (the two-stage
+    /// model format). The writer is not flushed.
+    ///
+    /// # Arguments
+    /// * `writer` - The writer receiving the model text.
+    ///
+    /// # Errors
+    /// Returns [`LitseaError::InvalidInput`] if no classes are registered
+    /// (an empty model), or an I/O error if writing fails.
+    pub fn save_model_to_writer<W: Write>(&self, writer: &mut W) -> Result<()> {
         if self.classes.is_empty() {
             return Err(LitseaError::InvalidInput("Cannot save an empty model".to_string()));
         }
 
-        let mut file = io::BufWriter::new(File::create(path)?);
-
         // Header: the number of classes and the class names
-        writeln!(file, "{}", self.classes.len())?;
+        writeln!(writer, "{}", self.classes.len())?;
         for class in &self.classes {
-            writeln!(file, "{}", class)?;
+            writeln!(writer, "{}", class)?;
         }
 
         // Weights: only non-zero weights are saved, in sorted feature order.
@@ -365,13 +383,22 @@ impl AveragedPerceptron {
             let slot = &self.slots[feat];
             for (class_idx, &w) in slot.w.iter().enumerate() {
                 if w != 0.0 {
-                    writeln!(file, "{}\t{}\t{}", feat, self.classes[class_idx], w)?;
+                    writeln!(writer, "{}\t{}\t{}", feat, self.classes[class_idx], w)?;
                 }
             }
         }
 
-        file.flush()?;
         Ok(())
+    }
+
+    /// Returns the registered class names in their sorted storage order
+    /// (the order used for weight-vector indexing and argmax tie-breaking).
+    ///
+    /// # Returns
+    /// A slice of class-name strings; empty if the model holds no classes.
+    #[must_use]
+    pub fn classes(&self) -> &[String] {
+        &self.classes
     }
 
     /// Loads a model from a URI.
