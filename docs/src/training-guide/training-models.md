@@ -114,3 +114,61 @@ Result Metrics (POS):
 ### POS Graceful Interruption
 
 Press **Ctrl+C once** during POS training to stop and save the model at its current state. Press **Ctrl+C twice** to exit immediately without saving.
+
+## Two-Stage Model Training
+
+For faster POS tagging, use the `--two-stage` flag instead of `--pos`. It
+trains a [two-stage model](../algorithm/two-stage-tagging.md) (issue #147):
+a binary boundary classifier (stage 1) plus a word-level tagger (stage 2),
+assembled with a candidate-tag lexicon into a single `litsea-two-stage v1`
+file. See [Two-Stage vs. Joint Tagging](../algorithm/two-stage-tagging.md)
+for the architecture, the measured quality/speed comparison, and why to
+prefer it for new work.
+
+### Two-Stage Training Command
+
+```sh
+litsea extract --two-stage <CORPUS_FILE> <FEATURES_PREFIX>
+litsea train --two-stage --num-epochs 50 <FEATURES_PREFIX> <MODEL_FILE>
+```
+
+`extract --two-stage` reads the same `word/POS` corpus as `--pos` and
+writes three files from `FEATURES_PREFIX`; `train --two-stage` reads them
+back from the same prefix.
+
+### Two-Stage Training Example
+
+```sh
+litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+```
+
+### Two-Stage Hyperparameters
+
+| Parameter | Flag | Default | Guidance |
+|-----------|------|---------|----------|
+| Epochs | `--num-epochs` | 10 | An epoch sweep during bundling (see [Two-Stage vs. Joint Tagging](../algorithm/two-stage-tagging.md#a-methodology-note-training-epochs-matter-more-than-architecture)) found segmentation quality still improving well past the default and plateauing around **50** -- the bundled models use 50, not 10 |
+| Dominance | `--dominance` | 0.99 | Classifier-skip threshold in `(0.5, 1.0]`: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier. Lower values skip the classifier more often (faster, more reliant on the lexicon); the default matches the bundled models |
+| Stage-2 feature set | `--stage2-features` on `extract --two-stage` | `fast` | `full`, `balanced`, or `fast`; see [Extracting Features](extracting-features.md) and [choosing a feature set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set) |
+
+### Two-Stage Training Output
+
+```text
+Result Metrics (Two-Stage):
+  Stage 1 (boundary) Accuracy: 99.86% ( 277213 )
+  Stage 1 Macro Precision: 99.85%
+  Stage 1 Macro Recall: 99.86%
+  Stage 2 (tagging) Accuracy: 99.09% ( 168333 )
+  Stage 2 Macro Precision: 98.96%
+  Stage 2 Macro Recall: 98.77%
+```
+
+As with AdaBoost and joint POS training, these are in-sample metrics;
+evaluate on held-out text with `litsea evaluate --pos` for a realistic
+quality estimate. `segment --pos` and `evaluate --pos` auto-detect a
+two-stage model from its file header, so no extra flag is needed to use
+one once trained.
+
+### Two-Stage Graceful Interruption
+
+Press **Ctrl+C once** during two-stage training to stop and save the model at its current state. Press **Ctrl+C twice** to exit immediately without saving.

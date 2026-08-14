@@ -19,7 +19,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | 品詞推定付き分割を有効にします。joint モデル（`train --pos`）または[二段構成](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)モデル（`train --two-stage`）のいずれも使用でき、ファイルから自動判別されます |
+| `--pos` | off | 品詞推定付き分割を有効にします。joint モデル（`train --pos`）または[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --two-stage`）のいずれも使用でき、ファイルから自動判別されます |
 
 ## 入力 / 出力
 
@@ -72,7 +72,7 @@ echo "テスト文です。" \
 
 `--pos` フラグを指定すると、単語分割と品詞推定を同時に行います。モデルの種類
 （joint な Averaged Perceptron モデルか、
-[二段構成](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)モデルか）
+[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデルか）
 はファイルヘッダから自動判別されるため、`train --two-stage` で学習したモデルでも
 同じコマンドがそのまま使えます。
 

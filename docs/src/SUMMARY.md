@@ -17,6 +17,7 @@
 - [Feature Extraction](algorithm/feature-extraction.md)
 - [Character Type Classification](algorithm/character-type-classification.md)
 - [Prediction Pipeline](algorithm/prediction-pipeline.md)
+- [Two-Stage vs. Joint Tagging](algorithm/two-stage-tagging.md)
 
 # Language Support
 

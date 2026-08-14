@@ -151,7 +151,7 @@ litsea train --two-stage [OPTIONS] <FEATURES_PREFIX> <MODEL_FILE>
 
 ```sh
 litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 10 ./two_stage_features ./models/japanese_two_stage.model
+litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
 ```
 
 ### Output

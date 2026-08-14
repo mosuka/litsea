@@ -135,12 +135,129 @@ Output:
 これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
 ```
 
+## Two-Stage POS Tagging Models
+
+The [two-stage architecture](algorithm/two-stage-tagging.md) (issue #147)
+segments with a binary boundary classifier and tags each resulting word
+through a candidate-tag lexicon plus a word-level tagger, instead of
+scoring every UPOS class at every character position. It is additive: the
+`*_pos.model` files above are unaffected, and `segment --pos` /
+`evaluate --pos` auto-detect either kind from the file. See [Two-Stage vs.
+Joint Tagging](algorithm/two-stage-tagging.md) for the architecture and the
+per-language recommendation.
+
+In-sample and held-out rows use the same protocol as the joint models
+above. "Stage-2 feature set" is the word-level template selection (`fast`,
+`balanced`, or `full`; see [Extracting
+Features](training-guide/extracting-features.md)) chosen for the bundled
+file per language, from the measured tradeoff in [Two-Stage vs. Joint
+Tagging](algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set).
+Throughput is from `cargo bench -- external_corpus` on the same corpora as
+the [Benchmarking](advanced/benchmarking.md) page, run on the same
+development machine as the other benchmark figures on this page (not
+dedicated, idle hardware -- see that page's methodology note); the joint
+comparison figure is the throughput measured in the same run, not the
+`*_pos.model` table above, since bench-to-bench variance on shared hardware
+makes a same-run comparison the only fair one.
+
+**Epoch note**: the joint models above are documented at their original
+10-epoch training. An epoch sweep during two-stage bundling (10 to 150
+epochs) found that stage 1's *segmentation* quality specifically continues
+improving well past 10 epochs and plateaus around 50 -- the bundled
+two-stage models below use 50 epochs, chosen from that sweep, not the same
+10-epoch convention as the joint models. At *matched* epoch counts, the
+sweep also found joint's segmentation retains a small, consistent edge
+over two-stage for Chinese (roughly 0.5-0.9pt across every epoch count
+tested) -- a real, reproducible difference, most likely because the joint
+model's per-character tag-dependent features carry more signal per
+training example than stage 1's boundary-only features. It does not,
+however, rise to a hard ceiling: 50-epoch two-stage training closes it and
+the bundled `chinese_two_stage.model` below has a higher held-out Word F1
+than the published (10-epoch) `chinese_pos.model`.
+
+### japanese_two_stage.model
+
+| Property | Value |
+|----------|-------|
+| Language | Japanese |
+| Training Corpus | UD Japanese-GSD (7,050 sentences) |
+| Epochs | 50 |
+| Stage-2 Feature Set | `fast` |
+| Word F1 (held-out) | 96.78% (joint: 96.56%) |
+| Tagged Word F1 (held-out) | 92.95% (joint: 92.51%) |
+| Throughput vs. joint | ~2.8x (3 runs: 2.65-3.05x) |
+| File Size | ~5.4 MB |
+
+### chinese_two_stage.model
+
+| Property | Value |
+|----------|-------|
+| Language | Chinese (Simplified & Traditional) |
+| Training Corpus | UD Chinese-GSD (3,997 sentences) |
+| Epochs | 50 |
+| Stage-2 Feature Set | `balanced` |
+| Word F1 (held-out) | 90.82% (joint: 90.52%) |
+| Tagged Word F1 (held-out) | 82.29% (joint: 81.18%) |
+| Throughput vs. joint | ~2.3x (3 runs: 2.13-2.44x) |
+| File Size | ~8.0 MB |
+
+### korean_two_stage.model
+
+| Property | Value |
+|----------|-------|
+| Language | Korean |
+| Training Corpus | UD Korean-GSD (4,400 sentences, unspaced word/POS protocol -- see the note below) |
+| Epochs | 50 |
+| Stage-2 Feature Set | `balanced` |
+| Word F1 (held-out) | 83.24% (joint: 80.51%) |
+| Tagged Word F1 (held-out) | 78.86% (joint: 71.03%) |
+| Throughput vs. joint | ~1.8x (3 runs: 1.75-1.90x) |
+| File Size | ~5.0 MB |
+
+Korean's smaller speedup traces to its lexicon: held-out text is 34.5%
+unknown words (surfaces never seen in training), and unknown words always
+take the full stage-2 classifier fallback rather than the cheap
+dominance-skip or candidate-masked paths, so a larger share of Korean's
+words pay the full stage-2 cost than in Japanese or Chinese.
+
+**Korean protocol note**: `korean_two_stage.model` is trained on the same
+unspaced `word/POS` corpus as `korean_pos.model`, *not* the
+space-preserving TSV corpus `korean.model` uses (issue #152). The two-stage
+extractor takes a single corpus for both stages, and building a combined
+space-preserving + POS-tagged format is a separate feature not yet
+implemented; the numbers above are therefore comparable to `korean_pos.model`
+but not to `korean.model`'s 99.91% (a different corpus and protocol
+entirely, not a stronger or weaker two-stage result).
+
+#### Usage
+
+```sh
+echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model
+```
+
+The output is identical in shape to the joint model's:
+
+```text
+これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+```
+
 ## Choosing a Model
 
 - For **Japanese**, use `japanese.model` for the best accuracy, or `RWCP.model` for compatibility with the original TinySegmenter
 - For **Chinese**, use `chinese.model`
 - For **Korean**, use `korean.model`
-- For **POS tagging**, use the corresponding `*_pos.model` (`japanese_pos.model`, `chinese_pos.model`, `korean_pos.model`) for joint word segmentation and POS tagging
+- For **POS tagging**, prefer the **two-stage** models
+  (`japanese_two_stage.model`, `chinese_two_stage.model`,
+  `korean_two_stage.model`) -- 1.8-2.8x the throughput and a smaller file,
+  at Word F1 and Tagged F1 that both beat the currently published joint
+  models in every language. Keep the joint `*_pos.model` files available
+  for compatibility with any code already built against `with_pos_learner`
+  / the joint model files, and as the simpler reference implementation the
+  two-stage numbers above were measured against. At *matched* training
+  epochs the two architectures are closer, with joint retaining a small
+  edge on Chinese segmentation specifically (see the epoch note above and
+  [Two-Stage vs. Joint Tagging](algorithm/two-stage-tagging.md) for the
+  full comparison and methodology).
 - For **domain-specific** needs, consider [training your own model](training-guide/preparing-corpus.md) or [retraining](training-guide/retraining-models.md) an existing one
 
 ## Sample Data
