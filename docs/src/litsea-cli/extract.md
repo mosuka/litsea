@@ -21,7 +21,9 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
 | `--pos` | off | Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input |
-| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--pos` |
+| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--pos` or `--two-stage` |
+| `--two-stage` | off | Extract [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) training features instead of joint POS features. Requires a POS corpus as input; cannot be combined with `--pos` |
+| `--stage2-features <SET>` | `fast` | Stage-2 word-feature set for `--two-stage`: `full` (best quality), `balanced`, or `fast` (best throughput) |
 
 ## Corpus Format
 
@@ -101,4 +103,24 @@ O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	.
 
 ```sh
 litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
+```
+
+## Two-Stage Feature Extraction
+
+With `--two-stage`, `extract` reads the same POS corpus format as `--pos`
+(`word/POS word/POS ...`) but writes **three** files derived from
+`FEATURES_FILE` as a prefix, for the [two-stage segmentation + POS tagging
+architecture](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1):
+
+| File | Content |
+|------|---------|
+| `{FEATURES_FILE}.stage1` | Boundary features, one row per character position, label `B` or `O` (the same feature templates as `--pos`) |
+| `{FEATURES_FILE}.stage2` | Word-level features, one row per word, label a UPOS tag; which templates are written is controlled by `--stage2-features` |
+| `{FEATURES_FILE}.lexicon` | The candidate-tag lexicon: `surface\tTAG:count[,TAG:count...]`, most-frequent-first |
+
+Pass the same prefix to `litsea train --two-stage`:
+
+```sh
+litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+# writes ./two_stage_features.stage1, .stage2, .lexicon
 ```

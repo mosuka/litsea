@@ -50,9 +50,10 @@
 //! loading with their loaders, and those loaders reject two-stage files
 //! with `InvalidData`.
 
+use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use rustc_hash::FxHashMap;
@@ -60,6 +61,7 @@ use rustc_hash::FxHashMap;
 use crate::adaboost::AdaBoost;
 use crate::error::{LitseaError, Result};
 use crate::perceptron::AveragedPerceptron;
+use crate::segmenter::Segmenter;
 use crate::upos::Upos;
 
 /// Magic first line of the two-stage model format (version 1).
@@ -126,7 +128,41 @@ impl ModelKind {
 /// Lexicon entry type: the UPOS tags observed for one surface, with their
 /// training-corpus occurrence counts, sorted most-frequent-first (ties
 /// broken by tag name).
-type LexiconEntry = Vec<(Upos, u32)>;
+pub(crate) type LexiconEntry = Vec<(Upos, u32)>;
+
+/// Derives the three two-stage training-file paths from a common prefix:
+/// `{prefix}.stage1`, `{prefix}.stage2`, `{prefix}.lexicon`. Shared by
+/// [`crate::extractor::Extractor::extract_two_stage`] (which writes them)
+/// and [`crate::trainer::TwoStageTrainer::new`] (which reads them).
+pub(crate) fn two_stage_paths(prefix: &Path) -> (PathBuf, PathBuf, PathBuf) {
+    let base = prefix.display();
+    (
+        PathBuf::from(format!("{}.stage1", base)),
+        PathBuf::from(format!("{}.stage2", base)),
+        PathBuf::from(format!("{}.lexicon", base)),
+    )
+}
+
+/// Writes lexicon lines in the model's `[lexicon]` section format
+/// (`surface\tTAG:count[,TAG:count...]`), surfaces sorted for
+/// deterministic output. Shared by the model writer and the two-stage
+/// feature extractor (whose `.lexicon` file uses the same format).
+pub(crate) fn write_lexicon<W: Write>(
+    lexicon: &FxHashMap<String, LexiconEntry>,
+    writer: &mut W,
+) -> Result<()> {
+    let mut surfaces: Vec<&String> = lexicon.keys().collect();
+    surfaces.sort_unstable();
+    for surface in surfaces {
+        let tags = lexicon[surface]
+            .iter()
+            .map(|(tag, count)| format!("{}:{}", tag, count))
+            .collect::<Vec<_>>()
+            .join(",");
+        writeln!(writer, "{}\t{}", surface, tags)?;
+    }
+    Ok(())
+}
 
 /// A two-stage segmentation + POS-tagging model: a stage-1 boundary
 /// classifier, a candidate-tag lexicon, and a stage-2 word-level tagger.
@@ -360,16 +396,7 @@ impl TwoStageLearner {
         writeln!(writer, "{}", SECTION_STAGE1)?;
         self.stage1.save_model_to_writer(writer)?;
         writeln!(writer, "{}", SECTION_LEXICON)?;
-        let mut surfaces: Vec<&String> = self.lexicon.keys().collect();
-        surfaces.sort_unstable();
-        for surface in surfaces {
-            let tags = self.lexicon[surface]
-                .iter()
-                .map(|(tag, count)| format!("{}:{}", tag, count))
-                .collect::<Vec<_>>()
-                .join(",");
-            writeln!(writer, "{}\t{}", surface, tags)?;
-        }
+        write_lexicon(&self.lexicon, writer)?;
         writeln!(writer, "{}", SECTION_STAGE2)?;
         self.stage2.save_model_to_writer(writer)?;
         Ok(())
@@ -521,8 +548,9 @@ impl TwoStageLearner {
 }
 
 /// Sorts a lexicon entry into the canonical order: count descending, ties
-/// by tag name ascending.
-fn sort_lexicon_entry(entry: &mut LexiconEntry) {
+/// by tag name ascending. Shared by the model loader/builder and the
+/// two-stage feature extractor.
+pub(crate) fn sort_lexicon_entry(entry: &mut LexiconEntry) {
     entry.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.to_string().cmp(&b.0.to_string())));
 }
 
@@ -592,7 +620,7 @@ fn parse_params(lines: &[String]) -> Result<f64> {
 /// Returns [`LitseaError::InvalidData`] on a line without a tab, an empty
 /// surface, a malformed `TAG:count` element, an unknown tag, a zero count,
 /// a duplicate tag within a line, a duplicate surface, or an empty section.
-fn parse_lexicon(lines: &[String]) -> Result<FxHashMap<String, LexiconEntry>> {
+pub(crate) fn parse_lexicon(lines: &[String]) -> Result<FxHashMap<String, LexiconEntry>> {
     let mut lexicon: FxHashMap<String, LexiconEntry> = FxHashMap::default();
     for line in lines {
         let Some((surface, tags_str)) = line.split_once('\t') else {
@@ -659,6 +687,170 @@ fn parse_lexicon(lines: &[String]) -> Result<FxHashMap<String, LexiconEntry>> {
         )));
     }
     Ok(lexicon)
+}
+
+/// Error returned when a string is not a valid two-stage feature-set name.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("invalid two-stage feature set: '{input}' (expected full, balanced, or fast)")]
+pub struct ParseTwoStageFeatureSetError {
+    /// The rejected input string.
+    input: String,
+}
+
+/// The stage-2 word-feature template set used when extracting two-stage
+/// training features (issue #147, ablation results in the Phase 0/1
+/// report).
+///
+/// The packed runtime adapts automatically: templates absent from a model
+/// cost nothing at inference, so the set chosen at extraction time decides
+/// the model's speed/quality point:
+///
+/// | set | ja tagged F1 (joint: 92.51) | throughput vs joint |
+/// |-----|------------------------------|---------------------|
+/// | `Full` | 93.41 | ~1.5x |
+/// | `Balanced` | 92.92 | ~2.2x |
+/// | `Fast` (default) | 92.71 | ~2.5x |
+///
+/// Segmentation quality is identical across sets (it is decided by
+/// stage 1).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
+pub enum TwoStageFeatureSet {
+    /// Every word template (quality-leaning).
+    Full,
+    /// The `Fast` templates plus first/last char identity and the word
+    /// type string.
+    Balanced,
+    /// The minimal measured set: surface, word length, first/last char
+    /// type, adjacent context char + type, 2-char prefix/suffix.
+    #[default]
+    Fast,
+}
+
+impl fmt::Display for TwoStageFeatureSet {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TwoStageFeatureSet::Full => write!(f, "full"),
+            TwoStageFeatureSet::Balanced => write!(f, "balanced"),
+            TwoStageFeatureSet::Fast => write!(f, "fast"),
+        }
+    }
+}
+
+impl FromStr for TwoStageFeatureSet {
+    type Err = ParseTwoStageFeatureSetError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "full" => Ok(TwoStageFeatureSet::Full),
+            "balanced" => Ok(TwoStageFeatureSet::Balanced),
+            "fast" => Ok(TwoStageFeatureSet::Fast),
+            _ => Err(ParseTwoStageFeatureSetError {
+                input: s.to_string(),
+            }),
+        }
+    }
+}
+
+impl TwoStageFeatureSet {
+    /// Returns whether the word template with this id is part of the set.
+    pub(crate) fn includes(self, template_id: usize) -> bool {
+        use crate::word_features::{
+            T_CL1, T_CR1, T_FC, T_FT, T_L1, T_LC, T_LT, T_P2, T_R1, T_S2, T_TS, T_WL, T_WS,
+        };
+        match self {
+            TwoStageFeatureSet::Full => true,
+            TwoStageFeatureSet::Balanced => {
+                TwoStageFeatureSet::Fast.includes(template_id)
+                    || matches!(template_id, id if id == T_FC || id == T_LC || id == T_TS)
+            }
+            TwoStageFeatureSet::Fast => matches!(
+                template_id,
+                id if id == T_WS
+                    || id == T_WL
+                    || id == T_FT
+                    || id == T_LT
+                    || id == T_L1
+                    || id == T_R1
+                    || id == T_CL1
+                    || id == T_CR1
+                    || id == T_P2
+                    || id == T_S2
+            ),
+        }
+    }
+}
+
+/// A POS-capable model loaded from a file whose kind was auto-detected:
+/// either a joint Averaged Perceptron model or a two-stage model.
+///
+/// This is the single-fetch entry point for callers (such as the CLI's
+/// `segment --pos` / `evaluate --pos`) that accept both model kinds: the
+/// model bytes are fetched once, dispatched on [`ModelKind::detect`], and
+/// parsed by the matching loader.
+#[derive(Debug)]
+pub enum AnyPosModel {
+    /// A joint segmentation + POS model (Averaged Perceptron format).
+    Joint(Box<AveragedPerceptron>),
+    /// A two-stage model (`litsea-two-stage v1` format).
+    TwoStage(Box<TwoStageLearner>),
+}
+
+impl AnyPosModel {
+    /// Loads a POS-capable model from a URI, auto-detecting its kind.
+    ///
+    /// The URI can be a file path, a `file://` path, or an `http(s)://`
+    /// URL (the latter requires the `remote_model` feature). The bytes are
+    /// fetched once.
+    ///
+    /// # Arguments
+    /// * `uri` - The URI of the model to load.
+    ///
+    /// # Returns
+    /// The loaded model with its detected kind.
+    ///
+    /// # Errors
+    /// Returns an error if the bytes cannot be fetched, the content is not
+    /// valid UTF-8, the detected format fails to parse, or the file is an
+    /// AdaBoost segmentation model (which cannot tag).
+    pub async fn load(uri: &str) -> Result<Self> {
+        let bytes = crate::model_io::read_model_bytes(uri).await?;
+        let content = std::str::from_utf8(&bytes)
+            .map_err(|e| LitseaError::InvalidData(format!("model is not valid UTF-8: {}", e)))?;
+        match ModelKind::detect(content) {
+            ModelKind::TwoStage => {
+                let mut learner = TwoStageLearner::new();
+                learner.load_model_from_reader(bytes.as_slice())?;
+                Ok(AnyPosModel::TwoStage(Box::new(learner)))
+            }
+            ModelKind::AveragedPerceptron => {
+                let mut learner = AveragedPerceptron::new();
+                learner.load_model_from_reader(bytes.as_slice())?;
+                Ok(AnyPosModel::Joint(Box::new(learner)))
+            }
+            ModelKind::AdaBoost => Err(LitseaError::InvalidData(
+                "the model is an AdaBoost segmentation model, which cannot tag; \
+                 pass a joint POS model or a litsea-two-stage model"
+                    .to_string(),
+            )),
+        }
+    }
+
+    /// Consumes the model and builds the matching [`Segmenter`].
+    ///
+    /// # Arguments
+    /// * `language` - The language for character type classification.
+    ///
+    /// # Returns
+    /// A segmenter whose [`segment_with_pos`](Segmenter::segment_with_pos)
+    /// runs the joint or two-stage pipeline according to the model kind.
+    #[must_use]
+    pub fn into_segmenter(self, language: crate::language::Language) -> Segmenter {
+        match self {
+            AnyPosModel::Joint(learner) => Segmenter::with_pos_learner(language, *learner),
+            AnyPosModel::TwoStage(learner) => Segmenter::with_two_stage_learner(language, *learner),
+        }
+    }
 }
 
 #[cfg(all(test, not(target_arch = "wasm32")))]
@@ -1033,5 +1225,75 @@ mod tests {
         let mut learner = TwoStageLearner::new();
         learner.load_model(&format!("file://{}", path.display())).await.unwrap();
         assert_eq!(learner.lexicon_len(), 2);
+    }
+
+    #[test]
+    fn test_feature_set_from_str_and_display() {
+        for (s, set) in [
+            ("full", TwoStageFeatureSet::Full),
+            ("Full", TwoStageFeatureSet::Full),
+            ("BALANCED", TwoStageFeatureSet::Balanced),
+            ("fast", TwoStageFeatureSet::Fast),
+        ] {
+            assert_eq!(s.parse::<TwoStageFeatureSet>().unwrap(), set);
+        }
+        assert_eq!(TwoStageFeatureSet::Full.to_string(), "full");
+        assert_eq!(TwoStageFeatureSet::Balanced.to_string(), "balanced");
+        assert_eq!(TwoStageFeatureSet::Fast.to_string(), "fast");
+        assert_eq!(TwoStageFeatureSet::default(), TwoStageFeatureSet::Fast);
+        assert!(matches!(
+            "bogus".parse::<TwoStageFeatureSet>(),
+            Err(ParseTwoStageFeatureSetError { .. })
+        ));
+    }
+
+    #[test]
+    fn test_feature_set_includes_is_nested_and_spot_checked() {
+        use crate::word_features::{N_WORD_TEMPLATES, T_FC, T_L1, T_LB, T_LC, T_TS, T_WS};
+
+        // Fast subset of Balanced subset of Full, for every template id.
+        for tid in 0..N_WORD_TEMPLATES {
+            if TwoStageFeatureSet::Fast.includes(tid) {
+                assert!(TwoStageFeatureSet::Balanced.includes(tid), "tid {}", tid);
+            }
+            if TwoStageFeatureSet::Balanced.includes(tid) {
+                assert!(TwoStageFeatureSet::Full.includes(tid), "tid {}", tid);
+            }
+        }
+        assert!(TwoStageFeatureSet::Fast.includes(T_WS));
+        assert!(!TwoStageFeatureSet::Fast.includes(T_FC));
+        assert!(TwoStageFeatureSet::Balanced.includes(T_FC));
+        assert!(TwoStageFeatureSet::Balanced.includes(T_LC));
+        assert!(TwoStageFeatureSet::Balanced.includes(T_TS));
+        assert!(!TwoStageFeatureSet::Balanced.includes(T_L1 + 1)); // L2
+        assert!(TwoStageFeatureSet::Full.includes(T_L1 + 1));
+        assert!(TwoStageFeatureSet::Full.includes(T_LB));
+    }
+
+    #[tokio::test]
+    async fn test_any_pos_model_detects_and_loads() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let two_stage_path = dir.path().join("model.two-stage");
+        std::fs::write(&two_stage_path, valid_model()).unwrap();
+        let model = AnyPosModel::load(two_stage_path.to_str().unwrap()).await.unwrap();
+        assert!(matches!(model, AnyPosModel::TwoStage(_)));
+        let segmenter = model.into_segmenter(crate::language::Language::Japanese);
+        assert!(segmenter.segment_with_pos("").unwrap().is_empty());
+
+        let joint_path = dir.path().join("model.joint");
+        std::fs::write(&joint_path, STAGE2).unwrap();
+        let model = AnyPosModel::load(joint_path.to_str().unwrap()).await.unwrap();
+        assert!(matches!(model, AnyPosModel::Joint(_)));
+        let segmenter = model.into_segmenter(crate::language::Language::Japanese);
+        assert!(segmenter.segment_with_pos("").unwrap().is_empty());
+
+        let adaboost_path = dir.path().join("model.adaboost");
+        std::fs::write(&adaboost_path, STAGE1).unwrap();
+        let result = AnyPosModel::load(adaboost_path.to_str().unwrap()).await;
+        assert!(matches!(
+            result,
+            Err(LitseaError::InvalidData(ref msg)) if msg.contains("AdaBoost")
+        ));
     }
 }

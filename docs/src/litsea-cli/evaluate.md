@@ -31,7 +31,7 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language of the model and gold corpus. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | Evaluate joint segmentation + POS tagging. The gold corpus must then be in `word/POS` format |
+| `--pos` | off | Evaluate segmentation + POS tagging. The gold corpus must then be in `word/POS` format. Accepts a joint model (`train --pos`) or a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --two-stage`), auto-detected from the file |
 | `--format <FORMAT>` | `space` | Gold corpus format: `space` (space-separated tokens) or `tsv` (tab-separated tokens; a token may be a literal space, as in the Korean space-preserving corpus). Ignored with `--pos` |
 
 ## Metrics

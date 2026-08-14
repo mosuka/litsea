@@ -29,7 +29,25 @@
   Japanese word F1 96.48 (joint: 96.56) with tagged-word F1 92.71-93.41
   depending on the stage-2 feature set (joint: 92.51) at 1.5-2.5x the
   joint throughput. Word-level feature templates live in a single
-  crate-private module shared with the upcoming training extractor.
+  crate-private module shared with the training extractor below.
+- The two-stage training pipeline and CLI support (#168):
+  `Extractor::extract_two_stage` derives stage-1 boundary features, stage-2
+  word-level features, and the candidate-tag lexicon from a single
+  POS-tagged corpus pass, with a `TwoStageFeatureSet` (`Full` / `Balanced`
+  / `Fast`, default `Fast`) selecting which stage-2 templates to write;
+  `TwoStageTrainer` trains both stages, collapses the stage-1 boundary
+  perceptron to scalar AdaBoost-format weights (a lossless transformation —
+  see the `litsea::trainer` module docs), and assembles + saves a
+  `litsea-two-stage v1` model, reporting `TwoStageMetrics` for both stages.
+  `AnyPosModel::load` fetches a POS-capable model once and auto-detects
+  whether it is a joint or two-stage model. The `litsea` CLI gains
+  `extract --two-stage [--stage2-features full|balanced|fast]` and
+  `train --two-stage [--dominance 0.99]`; `segment --pos` and
+  `evaluate --pos` now auto-detect joint vs. two-stage models via
+  `AnyPosModel`, with no new flags. Verified end-to-end on UD
+  Japanese-GSD: `extract --two-stage` + `train --two-stage` (fast set)
+  reproduces the #167 runtime numbers exactly (held-out word F1 96.48,
+  tagged F1 92.71) in a 5.1 MB model file (vs. 11 MB for the joint model).
 
 ## 0.10.0
 

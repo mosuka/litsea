@@ -35,8 +35,10 @@ pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
-pub use trainer::{PosTrainer, Trainer};
-pub use two_stage::{ModelKind, TwoStageLearner};
+pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
+pub use two_stage::{
+    AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
+};
 pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

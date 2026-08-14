@@ -11,10 +11,14 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::sync::atomic::AtomicBool;
 
+use rustc_hash::FxHashMap;
+
 use crate::adaboost::AdaBoost;
 use crate::error::{LitseaError, Result};
 use crate::metrics::{BinaryMetrics, MulticlassMetrics};
 use crate::perceptron::AveragedPerceptron;
+use crate::two_stage::{TwoStageLearner, parse_lexicon, two_stage_paths};
+use crate::upos::Upos;
 
 /// Trainer struct for managing the AdaBoost training process.
 /// It initializes the AdaBoost learner with the specified parameters,
@@ -110,33 +114,8 @@ impl PosTrainer {
     /// Returns an error if the features file cannot be opened or read, or
     /// if a feature line is missing its label.
     pub fn new(num_epochs: usize, features_path: &Path) -> Result<Self> {
-        let mut learner = AveragedPerceptron::new();
-
-        let file = File::open(features_path)?;
-        let reader = io::BufReader::new(file);
-
-        for line in reader.lines() {
-            let line = line?;
-            // lines() already strips the trailing newline/CRLF; trimming
-            // further would strip Unicode whitespace (e.g. a trailing U+3000)
-            // off the last feature and desync training from inference (#99).
-            if line.is_empty() {
-                continue;
-            }
-            let mut parts = line.split('\t');
-            let label = parts.next().ok_or_else(|| {
-                LitseaError::InvalidData("Missing label in feature line".to_string())
-            })?;
-            let features: HashSet<String> =
-                parts.filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
-            if features.is_empty() {
-                continue;
-            }
-            learner.add_instance(features, label.to_string());
-        }
-
         Ok(PosTrainer {
-            learner,
+            learner: load_perceptron_instances(features_path)?,
             num_epochs,
         })
     }
@@ -168,6 +147,195 @@ impl PosTrainer {
         self.learner.train(self.num_epochs, running);
         self.learner.save_model(model_path)?;
         Ok(self.learner.metrics())
+    }
+}
+
+/// Loads training instances from a features file (`label\tfeature\t...`
+/// rows) into a fresh [`AveragedPerceptron`]. Shared by [`PosTrainer::new`]
+/// and [`TwoStageTrainer::new`], which read the same row format for
+/// different label spaces (`SegmentLabel` strings vs. boundary `B`/`O` vs.
+/// UPOS tags — the perceptron treats labels as opaque strings either way).
+fn load_perceptron_instances(features_path: &Path) -> Result<AveragedPerceptron> {
+    let mut learner = AveragedPerceptron::new();
+
+    let file = File::open(features_path)?;
+    let reader = io::BufReader::new(file);
+
+    for line in reader.lines() {
+        let line = line?;
+        // lines() already strips the trailing newline/CRLF; trimming
+        // further would strip Unicode whitespace (e.g. a trailing U+3000)
+        // off the last feature and desync training from inference (#99).
+        if line.is_empty() {
+            continue;
+        }
+        let mut parts = line.split('\t');
+        let label = parts
+            .next()
+            .ok_or_else(|| LitseaError::InvalidData("Missing label in feature line".to_string()))?;
+        let features: HashSet<String> =
+            parts.filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
+        if features.is_empty() {
+            continue;
+        }
+        learner.add_instance(features, label.to_string());
+    }
+
+    Ok(learner)
+}
+
+/// Collapses a 2-class boundary Averaged Perceptron (classes `B`/`O`,
+/// produced by [`TwoStageTrainer`]) into scalar per-feature weights in the
+/// existing AdaBoost model format.
+///
+/// The perceptron scores a position purely as `sum(matched-feature
+/// weights)` per class (there is no perceptron-level bias term), so
+/// `score_B - score_O = sum(matched (w_B[f] - w_O[f]))` exactly. Writing
+/// `feat\t(w_B[f] - w_O[f])` lines plus a literal `0` bias line and parsing
+/// them with [`AdaBoost::load_model_from_reader`] reproduces this: the
+/// model format defines `bias()` to equal the written bias line verbatim
+/// regardless of the feature weights (the algebraic inverse of
+/// `save_model`'s bias computation), so the collapsed model's decision
+/// `score >= 0.0` becomes exactly `score_B >= score_O` — including the tie
+/// case, which both the perceptron's first-wins rule (`"B" < "O"`
+/// alphabetically, so `B` is class index 0) and this comparison resolve to
+/// `B`.
+fn collapse_boundary_perceptron(stage1: &AveragedPerceptron) -> Result<AdaBoost> {
+    let classes = stage1.class_names();
+    let b = classes.iter().position(|c| c == "B").ok_or_else(|| {
+        LitseaError::InvalidData("stage-1 boundary model has no 'B' class".to_string())
+    })?;
+    let o = classes.iter().position(|c| c == "O").ok_or_else(|| {
+        LitseaError::InvalidData("stage-1 boundary model has no 'O' class".to_string())
+    })?;
+
+    let mut text = String::new();
+    for (feat, weights) in stage1.feature_class_weights() {
+        let w = weights[b] - weights[o];
+        if w != 0.0 {
+            text.push_str(feat);
+            text.push('\t');
+            text.push_str(&w.to_string());
+            text.push('\n');
+        }
+    }
+    text.push_str("0\n");
+
+    let mut adaboost = AdaBoost::default();
+    adaboost.load_model_from_reader(text.as_bytes())?;
+    Ok(adaboost)
+}
+
+/// In-sample training metrics of a [`TwoStageTrainer::train`] run: one
+/// [`MulticlassMetrics`] per stage (stage 1 measured over its 2 boundary
+/// classes, stage 2 over the UPOS tags).
+#[derive(Debug, Clone)]
+pub struct TwoStageMetrics {
+    /// Metrics of the stage-1 boundary classifier.
+    pub stage1: MulticlassMetrics,
+    /// Metrics of the stage-2 word-level tagger.
+    pub stage2: MulticlassMetrics,
+}
+
+/// Trainer for the two-stage model (issue #147): a binary boundary
+/// classifier (stage 1) plus a word-level multiclass tagger (stage 2),
+/// assembled with a candidate-tag lexicon into a `litsea-two-stage v1`
+/// model. Reads the three files written by
+/// [`Extractor::extract_two_stage`](crate::extractor::Extractor::extract_two_stage).
+#[derive(Debug)]
+pub struct TwoStageTrainer {
+    stage1: AveragedPerceptron,
+    stage2: AveragedPerceptron,
+    lexicon: FxHashMap<String, Vec<(Upos, u32)>>,
+    num_epochs: usize,
+    dominance: f64,
+}
+
+impl TwoStageTrainer {
+    /// Creates a `TwoStageTrainer` from the three files written by
+    /// [`Extractor::extract_two_stage`](crate::extractor::Extractor::extract_two_stage).
+    ///
+    /// # Arguments
+    /// * `num_epochs` - The number of training epochs for both stages.
+    /// * `dominance` - The classifier-skip threshold of the assembled
+    ///   model, in `(0.5, 1.0]`.
+    /// * `features_prefix` - The same prefix passed to `extract_two_stage`;
+    ///   the `{prefix}.stage1`, `{prefix}.stage2`, and `{prefix}.lexicon`
+    ///   files are read from it.
+    ///
+    /// # Returns
+    /// A new `TwoStageTrainer` with training instances loaded.
+    ///
+    /// # Errors
+    /// Returns an error if `dominance` is out of range, if any of the
+    /// three files cannot be opened or read, if the stage-1 features file
+    /// has a label other than `B`/`O`, or if the lexicon file is
+    /// malformed.
+    pub fn new(num_epochs: usize, dominance: f64, features_prefix: &Path) -> Result<Self> {
+        // Checked here (not just in from_parts at train() time) so an
+        // out-of-range value fails before training runs, not after.
+        if !(dominance > 0.5 && dominance <= 1.0) {
+            return Err(LitseaError::InvalidInput(format!(
+                "dominance must be in (0.5, 1.0], got {}",
+                dominance
+            )));
+        }
+        let (stage1_path, stage2_path, lexicon_path) = two_stage_paths(features_prefix);
+
+        let stage1 = load_perceptron_instances(&stage1_path)?;
+        if stage1.class_names().iter().any(|c| c != "B" && c != "O") {
+            return Err(LitseaError::InvalidData(format!(
+                "stage-1 features file has a non-boundary label; expected only 'B'/'O', found {:?}",
+                stage1.class_names()
+            )));
+        }
+        let stage2 = load_perceptron_instances(&stage2_path)?;
+
+        let lexicon_file = File::open(&lexicon_path)?;
+        let lines: io::Result<Vec<String>> = io::BufReader::new(lexicon_file).lines().collect();
+        let lexicon = parse_lexicon(&lines?)?;
+
+        Ok(TwoStageTrainer {
+            stage1,
+            stage2,
+            lexicon,
+            num_epochs,
+            dominance,
+        })
+    }
+
+    /// Trains both stages and assembles + saves a `litsea-two-stage v1`
+    /// model.
+    ///
+    /// # Arguments
+    /// * `running` - A flag for interrupting training.
+    /// * `model_path` - The path to save the assembled model to.
+    ///
+    /// # Returns
+    /// The in-sample [`TwoStageMetrics`] of both stages.
+    ///
+    /// # Errors
+    /// Returns an error if the assembled model is inconsistent (see
+    /// [`TwoStageLearner::from_parts`]) or if it cannot be saved.
+    pub fn train(mut self, running: &AtomicBool, model_path: &Path) -> Result<TwoStageMetrics> {
+        self.stage1.train(self.num_epochs, running);
+        self.stage2.train(self.num_epochs, running);
+        let stage1_metrics = self.stage1.metrics();
+        let stage2_metrics = self.stage2.metrics();
+
+        let stage1_adaboost = collapse_boundary_perceptron(&self.stage1)?;
+        let learner = TwoStageLearner::from_parts(
+            stage1_adaboost,
+            self.stage2,
+            self.lexicon,
+            self.dominance,
+        )?;
+        learner.save_model(model_path)?;
+
+        Ok(TwoStageMetrics {
+            stage1: stage1_metrics,
+            stage2: stage2_metrics,
+        })
     }
 }
 
@@ -375,6 +543,89 @@ mod tests {
             saved.contains("UW4:\u{3000}"),
             "trailing-U+3000 feature missing from saved model: {saved:?}"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_collapse_boundary_perceptron_matches_perceptron_argmax() -> Result<()> {
+        let mut learner = AveragedPerceptron::new();
+        // Overlapping feature sets so weights end up non-trivial for both
+        // classes, including a feature shared by both.
+        learner.add_instance(
+            ["f1".to_string(), "shared".to_string()].into_iter().collect(),
+            "B".to_string(),
+        );
+        learner.add_instance(
+            ["f2".to_string(), "shared".to_string()].into_iter().collect(),
+            "O".to_string(),
+        );
+        learner.add_instance(["f3".to_string()].into_iter().collect(), "B".to_string());
+        learner.add_instance(["f4".to_string()].into_iter().collect(), "O".to_string());
+        let running = AtomicBool::new(true);
+        learner.train(5, &running);
+
+        let adaboost = collapse_boundary_perceptron(&learner)?;
+
+        let check = |feats: &[&str]| {
+            let set: HashSet<String> = feats.iter().map(|s| s.to_string()).collect();
+            let perceptron_b = learner.predict(&set) == "B";
+            let adaboost_b = adaboost.predict(&set) == 1;
+            assert_eq!(
+                perceptron_b, adaboost_b,
+                "mismatch for {:?}: perceptron_b={} adaboost_b={}",
+                feats, perceptron_b, adaboost_b
+            );
+        };
+
+        check(&["f1"]);
+        check(&["f2"]);
+        check(&["f3"]);
+        check(&["f4"]);
+        check(&["f1", "f2"]);
+        check(&["shared"]);
+        check(&[]); // tie on unseen features: both must favor "B"
+        check(&["unseen_feature"]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_two_stage_trainer_end_to_end() -> Result<()> {
+        use crate::extractor::Extractor;
+        use crate::language::Language;
+        use crate::segmenter::Segmenter;
+        use crate::two_stage::{TwoStageFeatureSet, TwoStageLearner};
+
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "太郎/PROPN は/ADP 猫/NOUN が/ADP 好き/ADJ です/AUX 。/PUNCT")?;
+        writeln!(corpus_file, "花子/PROPN も/ADP 猫/NOUN が/ADP 好き/ADJ です/AUX 。/PUNCT")?;
+        writeln!(corpus_file, "太郎/PROPN は/ADP 犬/NOUN も/ADP 好き/ADJ です/AUX 。/PUNCT")?;
+        corpus_file.as_file().sync_all()?;
+
+        let dir = tempfile::tempdir()?;
+        let prefix = dir.path().join("features");
+        Extractor::new(Language::Japanese).extract_two_stage(
+            corpus_file.path(),
+            &prefix,
+            TwoStageFeatureSet::Fast,
+        )?;
+
+        let trainer = TwoStageTrainer::new(5, 0.99, &prefix)?;
+        let model_path = dir.path().join("model.two-stage");
+        let running = AtomicBool::new(true);
+        let metrics = trainer.train(&running, &model_path)?;
+        assert!(metrics.stage1.num_instances > 0);
+        assert!(metrics.stage2.num_instances > 0);
+
+        let mut learner = TwoStageLearner::new();
+        learner.load_model_from_path(&model_path)?;
+        let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
+
+        let tagged = segmenter.segment_with_pos("太郎は猫が好きです。")?;
+        let text: String = tagged.iter().map(|(w, _)| w.as_str()).collect();
+        assert_eq!(text, "太郎は猫が好きです。");
+        assert!(!tagged.is_empty());
+
         Ok(())
     }
 }

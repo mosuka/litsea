@@ -19,7 +19,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | 品詞推定付き分割を有効にします。`train --pos` で学習したPOSモデルが必要です |
+| `--pos` | off | 品詞推定付き分割を有効にします。joint モデル（`train --pos`）または[二段構成](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)モデル（`train --two-stage`）のいずれも使用でき、ファイルから自動判別されます |
 
 ## 入力 / 出力
 
@@ -70,7 +70,11 @@ echo "テスト文です。" \
 
 ## 品詞推定付き分割（`--pos`）
 
-`--pos` フラグを指定すると、Averaged Perceptron モデルを使用して単語分割と品詞推定を同時に行います。
+`--pos` フラグを指定すると、単語分割と品詞推定を同時に行います。モデルの種類
+（joint な Averaged Perceptron モデルか、
+[二段構成](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)モデルか）
+はファイルヘッダから自動判別されるため、`train --two-stage` で学習したモデルでも
+同じコマンドがそのまま使えます。
 
 ### 使い方
 
@@ -102,4 +106,4 @@ cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > o
 - `--language` フラグは、モデルが学習された言語と一致する必要があります
 - CLIは非同期のURI APIを通じてモデルを読み込み、TLS（rustls）を使用したHTTP/HTTPSをサポートしています。ライブラリには同期的なローカル読み込み（`load_model_from_path`）も用意されています
 - モデルURIはファイルパスに限定されません -- 有効なURLであれば使用可能です
-- `--pos` を使用する場合、モデルは `train --pos` で学習したPOSモデルである必要があります
+- `--pos` を使用する場合、モデルは `train --pos` または `train --two-stage` で学習した品詞推定対応モデルである必要があります

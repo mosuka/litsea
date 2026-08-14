@@ -23,7 +23,9 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | Maximum number of boosting iterations |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | URI of an existing model to resume training from (file path or HTTP/HTTPS URL) |
 | `--pos` | off | Enable POS (Part-of-Speech) training mode using Averaged Perceptron |
-| `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (POS mode only) |
+| `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (POS and `--two-stage` modes) |
+| `--two-stage` | off | Train a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model instead. Reads `{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon` (from `extract --two-stage`). Cannot be combined with `--pos` or `-m`/`--load-model-uri` (incremental training is not supported) |
+| `--dominance <DOMINANCE>` | `0.99` | Classifier-skip threshold for `--two-stage`, in `(0.5, 1.0]`: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier |
 
 ## Output
 
@@ -124,3 +126,47 @@ Same as AdaBoost training, POS training supports graceful interruption. The firs
 | Parameter | Effect of Decreasing | Effect of Increasing |
 |-----------|---------------------|---------------------|
 | `num_epochs` | Faster training, may underfit | Better accuracy, longer training, may overfit |
+
+## Two-Stage Model Training
+
+With `--two-stage`, `train` builds a [two-stage
+model](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1):
+a binary boundary classifier (stage 1) plus a word-level POS tagger
+(stage 2), assembled with the candidate-tag lexicon into a single
+`litsea-two-stage v1` file. Both stages train as Averaged Perceptrons for
+`--num-epochs` epochs; stage 1 is then collapsed to scalar weights in the
+existing AdaBoost format (a lossless transformation — see the module docs
+of `litsea::trainer` for the derivation) so the runtime scores it exactly
+as it scores a plain `segment()` model.
+
+### Usage
+
+```sh
+litsea train --two-stage [OPTIONS] <FEATURES_PREFIX> <MODEL_FILE>
+```
+
+`FEATURES_PREFIX` is the same prefix passed to `extract --two-stage`.
+
+### Example
+
+```sh
+litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea train --two-stage --num-epochs 10 ./two_stage_features ./models/japanese_two_stage.model
+```
+
+### Output
+
+```text
+Result Metrics (Two-Stage):
+  Stage 1 (boundary) Accuracy: 99.36% ( 277213 )
+  Stage 1 Macro Precision: 99.30%
+  Stage 1 Macro Recall: 99.35%
+  Stage 2 (tagging) Accuracy: 98.53% ( 168333 )
+  Stage 2 Macro Precision: 98.39%
+  Stage 2 Macro Recall: 97.59%
+```
+
+As with the other modes, these are in-sample metrics; evaluate on held-out
+text with `litsea evaluate --pos` for a realistic quality estimate. `segment
+--pos` and `evaluate --pos` auto-detect a two-stage model from its file
+header, so no extra flag is needed to use it.
