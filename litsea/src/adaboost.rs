@@ -392,24 +392,42 @@ impl AdaBoost {
     /// The bias bucket (the empty-string feature `""`) is identified by name
     /// and folded into the bias line instead of being written as a feature.
     pub fn save_model(&self, filename: &Path) -> Result<()> {
+        // Buffered output: one syscall per line would scale with model size.
+        let mut file = std::io::BufWriter::new(File::create(filename)?);
+        self.save_model_to_writer(&mut file)?;
+        file.flush()?;
+        Ok(())
+    }
+
+    /// Writes the model to an arbitrary writer in the same text format as
+    /// [`save_model`](Self::save_model).
+    ///
+    /// This is the format-producing core of `save_model`; it exists so the
+    /// model can be embedded as a section of a larger file (the two-stage
+    /// model format). The writer is not flushed.
+    ///
+    /// # Arguments
+    /// * `writer` - The writer receiving the model text.
+    ///
+    /// # Errors
+    /// Returns [`LitseaError::InvalidInput`] if the model has no real
+    /// (non-bias) feature, or an I/O error if writing fails.
+    pub fn save_model_to_writer<W: Write>(&self, writer: &mut W) -> Result<()> {
         // A model without any real (non-bias) feature has nothing to save.
         if !self.features.iter().any(|f| !f.is_empty()) {
             return Err(LitseaError::InvalidInput("Cannot save an empty model".to_string()));
         }
-        // Buffered output: one syscall per line would scale with model size.
-        let mut file = std::io::BufWriter::new(File::create(filename)?);
         let mut bias = match self.feature_index.get("") {
             Some(&idx) => -self.model[idx],
             None => 0.0,
         };
         for (h, &w) in self.features.iter().zip(self.model.iter()) {
             if !h.is_empty() && w != 0.0 {
-                writeln!(file, "{}\t{}", h, w)?;
+                writeln!(writer, "{}\t{}", h, w)?;
                 bias -= w;
             }
         }
-        writeln!(file, "{}", bias / 2.0)?;
-        file.flush()?;
+        writeln!(writer, "{}", bias / 2.0)?;
         Ok(())
     }
 

@@ -72,6 +72,49 @@ type codes of another language) are ignored by that compilation -- exactly
 as they could never match an input attribute before -- while the bias is
 always computed over every weight in the file.
 
+## Two-Stage Model Format (`litsea-two-stage v1`)
+
+A two-stage model bundles a stage-1 boundary classifier, a candidate-tag
+lexicon, and a stage-2 word-level tagger into a single plain-text file with
+a magic first line and marker-delimited sections in a fixed order:
+
+```text
+litsea-two-stage v1
+[params]
+dominance\t0.99
+[stage1]
+<AdaBoost model format: "feature\tweight" lines + one bias line>
+[lexicon]
+<surface>\t<TAG>:<count>[,<TAG>:<count>...]
+[stage2]
+<Averaged Perceptron model format: class count, class names, weights>
+```
+
+- The `[stage1]` and `[stage2]` sections embed the existing formats
+  described above verbatim and are parsed by the existing loaders.
+- Each `[lexicon]` line maps a word surface to the UPOS tags observed for
+  it in the training corpus with their occurrence counts, most frequent
+  first (ties broken by tag name). Surfaces may contain any character
+  except tab and newline and are not trimmed, so whitespace tokens stay
+  representable.
+- The `[params]` section is optional. Its only key, `dominance`, is the
+  classifier-skip threshold in `(0.5, 1.0]`: a known surface whose most
+  frequent tag covers at least this fraction of its training occurrences is
+  tagged without invoking the stage-2 classifier. It defaults to `0.99`
+  when the section is absent.
+- Stage-2 class names must be valid UPOS tags; together with every weight
+  and lexicon line containing a tab, this guarantees no content line can
+  collide with a section marker.
+
+The format is **purely additive**: the magic line is neither a valid
+AdaBoost weight/bias line nor a perceptron class count, so the existing
+loaders reject two-stage files with an explicit error, and existing model
+files keep loading unchanged. A future format revision will use a different
+magic line (e.g. `litsea-two-stage v2`); the v1 loader rejects it as an
+unsupported version. The loader validates section order, the lexicon rules
+above, and the parameter range, and reports errors with the section name
+(e.g. `[stage2] section: ...`).
+
 ## File Size
 
 Model files are very compact:
