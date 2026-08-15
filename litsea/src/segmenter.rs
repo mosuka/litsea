@@ -22,19 +22,6 @@ use crate::perceptron::AveragedPerceptron;
 use crate::two_stage::TwoStageLearner;
 use crate::upos::{SegmentLabel, Upos};
 
-/// The stage-2 half of a decomposed [`TwoStageLearner`], retained alongside
-/// the packed tagging tables built from it once, at construction time
-/// (mirroring how the segmenter retains its other learners).
-#[derive(Debug)]
-struct TwoStageState {
-    /// Stage-2 word-level tagger.
-    stage2: AveragedPerceptron,
-    /// Surface -> observed `(tag, count)` candidates, most frequent first.
-    lexicon: rustc_hash::FxHashMap<String, Vec<(Upos, u32)>>,
-    /// Classifier-skip dominance threshold.
-    dominance: f64,
-}
-
 /// Text segmenter supporting three modes: word segmentation via AdaBoost
 /// binary classification; joint word segmentation + POS tagging via an
 /// Averaged Perceptron; and two-stage word segmentation + POS tagging via a
@@ -67,16 +54,20 @@ pub struct Segmenter {
     /// [`add_corpus_with_pos`](Self::add_corpus_with_pos), which invalidate
     /// it); lazily rebuilt on the next `segment_with_pos` call.
     packed_pos: RwLock<Option<PackedPosModel>>,
-    /// The stage-2 state of a two-stage model, set by
-    /// [`with_two_stage_learner`](Self::with_two_stage_learner) (the
-    /// stage-1 half lives in `learner`). When present,
+    /// The stage-2 half of a two-stage model, compiled into packed tagging
+    /// tables by [`with_two_stage_learner`](Self::with_two_stage_learner)
+    /// (the stage-1 half lives in `learner`). When present,
     /// [`segment_with_pos`](Self::segment_with_pos) takes the two-stage
     /// path instead of the joint POS path.
-    two_stage: Option<TwoStageState>,
-    /// The two-stage state compiled into packed tagging tables. `None`
-    /// when no two-stage learner is set; built eagerly by
-    /// [`with_two_stage_learner`](Self::with_two_stage_learner).
-    packed_two_stage: RwLock<Option<PackedTwoStageModel>>,
+    ///
+    /// Unlike `packed` and `packed_pos` this is not a lazily-rebuilt cache
+    /// of some other field — it *is* the stage-2 model; the raw
+    /// [`TwoStageLearner`] parts are dropped after compilation, and there is
+    /// no mutable accessor for it. If in-place two-stage mutation is ever
+    /// added, follow the [`pos_learner_mut`](Self::pos_learner_mut) shape
+    /// (keep the learner, cache the compilation, invalidate on mutation)
+    /// rather than mutating this field directly.
+    two_stage: Option<PackedTwoStageModel>,
 }
 
 impl Segmenter {
@@ -126,7 +117,6 @@ impl Segmenter {
             packed,
             packed_pos: RwLock::new(None),
             two_stage: None,
-            packed_two_stage: RwLock::new(None),
         }
     }
 
@@ -158,7 +148,6 @@ impl Segmenter {
             packed,
             packed_pos,
             two_stage: None,
-            packed_two_stage: RwLock::new(None),
         }
     }
 
@@ -180,22 +169,19 @@ impl Segmenter {
     pub fn with_two_stage_learner(language: Language, learner: TwoStageLearner) -> Self {
         let (stage1, stage2, lexicon, dominance) = learner.into_parts();
         // Compile both packed tables eagerly so the common
-        // load-then-segment path never rebuilds mid-stream.
+        // load-then-segment path never rebuilds mid-stream. The raw stage-2
+        // parts are dropped after compilation: the packed model contains
+        // everything the tagging path needs, and there is no mutation path
+        // that would require rebuilding it (see the `two_stage` field doc).
         let packed = RwLock::new(Some(PackedModel::build(language, &stage1)));
-        let packed_two_stage =
-            RwLock::new(Some(PackedTwoStageModel::build(language, &stage2, &lexicon, dominance)));
+        let two_stage = PackedTwoStageModel::build(language, &stage2, &lexicon, dominance);
         Segmenter {
             language,
             learner: stage1,
             pos_learner: None,
             packed,
             packed_pos: RwLock::new(None),
-            two_stage: Some(TwoStageState {
-                stage2,
-                lexicon,
-                dominance,
-            }),
-            packed_two_stage,
+            two_stage: Some(two_stage),
         }
     }
 
@@ -355,40 +341,6 @@ impl Segmenter {
         // get_or_insert_with covers the race where another thread rebuilt
         // the table between the two lock acquisitions.
         let packed = guard.get_or_insert_with(|| PackedPosModel::build(self.language, pos_learner));
-        f(packed)
-    }
-
-    /// Runs `f` with the packed two-stage tagging tables, building them on
-    /// first use and caching them for the lifetime of the segmenter (there
-    /// is no mutable accessor for the two-stage state, so unlike
-    /// [`with_packed`](Self::with_packed) and
-    /// [`with_packed_pos`](Self::with_packed_pos) this cache is never
-    /// invalidated after it is first populated). The fast path takes only
-    /// an uncontended read lock (one per sentence). The caller passes the
-    /// two-stage state it already borrowed (presence is checked by
-    /// [`segment_with_pos`](Self::segment_with_pos)).
-    fn with_packed_two_stage<R>(
-        &self,
-        state: &TwoStageState,
-        f: impl FnOnce(&PackedTwoStageModel) -> R,
-    ) -> R {
-        {
-            let guard = self.packed_two_stage.read().unwrap_or_else(PoisonError::into_inner);
-            if let Some(packed) = guard.as_ref() {
-                return f(packed);
-            }
-        }
-        let mut guard = self.packed_two_stage.write().unwrap_or_else(PoisonError::into_inner);
-        // get_or_insert_with covers the race where another thread rebuilt
-        // the table between the two lock acquisitions.
-        let packed = guard.get_or_insert_with(|| {
-            PackedTwoStageModel::build(
-                self.language,
-                &state.stage2,
-                &state.lexicon,
-                state.dominance,
-            )
-        });
         f(packed)
     }
 
@@ -939,10 +891,9 @@ impl Segmenter {
         if sentence.is_empty() {
             return Ok(Vec::new());
         }
-        if let Some(state) = self.two_stage.as_ref() {
+        if let Some(packed) = self.two_stage.as_ref() {
             let words = self.segment(sentence);
-            let tags =
-                self.with_packed_two_stage(state, |packed| packed.tag_words(self.language, &words));
+            let tags = packed.tag_words(self.language, &words);
             return Ok(words.into_iter().zip(tags).collect());
         }
         let pos_learner = self.pos_learner.as_ref().ok_or(LitseaError::PosLearnerNotSet)?;

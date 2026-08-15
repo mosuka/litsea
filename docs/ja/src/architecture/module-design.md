@@ -71,7 +71,7 @@ graph TD
 
 主要なユーザー向けモジュールです。
 
-- **`Segmenter`** -- `Language`、`AdaBoost` 学習器、オプションの `AveragedPerceptron` 品詞学習器を保持（フィールドは非公開。`language()`・`learner()`・`learner_mut()`・`pos_learner()`・`pos_learner_mut()` を使用）。加えて、オプションの二段構成状態（`Option<TwoStageState>`。`with_two_stage_learner` で設定）と、`segment()` / `segment_with_pos()` が使うコンパイル済みスコアリングテーブルの内部キャッシュ（`packed`・`packed_pos`・`packed_two_stage`）も保持する
+- **`Segmenter`** -- `Language`、`AdaBoost` 学習器、オプションの `AveragedPerceptron` 品詞学習器を保持（フィールドは非公開。`language()`・`learner()`・`learner_mut()`・`pos_learner()`・`pos_learner_mut()` を使用）。加えて、`segment()` / `segment_with_pos()` が使うコンパイル済みスコアリングテーブルの内部キャッシュ（`packed`・`packed_pos`）と、オプションのコンパイル済み二段構成タグ付けモデル（`with_two_stage_learner` で設定。キャッシュとは異なり stage-2 モデルそのものであり、生の学習器パーツはコンパイル後に破棄される）も保持する
   - `new(language)` -- デフォルト（空）の AdaBoost 学習器付きでセグメンターを作成
   - `with_learner(language, learner)` -- 設定済みの AdaBoost 学習器（例: 学習済みモデルを読み込んだもの）付きでセグメンターを作成
   - `with_pos_learner(language, pos_learner)` -- 分割+品詞付与用のセグメンターを作成

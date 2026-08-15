@@ -9,22 +9,24 @@ pub struct Segmenter {
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: pos_learner: Option<AveragedPerceptron>,
-    // private: two_stage: Option<TwoStageState>,
-    // internal: packed / packed_pos / packed_two_stage caches (see below)
+    // private: two_stage: Option<PackedTwoStageModel> (compiled stage-2 model)
+    // internal: packed / packed_pos caches (see below)
 }
 ```
 
 The fields are private; use the accessor methods `language()`, `learner()`, `learner_mut()`, `pos_learner()`, and `pos_learner_mut()` to reach them.
 
-Besides these, the struct also holds `packed`, `packed_pos`, and
-`packed_two_stage`: lazily-rebuilt caches of the learners' weights compiled
-into the integer-indexed tables `segment()` / `segment_with_pos()` score
-against (see [Prediction Pipeline](../algorithm/prediction-pipeline.md#the-compiled-scoring-tables)).
+Besides these, the struct also holds `packed` and `packed_pos`:
+lazily-rebuilt caches of the learners' weights compiled into the
+integer-indexed tables `segment()` / `segment_with_pos()` score against
+(see [Prediction Pipeline](../algorithm/prediction-pipeline.md#the-compiled-scoring-tables)).
 They are internal implementation detail with no accessors of their own,
 invalidated automatically whenever the corresponding learner is mutated.
-`two_stage` holds the stage-2 state set by
+`two_stage` holds the compiled stage-2 tagging model set by
 [`with_two_stage_learner`](#with_two_stage_learner) (see below); it is
-`None` unless the segmenter was built from a two-stage model.
+`None` unless the segmenter was built from a two-stage model. Unlike the
+caches it is not derived from a retained learner — the raw stage-2 parts
+are dropped after compilation and there is no mutation path for it.
 
 ## Constructors
 
