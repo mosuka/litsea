@@ -246,7 +246,10 @@ impl PackedTwoStageModel {
     ///
     /// # Returns
     /// One UPOS tag per word. Words the classifier cannot decide (an empty
-    /// stage-2 model and no lexicon answer) receive [`Upos::X`].
+    /// stage-2 model and no lexicon answer) receive [`Upos::X`], as do
+    /// zero-length words (not producible by
+    /// [`Segmenter::segment`](crate::segmenter::Segmenter::segment), kept
+    /// for defensive totality).
     pub(crate) fn tag_words(&self, language: Language, words: &[String]) -> Vec<Upos> {
         let mut sent: Vec<char> = Vec::new();
         let mut type_ids: Vec<u8> = Vec::new();

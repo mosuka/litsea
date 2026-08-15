@@ -118,6 +118,14 @@ POS 用テーブル（`packed_pos_model::PackedPosModel`、後述）です。コ
 韓国語の文字種コード）はすべてのテーブルから除外されます。それらはスコアリング時に
 到達不能なので、スコアには影響しません。
 
+このテーブルとその4つの消費者がカバーするのは、文字レベル（stage-1・AdaBoost・
+joint）の特徴量セットのみです。[二段構成の品詞タグ付け](two-stage-tagging.md)の
+stage-2 単語タガーは、これとは別の並行する宣言的テーブル（`litsea::word_features`、
+23個の単語レベルテンプレート）から、専用のランタイム
+`packed_two_stage::PackedTwoStageModel` へコンパイルされます -- テンプレート
+カタログについては[特徴量抽出](feature-extraction.md#単語単位の特徴量テンプレート二段構成)を、
+`segment_with_pos` へのはめ込み方については後述のセクションを参照してください。
+
 ### 出力の等価性
 
 スコアの累積は 2 パス順で行われ、従来の文字列キー実装の累積順序とは異なるため、
@@ -162,6 +170,20 @@ POS 用テーブル（`packed_pos_model::PackedPosModel`、後述）です。コ
 完全一致差分テストのオラクルに残されており、全同梱 POS モデル・ストレス
 文字列・実テキストコーパスで出力乖離ゼロが計測されています --
 `segment()` と同じ保証網です。
+
+### 二段構成モードは異なる経路をたどる
+
+ここまでの説明は、Segmenter が joint（`AveragedPerceptron`）POS 学習器で
+構築された場合の `segment_with_pos` についてのものです。代わりに
+[`with_two_stage_learner`](../litsea/segmenter.md#with_two_stage_learner)
+で構築された場合、`segment_with_pos` は**まず**二段構成学習器の有無を確認し、
+設定されていれば上記の packed-perceptron 経路を一切実行しません: 通常の
+`segment()` の境界検出経路で分割し、その結果得られた各単語を
+`packed_two_stage::PackedTwoStageModel::tag_words` でタグ付けします --
+候補タグ語彙表の参照に加え、曖昧な既知単語にはマスク付き argmax、未知語には
+全クラス argmax のフォールバックを使用します。このパイプラインの詳細と、
+なぜ上記の文字単位の多クラス採点より高速なのかについては、
+[二段構成 vs Joint タグ付け](two-stage-tagging.md)を参照してください。
 
 ## 学習と予測の比較
 

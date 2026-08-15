@@ -1,6 +1,6 @@
 # Feature Extraction
 
-Litsea uses character n-gram features to capture the local context around each potential word boundary. This chapter catalogs all feature types.
+Litsea uses character n-gram features to capture the local context around each potential word boundary. This chapter catalogs all feature types: the character-level boundary templates shared by the AdaBoost, joint, and two-stage stage-1 pipelines, and the word-level templates used by two-stage's stage-2 tagger.
 
 ## Feature Categories
 
@@ -106,3 +106,39 @@ Each line contains:
 
 1. A label (`1` for boundary, `-1` for non-boundary)
 2. Tab-separated feature strings, written in alphabetically sorted order (not template emission order), so each line starts with the `BC1:` feature
+
+## Word-Level Feature Templates (Two-Stage)
+
+Everything above is the character-level template set scored at each
+boundary decision. [Two-stage POS tagging](two-stage-tagging.md)'s stage-2
+word tagger scores a separate, unrelated template set defined in
+`litsea::word_features` (`N_WORD_TEMPLATES = 23`) -- one row of features
+per already-segmented *word*, not per character position. It is a
+different declarative table from `packed_model::TEMPLATES` above, compiled
+into its own runtime, `packed_two_stage::PackedTwoStageModel` (see
+[Prediction Pipeline](prediction-pipeline.md#the-compiled-scoring-tables)).
+
+For a word spanning `[start, end)` of a sentence (`w` = surface,
+`n = end - start`):
+
+| Prefix | Value | Representation |
+|--------|-------|-----------------|
+| `WS` | The word surface itself | Hashed string |
+| `WL` | `min(n, 4)` | Dense (word length) |
+| `FC` / `LC` | First / last character | Hashed char |
+| `ft` / `lt` | First / last character's type code | Dense (type) |
+| `TS` | Type codes of the first <= 8 characters | Hashed string |
+| `L1`-`L3` / `R1`-`R3` | Context characters at distance 1-3 to the left/right | Hashed char |
+| `cl1`-`cl3` / `cr1`-`cr3` | Context character types at distance 1-3 | Dense (type) |
+| `LB` / `RB` | Context bigrams (distance 2+1 left / 1+2 right) | Hashed pair |
+| `P2` / `S2` | First / last two characters (words with `n >= 2` only) | Hashed pair |
+
+That is 23 templates in total. Context positions beyond the sentence use
+begin/end sentinel characters, analogous to the character-level pipeline's
+`B1`-`B3` / `E1`-`E3` padding above.
+
+Not every template is written on every extraction: which subset lands in
+the `.stage2` feature file is controlled by `TwoStageFeatureSet`
+(`full` / `balanced` / `fast`) at extraction time -- see [Extracting
+Features](../training-guide/extracting-features.md#two-stage-feature-extraction)
+for the CLI flag and what each variant includes.

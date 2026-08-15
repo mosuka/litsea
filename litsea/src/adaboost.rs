@@ -3,7 +3,15 @@
 //! Defines [`AdaBoost`]: training over presence stumps on string features,
 //! text-format model I/O, and training-set metrics. Its weights back
 //! [`Segmenter::segment`](crate::segmenter::Segmenter::segment) through the
-//! packed scoring table compiled in [`crate::packed_model`].
+//! packed scoring table compiled in `crate::packed_model`.
+//!
+//! [`AdaBoost`] is also the general-purpose container for the model *file
+//! format* (`feature\tweight` lines plus a bias line), independent of how
+//! the weights were produced: the bundled `models/{japanese,chinese,korean}.model`
+//! segmentation models (issue #165) and the two-stage architecture's
+//! collapsed stage-1 boundary classifier (`crate::trainer::TwoStageTrainer`)
+//! are both trained as a 2-class Averaged Perceptron and losslessly
+//! converted to this format, never touching this file's `train` method.
 
 use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
@@ -31,19 +39,37 @@ type Label = i8;
 /// packed scoring table (`crate::packed_model`) is compiled from the weights
 /// and in the public [`predict`](Self::predict); the `segment()` hot path
 /// itself scores by packed integer key and never consults the index.
+///
+/// This type also doubles as the on-disk *format* for models that were not
+/// produced by [`train`](Self::train): the bundled segmentation models and
+/// the two-stage architecture's collapsed stage-1 boundary classifier are
+/// both trained as a 2-class Averaged Perceptron and losslessly converted to
+/// this struct's weight vector and text format (see `crate::trainer`'s
+/// module docs), so `predict`/`segment()` cannot distinguish an
+/// AdaBoost-trained model from a collapsed one at inference time.
 #[derive(Debug)]
 pub struct AdaBoost {
     /// The threshold for stopping the training.
     threshold: f64,
     /// The maximum number of iterations for training.
     num_iterations: usize,
+    /// Per-instance boosting weight (normalized to sum to 1 after each
+    /// iteration).
     instance_weights: Vec<f64>,
+    /// Dense per-feature weight vector, parallel to `features`.
     model: Vec<f64>,
+    /// Feature names in their deterministic storage order; index 0 is
+    /// always the bias bucket (the empty string).
     features: Vec<String>,
+    /// Feature name -> index into `features`/`model`.
     feature_index: FxHashMap<String, usize>,
+    /// Per-instance gold label (`1` or `-1`).
     labels: Vec<Label>,
+    /// Flattened, sorted feature-index lists of every instance; sliced by
+    /// `instances`.
     instances_buf: Vec<usize>,
     instances: Vec<(usize, usize)>, // (start, end) index in instances_buf
+    /// Number of training instances added so far.
     num_instances: usize,
     /// Cached value of `-sum(model) / 2.0`, kept in sync by every
     /// weight-mutating path so `bias()` is O(1) on the inference hot path.
@@ -126,7 +152,9 @@ impl AdaBoost {
     /// A result indicating success or failure.
     ///
     /// # Errors
-    /// Returns an error if the file cannot be opened or read.
+    /// Returns an I/O error if the file cannot be opened or read, or
+    /// [`LitseaError::InvalidData`] if the file contains no real (non-bias)
+    /// feature (i.e. every line has a label but no feature columns).
     ///
     /// This method reads the file line by line, extracts features,
     /// and initializes the model with the features and their corresponding weights.
@@ -202,7 +230,9 @@ impl AdaBoost {
     /// A result indicating success or failure.
     ///
     /// # Errors
-    /// Returns an error if the file cannot be opened or read.
+    /// Returns an I/O error if the file cannot be opened or read, or
+    /// [`LitseaError::InvalidData`] if a line is missing its label or the
+    /// label cannot be parsed as an `i8`.
     ///
     /// This method reads the file line by line, extracts the label and features,
     /// and initializes the instances with their corresponding weights.
@@ -257,12 +287,7 @@ impl AdaBoost {
     ///
     /// # Arguments
     /// * `running`: An `AtomicBool` flag to control the running state of the training process.
-    ///
-    /// # Returns
-    /// This method does not return a value.
-    ///
-    /// # Errors
-    /// This method does not return an error, but it will stop training if `running` is set to false.
+    ///   Training stops early (without error) if this is set to false.
     ///
     /// This method performs the following steps:
     /// 1. Initializes the error vector and sums of weights.
@@ -383,7 +408,9 @@ impl AdaBoost {
     /// A result indicating success or failure.
     ///
     /// # Errors
-    /// Returns an error if the file cannot be created or written to.
+    /// Returns [`LitseaError::InvalidInput`] if the model has no real
+    /// (non-bias) feature, or an I/O error if the file cannot be created or
+    /// written to.
     ///
     /// This method writes the model to a file in a tab-separated format,
     /// where each line contains a feature and its corresponding weight,
@@ -444,7 +471,10 @@ impl AdaBoost {
     /// * `uri`: The URI of the file containing the model.
     ///
     /// # Errors
-    /// Returns an error if the URI is invalid or the model cannot be read.
+    /// Returns an error if the URI is invalid, the model bytes cannot be
+    /// fetched (unsupported scheme, missing file, or network failure), or
+    /// the model content is malformed (see
+    /// [`load_model_from_reader`](Self::load_model_from_reader)).
     pub async fn load_model(&mut self, uri: &str) -> Result<()> {
         let bytes = crate::model_io::read_model_bytes(uri).await?;
         self.load_model_from_reader(bytes.as_slice())
@@ -456,7 +486,9 @@ impl AdaBoost {
     /// * `path`: The path to the file containing the model.
     ///
     /// # Errors
-    /// Returns an error if the file cannot be read or parsed.
+    /// Returns an I/O error if the file cannot be opened, or a parse error
+    /// if the model content is malformed (see
+    /// [`load_model_from_reader`](Self::load_model_from_reader)).
     #[cfg(not(target_arch = "wasm32"))]
     pub fn load_model_from_path(&mut self, path: &Path) -> Result<()> {
         let file = File::open(path)?;

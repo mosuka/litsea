@@ -159,3 +159,99 @@ async fn main() -> litsea::Result<()> {
     Ok(())
 }
 ```
+
+## TwoStageTrainer
+
+`TwoStageTrainer` trains the [two-stage
+model](../algorithm/two-stage-tagging.md) (issue #147): a binary boundary
+classifier (stage 1) plus a word-level multiclass tagger (stage 2), both
+**Averaged Perceptron**s, assembled with a candidate-tag lexicon into a
+single `litsea-two-stage v1` file. After training, stage 1 is collapsed to
+scalar per-feature weights in the existing AdaBoost format (a lossless
+transformation -- see this module's source docs for the derivation), so the
+runtime scores it exactly as it scores a plain `segment()` model. Both
+`TwoStageTrainer` and `TwoStageMetrics` are re-exported from the crate root
+as `litsea::TwoStageTrainer` / `litsea::TwoStageMetrics`.
+
+### `TwoStageTrainer::new`
+
+```rust
+pub fn new(
+    num_epochs: usize,
+    dominance: f64,
+    features_prefix: &Path,
+) -> litsea::Result<Self>
+```
+
+Reads the three files written by
+[`Extractor::extract_two_stage`](extractor.md) from `features_prefix`
+(`{prefix}.stage1`, `{prefix}.stage2`, `{prefix}.lexicon`) and registers the
+training instances for both stages.
+
+`dominance` is the classifier-skip threshold of the assembled model: a
+known word whose most frequent tag covers at least this fraction of its
+training occurrences is tagged without invoking the stage-2 classifier. It
+must be in `(0.5, 1.0]` and is validated eagerly in `new()`, so an
+out-of-range value fails immediately rather than after training runs.
+
+```rust
+use std::path::Path;
+use litsea::trainer::TwoStageTrainer;
+
+let trainer = TwoStageTrainer::new(
+    50,                            // num_epochs (both stages)
+    0.99,                          // dominance
+    Path::new("./features"),       // features prefix
+)?;
+```
+
+### `TwoStageTrainer::train`
+
+```rust
+pub fn train(
+    mut self,
+    running: &AtomicBool,
+    model_path: &Path,
+) -> litsea::Result<TwoStageMetrics>
+```
+
+Unlike `Trainer::train` and `PosTrainer::train`, this method takes `self`
+by value (it consumes the trainer). It trains both stages as Averaged
+Perceptrons for `num_epochs` epochs each, collapses stage 1 to AdaBoost
+weights, assembles the two stages with the lexicon into a
+`litsea-two-stage v1` model, saves it to `model_path`, and returns the
+in-sample metrics of both stages. The `running` flag enables graceful
+interruption, like the other trainers.
+
+```rust
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::TwoStageTrainer;
+
+#[tokio::main]
+async fn main() -> litsea::Result<()> {
+    let trainer = TwoStageTrainer::new(50, 0.99, Path::new("./features"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&running, Path::new("./model.model"))?;
+
+    println!("Stage 1: {:.2}%, Stage 2: {:.2}%", metrics.stage1.accuracy, metrics.stage2.accuracy);
+
+    Ok(())
+}
+```
+
+### `TwoStageMetrics`
+
+```rust
+pub struct TwoStageMetrics {
+    pub stage1: MulticlassMetrics,
+    pub stage2: MulticlassMetrics,
+}
+```
+
+The in-sample metrics of a `TwoStageTrainer::train` run. `stage1` measures
+the boundary classifier over its two classes (`B`/`O`); `stage2` measures
+the word-level tagger over the UPOS tag classes. Both fields are
+`MulticlassMetrics` -- the same type [`PosTrainer::train`](#postrainer)
+returns above, exposing accuracy plus macro-averaged precision and recall.

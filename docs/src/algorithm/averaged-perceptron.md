@@ -11,6 +11,8 @@ While [AdaBoost](adaboost.md) performs **binary classification** (boundary vs. n
 
 These labels correspond to the 17 [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tags from the Universal Dependencies project, prefixed with `B-` to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.
 
+This page describes Averaged Perceptron's primary use as an 18-class joint segmentation + POS tagger. The same algorithm, used in 2-class mode (`B`/`O` labels only), is what actually trains the bundled `japanese.model`, `chinese.model`, and `korean.model` segmentation models before they are losslessly collapsed to the AdaBoost model format for inference -- see [Pre-trained Models: Training Procedure](../pre-trained-models.md#training-procedure) for the full derivation. It is also the algorithm behind the [two-stage architecture](two-stage-tagging.md)'s stage-2 word-level tagger.
+
 ## Algorithm
 
 ### Weight Representation
@@ -130,7 +132,7 @@ feature2\tclass2\tweight2
 | Weight management | One weight per feature | Class x feature weight matrix |
 | Generalization | Ensemble | Weight averaging |
 | Training | Iterative boosting with sample reweighting | Online learning with weight averaging |
-| Model size | A few KB | ~9-19 MB (bundled POS models) |
+| Model size | 110 KB-2.0 MB (retrained japanese/chinese/korean.model) / ~16-22 KB (legacy RWCP/JEITA) | ~9-19 MB (bundled joint POS models) / ~5-8 MB (two-stage models) |
 | Hyperparameters | `threshold`, `num_iterations` | `num_epochs` |
 
 ## Hyperparameters

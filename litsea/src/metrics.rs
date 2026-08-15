@@ -25,6 +25,11 @@ pub struct BinaryMetrics {
 
 /// Evaluation metrics for multiclass classification
 /// ([`crate::perceptron::AveragedPerceptron`]), using macro averages.
+///
+/// Also used for the two-class boundary case: [`crate::trainer::TwoStageMetrics`]'s
+/// `stage1`/`stage2` fields are both `MulticlassMetrics`, including stage 1
+/// (the `B`/`O` boundary classifier), which is binary classification
+/// measured with this nominally-multiclass type.
 #[derive(Debug, Clone)]
 pub struct MulticlassMetrics {
     /// Accuracy in percentage (%)

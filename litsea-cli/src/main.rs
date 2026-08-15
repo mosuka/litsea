@@ -1,10 +1,12 @@
 //! Command-line interface for litsea.
 //!
 //! Provides four subcommands: `extract` (turn a corpus into training
-//! features), `train` (train an AdaBoost segmentation model or, with
-//! `--pos`, an Averaged Perceptron POS model), `segment` (segment
-//! sentences from standard input with a trained model), and `evaluate`
-//! (measure held-out quality against a gold corpus).
+//! features, or, with `--two-stage`, into the three feature files consumed
+//! by two-stage training), `train` (train an AdaBoost segmentation model,
+//! or, with `--pos`, an Averaged Perceptron POS model, or, with
+//! `--two-stage`, a two-stage boundary+lexicon POS model), `segment`
+//! (segment sentences from standard input with a trained model), and
+//! `evaluate` (measure held-out quality against a gold corpus).
 
 use std::error::Error;
 use std::fs::File;
@@ -62,11 +64,13 @@ struct ExtractArgs {
 #[derive(Debug, Args)]
 #[command(about = "Train a segmenter")]
 struct TrainArgs {
-    /// Early-stopping threshold for AdaBoost training
+    /// Early-stopping threshold for AdaBoost training. Ignored with `--pos`
+    /// or `--two-stage`
     #[arg(short, long, default_value = "0.01")]
     threshold: f64,
 
-    /// Maximum number of AdaBoost boosting iterations
+    /// Maximum number of AdaBoost boosting iterations. Ignored with `--pos`
+    /// or `--two-stage`
     #[arg(short = 'i', long, default_value = "100")]
     num_iterations: usize,
 
@@ -78,7 +82,9 @@ struct TrainArgs {
     #[arg(long)]
     pos: bool,
 
-    /// Number of training epochs for the POS model
+    /// Number of training epochs for the POS model (applies to both
+    /// `--pos` and `--two-stage` training; for `--two-stage`, both stage 1
+    /// and stage 2 train for this many epochs)
     #[arg(long, default_value = "10")]
     num_epochs: usize,
 
@@ -111,7 +117,7 @@ struct SegmentArgs {
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
-    /// Segment with POS tagging (requires an Averaged Perceptron model)
+    /// Segment with POS tagging (auto-detects joint or two-stage model)
     #[arg(long)]
     pos: bool,
 
@@ -127,7 +133,9 @@ struct EvaluateArgs {
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
-    /// Evaluate joint segmentation + POS tagging (gold format: "word/POS word/POS ...")
+    /// Evaluate segmentation + POS tagging (gold format: "word/POS word/POS
+    /// ..."); the model file is auto-detected as either a joint or a
+    /// two-stage model and evaluated the same way
     #[arg(long)]
     pos: bool,
 
@@ -362,9 +370,10 @@ fn flush_output<W: Write>(writer: &mut W) -> io::Result<()> {
 /// Segment sentences read from standard input using a trained model.
 /// This function loads the model from the given model URI (a plain path, a
 /// `file://` path, or an `http(s)://` URL with the `remote_model` feature):
-/// an Averaged Perceptron model with `--pos` (joint segmentation + POS
-/// tagging), otherwise an AdaBoost model (word segmentation only). The
-/// segmented sentences are written to standard output.
+/// with `--pos`, a joint (Averaged Perceptron) or two-stage POS model, with
+/// the model kind auto-detected from the file (issue #147); otherwise an
+/// AdaBoost model (word segmentation only). The segmented sentences are
+/// written to standard output.
 ///
 /// A downstream consumer closing stdout early (broken pipe) terminates the
 /// command successfully instead of reporting an error.
@@ -427,10 +436,11 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
 /// Evaluate a model against a held-out gold corpus and print quality
 /// metrics.
 ///
-/// Loads an AdaBoost model (or an Averaged Perceptron model with `--pos`)
-/// from the model URI, parses the gold corpus in the selected format
-/// (space-separated tokens, tab-separated `tsv` tokens, or `word/POS` with
-/// `--pos`), and prints held-out precision/recall/F1 one metric per line.
+/// Loads an AdaBoost model, or, with `--pos`, a joint (Averaged Perceptron)
+/// or two-stage model auto-detected from the file (#147), from the model
+/// URI, parses the gold corpus in the selected format (space-separated
+/// tokens, tab-separated `tsv` tokens, or `word/POS` with `--pos`), and
+/// prints held-out precision/recall/F1 one metric per line.
 ///
 /// # Arguments
 /// * `args` - The arguments for the evaluate command [`EvaluateArgs`].

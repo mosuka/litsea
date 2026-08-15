@@ -290,7 +290,7 @@ space-preserving TSV corpus `korean.model` uses (issue #152). The two-stage
 extractor takes a single corpus for both stages, and building a combined
 space-preserving + POS-tagged format is a separate feature not yet
 implemented; the numbers above are therefore comparable to `korean_pos.model`
-but not to `korean.model`'s 99.91% (a different corpus and protocol
+but not to `korean.model`'s 99.90% (a different corpus and protocol
 entirely, not a stronger or weaker two-stage result).
 
 #### Usage

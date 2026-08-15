@@ -11,6 +11,8 @@ Litsea は、単語分割と品詞推定を同時に行うために **Averaged P
 
 これらのラベルは Universal Dependencies プロジェクトの 17 個の [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) タグに対応し、`B-` プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。
 
+本ページでは、Averaged Perceptron の主な用途である 18 クラスの分割 + 品詞付与について説明していますが、同じアルゴリズムを 2 クラスモード（`B`/`O` ラベルのみ）で使うと、実際には同梱の `japanese.model`・`chinese.model`・`korean.model` の各分割モデルを学習しています。学習後、推論用に AdaBoost モデル形式へ無損失で畳み込まれます — 完全な導出は[事前学習済みモデル: 学習手順](../pre-trained-models.md#学習手順)を参照してください。また、[二段構成アーキテクチャ](two-stage-tagging.md)の stage-2 単語タガーもこのアルゴリズムを使用しています。
+
 ## アルゴリズム
 
 ### 重み表現
@@ -132,7 +134,7 @@ feature2\tclass2\tweight2
 | 重みの管理 | 特徴量ごとに1つの重み | クラス×特徴量の重み行列 |
 | 汎化手法 | アンサンブル | 重みの平均化 |
 | 学習方式 | サンプル再重み付けによる反復ブースティング | 重み平均化によるオンライン学習 |
-| モデルサイズ | 数 KB | 約 9-19 MB（同梱の品詞モデル） |
+| モデルサイズ | 110 KB〜2.0 MB（再学習済み japanese/chinese/korean.model）／約 16〜22 KB（レガシー RWCP/JEITA） | 約 9-19 MB（同梱の joint 品詞モデル）／約 5-8 MB（二段構成モデル） |
 | ハイパーパラメータ | `threshold`, `num_iterations` | `num_epochs` |
 
 ## ハイパーパラメータ

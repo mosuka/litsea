@@ -6,9 +6,9 @@ Litseaは、`Language` 列挙型に基づく統一的なフレームワークを
 
 | Language | Enum Variant | CLI Values | Feature Count | 単語 F1（held-out） |
 |----------|-------------|------------|---------------|---------------------|
-| 日本語 | `Language::Japanese` | `japanese`, `ja` | 42 | 91.48% |
-| 中国語 | `Language::Chinese` | `chinese`, `zh` | 42 | 77.56% |
-| 韓国語 | `Language::Korean` | `korean`, `ko` | 38 | 99.91% |
+| 日本語 | `Language::Japanese` | `japanese`, `ja` | 42 | 96.70% |
+| 中国語 | `Language::Chinese` | `chinese`, `zh` | 42 | 90.69% |
+| 韓国語 | `Language::Korean` | `korean`, `ko` | 38 | 99.90% |
 
 ## Language 列挙型
 

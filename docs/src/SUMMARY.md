@@ -38,6 +38,7 @@
   - [UPOS](litsea/upos.md)
   - [Language](litsea/language.md)
   - [Evaluation](litsea/evaluation.md)
+  - [Two-Stage Model](litsea/two-stage.md)
 
 # litsea-cli (CLI)
 

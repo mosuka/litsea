@@ -1,3 +1,13 @@
+//! Criterion benchmarks for the segmentation and POS-tagging hot paths.
+//!
+//! Covers short- and long-text `segment()`/`segment_with_pos()` micro-benches
+//! (AdaBoost vs. Averaged Perceptron, [`bench_segment_short`]/
+//! [`bench_segment_long`]), the `external_corpus` throughput group that
+//! mirrors the external tokenizer-speed-bench harness
+//! ([`bench_external_corpus`]; see `docs/src/advanced/benchmarking.md`), and
+//! a handful of internal component benchmarks (character-type
+//! classification, corpus ingestion, single-instance AdaBoost prediction).
+
 use std::fs;
 use std::hint::black_box;
 use std::path::PathBuf;
@@ -64,7 +74,7 @@ fn bench_segment_short(c: &mut Criterion) {
     for (lang, language, ada_model, pos_model) in cases {
         let input = inputs.iter().find(|(l, _)| l == lang).unwrap().1;
 
-        // AdaBoost (word segmentation only)
+        // AdaBoost-format model (word segmentation only)
         let ada_learner = load_adaboost_model(ada_model);
         let ada_segmenter = Segmenter::with_learner(*language, ada_learner);
         group.bench_with_input(BenchmarkId::new("adaboost", lang), &input, |b, &text| {
@@ -140,17 +150,20 @@ fn load_corpus_lines(corpus_name: &str) -> (Vec<String>, u64) {
     (lines, chars)
 }
 
-/// Reproduces the seven litsea benches of the external tokenizer-speed-bench
-/// harness in-repo: one iteration segments every line of the corpus, and
-/// criterion's `Throughput::Elements` makes the report read as chars/sec.
-/// Methodology differences from the external harness (criterion sampling
-/// instead of process-interleaved single passes; the workspace's tuned
-/// release profile) are documented in `docs/src/advanced/benchmarking.md`.
+/// Runs ten benches: the seven litsea benches of the external
+/// tokenizer-speed-bench harness, reproduced in-repo (4 segmentation cases +
+/// 3 joint POS cases), plus three `*-two-stage` cases added later (issue
+/// #169) that are not part of the original external-harness-mirroring set.
+/// One iteration segments every line of the corpus, and criterion's
+/// `Throughput::Elements` makes the report read as chars/sec. Methodology
+/// differences from the external harness (criterion sampling instead of
+/// process-interleaved single passes; the workspace's tuned release
+/// profile) are documented in `docs/src/advanced/benchmarking.md`.
 fn bench_external_corpus(c: &mut Criterion) {
     let mut group = c.benchmark_group("external_corpus");
     group.sample_size(30);
 
-    // (bench id, language, AdaBoost model, corpus)
+    // (bench id, language, AdaBoost-format model, corpus)
     let segment_cases: &[(&str, Language, &str, &str)] = &[
         ("japanese", Language::Japanese, "japanese.model", "wagahaiwa_nekodearu.txt"),
         ("japanese-rwcp", Language::Japanese, "RWCP.model", "wagahaiwa_nekodearu.txt"),
@@ -230,6 +243,7 @@ fn bench_external_corpus(c: &mut Criterion) {
 // Internal component benchmarks
 // ---------------------------------------------------------------------------
 
+/// Benchmarks single-character type classification (Japanese Hiragana).
 fn bench_char_type(c: &mut Criterion) {
     let segmenter = Segmenter::new(Language::Japanese);
     c.bench_function("char_type_hiragana", |b| {
@@ -237,6 +251,8 @@ fn bench_char_type(c: &mut Criterion) {
     });
 }
 
+/// Benchmarks adding one short sentence's training instances to a fresh
+/// segmenter's AdaBoost learner.
 fn bench_add_corpus(c: &mut Criterion) {
     c.bench_function("add_corpus", |b| {
         b.iter_batched(
@@ -247,6 +263,9 @@ fn bench_add_corpus(c: &mut Criterion) {
     });
 }
 
+/// Benchmarks a single string-keyed [`litsea::adaboost::AdaBoost::predict`]
+/// call against a realistic attribute set (the test-only reference path, not
+/// the packed `segment()` hot path).
 fn bench_predict_adaboost(c: &mut Criterion) {
     let learner = load_adaboost_model("japanese.model");
     let segmenter = Segmenter::with_learner(Language::Japanese, learner);

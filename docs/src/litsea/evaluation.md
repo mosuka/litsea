@@ -1,8 +1,14 @@
 # Evaluation
 
-Held-out quality evaluation of segmentation and joint POS tagging
+Held-out quality evaluation of segmentation and POS tagging
 (`litsea::evaluation`). This is the library API behind the
-[`litsea evaluate`](../litsea-cli/evaluate.md) subcommand.
+[`litsea evaluate`](../litsea-cli/evaluate.md) subcommand. `evaluate_pos`
+works against either POS architecture -- a segmenter built with
+[`with_pos_learner`](segmenter.md#with_pos_learner) (joint) or
+[`with_two_stage_learner`](segmenter.md#with_two_stage_learner)
+(two-stage, see [Two-Stage vs. Joint
+Tagging](../algorithm/two-stage-tagging.md)) -- since both implement
+`segment_with_pos` with the same signature.
 
 ## Metrics Types
 
@@ -57,7 +63,8 @@ where
 
 Like `evaluate_segmentation` but drives [`Segmenter::segment_with_pos`]
 and additionally scores tagged words. Returns
-`LitseaError::PosLearnerNotSet` if the segmenter has no POS learner.
+`LitseaError::PosLearnerNotSet` if the segmenter has neither a POS learner
+nor a two-stage learner set.
 
 ### Gold-line parsers
 

@@ -18,9 +18,8 @@ Both workflows use [Universal Dependencies (UD)](https://universaldependencies.o
 
 ## Per-Language Differences
 
-The pipeline (prepare → extract → train), the scripts, and the training
-hyperparameters (`-t 0.0001 -i 20000` for the bundled models) are shared by
-all three languages. Only two things are language-specific:
+The pipeline (prepare → extract → train) and the scripts are shared by all
+three languages. Only two things are language-specific:
 
 1. **The `-l` flag on `extract`** selects the language's character-type
    classification (Japanese 8 types, Chinese 9, Korean 10; Korean uses no
@@ -44,7 +43,14 @@ bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l korean --format tsv corpus.tsv features.txt
 ```
 
-The `train` step is identical for all three languages.
+The `train` step's command shape is the same for all three languages, but
+the actual hyperparameters differ. `-t 0.0001 -i 20000` (see [Training
+Models](training-guide/training-models.md)) is a good starting point when
+training a plain AdaBoost model from scratch with `litsea train`, but it is
+not what the bundled `japanese`/`chinese`/`korean` models use -- those go
+through a different procedure with per-language epoch counts and pruning.
+See [Training Procedure](pre-trained-models.md#training-procedure) for the
+actual recipe.
 
 ## Additional Topics
 

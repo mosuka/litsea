@@ -42,15 +42,17 @@ Recall = TP / (TP + FN)
 
 ## 事前学習済みモデルのベンチマーク
 
-同梱モデルは `-t 0.0001 -i 20000` で学習し、学習コーパスの held-out テスト分割で
-評価しています。**単語 F1** は単語の完全一致、**境界 F1** は個々の境界判定の
-スコアです。
+同梱の `japanese.model`、`chinese.model`、`korean.model` は、通常の AdaBoost
+`-t`/`-i` 学習ではなく binary-perceptron 畳み込み手順で学習しています --
+正確な手順は[学習手順](../pre-trained-models.md#学習手順)を参照してください。
+いずれも学習コーパスの held-out テスト分割で評価しています。**単語 F1** は
+単語の完全一致、**境界 F1** は個々の境界判定のスコアです。
 
 | モデル | 単語 F1 | 境界 F1 | 学習コーパス |
 |-------|---------|---------|-----------------|
-| japanese.model | 91.48% | 96.31% | UD Japanese-GSD |
-| korean.model | 99.91% | 99.96% | UD Korean-GSD |
-| chinese.model | 77.56% | 87.81% | UD Chinese-GSD |
+| japanese.model | 96.70% | 98.59% | UD Japanese-GSD |
+| korean.model | 99.90% | 99.95% | UD Korean-GSD |
+| chinese.model | 90.69% | 95.64% | UD Chinese-GSD |
 
 韓国語は、元の語節（어절）間の空白を保持したテキスト（空白保持 TSV コーパス。
 空白トークンは F1 の計算から除外）で学習・評価しています。韓国語では空白が
@@ -88,3 +90,11 @@ litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.
    低くなります
 4. **コーパスの品質向上** -- 一貫したトークン化とクリーンなテキストを確保する
 5. **再学習** -- 既存のモデルから開始し、追加データで学習する（[モデルの再学習](retraining-models.md)を参照）
+
+上記の閾値・反復回数のチューニングは、通常の AdaBoost 学習
+（`--pos`/`--two-stage` を付けない `litsea train`）に適用されるものです。
+同梱モデル自身が通常の AdaBoost に対して達成している +5〜13pt の held-out
+品質向上は、`-t`/`-i` のチューニングによるものではなく、2 クラスの
+Averaged Perceptron を学習してから無損失に AdaBoost の重みへ畳み込む手順に
+よるものです。段階的な改善ではなく同梱モデルと同水準の品質を目指す場合は、
+[学習手順](../pre-trained-models.md#学習手順)のレシピを参照してください。

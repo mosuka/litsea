@@ -117,3 +117,69 @@ extractor.extract_with_pos(
     Path::new("./features_pos.txt"),
 )?;
 ```
+
+### `extract_two_stage`
+
+```rust
+pub fn extract_two_stage(
+    &self,
+    corpus_path: &Path,
+    output_prefix: &Path,
+    feature_set: TwoStageFeatureSet,
+) -> litsea::Result<()>
+```
+
+Reads a POS-tagged corpus (`word/POS word/POS ...`, the same format as
+`extract_with_pos`) in a single pass and writes the three files consumed by
+[`TwoStageTrainer`](trainer.md#twostagetrainer), used to train a [two-stage
+model](../algorithm/two-stage-tagging.md), from `output_prefix`:
+
+- `{output_prefix}.stage1` -- boundary features (`label\tfeature1\t...`,
+  label `B` or `O`), using the same feature templates as `extract_with_pos`
+- `{output_prefix}.stage2` -- word-level features (`label\tfeature1\t...`,
+  label a UPOS tag), using the templates selected by `feature_set` (see
+  [`TwoStageFeatureSet`](#twostagefeatureset) below)
+- `{output_prefix}.lexicon` -- the candidate-tag lexicon
+  (`surface\tTAG:count[,TAG:count...]`, most-frequent-first)
+
+`TwoStageTrainer::new` reads the same three paths back from the same
+prefix.
+
+```rust
+use std::path::Path;
+
+use litsea::TwoStageFeatureSet;
+
+extractor.extract_two_stage(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./two_stage_features"),
+    TwoStageFeatureSet::Fast,
+)?;
+```
+
+## TwoStageFeatureSet
+
+```rust
+pub enum TwoStageFeatureSet {
+    Full,
+    Balanced,
+    #[default]
+    Fast,
+}
+```
+
+Selects which stage-2 word-level templates
+[`extract_two_stage`](#extract_two_stage) writes (see [Word-Level Feature
+Templates](../algorithm/feature-extraction.md) for the full template
+catalog), trading tagging quality for throughput:
+
+- `Full` -- every word template (quality-leaning)
+- `Balanced` -- the `Fast` templates plus first/last char identity and the
+  word type string
+- `Fast` (default) -- the minimal measured set: surface, word length,
+  first/last char type, adjacent context char + type, 2-char prefix/suffix
+
+Also implements `Display` (lowercase: `"full"`, `"balanced"`, `"fast"`) and
+`FromStr` (returns `ParseTwoStageFeatureSetError` for invalid strings) --
+the same names the `--stage2-features` CLI flag accepts; see [Extracting
+Features](../training-guide/extracting-features.md).

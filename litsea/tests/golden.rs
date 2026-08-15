@@ -1,10 +1,15 @@
-//! Golden tests: snapshot the segmentation output of every pre-trained model
-//! in `models/` so that refactoring can be verified to preserve behavior.
+//! Golden tests: snapshot the segmentation output of every pre-trained
+//! AdaBoost/Averaged-Perceptron model in `models/` so that refactoring can
+//! be verified to preserve behavior.
 //!
 //! These snapshots capture the current behavior of the bundled models. If a
 //! behavior change is intentional (e.g. fixing the first-word POS handling
 //! or retraining a model), update the affected expectations in the same PR
 //! and call the change out explicitly in the PR description.
+//!
+//! Note: the bundled two-stage models (`japanese_two_stage.model`,
+//! `chinese_two_stage.model`, `korean_two_stage.model`, issue #147)
+//! currently have no golden-test coverage in this file.
 
 use std::path::PathBuf;
 
@@ -58,7 +63,10 @@ fn assert_segment_with_pos(segmenter: &Segmenter, cases: &[(&str, &[(&str, &str)
 }
 
 // ---------------------------------------------------------------------------
-// Word segmentation (AdaBoost models)
+// Word segmentation (AdaBoost-format models — RWCP.model and the JEITA
+// model are genuinely AdaBoost-trained; japanese.model, chinese.model, and
+// korean.model are a 2-class Averaged Perceptron losslessly collapsed to
+// AdaBoost-format scalar weights, per issue #165)
 // ---------------------------------------------------------------------------
 
 #[test]

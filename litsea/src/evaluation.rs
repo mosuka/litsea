@@ -1,4 +1,5 @@
-//! Held-out evaluation of segmentation (and joint POS tagging) quality.
+//! Held-out evaluation of segmentation (and POS tagging, joint or
+//! two-stage) quality.
 //!
 //! Compares a [`Segmenter`]'s output against gold-standard token sequences
 //! using character-offset spans: the gold text is the concatenation of the
@@ -39,7 +40,9 @@ pub struct SegmentationMetrics {
     pub predicted_words: usize,
 }
 
-/// Held-out joint segmentation + POS tagging quality metrics.
+/// Held-out segmentation + POS tagging quality metrics, for either the
+/// joint or the two-stage architecture (both are evaluated the same way,
+/// through [`Segmenter::segment_with_pos`]).
 ///
 /// The segmentation part is identical to [`SegmentationMetrics`]; the
 /// tagged-word metrics additionally require the predicted POS tag to match
@@ -172,15 +175,17 @@ where
     counts.finish()
 }
 
-/// Evaluates joint segmentation + POS tagging quality against gold
-/// `(token, tag)` sequences.
+/// Evaluates segmentation + POS tagging quality against gold `(token, tag)`
+/// sequences, for either the joint or the two-stage architecture.
 ///
 /// Segmentation is scored exactly like [`evaluate_segmentation`]; the
 /// tagged-word metrics additionally require the predicted [`Upos`] to
 /// match the gold tag on exactly matched spans.
 ///
 /// # Arguments
-/// * `segmenter` - The segmenter (with an Averaged Perceptron POS learner).
+/// * `segmenter` - The segmenter to evaluate. Internally calls
+///   [`Segmenter::segment_with_pos`], so a segmenter built with either an
+///   Averaged Perceptron POS learner (joint) or a two-stage learner works.
 /// * `gold` - Gold sentences as `(token, tag)` vectors; empty sentences are skipped.
 ///
 /// # Returns
@@ -188,7 +193,7 @@ where
 ///
 /// # Errors
 /// Returns [`crate::error::LitseaError::PosLearnerNotSet`] if the segmenter
-/// has no POS learner.
+/// has neither a POS learner nor a two-stage learner set.
 pub fn evaluate_pos<I, S>(segmenter: &Segmenter, gold: I) -> crate::error::Result<PosMetrics>
 where
     I: IntoIterator<Item = Vec<(S, Upos)>>,
@@ -284,9 +289,10 @@ mod tests {
     use crate::language::Language;
 
     fn identity_segmenter() -> Segmenter {
-        // An empty learner segments every character separately? No — with no
-        // features the bias decides uniformly. For metric-math tests we do
-        // not need a real learner; tests below drive Counts directly.
+        // An empty/default learner's bias evaluates to 0.0 (model = [0.0]),
+        // and segment()'s decision rule is score >= 0.0, so it treats every
+        // character as its own word — exactly what these metric-math tests
+        // want, without needing a real trained learner.
         Segmenter::with_learner(Language::Japanese, AdaBoost::default())
     }
 

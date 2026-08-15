@@ -16,9 +16,9 @@ litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # 既存モデルから再学習
 litsea train -t 0.0001 -i 20000 \
-    -m ./models/japanese.model \
+    -m ./models/my_model.model \
     ./new_features.txt \
-    ./models/japanese_v2.model
+    ./models/my_model_v2.model
 ```
 
 ## 仕組み
@@ -46,3 +46,13 @@ flowchart LR
 - 出力モデルのパスは入力モデルと同じパスを指定できます（上書き）
 - `-m` フラグはファイルパス、`file://`、`http://`、`https://` URI に対応しています
 - 再学習は既存の重みから開始するため、必要な反復回数が少なくなる場合があります
+- `-m` は通常の AdaBoost 学習でのみ利用できます。`train --two-stage` は
+  `-m`/`--load-model-uri` に**対応していません** -- 二段構成モデルの増分学習は
+  サポートされていないため、更新したい場合は `train --two-stage` で
+  ゼロから再学習する必要があります
+- 同梱の `japanese.model`、`chinese.model`、`korean.model` はこの `-m` を
+  使うレシピでは作られていません -- これらは
+  [学習手順](../pre-trained-models.md#学習手順)で説明している
+  perceptron 畳み込み手順で学習されています。これらの上に `-m` で
+  さらに増分 AdaBoost 学習を行うと、2 つの手法が混ざってしまいます。
+  同梱モデルを更新したい場合は、その手順でゼロから再学習してください

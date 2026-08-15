@@ -99,6 +99,14 @@ pub fn save_model(&self, filename: &Path) -> litsea::Result<()>
 
 モデルの重みをファイルに保存します。モデルが空の場合はエラーを返します。
 
+### `save_model_to_writer`
+
+```rust
+pub fn save_model_to_writer<W: Write>(&self, writer: &mut W) -> litsea::Result<()>
+```
+
+`save_model` と同じテキスト形式で、任意のライターへモデルを書き込みます。`save_model` はこのメソッドに処理を委譲しています。ファイルパスを経由せずにモデルをより大きなファイルの一部として埋め込めるよう公開されています -- [二段構成モデル形式](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)は、これを使って stage-1 の `AdaBoost` モデルを直接埋め込んでいます。ライターはフラッシュされません。モデルが空の場合はエラーを返します。
+
 ## 学習メソッド
 
 ### `initialize_features`

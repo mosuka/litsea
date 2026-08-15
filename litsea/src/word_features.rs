@@ -66,11 +66,17 @@ pub(crate) const WORD_TEMPLATE_PREFIXES: [&str; N_WORD_TEMPLATES] = [
 
 /// Template ids (indices into [`WORD_TEMPLATE_PREFIXES`]).
 pub(crate) const T_WS: usize = 0;
+/// `WL`: capped word length (`min(n, WL_CAP)`), dense.
 pub(crate) const T_WL: usize = 1;
+/// `FC`: first character of the word, hashed char key.
 pub(crate) const T_FC: usize = 2;
+/// `LC`: last character of the word, hashed char key.
 pub(crate) const T_LC: usize = 3;
+/// `ft`: first character's type, dense.
 pub(crate) const T_FT: usize = 4;
+/// `lt`: last character's type, dense.
 pub(crate) const T_LT: usize = 5;
+/// `TS`: type codes of the word's first `TS_CAP` characters, hashed key.
 pub(crate) const T_TS: usize = 6;
 /// First of the three left-context char templates (`L1`..`L3`).
 pub(crate) const T_L1: usize = 7;
@@ -80,9 +86,13 @@ pub(crate) const T_R1: usize = 10;
 pub(crate) const T_CL1: usize = 13;
 /// First of the three right-context type templates (`cr1`..`cr3`).
 pub(crate) const T_CR1: usize = 16;
+/// `LB`: left-context bigram (chars at distance 2 then 1), hashed pair key.
 pub(crate) const T_LB: usize = 19;
+/// `RB`: right-context bigram (chars at distance 1 then 2), hashed pair key.
 pub(crate) const T_RB: usize = 20;
+/// `P2`: the word's first two characters (words with `n >= 2`), hashed pair key.
 pub(crate) const T_P2: usize = 21;
+/// `S2`: the word's last two characters (words with `n >= 2`), hashed pair key.
 pub(crate) const T_S2: usize = 22;
 
 /// Number of dense type-valued families (`ft`, `lt`, `cl1`-`cl3`,

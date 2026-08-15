@@ -59,8 +59,12 @@ Result Metrics:
 基本的な学習:
 
 ```sh
-litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
+litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 ```
+
+これは通常の AdaBoost 学習の一般的な例です。同梱の `japanese.model`、
+`chinese.model`、`korean.model` は別の手順を使っています --
+[学習手順](../pre-trained-models.md#学習手順)を参照してください。
 
 高精度な学習（低い閾値、多い反復回数）:
 
@@ -71,8 +75,8 @@ litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 既存モデルからの再学習:
 
 ```sh
-litsea train -t 0.0001 -i 20000 -m ./models/japanese.model \
-    ./new_features.txt ./models/japanese_v2.model
+litsea train -t 0.0001 -i 20000 -m ./models/my_model.model \
+    ./new_features.txt ./models/my_model_v2.model
 ```
 
 ## ハイパーパラメータの調整
@@ -157,12 +161,12 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 
 ```text
 Result Metrics (Two-Stage):
-  Stage 1 (boundary) Accuracy: 99.36% ( 277213 )
-  Stage 1 Macro Precision: 99.30%
-  Stage 1 Macro Recall: 99.35%
-  Stage 2 (tagging) Accuracy: 98.53% ( 168333 )
-  Stage 2 Macro Precision: 98.39%
-  Stage 2 Macro Recall: 97.59%
+  Stage 1 (boundary) Accuracy: 99.86% ( 277213 )
+  Stage 1 Macro Precision: 99.85%
+  Stage 1 Macro Recall: 99.86%
+  Stage 2 (tagging) Accuracy: 99.09% ( 168333 )
+  Stage 2 Macro Precision: 98.96%
+  Stage 2 Macro Recall: 98.77%
 ```
 
 他のモードと同様、これらは in-sample のメトリクスです。現実的な品質を見積もるには

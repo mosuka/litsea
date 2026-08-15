@@ -1,9 +1,39 @@
 //! High-level training front-ends.
 //!
-//! Defines [`Trainer`] (AdaBoost word-boundary model) and [`PosTrainer`]
-//! (Averaged Perceptron POS model). Each reads a features file produced by
-//! [`Extractor`](crate::extractor::Extractor), optionally loads an existing
-//! model, trains, saves the result, and reports training metrics.
+//! Defines [`Trainer`] (AdaBoost word-boundary model), [`PosTrainer`]
+//! (Averaged Perceptron joint POS model), and [`TwoStageTrainer`] (the
+//! two-stage boundary + word-tagger model of issue #147). `Trainer` and
+//! `PosTrainer` each read a single features file produced by
+//! [`Extractor`](crate::extractor::Extractor); `TwoStageTrainer` reads the
+//! three files [`Extractor::extract_two_stage`](crate::extractor::Extractor::extract_two_stage)
+//! writes from a common prefix. All three optionally load an existing
+//! model, train, save the result, and report training metrics.
+//!
+//! # The lossless boundary-perceptron-to-AdaBoost collapse
+//!
+//! `TwoStageTrainer` trains its stage-1 boundary classifier as a 2-class
+//! (`B`/`O`) [`AveragedPerceptron`] but saves it in the [`AdaBoost`] text
+//! format, via the private `collapse_boundary_perceptron` helper in this
+//! module. This is also how the bundled
+//! `models/{japanese,chinese,korean}.model` segmentation models are produced
+//! (issue #165): trained as a 2-class Averaged Perceptron, then losslessly
+//! collapsed to scalar AdaBoost-format weights, rather than trained by
+//! AdaBoost boosting.
+//!
+//! The collapse is exact because a 2-class perceptron has no bias term, so
+//! for any feature set `f` its class scores are `score_B = sum_{feat in f}
+//! w_B[feat]` and `score_O = sum_{feat in f} w_O[feat]`, and therefore
+//! `score_B - score_O = sum_{feat in f} (w_B[feat] - w_O[feat])` exactly.
+//! Writing one line `feat\t(w_B[feat] - w_O[feat])` per feature plus a
+//! literal `"0"` bias line and loading the result with
+//! [`AdaBoost::load_model_from_reader`] reproduces this: the AdaBoost model
+//! format defines `bias()` to equal the written bias line verbatim
+//! (independent of the feature weights), so the collapsed model's decision
+//! rule `score >= 0.0` becomes exactly `score_B >= score_O`. This includes
+//! the tie case (an empty or entirely-unseen feature set): the perceptron's
+//! first-wins argmax picks class index 0, which is `"B"` because classes are
+//! always ordered `["B", "O"]` (`B` sorts first alphabetically), the same
+//! class AdaBoost's `0.0 >= 0.0` picks.
 
 use std::collections::HashSet;
 use std::fs::File;
@@ -21,11 +51,13 @@ use crate::two_stage::{TwoStageLearner, parse_lexicon, two_stage_paths};
 use crate::upos::Upos;
 
 /// Trainer struct for managing the AdaBoost training process.
-/// It initializes the AdaBoost learner with the specified parameters,
-/// loads the model from a file, and provides methods to train the model
-/// and save the trained model.
+/// It initializes the AdaBoost learner with the specified parameters (from a
+/// features file) and provides methods to optionally load an existing model
+/// (see [`load_model`](Self::load_model)), train, and save the trained
+/// model.
 #[derive(Debug)]
 pub struct Trainer {
+    /// The underlying AdaBoost learner.
     learner: AdaBoost,
 }
 
@@ -33,7 +65,9 @@ pub struct Trainer {
 /// Manages multiclass classification training with the Averaged Perceptron.
 #[derive(Debug)]
 pub struct PosTrainer {
+    /// The underlying Averaged Perceptron learner.
     learner: AveragedPerceptron,
+    /// The number of training epochs to run.
     num_epochs: usize,
 }
 
@@ -244,10 +278,16 @@ pub struct TwoStageMetrics {
 /// [`Extractor::extract_two_stage`](crate::extractor::Extractor::extract_two_stage).
 #[derive(Debug)]
 pub struct TwoStageTrainer {
+    /// The stage-1 boundary classifier, trained as a 2-class (`B`/`O`)
+    /// Averaged Perceptron and collapsed to AdaBoost format on save.
     stage1: AveragedPerceptron,
+    /// The stage-2 word-level multiclass tagger (UPOS classes).
     stage2: AveragedPerceptron,
+    /// Candidate-tag lexicon: surface -> observed `(tag, count)` pairs.
     lexicon: FxHashMap<String, Vec<(Upos, u32)>>,
+    /// The number of training epochs for both stages.
     num_epochs: usize,
+    /// The classifier-skip dominance threshold of the assembled model.
     dominance: f64,
 }
 
@@ -307,6 +347,11 @@ impl TwoStageTrainer {
     /// Trains both stages and assembles + saves a `litsea-two-stage v1`
     /// model.
     ///
+    /// Note: unlike [`Trainer::train`]/[`PosTrainer::train`], this consumes
+    /// `self` rather than taking `&mut self`, since the stage-1 perceptron is
+    /// collapsed away into an [`AdaBoost`] and cannot be trained again in
+    /// place afterward.
+    ///
     /// # Arguments
     /// * `running` - A flag for interrupting training.
     /// * `model_path` - The path to save the assembled model to.
@@ -315,8 +360,12 @@ impl TwoStageTrainer {
     /// The in-sample [`TwoStageMetrics`] of both stages.
     ///
     /// # Errors
-    /// Returns an error if the assembled model is inconsistent (see
-    /// [`TwoStageLearner::from_parts`]) or if it cannot be saved.
+    /// Returns [`LitseaError::InvalidData`] if the trained stage-1 model has
+    /// no `B` class or no `O` class (from the internal boundary-perceptron
+    /// collapse step, which runs first), or if collapsing it into an
+    /// [`AdaBoost`] otherwise fails. Also returns an error if the assembled
+    /// model is inconsistent (see [`TwoStageLearner::from_parts`]) or if it
+    /// cannot be saved.
     pub fn train(mut self, running: &AtomicBool, model_path: &Path) -> Result<TwoStageMetrics> {
         self.stage1.train(self.num_epochs, running);
         self.stage2.train(self.num_epochs, running);

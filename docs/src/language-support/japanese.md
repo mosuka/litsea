@@ -27,9 +27,22 @@ Patterns are evaluated in order. Notably:
 ### japanese.model
 
 - **Training corpus**: UD Japanese-GSD
-- **Training options**: `-t 0.0001 -i 20000`
-- **Word F1 (held-out)**: 91.48%
-- **Boundary F1 (held-out)**: 96.31%
+- **Training options**: 50 epochs of Averaged Perceptron training, collapsed
+  to AdaBoost scalar weights, then pruned to the top 40,000 features by
+  `|weight|` -- see [Training
+  Procedure](../pre-trained-models.md#training-procedure) for the full recipe
+- **Word F1 (held-out)**: 96.70%
+- **Boundary F1 (held-out)**: 98.59%
+
+### japanese_pos.model
+
+- **Algorithm**: Averaged Perceptron (joint segmentation + POS tagging)
+- **Details**: see [Pre-trained Models](../pre-trained-models.md#japanese_posmodel)
+
+### japanese_two_stage.model
+
+- **Algorithm**: two-stage segmentation + POS tagging (faster than the joint model, same output shape)
+- **Details**: see [Pre-trained Models](../pre-trained-models.md#japanese_two_stagemodel)
 
 ### RWCP.model
 

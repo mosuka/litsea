@@ -16,9 +16,9 @@ litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # Retrain from existing model
 litsea train -t 0.0001 -i 20000 \
-    -m ./models/japanese.model \
+    -m ./models/my_model.model \
     ./new_features.txt \
-    ./models/japanese_v2.model
+    ./models/my_model_v2.model
 ```
 
 ## How It Works
@@ -46,3 +46,14 @@ flowchart LR
 - The output model can be the same path as the input model (overwrites)
 - The `-m` flag accepts file paths, `file://`, `http://`, and `https://` URIs
 - Retraining starts from the existing weights, so fewer iterations may be needed
+- `-m` is only available for plain AdaBoost training. `train --two-stage`
+  does **not** support `-m`/`--load-model-uri` -- incremental training of a
+  two-stage model is not supported, so if you need to update one you must
+  retrain it from scratch with `train --two-stage`
+- The bundled `japanese.model`, `chinese.model`, and `korean.model` are not
+  produced with this plain `-m` recipe -- they go through the
+  perceptron-collapse procedure described in [Training
+  Procedure](../pre-trained-models.md#training-procedure). Running further
+  incremental AdaBoost training on top of one of them with `-m` would mix
+  the two approaches; to update one of the bundled models, retrain it from
+  scratch with that procedure instead

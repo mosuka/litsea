@@ -301,6 +301,7 @@ const TAG_RADIX: usize = 3;
 /// into the per-family tables and to partition scoring into the static and
 /// sequential passes. The ids are pinned by `test_template_ids_match_indices`
 /// and the partition by `test_family_ranges_match_predicates`.
+/// `UW*`: sparse (char keyed), tag-free — scored in the static pass.
 pub(crate) const UW_IDS: std::ops::Range<usize> = 5..11;
 /// `BW*`: sparse (char-bigram keyed), tag-free — scored in the static pass.
 pub(crate) const BW_IDS: std::ops::Range<usize> = 11..14;
@@ -421,7 +422,15 @@ fn parse_slots(
     }
 }
 
-/// A trained AdaBoost model compiled for two-pass scoring in `segment()`.
+/// An [`AdaBoost`]-format model compiled for two-pass scoring in
+/// `segment()`.
+///
+/// "AdaBoost model" here means the on-disk format/struct, not necessarily
+/// AdaBoost boosting as the training algorithm: this also compiles
+/// two-stage models' stage-1 boundary classifier, which is trained as a
+/// 2-class Averaged Perceptron and losslessly collapsed into `AdaBoost`
+/// format (see `crate::trainer`'s module docs) before it ever reaches this
+/// builder.
 ///
 /// Char-bearing templates live in merged-vector hash tables — one probe
 /// covers a whole family at a text position, and the contributions are

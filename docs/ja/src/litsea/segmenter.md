@@ -9,10 +9,14 @@ pub struct Segmenter {
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: pos_learner: Option<AveragedPerceptron>,
+    // private: two_stage: Option<TwoStageState>,
+    // internal: packed / packed_pos / packed_two_stage caches (see below)
 }
 ```
 
 フィールドは非公開です。アクセサメソッド `language()`、`learner()`、`learner_mut()`、`pos_learner()`、`pos_learner_mut()` を使ってアクセスしてください。
+
+これらに加えて、構造体は `packed`、`packed_pos`、`packed_two_stage` も保持しています。これらは学習器の重みを `segment()` / `segment_with_pos()` が採点に使う整数インデックスのテーブル群へコンパイルした、遅延再構築されるキャッシュです（[予測パイプライン](../algorithm/prediction-pipeline.md#コンパイル済みスコアリングテーブル)を参照）。これらは内部実装の詳細でありアクセサはなく、対応する学習器が変更されると自動的に無効化されます。`two_stage` は [`with_two_stage_learner`](#with_two_stage_learner)（後述）が設定する stage-2 の状態を保持します。二段構成モデルから作成された Segmenter でなければ `None` です。
 
 ## コンストラクタ
 

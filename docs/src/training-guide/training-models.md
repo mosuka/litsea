@@ -11,8 +11,13 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 ## Basic Example
 
 ```sh
-litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
+litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 ```
+
+This is a generic example of plain AdaBoost training. The bundled
+`japanese.model`, `chinese.model`, and `korean.model` are **not** produced
+this way -- see [Training Procedure](../pre-trained-models.md#training-procedure)
+for the procedure actually used for those files.
 
 ## Training Process
 
@@ -36,12 +41,19 @@ flowchart TD
 
 | Parameter | Flag | Default | Guidance |
 |-----------|------|---------|----------|
-| Threshold | `-t` | 0.01 | Start with 0.0001 (used for the bundled models). Lower values delay early stopping but increase training time |
-| Iterations | `-i` | 100 | Start with 20000 (used for the bundled models). AdaBoost selects one feature per iteration, so this caps the number of features in the model; the default produces very small models with much lower held-out accuracy |
+| Threshold | `-t` | 0.01 | Start with 0.0001. Lower values delay early stopping but increase training time |
+| Iterations | `-i` | 100 | Start with 20000. AdaBoost selects one feature per iteration, so this caps the number of features in the model; the default produces very small models with much lower held-out accuracy |
+
+**Note**: these are generic starting points for training a plain AdaBoost
+model from scratch. The bundled `japanese.model`, `chinese.model`, and
+`korean.model` are produced by a different procedure -- a 2-class Averaged
+Perceptron collapsed to AdaBoost weights, with per-language epoch counts
+and pruning -- see [Training Procedure](../pre-trained-models.md#training-procedure)
+in Pre-trained Models for how those files are actually made.
 
 ## Interpreting Output
 
-Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate.
+Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate. The numbers below are a representative example of `train`'s output format, not the bundled `japanese.model`'s actual training log.
 
 ```text
 Result Metrics:
@@ -90,7 +102,14 @@ litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 | Classification | Binary (boundary / non-boundary) | Multiclass (18 segment labels) |
 | Labels | `1`, `-1` | `B-NOUN`, `B-VERB`, ..., `O` |
 | Hyperparameters | Threshold, Iterations | Number of epochs |
-| Model size | ~18-22 KB | ~9-19 MB |
+| Model size | ~110 KB - 2.0 MB (bundled models) | ~9-19 MB |
+
+The AdaBoost model-size range above reflects the bundled `japanese.model`
+(~1.1 MB), `chinese.model` (~2.0 MB), and `korean.model` (~110 KB); a model
+trained with modest `-i` values (as in the basic example above) can be much
+smaller. The legacy `RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model`
+are smaller still (~16-22 KB). See [Pre-trained
+Models](../pre-trained-models.md) for exact per-model sizes.
 
 ### POS Hyperparameters
 

@@ -48,6 +48,17 @@ echo "今日はいい天気ですね。" \
 
 各トークンには [Universal POS（UPOS）](https://universaldependencies.org/u/pos/) タグが付与されます。
 
+### 二段構成の品詞推定付き分割
+
+Litsea には、より高速な[二段構成](../algorithm/two-stage-tagging.md)の品詞推定アーキテクチャも同梱されています。CLI はファイルからモデルの種類を自動判定するため、コマンドはモデルファイル名以外は上の joint の例と同じです:
+
+```sh
+echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+```
+
+出力の形式は joint の例と同じです。新規に使う場合は[事前学習済みモデル](../pre-trained-models.md#モデルの選択)で推奨されている二段構成モデルの利用を検討してください。
+
 ## ライブラリ クイックスタート
 
 モデルを読み込みテキストを分割する最小限の Rust プログラムです:
