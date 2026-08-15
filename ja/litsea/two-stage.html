@@ -1,44 +1,44 @@
 <!DOCTYPE HTML>
-<html lang="en" class="light sidebar-visible" dir="ltr">
+<html lang="ja" class="light sidebar-visible" dir="ltr">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>License - Litsea Documentation</title>
+        <title>二段構成モデル - Litsea ドキュメント</title>
 
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="Documentation for Litsea - a compact word segmentation library in Rust">
+        <meta name="description" content="Litsea - Rust製コンパクト単語分割ライブラリのドキュメント">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon-de23e50b.svg">
-        <link rel="shortcut icon" href="favicon-8114d1fc.png">
-        <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-e96d0476.css">
-        <link rel="stylesheet" href="css/chrome-d279d366.css">
-        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
-        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
-        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
 
 
         <!-- Provide site root and default themes to javascript -->
         <script>
-            const path_to_root = "";
+            const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-4499bc6b.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-4bbd3799.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -105,7 +105,7 @@
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
-                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
             </noscript>
             <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -137,16 +137,16 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Litsea Documentation</h1>
+                    <h1 class="menu-title">Litsea ドキュメント</h1>
 
                     <div class="right-buttons">
-                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
                         <a href="https://github.com/mosuka/litsea" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/mosuka/litsea/edit/main/docs/src/license.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/mosuka/litsea/edit/main/docs/ja/src/litsea/two-stage.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,31 +180,171 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="license"><a class="header" href="#license">License</a></h1>
-<p>Litsea is distributed under a dual license.</p>
-<h2 id="mit-license"><a class="header" href="#mit-license">MIT License</a></h2>
-<p>The main Litsea codebase is licensed under the MIT License:</p>
-<pre><code class="language-text">MIT License
+                        <h1 id="二段構成モデルtwo-stage-model"><a class="header" href="#二段構成モデルtwo-stage-model">二段構成モデル（Two-Stage Model）</a></h1>
+<p><code>two_stage</code> モジュールは <code>litsea-two-stage v1</code> モデルコンテナ
+（<code>TwoStageLearner</code>）、stage-2 特徴量セットの選択肢（<code>TwoStageFeatureSet</code>）、
+自動判別 POS モデルローダー（<code>AnyPosModel</code> / <code>ModelKind</code>）を定義します。
+アーキテクチャと計測済みの品質・速度比較は
+<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint タグ付け</a> を、
+モデルの新規学習は
+<a href="trainer.html#twostagetrainer"><code>TwoStageTrainer</code></a> を参照してください。</p>
+<h2 id="twostagelearner"><a class="header" href="#twostagelearner"><code>TwoStageLearner</code></a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct TwoStageLearner {
+    // private: stage1: AdaBoost,
+    // private: stage2: AveragedPerceptron,
+    // private: lexicon: HashMap&lt;String, Vec&lt;(Upos, u32)&gt;&gt;,
+    // private: dominance: f64,
+}
+<span class="boring">}</span></code></pre>
+<p>二段構成モデルの 3 パーツを保持します: stage-1 境界分類器
+（スカラー重み、AdaBoost 形式）、候補タグ語彙表、stage-2 単語レベル
+タガー（<code>AveragedPerceptron</code>）。構築・シリアライズの規約は
+<code>AdaBoost</code> / <code>AveragedPerceptron</code> と同じです。</p>
+<h3 id="コンストラクタ"><a class="header" href="#コンストラクタ">コンストラクタ</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new() -&gt; Self
+pub fn from_parts(
+    stage1: AdaBoost,
+    stage2: AveragedPerceptron,
+    lexicon: impl IntoIterator&lt;Item = (String, Vec&lt;(Upos, u32)&gt;)&gt;,
+    dominance: f64,
+) -&gt; Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p><code>new</code> は空の learner を作成します（使用前に <code>load_model*</code> 系メソッドで
+埋める必要があります）。<code>from_parts</code> はパーツから learner を構築し、
+組み合わせを検証します: <code>dominance</code> は <code>(0.5, 1.0]</code> の範囲内、
+stage-2 の各クラス名は有効な <code>Upos</code> タグである必要があり、
+各語彙エントリは非空のサーフェス（タブ・改行を含まない）、
+正のカウントを持つ非空のタグリスト、重複タグ・重複サーフェスが
+無いことが要求されます。語彙エントリは入力順に関わらず正規順序
+（カウント降順、同数はタグ名昇順）に正規化されます。</p>
+<h3 id="モデルの入出力"><a class="header" href="#モデルの入出力">モデルの入出力</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; Result&lt;()&gt;
+pub fn save_model_to_writer&lt;W: Write&gt;(&amp;self, writer: &amp;mut W) -&gt; Result&lt;()&gt;
+pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; Result&lt;()&gt;
+pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; Result&lt;()&gt;
+pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>AdaBoost</code>/<code>AveragedPerceptron</code> と同じ規約です: <code>save_model</code>/<code>load_model</code>
+はファイルパス、または（<code>load_model</code> のみ）<code>file://</code>/<code>http(s)://</code> の URI
+に対応します（後者は <code>remote_model</code> フィーチャが必要）。
+<code>*_to_writer</code>/<code>*_from_reader</code> 系は任意の writer/reader に対応します。
+空の learner（語彙エントリが無い、またはどちらかの内部 learner が
+未学習）の保存は <code>LitseaError::InvalidInput</code> を返します。
+読み込みはファイル構造全体を検証します（オンディスクのレイアウトは
+<a href="../advanced/model-file-format.html">モデルファイル形式</a> を参照）。
+不正な内容は <code>LitseaError::InvalidData</code> で拒否され、読み込みエラー時に
+learner は変更されません。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
 
-Copyright (c) 2025 Minoru OSUKA
-Copyright (c) 2022 ICHINOSE Shogo
-</code></pre>
-<h2 id="bsd-3-clause-license"><a class="header" href="#bsd-3-clause-license">BSD 3-Clause License</a></h2>
-<p>Code originally developed by Taku Kudo (TinySegmenter) is licensed under the BSD 3-Clause License:</p>
-<pre><code class="language-text">Copyright (c) 2008, Taku Kudo
-All rights reserved.
-</code></pre>
-<h2 id="full-license-text"><a class="header" href="#full-license-text">Full License Text</a></h2>
-<p>The complete license text is available in the <a href="https://github.com/mosuka/litsea/blob/main/LICENSE">LICENSE</a> file in the repository.</p>
+use litsea::two_stage::TwoStageLearner;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+<span class="boring">}</span></code></pre>
+<h3 id="アクセサ"><a class="header" href="#アクセサ">アクセサ</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn stage1(&amp;self) -&gt; &amp;AdaBoost
+pub fn stage2(&amp;self) -&gt; &amp;AveragedPerceptron
+pub fn dominance(&amp;self) -&gt; f64
+pub fn lexicon_len(&amp;self) -&gt; usize
+pub fn lexicon_entry(&amp;self, surface: &amp;str) -&gt; Option&lt;&amp;[(Upos, u32)]&gt;
+<span class="boring">}</span></code></pre>
+<p><code>dominance</code> は分類器スキップの閾値です: 推論時、あるサーフェスの
+最頻タグが学習時出現の少なくともこの割合を占める場合、stage-2
+分類器を一切呼び出さずにタグ付けします。<code>lexicon_entry</code> は
+学習中に観測されたサーフェスの候補タグを頻度降順で返し、
+一度も観測されていないサーフェスには <code>None</code> を返します。</p>
+<p>実際に推論を実行するには、<code>TwoStageLearner</code> を直接呼び出すのではなく
+<a href="segmenter.html#with_two_stage_learner"><code>Segmenter::with_two_stage_learner</code></a>
+経由で <code>Segmenter</code> にインストールしてください——segmenter がこれを
+高速ルックアップ用の packed スコアリングテーブルへコンパイルします。</p>
+<h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset"><code>TwoStageFeatureSet</code></a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[non_exhaustive]
+pub enum TwoStageFeatureSet {
+    Full,
+    Balanced,
+    #[default]
+    Fast,
+}
+<span class="boring">}</span></code></pre>
+<p><a href="extractor.html#extract_two_stage"><code>Extractor::extract_two_stage</code></a> が書き出す
+23 個の単語レベル stage-2 テンプレート（<a href="../algorithm/feature-extraction.html">特徴量抽出</a>
+参照）のうちどれを使うかを選択します。<code>Fast</code>（既定値）は計測済みの
+最小セット——サーフェス、単語長、先頭/末尾文字タイプ、隣接文脈文字＋
+タイプ、2文字プレフィックス/サフィックス。<code>Balanced</code> はこれに
+先頭/末尾文字そのものと単語タイプコード文字列を追加します。<code>Full</code> は
+全テンプレートを含みます。分割精度は 3 セットとも同一です（stage-1 が
+決定するため）——変わるのはタグ付け精度とスループットのみです。
+3 セットの相対的な順序（正確な数値ではありません——この型自身の
+rustdoc に記載の数値は、同梱モデルとは異なるエポック数で計測した
+初期プロトタイプのものです）についてはこの型自身の rustdoc を、
+同梱モデルの現在の実測値は <a href="../pre-trained-models.html">学習済みモデル</a>
+を参照してください。</p>
+<p><code>FromStr</code>（大文字小文字を区別しない: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>）と
+<code>Display</code>（小文字）を実装しています。<code>#[non_exhaustive]</code> が付与されて
+おり、外部の <code>match</code> 式にはワイルドカードアームが必要です。</p>
+<h2 id="anyposmodel-と-modelkind"><a class="header" href="#anyposmodel-と-modelkind"><code>AnyPosModel</code> と <code>ModelKind</code></a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum ModelKind {
+    AdaBoost,
+    AveragedPerceptron,
+    TwoStage,
+}
+
+pub enum AnyPosModel {
+    Joint(Box&lt;AveragedPerceptron&gt;),
+    TwoStage(Box&lt;TwoStageLearner&gt;),
+}
+<span class="boring">}</span></code></pre>
+<p><code>ModelKind::detect(content: &amp;str) -&gt; ModelKind</code> はモデルファイルの
+1行目を調べて形式を判別します——これは判別のためのヒューリスティックで
+あり完全な検証ではありません。実際の検証は対応するローダーが行います。</p>
+<p><code>AnyPosModel::load(uri: &amp;str) -&gt; Result&lt;Self&gt;</code> は joint モデルと
+二段構成モデルのどちらも受け付けるコードのための単一フェッチ
+エントリポイントです（<code>litsea segment --pos</code> と <code>litsea evaluate --pos</code>
+が実際に使用しています）: モデルバイト列を一度だけ取得し、種類を
+判別してから対応するローダーで解析します。ファイルがプレーンな
+AdaBoost 分割モデル（タグ付け不可）の場合、バイト列が有効な UTF-8 で
+ない場合、判別された形式の解析に失敗した場合はいずれも
+<code>LitseaError::InvalidData</code> を返します。</p>
+<p><code>AnyPosModel::into_segmenter(self, language: Language) -&gt; Segmenter</code> は
+対応する <code>Segmenter</code> を構築します——<code>Joint</code> には <code>with_pos_learner</code>、
+<code>TwoStage</code> には <code>with_two_stage_learner</code>——呼び出し側がモデル種別で
+分岐する必要はありません:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::Language;
+use litsea::two_stage::AnyPosModel;
+
+let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
+let segmenter = model.into_segmenter(Language::Japanese);
+let tagged = segmenter.segment_with_pos("これはテストです。")?;
+// ファイルが joint モデルでも二段構成モデルでも同じように動作します。
+<span class="boring">}</span></code></pre>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="pre-trained-models.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../litsea/evaluation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
+                            <a rel="next prefetch" href="../litsea-cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
 
                         <div style="clear: both"></div>
                     </nav>
@@ -212,10 +352,13 @@ All rights reserved.
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="pre-trained-models.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../litsea/evaluation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
+                    <a rel="next prefetch" href="../litsea-cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
             </nav>
 
         </div>
@@ -233,17 +376,17 @@ All rights reserved.
         </script>
 
 
-        <script src="elasticlunr-ef4e11c1.min.js"></script>
-        <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-09f2665d.js"></script>
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
-        <script src="clipboard-1626706a.min.js"></script>
-        <script src="highlight-abc7f01d.js"></script>
-        <script src="book-609e4cb8.js"></script>
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
-        <script src="mermaid-eefea253.min.js"></script>
-        <script src="mermaid-init-ccf746f1.js"></script>
+        <script src="../mermaid-eefea253.min.js"></script>
+        <script src="../mermaid-init-ccf746f1.js"></script>
 
 
 

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -236,14 +236,17 @@
 <p>This allows you to stop long-running training sessions without losing progress.</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <p>Basic training:</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
+<p>This is a generic plain-AdaBoost example. The bundled <code>japanese.model</code>,
+<code>chinese.model</code>, and <code>korean.model</code> use a different procedure – see
+<a href="../pre-trained-models.html#training-procedure">Training Procedure</a>.</p>
 <p>Training with higher precision (lower threshold, more iterations):</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>Retraining from an existing model:</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/japanese.model \
-    ./new_features.txt ./models/japanese_v2.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/my_model.model \
+    ./new_features.txt ./models/my_model_v2.model
 </code></pre>
 <h2 id="hyperparameter-tuning"><a class="header" href="#hyperparameter-tuning">Hyperparameter Tuning</a></h2>
 <div class="table-wrapper">
@@ -318,12 +321,12 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 </code></pre>
 <h3 id="output-2"><a class="header" href="#output-2">Output</a></h3>
 <pre><code class="language-text">Result Metrics (Two-Stage):
-  Stage 1 (boundary) Accuracy: 99.36% ( 277213 )
-  Stage 1 Macro Precision: 99.30%
-  Stage 1 Macro Recall: 99.35%
-  Stage 2 (tagging) Accuracy: 98.53% ( 168333 )
-  Stage 2 Macro Precision: 98.39%
-  Stage 2 Macro Recall: 97.59%
+  Stage 1 (boundary) Accuracy: 99.86% ( 277213 )
+  Stage 1 Macro Precision: 99.85%
+  Stage 1 Macro Recall: 99.86%
+  Stage 2 (tagging) Accuracy: 99.09% ( 168333 )
+  Stage 2 Macro Precision: 98.96%
+  Stage 2 Macro Recall: 98.77%
 </code></pre>
 <p>As with the other modes, these are in-sample metrics; evaluate on held-out
 text with <code>litsea evaluate --pos</code> for a realistic quality estimate. <code>segment --pos</code> and <code>evaluate --pos</code> auto-detect a two-stage model from its file

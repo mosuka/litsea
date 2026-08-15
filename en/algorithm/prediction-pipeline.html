@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -281,6 +281,15 @@ the static pass.</li>
 <p>Model features that the segmenter’s language could never generate (for
 example Korean type codes in a Japanese segmenter) are omitted from all
 tables; they are unreachable at scoring time, so scores are unaffected.</p>
+<p>This table and its four consumers cover the character-level (stage-1 /
+AdaBoost / joint) feature set only. <a href="two-stage-tagging.html">Two-stage POS
+tagging</a>’s stage-2 word tagger is compiled from a
+separate, parallel declarative table (<code>litsea::word_features</code>, 23
+word-level templates) into its own runtime,
+<code>packed_two_stage::PackedTwoStageModel</code> – see <a href="feature-extraction.html#word-level-feature-templates-two-stage">Feature
+Extraction</a>
+for its template catalog and the section below for how it fits into
+<code>segment_with_pos</code>.</p>
 <h3 id="output-equivalence"><a class="header" href="#output-equivalence">Output Equivalence</a></h3>
 <p>Scoring accumulates in two-pass order, which differs from the historical
 string-keyed accumulation order, so the <code>f64</code> sums are no longer
@@ -324,6 +333,19 @@ allocation each.</li>
 as the oracle for exact-equality differential tests, which measure zero
 output divergence across all bundled POS models, stress strings, and a
 real-text corpus – the same guarantee net as <code>segment()</code>’s.</p>
+<h3 id="two-stage-mode-takes-a-different-path"><a class="header" href="#two-stage-mode-takes-a-different-path">Two-Stage Mode Takes a Different Path</a></h3>
+<p>Everything above describes <code>segment_with_pos</code> when the segmenter was built
+with a joint (<code>AveragedPerceptron</code>) POS learner. When it was instead built
+with <a href="../litsea/segmenter.html#with_two_stage_learner"><code>with_two_stage_learner</code></a>,
+<code>segment_with_pos</code> checks for the two-stage learner <strong>first</strong> and, if one
+is set, never runs the packed-perceptron path above at all: it segments
+with the ordinary <code>segment()</code> boundary path, then tags each resulting word
+through <code>packed_two_stage::PackedTwoStageModel::tag_words</code> – a
+candidate-tag lexicon lookup, with a masked-argmax fallback for ambiguous
+known words and a full-argmax fallback for unknown words. See <a href="two-stage-tagging.html">Two-Stage
+vs. Joint Tagging</a> for the full explanation of that
+pipeline and why it is faster than the per-character multiclass scoring
+above.</p>
 <h2 id="training-vs-prediction"><a class="header" href="#training-vs-prediction">Training vs. Prediction</a></h2>
 <div class="table-wrapper">
 <table>

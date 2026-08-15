@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,11 +191,15 @@
     upos["upos.rs&lt;br/&gt;UPOSタグとラベル"]
     extractor["extractor.rs&lt;br/&gt;特徴量抽出"]
     trainer["trainer.rs&lt;br/&gt;学習オーケストレーション"]
+    two_stage["two_stage.rs&lt;br/&gt;二段構成モデルのコンテナ"]
+    word_features["word_features.rs（非公開）&lt;br/&gt;stage-2 単語特徴テンプレート"]
     packed_model["packed_model.rs（非公開）&lt;br/&gt;特徴テンプレート + packed AdaBoost テーブル"]
     packed_pos_model["packed_pos_model.rs（非公開）&lt;br/&gt;packed パーセプトロンテーブル（品詞）"]
+    packed_two_stage["packed_two_stage.rs（非公開）&lt;br/&gt;packed 二段構成タグ付けテーブル"]
     model_io["model_io.rs（非公開）&lt;br/&gt;モデルURI読み込み"]
     error["error.rs&lt;br/&gt;LitseaError / Result"]
-    metrics["metrics.rs&lt;br/&gt;評価指標"]
+    metrics["metrics.rs&lt;br/&gt;評価指標（in-sample）"]
+    evaluation["evaluation.rs&lt;br/&gt;held-out 品質指標"]
 
     language --&gt; segmenter
     upos --&gt; segmenter
@@ -203,15 +207,31 @@
     perceptron --&gt; segmenter
     packed_model --&gt; segmenter
     packed_pos_model --&gt; segmenter
+    packed_two_stage --&gt; segmenter
+    two_stage --&gt; segmenter
     packed_model --&gt; packed_pos_model
     segmenter --&gt; extractor
+    two_stage --&gt; extractor
+    word_features --&gt; extractor
+    evaluation --&gt; extractor
     adaboost --&gt; trainer
     perceptron --&gt; trainer
+    two_stage --&gt; trainer
+    adaboost --&gt; two_stage
+    perceptron --&gt; two_stage
+    upos --&gt; two_stage
+    language --&gt; word_features
+    word_features --&gt; packed_two_stage
+    language --&gt; packed_two_stage
+    perceptron --&gt; packed_two_stage
+    upos --&gt; packed_two_stage
     model_io --&gt; adaboost
     model_io --&gt; perceptron
     error --&gt; adaboost
     error --&gt; perceptron
     metrics --&gt; trainer
+    segmenter --&gt; evaluation
+    upos --&gt; evaluation
 </code></pre>
 <h2 id="モジュール詳細"><a class="header" href="#モジュール詳細">モジュール詳細</a></h2>
 <h3 id="languagers--言語定義"><a class="header" href="#languagers--言語定義"><code>language.rs</code> – 言語定義</a></h3>
@@ -228,16 +248,17 @@
 <h3 id="segmenterrs--単語分割と品詞付与"><a class="header" href="#segmenterrs--単語分割と品詞付与"><code>segmenter.rs</code> – 単語分割と品詞付与</a></h3>
 <p>主要なユーザー向けモジュールです。</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）
+<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）。加えて、オプションの二段構成状態（<code>Option&lt;TwoStageState&gt;</code>。<code>with_two_stage_learner</code> で設定）と、<code>segment()</code> / <code>segment_with_pos()</code> が使うコンパイル済みスコアリングテーブルの内部キャッシュ（<code>packed</code>・<code>packed_pos</code>・<code>packed_two_stage</code>）も保持する
 <ul>
 <li><code>new(language)</code> – デフォルト（空）の AdaBoost 学習器付きでセグメンターを作成</li>
 <li><code>with_learner(language, learner)</code> – 設定済みの AdaBoost 学習器（例: 学習済みモデルを読み込んだもの）付きでセグメンターを作成</li>
 <li><code>with_pos_learner(language, pos_learner)</code> – 分割+品詞付与用のセグメンターを作成</li>
+<li><code>with_two_stage_learner(language, learner)</code> – <code>TwoStageLearner</code> から二段構成の分割+品詞付与用セグメンターを作成</li>
 <li><code>segment(sentence)</code> – テキストを単語に分割し <code>Vec&lt;String&gt;</code> を返す</li>
-<li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> を返す（POS 学習器が未設定の場合は <code>PosLearnerNotSet</code>）</li>
+<li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> を返す（POS 学習器・二段構成学習器のいずれも未設定の場合は <code>PosLearnerNotSet</code>）</li>
 <li><code>char_type(ch)</code> – 1文字を種別コードに分類</li>
-<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – 学習データを追加</li>
-<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – 学習データを追加（それぞれ空白区切り・品詞付き・タブ区切り/空白保持。後者は韓国語で使用、issue #152 を参照）</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
 </ul>
 </li>
 </ul>
@@ -284,7 +305,9 @@
 <ul>
 <li><code>new(language)</code> – 言語を指定して作成</li>
 <li><code>extract(corpus_path, features_path)</code> – コーパスを読み、特徴量ファイルを書き出す</li>
+<li><code>extract_tsv(corpus_path, features_path)</code> – タブ区切り・空白保持コーパス版（issue #152、韓国語で使用）</li>
 <li><code>extract_with_pos(corpus_path, features_path)</code> – 品詞付きコーパス版</li>
+<li><code>extract_two_stage(corpus_path, output_prefix, feature_set)</code> – 品詞付きコーパスから二段構成の学習特徴量（issue #147）を抽出: <code>{output_prefix}.stage1</code>（境界特徴量）、<code>.stage2</code>（単語レベル特徴量）、<code>.lexicon</code> を書き出す</li>
 </ul>
 </li>
 </ul>
@@ -303,6 +326,19 @@
 <li><code>new(num_epochs, features_path)</code> / <code>load_model(uri)</code> / <code>train(running, model_path)</code>（<code>MulticlassMetrics</code> を返す）</li>
 </ul>
 </li>
+<li><strong><code>TwoStageTrainer</code></strong> – 二段構成モデルの学習（issue #147）: <code>Extractor::extract_two_stage</code> が書き出したファイルから stage-1 境界分類器（<code>AveragedPerceptron</code>）と stage-2 単語タガーを学習し、stage-1 を AdaBoost 形式へ畳み込んでから <code>TwoStageLearner</code> を組み立てる
+<ul>
+<li><code>new(num_epochs, dominance, features_prefix)</code> / <code>train(running, model_path)</code>（<code>TwoStageMetrics</code> を返す。完全な API は<a href="../litsea/trainer.html">Trainer</a>を参照）</li>
+</ul>
+</li>
+<li><strong><code>TwoStageMetrics</code></strong> – <code>TwoStageTrainer::train</code> 実行のステージごとの <code>MulticlassMetrics</code>（<code>stage1</code>・<code>stage2</code>）</li>
+</ul>
+<h3 id="two_stagers--二段構成モデルのコンテナ"><a class="header" href="#two_stagers--二段構成モデルのコンテナ"><code>two_stage.rs</code> – 二段構成モデルのコンテナ</a></h3>
+<p><code>litsea-two-stage v1</code> ファイル形式（<a href="../advanced/model-file-format.html">モデルファイル形式</a>を参照）と、二段構成モデルをメモリ上に保持する型を定義します（issue #147）。</p>
+<ul>
+<li><strong><code>TwoStageLearner</code></strong> – stage-1 境界 <code>AdaBoost</code> モデル、stage-2 <code>AveragedPerceptron</code> 単語タガー、候補タグ語彙表（lexicon）をまとめる。<code>new()</code> / <code>from_parts(...)</code> / <code>load_model_from_path(path)</code> / <code>save_model(path)</code> は単一学習器の各型と同様の API</li>
+<li><strong><code>TwoStageFeatureSet</code></strong> – stage-2 の単語レベルテンプレート部分集合を選択する enum（<code>Fast</code>、<code>Balanced</code>、<code>Full</code>）</li>
+<li><strong><code>AnyPosModel</code></strong> / <strong><code>ModelKind</code></strong> – モデルファイルが joint（<code>AveragedPerceptron</code>）か二段構成かを自動判定してディスパッチする。<code>AnyPosModel::load(uri)</code>（async）はどちらの種類も読み込め、<code>into_segmenter(language)</code> は対応する <code>Segmenter</code>（<code>with_pos_learner</code> または <code>with_two_stage_learner</code> 経由）を構築する</li>
 </ul>
 <h3 id="errorrs--エラー処理"><a class="header" href="#errorrs--エラー処理"><code>error.rs</code> – エラー処理</a></h3>
 <ul>
@@ -314,10 +350,22 @@
 <li><strong><code>BinaryMetrics</code></strong> – 正解率・適合率・再現率・混同行列（AdaBoost）</li>
 <li><strong><code>MulticlassMetrics</code></strong> – 正解率とマクロ平均適合率/再現率（Averaged Perceptron）</li>
 </ul>
+<h3 id="evaluationrs--held-out-評価指標"><a class="header" href="#evaluationrs--held-out-評価指標"><code>evaluation.rs</code> – held-out 評価指標</a></h3>
+<p><code>metrics.rs</code> が in-sample 品質（<code>train</code> が出力する、学習データそのもので測った指標）を報告するのに対し、このモジュールは held-out 品質を計算します: 文字オフセットのスパンを使って <code>Segmenter</code> の出力を gold コーパスと比較するため、文中の他の箇所のトークン化の違いに関わらず、予測トークンと gold トークンを正確に対応付けられます。</p>
+<ul>
+<li><strong><code>SegmentationMetrics</code></strong> – 単語分割の単語/境界の適合率・再現率・F1。<code>evaluate_segmentation(segmenter, gold)</code> が生成</li>
+<li><strong><code>PosMetrics</code></strong> – <code>SegmentationMetrics</code> に加え、タグ付き単語の適合率・再現率・F1 を保持。<code>evaluate_pos(segmenter, gold)</code> が生成（失敗しうる: <code>segment_with_pos</code> のエラーを伝播）</li>
+<li><strong><code>parse_gold_line(line, tsv)</code></strong> / <strong><code>parse_gold_pos_line(line)</code></strong> – gold コーパスの行をトークン列にパース（プレーンまたは品詞付き）。二段構成の extractor・trainer からも使用される</li>
+<li>CLI の <code>litsea evaluate</code> サブコマンドを支える</li>
+</ul>
 <h3 id="packed_modelrs--特徴テンプレートと-packed-adaboost-テーブル非公開"><a class="header" href="#packed_modelrs--特徴テンプレートと-packed-adaboost-テーブル非公開"><code>packed_model.rs</code> – 特徴テンプレートと packed AdaBoost テーブル（非公開）</a></h3>
 <p>宣言的な特徴テンプレートテーブル（<code>TEMPLATES</code>。全特徴量コンシューマの単一の真実の源）、モデルの特徴量文字列を packed 整数キーへ変換するロード時パーサ、そして <code>segment()</code> の 2 パススコアラーが読むマージ/密テーブルへ AdaBoost の重みをコンパイルした <code>PackedModel</code> を保持する内部モジュールです。公開APIには含まれません。</p>
 <h3 id="packed_pos_modelrs--packed-パーセプトロンテーブル非公開"><a class="header" href="#packed_pos_modelrs--packed-パーセプトロンテーブル非公開"><code>packed_pos_model.rs</code> – packed パーセプトロンテーブル（非公開）</a></h3>
 <p><code>PackedModel</code> の多クラス版となる内部モジュールです（issue #143）。Averaged Perceptron のクラス別重み行を同じ 2 パステーブル構造（文字を含むファミリーはスパースな <code>(クラス, 重み)</code> 行、タグ/文字種のみのテンプレートは密行 + presence ビットセット、事前パース済み <code>SegmentLabel</code>）へコンパイルし、<code>segment_with_pos()</code> が読み取ります。公開APIには含まれません。</p>
+<h3 id="packed_two_stagers--packed-二段構成タグ付けテーブル非公開"><a class="header" href="#packed_two_stagers--packed-二段構成タグ付けテーブル非公開"><code>packed_two_stage.rs</code> – packed 二段構成タグ付けテーブル（非公開）</a></h3>
+<p><code>TwoStageLearner</code> の stage-2 タガーと語彙表を、<code>segment_with_pos()</code> の二段構成パスが読む密/疎スコアリングテーブルへコンパイルする内部モジュールです。<code>packed_model.rs</code> / <code>packed_pos_model.rs</code> が AdaBoost と joint パーセプトロンに対して行っていることの二段構成版に相当します: 語彙表とドミナンススキップ対象タグをカバーするサーフェスマップ、<code>word_features.rs</code> 由来の文字を含む単語特徴テンプレート用のクラス別スパース行、文字種・単語長テンプレート用の密テーブル、から構成されます。公開APIには含まれません。</p>
+<h3 id="word_featuresrs--stage-2-単語特徴テンプレート非公開"><a class="header" href="#word_featuresrs--stage-2-単語特徴テンプレート非公開"><code>word_features.rs</code> – stage-2 単語特徴テンプレート（非公開）</a></h3>
+<p>二段構成タガーの stage-2 が使う単語レベルの特徴テンプレート（表層、単語長、先頭/末尾文字とその文字種、文脈文字/文字種/バイグラムなど）を定義する内部モジュールです。テンプレート集合の単一の真実の源であり、学習用の extractor（<code>extract_two_stage</code> 経由）が <code>write_word_features</code> で特徴量文字列を書き出し、<code>packed_two_stage.rs</code> が <code>parse_word_feature</code> で同じ文字列を整数キーへ逆変換します。両者はラウンドトリップテストで整合性が固定されています。公開APIには含まれません。</p>
 <h3 id="model_iors--モデル読み込みio非公開"><a class="header" href="#model_iors--モデル読み込みio非公開"><code>model_io.rs</code> – モデル読み込みI/O（非公開）</a></h3>
 <p>モデルURI（プレーンパス、<code>file://</code>、<code>remote_model</code> フィーチャー時の <code>http(s)://</code>）を解決して生のモデルバイト列を返す内部モジュールです。公開APIには含まれません。</p>
 <h2 id="公開エクスポート"><a class="header" href="#公開エクスポート">公開エクスポート</a></h2>
@@ -326,25 +374,33 @@
 </span><span class="boring">fn main() {
 </span>pub mod adaboost;
 pub mod error;
+pub mod evaluation;
 pub mod extractor;
 pub mod language;
 pub mod metrics;
 mod model_io;
 mod packed_model;
 mod packed_pos_model;
+mod packed_two_stage;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
+pub mod two_stage;
 pub mod upos;
+mod word_features;
 
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
+pub use evaluation::{PosMetrics, SegmentationMetrics};
 pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
-pub use trainer::{PosTrainer, Trainer};
+pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
+pub use two_stage::{
+    AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
+};
 pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 pub fn version() -&gt; &amp;'static str { ... }

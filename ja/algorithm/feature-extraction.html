@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="特徴量抽出"><a class="header" href="#特徴量抽出">特徴量抽出</a></h1>
-<p>Litsea は、各単語境界候補の周辺の局所的なコンテキストを捉えるために文字 n-gram 特徴量を使用します。本章ではすべての特徴量タイプをカタログ化します。</p>
+<p>Litsea は、各単語境界候補の周辺の局所的なコンテキストを捉えるために文字 n-gram 特徴量を使用します。本章では、AdaBoost・joint・二段構成 stage-1 パイプラインが共有する文字レベルの境界テンプレートと、二段構成の stage-2 タガーが使用する単語レベルのテンプレートの両方を含む、すべての特徴量タイプをカタログ化します。</p>
 <h2 id="特徴量カテゴリ"><a class="header" href="#特徴量カテゴリ">特徴量カテゴリ</a></h2>
 <p>入力の各文字位置 <em>i</em> について、セグメンタは文字、その種別コード、および前回の境界判定からなるスライディングウィンドウから特徴量を抽出します。</p>
 <h3 id="基本特徴量38-個"><a class="header" href="#基本特徴量38-個">基本特徴量（38 個）</a></h3>
@@ -288,6 +288,29 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li>ラベル（境界の場合 <code>1</code>、非境界の場合 <code>-1</code>）</li>
 <li>タブ区切りの特徴量文字列。アルファベット順にソートされた順序（テンプレートの出力順ではない）で書き出されるため、各行は <code>BC1:</code> 特徴量から始まる</li>
 </ol>
+<h2 id="単語単位の特徴量テンプレート二段構成"><a class="header" href="#単語単位の特徴量テンプレート二段構成">単語単位の特徴量テンプレート（二段構成）</a></h2>
+<p>ここまでは、各境界判定ごとに採点される文字レベルのテンプレート集合です。<a href="two-stage-tagging.html">二段構成の品詞タグ付け</a>の stage-2 単語タガーは、これとは別の無関係なテンプレート集合を採点します。これは <code>litsea::word_features</code>（<code>N_WORD_TEMPLATES = 23</code>）で定義されており、文字位置ごとではなく、すでに分割済みの<strong>単語</strong>ごとに1行の特徴量を生成します。上記の <code>packed_model::TEMPLATES</code> とは別の宣言的テーブルであり、専用のランタイム <code>packed_two_stage::PackedTwoStageModel</code> へコンパイルされます（<a href="prediction-pipeline.html#コンパイル済みスコアリングテーブル">予測パイプライン</a>を参照）。</p>
+<p>文中の <code>[start, end)</code> の範囲にまたがる単語（<code>w</code> = 表層、<code>n = end - start</code>）について:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プレフィックス</th><th>値</th><th>表現</th></tr>
+</thead>
+<tbody>
+<tr><td><code>WS</code></td><td>単語の表層そのもの</td><td>ハッシュ化文字列</td></tr>
+<tr><td><code>WL</code></td><td><code>min(n, 4)</code></td><td>密配列（単語長）</td></tr>
+<tr><td><code>FC</code> / <code>LC</code></td><td>先頭 / 末尾の文字</td><td>ハッシュ化文字</td></tr>
+<tr><td><code>ft</code> / <code>lt</code></td><td>先頭 / 末尾の文字の文字種コード</td><td>密配列（文字種）</td></tr>
+<tr><td><code>TS</code></td><td>先頭最大8文字の文字種コード列</td><td>ハッシュ化文字列</td></tr>
+<tr><td><code>L1</code>-<code>L3</code> / <code>R1</code>-<code>R3</code></td><td>左/右に距離1-3の文脈文字</td><td>ハッシュ化文字</td></tr>
+<tr><td><code>cl1</code>-<code>cl3</code> / <code>cr1</code>-<code>cr3</code></td><td>距離1-3の文脈文字種</td><td>密配列（文字種）</td></tr>
+<tr><td><code>LB</code> / <code>RB</code></td><td>文脈バイグラム（左は距離2+1、右は距離1+2）</td><td>ハッシュ化ペア</td></tr>
+<tr><td><code>P2</code> / <code>S2</code></td><td>先頭 / 末尾の2文字（<code>n &gt;= 2</code> の単語のみ）</td><td>ハッシュ化ペア</td></tr>
+</tbody>
+</table>
+</div>
+<p>合計23個のテンプレートです。文の範囲外の文脈位置には、文字レベルパイプラインの <code>B1</code>-<code>B3</code> / <code>E1</code>-<code>E3</code> パディング（上記参照）と同様に、開始/終了センチネル文字が使用されます。</p>
+<p>すべてのテンプレートが毎回の抽出で書き出されるわけではありません。<code>.stage2</code> 特徴量ファイルにどのサブセットが含まれるかは、抽出時の <code>TwoStageFeatureSet</code>（<code>full</code> / <code>balanced</code> / <code>fast</code>）によって制御されます – CLI フラグと各バリアントに含まれるテンプレートについては<a href="../training-guide/extracting-features.html#二段構成の特徴量抽出">特徴量の抽出</a>を参照してください。</p>
 
                     </main>
 

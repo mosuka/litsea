@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-16e63408.js";
+            window.path_to_searchindex_js = "searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ef307d1e.js"></script>
+        <script src="toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,9 +196,8 @@
 <li><a href="training-guide/training-models.html">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.model</code></li>
 </ol>
 <h2 id="言語ごとの違い"><a class="header" href="#言語ごとの違い">言語ごとの違い</a></h2>
-<p>パイプライン（準備 → 抽出 → 学習）、スクリプト、学習ハイパーパラメータ
-（同梱モデルは <code>-t 0.0001 -i 20000</code>）は 3 言語で共通です。言語固有なのは
-次の 2 点だけです:</p>
+<p>パイプライン（準備 → 抽出 → 学習）とスクリプトは 3 言語で共通です。
+言語固有なのは次の 2 点だけです:</p>
 <ol>
 <li><strong><code>extract</code> の <code>-l</code> フラグ</strong> — 言語別の文字種分類を選択します（日本語 8 種、
 中国語 9 種、韓国語 10 種。韓国語は WC 特徴を使いません —
@@ -218,7 +217,13 @@ litsea extract -l japanese corpus.txt features.txt
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l korean --format tsv corpus.tsv features.txt
 </code></pre>
-<p><code>train</code> ステップは 3 言語とも同一です。</p>
+<p><code>train</code> ステップのコマンドの形は 3 言語とも同一ですが、実際に使う
+ハイパーパラメータは異なります。<code>litsea train</code> でゼロから通常の AdaBoost
+モデルを学習する場合、<code>-t 0.0001 -i 20000</code>（<a href="training-guide/training-models.html">モデルの学習</a>を参照）は
+良い出発点ですが、これは同梱の <code>japanese</code>/<code>chinese</code>/<code>korean</code> モデルが
+使っている値ではありません。それらのモデルは言語ごとに異なるエポック数と
+剪定を伴う別の手順で学習されています。実際の手順は
+<a href="pre-trained-models.html#学習手順">学習手順</a>を参照してください。</p>
 <h2 id="その他のトピック"><a class="header" href="#その他のトピック">その他のトピック</a></h2>
 <ul>
 <li><a href="training-guide/evaluating-models.html">モデルの評価</a> – モデル品質の評価</li>

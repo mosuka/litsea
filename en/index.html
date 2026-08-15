@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ffba73c1.js"></script>
+        <script src="toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,9 +186,10 @@
 <h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
 <ul>
 <li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
-<li><strong>Compact pre-trained models</strong> – model files are only a few kilobytes in size</li>
+<li><strong>Compact pre-trained models</strong> – the legacy <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> files are kilobyte-scale; the quality-optimized <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> files are 110 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP</li>
 <li><strong>No dictionary dependency</strong> – segmentation is driven entirely by a statistical model</li>
 <li><strong>POS tagging</strong> – joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron</li>
+<li><strong>Two-stage POS tagging</strong> – a faster architecture that segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, at 1.8-2.8x the throughput of joint tagging</li>
 <li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), and Korean</li>
 <li><strong>Model training capabilities</strong> – train custom models using AdaBoost or Averaged Perceptron with your own corpora</li>
 <li><strong>Remote model loading</strong> – load models from HTTP/HTTPS URLs (opt-in <code>remote_model</code> feature) or local files</li>
@@ -215,7 +216,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>
 <h2 id="current-version"><a class="header" href="#current-version">Current Version</a></h2>
-<p>Litsea v0.8.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
+<p>Litsea v0.11.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
 <h2 id="links"><a class="header" href="#links">Links</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub Repository</a></li>

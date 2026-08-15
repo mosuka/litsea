@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-16e63408.js";
+            window.path_to_searchindex_js = "searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ef307d1e.js"></script>
+        <script src="toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,9 +186,10 @@
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
-<li><strong>コンパクトな学習済みモデル</strong> – モデルファイルはわずか数キロバイト</li>
+<li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> は 110 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
 <li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
 <li><strong>品詞推定（POS Tagging）</strong> – Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定</li>
+<li><strong>二段構成の品詞推定</strong> – 境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによるタグ付けを組み合わせた、より高速なアーキテクチャ。joint 方式比で 1.8-2.8 倍のスループット</li>
 <li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
 <li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
 <li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL（オプトインの <code>remote_model</code> フィーチャー）またはローカルファイルからモデルを読み込み</li>
@@ -215,7 +216,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="名前の由来"><a class="header" href="#名前の由来">名前の由来</a></h2>
 <p>クスノキ科には <em>Lindera</em>（クロモジ）と同じ科に属する <em>Litsea cubeba</em>（アオモジ）という小さな植物があります。これが <strong>Litsea</strong> という名前の由来です。</p>
 <h2 id="現在のバージョン"><a class="header" href="#現在のバージョン">現在のバージョン</a></h2>
-<p>Litsea v0.8.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
+<p>Litsea v0.11.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
 <h2 id="リンク"><a class="header" href="#リンク">リンク</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub リポジトリ</a></li>

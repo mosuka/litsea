@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -267,6 +267,18 @@ bias_value
 <p>Malformed files (empty, truncated before the bias line, duplicate bias lines or
 features, non-finite weights) are rejected at load time. See
 <a href="../advanced/model-file-format.html">Model File Format</a> for details.</p>
+<blockquote>
+<p><strong>This page describes the AdaBoost <em>training algorithm</em>.</strong> The file
+format above is also how litsea stores the three bundled segmentation
+models (<code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>) – but as of
+issue #165, those are no longer produced by boosting. They are trained
+as a 2-class Averaged Perceptron and losslessly collapsed into this same
+scalar-weight format (see <a href="../pre-trained-models.html#training-procedure">Pre-trained
+Models</a> for the collapse
+procedure). Any file <code>AdaBoost::load_model</code> can read is a valid instance
+of this format, but that does not mean it was actually produced by the
+boosting loop described above.</p>
+</blockquote>
 <h2 id="hyperparameters"><a class="header" href="#hyperparameters">Hyperparameters</a></h2>
 <div class="table-wrapper">
 <table>

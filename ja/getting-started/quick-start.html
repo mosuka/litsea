@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -206,6 +206,12 @@
 <pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p>各トークンには <a href="https://universaldependencies.org/u/pos/">Universal POS（UPOS）</a> タグが付与されます。</p>
+<h3 id="二段構成の品詞推定付き分割"><a class="header" href="#二段構成の品詞推定付き分割">二段構成の品詞推定付き分割</a></h3>
+<p>Litsea には、より高速な<a href="../algorithm/two-stage-tagging.html">二段構成</a>の品詞推定アーキテクチャも同梱されています。CLI はファイルからモデルの種類を自動判定するため、コマンドはモデルファイル名以外は上の joint の例と同じです:</p>
+<pre><code class="language-sh">echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+</code></pre>
+<p>出力の形式は joint の例と同じです。新規に使う場合は<a href="../pre-trained-models.html#モデルの選択">事前学習済みモデル</a>で推奨されている二段構成モデルの利用を検討してください。</p>
 <h2 id="ライブラリ-クイックスタート"><a class="header" href="#ライブラリ-クイックスタート">ライブラリ クイックスタート</a></h2>
 <p>モデルを読み込みテキストを分割する最小限の Rust プログラムです:</p>
 <pre class="playground"><code class="language-rust">use std::path::Path;

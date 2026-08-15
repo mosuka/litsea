@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -307,6 +307,89 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }</code></pre>
+<h2 id="twostagetrainer"><a class="header" href="#twostagetrainer">TwoStageTrainer</a></h2>
+<p><code>TwoStageTrainer</code> は<a href="../algorithm/two-stage-tagging.html">二段構成モデル</a>
+（issue #147）を学習します: 二値の境界分類器（stage 1）と単語単位の
+マルチクラスタガー（stage 2）を、いずれも <strong>Averaged Perceptron</strong> として
+学習し、候補タグ語彙表とともに単一の <code>litsea-two-stage v1</code> ファイルに
+組み立てます。学習後、stage 1 は既存の AdaBoost 形式のスカラー特徴量重みに
+畳み込まれます（品質を損なわない変換 – 導出はこのモジュールのソース
+ドキュメントを参照）。これによりランタイムは通常の <code>segment()</code> モデルと
+全く同じ方法で採点します。<code>TwoStageTrainer</code> と <code>TwoStageMetrics</code> はどちらも
+クレートのルートから <code>litsea::TwoStageTrainer</code> / <code>litsea::TwoStageMetrics</code>
+として再エクスポートされています。</p>
+<h3 id="twostagetrainernew"><a class="header" href="#twostagetrainernew"><code>TwoStageTrainer::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(
+    num_epochs: usize,
+    dominance: f64,
+    features_prefix: &amp;Path,
+) -&gt; litsea::Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p><a href="extractor.html"><code>Extractor::extract_two_stage</code></a> が書き出す 3 つのファイルを
+<code>features_prefix</code> から読み込みます（<code>{prefix}.stage1</code>、<code>{prefix}.stage2</code>、
+<code>{prefix}.lexicon</code>）。両ステージ分の学習インスタンスを登録します。</p>
+<p><code>dominance</code> は、組み立て後のモデルにおける分類器スキップの閾値です:
+既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、
+stage-2 分類器を呼ばずにタグ付けされます。値は <code>(0.5, 1.0]</code> の範囲内で
+なければならず、<code>new()</code> の時点で即座に検証されます。そのため範囲外の値は
+学習が始まる前に失敗し、学習後に失敗することはありません。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+use litsea::trainer::TwoStageTrainer;
+
+let trainer = TwoStageTrainer::new(
+    50,                            // num_epochs（両ステージ共通）
+    0.99,                          // dominance
+    Path::new("./features"),       // 特徴量プレフィックス
+)?;
+<span class="boring">}</span></code></pre>
+<h3 id="twostagetrainertrain"><a class="header" href="#twostagetrainertrain"><code>TwoStageTrainer::train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(
+    mut self,
+    running: &amp;AtomicBool,
+    model_path: &amp;Path,
+) -&gt; litsea::Result&lt;TwoStageMetrics&gt;
+<span class="boring">}</span></code></pre>
+<p><code>Trainer::train</code> や <code>PosTrainer::train</code> と異なり、このメソッドは <code>self</code> を
+値として受け取ります（Trainer を消費します）。両ステージを Averaged
+Perceptron として <code>num_epochs</code> エポック分学習し、stage 1 を AdaBoost の
+重みへ畳み込み、語彙表とともに 2 つのステージを <code>litsea-two-stage v1</code>
+モデルへ組み立てて <code>model_path</code> に保存し、両ステージの in-sample
+メトリクスを返します。<code>running</code> フラグは他の Trainer と同様に、学習の
+途中停止を可能にします。</p>
+<pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::TwoStageTrainer;
+
+#[tokio::main]
+async fn main() -&gt; litsea::Result&lt;()&gt; {
+    let trainer = TwoStageTrainer::new(50, 0.99, Path::new("./features"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&amp;running, Path::new("./model.model"))?;
+
+    println!("Stage 1: {:.2}%, Stage 2: {:.2}%", metrics.stage1.accuracy, metrics.stage2.accuracy);
+
+    Ok(())
+}</code></pre>
+<h3 id="twostagemetrics"><a class="header" href="#twostagemetrics"><code>TwoStageMetrics</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct TwoStageMetrics {
+    pub stage1: MulticlassMetrics,
+    pub stage2: MulticlassMetrics,
+}
+<span class="boring">}</span></code></pre>
+<p><code>TwoStageTrainer::train</code> の実行結果である in-sample メトリクスです。
+<code>stage1</code> は境界分類器の 2 クラス（<code>B</code>/<code>O</code>）に対するメトリクス、<code>stage2</code> は
+単語単位のタガーの UPOS タグクラスに対するメトリクスです。どちらのフィールドも
+<code>MulticlassMetrics</code> 型で、<a href="#postrainer"><code>PosTrainer::train</code></a>（上記）が返すものと
+同じ型であり、正解率とマクロ平均の適合率・再現率を保持します。</p>
 
                     </main>
 

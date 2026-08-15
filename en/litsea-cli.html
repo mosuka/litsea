@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ffba73c1.js"></script>
+        <script src="toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -241,12 +241,33 @@
 <li>Train a POS model: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
 </ol>
+<h3 id="two-stage-workflow-faster-pos-tagging"><a class="header" href="#two-stage-workflow-faster-pos-tagging">Two-Stage Workflow (Faster POS Tagging)</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
+    B --&gt; C["3. litsea extract --two-stage"]
+    C --&gt; D["4. litsea train --two-stage"]
+    D --&gt; E["5. litsea segment --pos"]
+</code></pre>
+<ol>
+<li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
+<li>Convert to POS corpus format: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
+<li>Extract two-stage features: <code>litsea extract --two-stage -l japanese pos_corpus.txt features_prefix</code></li>
+<li>Train a two-stage model: <code>litsea train --two-stage --num-epochs 50 features_prefix model.model</code></li>
+<li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model.model</code></li>
+</ol>
+<p><code>segment --pos</code> and <code>evaluate --pos</code> auto-detect a two-stage model from its
+file header, so no extra flag is needed to use one once trained. See
+<a href="algorithm/two-stage-tagging.html">Two-Stage vs. Joint Tagging</a> for the
+architecture and why to prefer it for new work, and <a href="training-guide/training-models.html#two-stage-model-training">Training
+Models</a> or
+<a href="litsea-cli/train.html#two-stage-model-training"><code>train</code></a> for the full flag
+reference.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="litsea/evaluation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="litsea/two-stage.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -260,7 +281,7 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="litsea/evaluation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="litsea/two-stage.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

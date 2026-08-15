@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -276,25 +276,28 @@ unsupported version. The loader validates section order, the lexicon rules
 above, and the parameter range, and reports errors with the section name
 (e.g. <code>[stage2] section: ...</code>).</p>
 <h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
-<p>Model files are very compact:</p>
+<p>Model file sizes vary considerably by model type and language:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Model</th><th>Size</th><th>Features</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>~20 KB</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>~20 KB</td><td>UD Korean-GSD</td></tr>
-<tr><td>chinese.model</td><td>~18 KB</td><td>UD Chinese-GSD</td></tr>
+<tr><td>japanese.model</td><td>~1.1 MB</td><td>UD Japanese-GSD</td></tr>
+<tr><td>chinese.model</td><td>~2.0 MB</td><td>UD Chinese-GSD</td></tr>
+<tr><td>korean.model</td><td>~110 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
+<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
+<tr><td>japanese_two_stage.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
+<tr><td>chinese_two_stage.model</td><td>~8.0 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
+<tr><td>korean_two_stage.model</td><td>~5.0 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
 <tr><td>japanese_pos.model</td><td>~11 MB</td><td>UD Japanese-GSD (POS)</td></tr>
 <tr><td>chinese_pos.model</td><td>~19 MB</td><td>UD Chinese-GSD (POS)</td></tr>
 <tr><td>korean_pos.model</td><td>~8.9 MB</td><td>UD Korean-GSD (POS)</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
 </tbody>
 </table>
 </div>
-<p>The compact size of the word-segmentation models is a key advantage of Litsea – they can be embedded directly in applications or served over HTTP with minimal overhead. The joint segmentation + POS models are larger (megabytes) because they carry per-class weights.</p>
+<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> (see <a href="../pre-trained-models.html">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now 110 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte joint POS (<code>*_pos.model</code>) and two-stage (<code>*_two_stage.model</code>) models, which are larger because they carry per-class or per-stage weights.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>

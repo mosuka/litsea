@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,6 +189,7 @@
 <li><strong>1 個の非境界ラベル</strong>: <code>O</code>（単語の継続）</li>
 </ul>
 <p>これらのラベルは Universal Dependencies プロジェクトの 17 個の <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグに対応し、<code>B-</code> プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。</p>
+<p>本ページでは、Averaged Perceptron の主な用途である 18 クラスの分割 + 品詞付与について説明していますが、同じアルゴリズムを 2 クラスモード（<code>B</code>/<code>O</code> ラベルのみ）で使うと、実際には同梱の <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code> の各分割モデルを学習しています。学習後、推論用に AdaBoost モデル形式へ無損失で畳み込まれます — 完全な導出は<a href="../pre-trained-models.html#学習手順">事前学習済みモデル: 学習手順</a>を参照してください。また、<a href="two-stage-tagging.html">二段構成アーキテクチャ</a>の stage-2 単語タガーもこのアルゴリズムを使用しています。</p>
 <h2 id="アルゴリズム"><a class="header" href="#アルゴリズム">アルゴリズム</a></h2>
 <h3 id="重み表現"><a class="header" href="#重み表現">重み表現</a></h3>
 <p>パーセプトロンは<strong>特徴量ごとにクラス別の重みベクトル</strong>を保持し、単一の疎なマップに格納します。これにより、スコア計算と重みの更新は
@@ -282,7 +283,7 @@ feature2\tclass2\tweight2
 <tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
 <tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
 <tr><td>学習方式</td><td>サンプル再重み付けによる反復ブースティング</td><td>重み平均化によるオンライン学習</td></tr>
-<tr><td>モデルサイズ</td><td>数 KB</td><td>約 9-19 MB（同梱の品詞モデル）</td></tr>
+<tr><td>モデルサイズ</td><td>110 KB〜2.0 MB（再学習済み japanese/chinese/korean.model）／約 16〜22 KB（レガシー RWCP/JEITA）</td><td>約 9-19 MB（同梱の joint 品詞モデル）／約 5-8 MB（二段構成モデル）</td></tr>
 <tr><td>ハイパーパラメータ</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>

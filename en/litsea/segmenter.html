@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,9 +189,20 @@
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: pos_learner: Option&lt;AveragedPerceptron&gt;,
+    // private: two_stage: Option&lt;TwoStageState&gt;,
+    // internal: packed / packed_pos / packed_two_stage caches (see below)
 }
 <span class="boring">}</span></code></pre>
 <p>The fields are private; use the accessor methods <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, and <code>pos_learner_mut()</code> to reach them.</p>
+<p>Besides these, the struct also holds <code>packed</code>, <code>packed_pos</code>, and
+<code>packed_two_stage</code>: lazily-rebuilt caches of the learners’ weights compiled
+into the integer-indexed tables <code>segment()</code> / <code>segment_with_pos()</code> score
+against (see <a href="../algorithm/prediction-pipeline.html#the-compiled-scoring-tables">Prediction Pipeline</a>).
+They are internal implementation detail with no accessors of their own,
+invalidated automatically whenever the corresponding learner is mutated.
+<code>two_stage</code> holds the stage-2 state set by
+<a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a> (see below); it is
+<code>None</code> unless the segmenter was built from a two-stage model.</p>
 <h2 id="constructors"><a class="header" href="#constructors">Constructors</a></h2>
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

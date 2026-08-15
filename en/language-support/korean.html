@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -250,16 +250,32 @@ token – so the model learns them as a near-trivial rule. Only the second of
 these (the boundary that starts the following real word) affects the
 held-out Word F1 score, since pure-whitespace tokens are excluded from
 scoring (see <a href="../litsea/evaluation.html">Evaluation</a>).</p>
-<h2 id="pre-trained-model"><a class="header" href="#pre-trained-model">Pre-trained Model</a></h2>
+<h2 id="pre-trained-models"><a class="header" href="#pre-trained-models">Pre-trained Models</a></h2>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
 <li><strong>Training corpus</strong>: UD Korean-GSD (space-preserving TSV corpus)</li>
-<li><strong>Training options</strong>: <code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></li>
-<li><strong>Word F1 (held-out)</strong>: 99.91%</li>
-<li><strong>Boundary F1 (held-out)</strong>: 99.96%</li>
+<li><strong>Training options</strong>: <code>--format tsv</code>, 30 epochs of Averaged Perceptron
+training, collapsed to AdaBoost scalar weights, not pruned (3,994
+features) – see <a href="../pre-trained-models.html#training-procedure">Training
+Procedure</a> for the full recipe</li>
+<li><strong>Word F1 (held-out)</strong>: 99.90%</li>
+<li><strong>Boundary F1 (held-out)</strong>: 99.95%</li>
 </ul>
 <p>Held-out metrics are computed on the original spaced text with space tokens
 excluded from scoring.</p>
+<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
+<ul>
+<li><strong>Algorithm</strong>: Averaged Perceptron (joint segmentation + POS tagging)</li>
+<li><strong>Details</strong>: see <a href="../pre-trained-models.html#korean_posmodel">Pre-trained Models</a></li>
+</ul>
+<h3 id="korean_two_stagemodel"><a class="header" href="#korean_two_stagemodel">korean_two_stage.model</a></h3>
+<ul>
+<li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (faster than the joint model, same output shape)</li>
+<li><strong>Note</strong>: unlike <code>korean.model</code> above, this model is trained on the
+<em>unspaced</em> <code>word/POS</code> corpus (the same protocol as <code>korean_pos.model</code>),
+not the space-preserving protocol described on this page</li>
+<li><strong>Details</strong>: see <a href="../pre-trained-models.html#korean_two_stagemodel">Pre-trained Models</a></li>
+</ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>

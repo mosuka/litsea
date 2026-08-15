@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -212,18 +212,20 @@
 </table>
 </div>
 <h2 id="事前学習済みモデルのベンチマーク"><a class="header" href="#事前学習済みモデルのベンチマーク">事前学習済みモデルのベンチマーク</a></h2>
-<p>同梱モデルは <code>-t 0.0001 -i 20000</code> で学習し、学習コーパスの held-out テスト分割で
-評価しています。<strong>単語 F1</strong> は単語の完全一致、<strong>境界 F1</strong> は個々の境界判定の
-スコアです。</p>
+<p>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は、通常の AdaBoost
+<code>-t</code>/<code>-i</code> 学習ではなく binary-perceptron 畳み込み手順で学習しています –
+正確な手順は<a href="../pre-trained-models.html#学習手順">学習手順</a>を参照してください。
+いずれも学習コーパスの held-out テスト分割で評価しています。<strong>単語 F1</strong> は
+単語の完全一致、<strong>境界 F1</strong> は個々の境界判定のスコアです。</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>モデル</th><th>単語 F1</th><th>境界 F1</th><th>学習コーパス</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
-<tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
+<tr><td>japanese.model</td><td>96.70%</td><td>98.59%</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>99.90%</td><td>99.95%</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>90.69%</td><td>95.64%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
@@ -257,6 +259,13 @@ litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.
 <li><strong>コーパスの品質向上</strong> – 一貫したトークン化とクリーンなテキストを確保する</li>
 <li><strong>再学習</strong> – 既存のモデルから開始し、追加データで学習する（<a href="retraining-models.html">モデルの再学習</a>を参照）</li>
 </ol>
+<p>上記の閾値・反復回数のチューニングは、通常の AdaBoost 学習
+（<code>--pos</code>/<code>--two-stage</code> を付けない <code>litsea train</code>）に適用されるものです。
+同梱モデル自身が通常の AdaBoost に対して達成している +5〜13pt の held-out
+品質向上は、<code>-t</code>/<code>-i</code> のチューニングによるものではなく、2 クラスの
+Averaged Perceptron を学習してから無損失に AdaBoost の重みへ畳み込む手順に
+よるものです。段階的な改善ではなく同梱モデルと同水準の品質を目指す場合は、
+<a href="../pre-trained-models.html#学習手順">学習手順</a>のレシピを参照してください。</p>
 
                     </main>
 

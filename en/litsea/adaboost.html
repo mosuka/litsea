@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -260,6 +260,18 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 </span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Saves model weights to a file. Returns an error if the model is empty.</p>
+<h3 id="save_model_to_writer"><a class="header" href="#save_model_to_writer"><code>save_model_to_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model_to_writer&lt;W: Write&gt;(&amp;self, writer: &amp;mut W) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Writes the model to an arbitrary writer in the same text format as
+<code>save_model</code>; this is the format-producing core <code>save_model</code> delegates to.
+It is public so the model can be embedded as a section of a larger file
+without going through a file path – the <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage model
+format</a>
+uses it to embed the stage-1 <code>AdaBoost</code> model directly. The writer is not
+flushed. Returns an error if the model is empty.</p>
 <h2 id="training-methods"><a class="header" href="#training-methods">Training Methods</a></h2>
 <h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

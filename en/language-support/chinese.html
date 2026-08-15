@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -218,13 +218,26 @@
 </table>
 </div>
 <p>These characters appear overwhelmingly in grammatical roles and signal word boundaries differently from content words.</p>
-<h2 id="pre-trained-model"><a class="header" href="#pre-trained-model">Pre-trained Model</a></h2>
+<h2 id="pre-trained-models"><a class="header" href="#pre-trained-models">Pre-trained Models</a></h2>
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <ul>
 <li><strong>Training corpus</strong>: UD Chinese-GSD</li>
-<li><strong>Training options</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>Word F1 (held-out)</strong>: 77.56%</li>
-<li><strong>Boundary F1 (held-out)</strong>: 87.81%</li>
+<li><strong>Training options</strong>: 100 epochs of Averaged Perceptron training,
+collapsed to AdaBoost scalar weights, then pruned to the top 70,000
+features by <code>|weight|</code> – see <a href="../pre-trained-models.html#training-procedure">Training
+Procedure</a> for the full recipe</li>
+<li><strong>Word F1 (held-out)</strong>: 90.69%</li>
+<li><strong>Boundary F1 (held-out)</strong>: 95.64%</li>
+</ul>
+<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
+<ul>
+<li><strong>Algorithm</strong>: Averaged Perceptron (joint segmentation + POS tagging)</li>
+<li><strong>Details</strong>: see <a href="../pre-trained-models.html#chinese_posmodel">Pre-trained Models</a></li>
+</ul>
+<h3 id="chinese_two_stagemodel"><a class="header" href="#chinese_two_stagemodel">chinese_two_stage.model</a></h3>
+<ul>
+<li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (faster than the joint model, same output shape)</li>
+<li><strong>Details</strong>: see <a href="../pre-trained-models.html#chinese_two_stagemodel">Pre-trained Models</a></li>
 </ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model

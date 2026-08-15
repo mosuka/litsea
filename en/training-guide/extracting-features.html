@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -213,6 +213,19 @@
 <li>First column: label (<code>1</code> = boundary, <code>-1</code> = non-boundary)</li>
 <li>Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the <code>BC1:</code> feature)</li>
 </ul>
+<h2 id="space-preserving-tsv-corpus-format"><a class="header" href="#space-preserving-tsv-corpus-format">Space-Preserving (TSV) Corpus Format</a></h2>
+<p>For a corpus that preserves the original spacing of the sentence – used to
+train the Korean model, since inter-word spaces are its strongest boundary
+signal (see <a href="../language-support/korean.html#space-preserving-training">Korean</a>)
+– pass <code>--format tsv</code> instead of extracting from the default
+space-separated format:</p>
+<pre><code class="language-sh">litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+</code></pre>
+<p>The input is a tab-separated corpus (one sentence per line, tokens
+separated by tabs) in which a token may be a literal space character
+(<code>" "</code>). The output feature file format is identical to the default
+<code>extract</code>; only the corpus parsing differs. <code>--format tsv</code> cannot be
+combined with <code>--pos</code> or <code>--two-stage</code>.</p>
 <h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
 <p>For POS tagging models, use the <code>--pos</code> flag to extract features with POS labels instead of binary boundary labels.</p>
 <h3 id="command-1"><a class="header" href="#command-1">Command</a></h3>
@@ -238,6 +251,53 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <li>First column: segment label (e.g., <code>B-PRON</code>, <code>O</code>)</li>
 <li>Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the <code>BC1:</code> feature)</li>
 </ul>
+<h2 id="two-stage-feature-extraction"><a class="header" href="#two-stage-feature-extraction">Two-Stage Feature Extraction</a></h2>
+<p>For <a href="../algorithm/two-stage-tagging.html">two-stage POS tagging</a> (issue #147),
+use <code>--two-stage</code> instead of <code>--pos</code>:</p>
+<pre><code class="language-sh">litsea extract --two-stage [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+</code></pre>
+<h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+</code></pre>
+<p><code>--two-stage</code> reads the same POS-tagged corpus as <code>--pos</code>
+(<code>word/POS word/POS ...</code>) but, in a single pass over the corpus, writes
+<strong>three</strong> files from <code>&lt;FEATURES_PREFIX&gt;</code> instead of one:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>File</th><th>Contents</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage1</code></td><td>Boundary features (label <code>B</code> or <code>O</code>), the same templates as <code>--pos</code></td></tr>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage2</code></td><td>Word-level features (label a UPOS tag), the templates selected by <code>--stage2-features</code></td></tr>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.lexicon</code></td><td>The candidate-tag lexicon (<code>surface\tTAG:count[,TAG:count...]</code>, most-frequent-first)</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>litsea train --two-stage</code> reads all three files back from the same
+prefix. <code>--two-stage</code> cannot be combined with <code>--pos</code> or <code>--format tsv</code>.</p>
+<h3 id="choosing---stage2-features"><a class="header" href="#choosing---stage2-features">Choosing <code>--stage2-features</code></a></h3>
+<p><code>--stage2-features</code> selects which stage-2 word-level templates (see
+<a href="../algorithm/feature-extraction.html#word-level-feature-templates-two-stage">Word-Level Feature Templates</a>)
+get written to <code>&lt;FEATURES_PREFIX&gt;.stage2</code>, trading tagging quality for
+throughput:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Value</th><th>Templates</th><th>Trade-off</th></tr>
+</thead>
+<tbody>
+<tr><td><code>full</code></td><td>All 23 word templates</td><td>Most accurate, slowest</td></tr>
+<tr><td><code>balanced</code></td><td>A subset of <code>full</code></td><td>Middle ground</td></tr>
+<tr><td><code>fast</code> (default)</td><td>The smallest subset</td><td>Fastest, still competitive quality</td></tr>
+</tbody>
+</table>
+</div>
+<p>See <a href="../algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">Choosing a stage-2 feature
+set</a> for
+the measured quality/throughput comparison behind this default.</p>
+<pre><code class="language-sh">litsea extract --two-stage --stage2-features balanced -l chinese ./pos_corpus.txt ./two_stage_features
+</code></pre>
 <h2 id="file-size-expectations"><a class="header" href="#file-size-expectations">File Size Expectations</a></h2>
 <p>The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings. For a 1 MB corpus, expect a features file of roughly 50-100 MB.</p>
 

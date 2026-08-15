@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ffba73c1.js"></script>
+        <script src="toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,20 +184,22 @@
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.8.0"
+litsea = "0.11.0"
 </code></pre>
-<p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method.</p>
+<p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method (this includes <code>AnyPosModel::load</code>, which always resolves the model URI through the same async path).</p>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
     C["litsea::adaboost"] --- D["AdaBoost"]
     E["litsea::language"] --- F["Language"]
     G["litsea::extractor"] --- H["Extractor"]
-    I["litsea::trainer"] --- J["Trainer, PosTrainer"]
+    I["litsea::trainer"] --- J["Trainer, PosTrainer, TwoStageTrainer, TwoStageMetrics"]
     K["litsea::error"] --- L["LitseaError, Result"]
     M["litsea::perceptron"] --- N["AveragedPerceptron"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
     Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
+    S["litsea::evaluation"] --- T["PosMetrics, SegmentationMetrics"]
+    U["litsea::two_stage"] --- V["AnyPosModel, ModelKind, TwoStageFeatureSet, TwoStageLearner"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -211,9 +213,11 @@ litsea = "0.8.0"
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS POS tags, segment labels</td></tr>
 <tr><td><code>litsea::language</code></td><td><code>Language</code></td><td>Language definitions, character classification</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>Feature extraction from corpus</td></tr>
-<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PosTrainer</code></td><td>Training orchestration</td></tr>
+<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PosTrainer</code>, <code>TwoStageTrainer</code>, <code>TwoStageMetrics</code></td><td>Training orchestration</td></tr>
 <tr><td><code>litsea::error</code></td><td><code>LitseaError</code>, <code>Result</code></td><td>Error type and result alias</td></tr>
-<tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>Evaluation metrics</td></tr>
+<tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>Evaluation metrics (in-sample)</td></tr>
+<tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>Held-out evaluation against a gold corpus</td></tr>
+<tr><td><code>litsea::two_stage</code></td><td><code>AnyPosModel</code>, <code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>Two-stage model container and auto-detecting loader</td></tr>
 </tbody>
 </table>
 </div>
@@ -249,6 +253,26 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
     let tokens = segmenter.segment_with_pos("これはテストです。")?;
 
+    for (word, pos) in &amp;tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
+
+    Ok(())
+}</code></pre>
+<h2 id="quick-example-any-pos-model"><a class="header" href="#quick-example-any-pos-model">Quick Example (Any POS Model)</a></h2>
+<p>The CLI’s <code>segment --pos</code> uses this pattern so it works with either a joint or a two-stage model file without the caller needing to know which:</p>
+<pre class="playground"><code class="language-rust">use litsea::language::Language;
+use litsea::two_stage::AnyPosModel;
+
+#[tokio::main]
+async fn main() -&gt; litsea::Result&lt;()&gt; {
+    // Works for both joint (`*_pos.model`) and two-stage
+    // (`*_two_stage.model`) model files -- the kind is auto-detected.
+    let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
+    let segmenter = model.into_segmenter(Language::Japanese);
+
+    let tokens = segmenter.segment_with_pos("これはテストです。")?;
     for (word, pos) in &amp;tokens {
         print!("{}/{} ", word, pos);
     }

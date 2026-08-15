@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,8 +186,12 @@
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
+<p>This is a generic example of plain AdaBoost training. The bundled
+<code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are <strong>not</strong> produced
+this way – see <a href="../pre-trained-models.html#training-procedure">Training Procedure</a>
+for the procedure actually used for those files.</p>
 <h2 id="training-process"><a class="header" href="#training-process">Training Process</a></h2>
 <pre><code class="language-mermaid">flowchart TD
     A["Initialize features&lt;br/&gt;(read feature names)"] --&gt; B["Initialize instances&lt;br/&gt;(read labels + features)"]
@@ -211,13 +215,19 @@
 <tr><th>Parameter</th><th>Flag</th><th>Default</th><th>Guidance</th></tr>
 </thead>
 <tbody>
-<tr><td>Threshold</td><td><code>-t</code></td><td>0.01</td><td>Start with 0.0001 (used for the bundled models). Lower values delay early stopping but increase training time</td></tr>
-<tr><td>Iterations</td><td><code>-i</code></td><td>100</td><td>Start with 20000 (used for the bundled models). AdaBoost selects one feature per iteration, so this caps the number of features in the model; the default produces very small models with much lower held-out accuracy</td></tr>
+<tr><td>Threshold</td><td><code>-t</code></td><td>0.01</td><td>Start with 0.0001. Lower values delay early stopping but increase training time</td></tr>
+<tr><td>Iterations</td><td><code>-i</code></td><td>100</td><td>Start with 20000. AdaBoost selects one feature per iteration, so this caps the number of features in the model; the default produces very small models with much lower held-out accuracy</td></tr>
 </tbody>
 </table>
 </div>
+<p><strong>Note</strong>: these are generic starting points for training a plain AdaBoost
+model from scratch. The bundled <code>japanese.model</code>, <code>chinese.model</code>, and
+<code>korean.model</code> are produced by a different procedure – a 2-class Averaged
+Perceptron collapsed to AdaBoost weights, with per-language epoch counts
+and pruning – see <a href="../pre-trained-models.html#training-procedure">Training Procedure</a>
+in Pre-trained Models for how those files are actually made.</p>
 <h2 id="interpreting-output"><a class="header" href="#interpreting-output">Interpreting Output</a></h2>
-<p>Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate.</p>
+<p>Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate. The numbers below are a representative example of <code>train</code>’s output format, not the bundled <code>japanese.model</code>’s actual training log.</p>
 <pre><code class="language-text">Result Metrics:
   Accuracy: 100.00% ( 1075868 / 1075869 )
   Precision: 100.00% ( 161283 / 161284 )
@@ -257,10 +267,16 @@
 <tr><td>Classification</td><td>Binary (boundary / non-boundary)</td><td>Multiclass (18 segment labels)</td></tr>
 <tr><td>Labels</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
 <tr><td>Hyperparameters</td><td>Threshold, Iterations</td><td>Number of epochs</td></tr>
-<tr><td>Model size</td><td>~18-22 KB</td><td>~9-19 MB</td></tr>
+<tr><td>Model size</td><td>~110 KB - 2.0 MB (bundled models)</td><td>~9-19 MB</td></tr>
 </tbody>
 </table>
 </div>
+<p>The AdaBoost model-size range above reflects the bundled <code>japanese.model</code>
+(~1.1 MB), <code>chinese.model</code> (~2.0 MB), and <code>korean.model</code> (~110 KB); a model
+trained with modest <code>-i</code> values (as in the basic example above) can be much
+smaller. The legacy <code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>
+are smaller still (~16-22 KB). See <a href="../pre-trained-models.html">Pre-trained
+Models</a> for exact per-model sizes.</p>
 <h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
 <div class="table-wrapper">
 <table>

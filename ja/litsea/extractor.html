@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -273,6 +273,52 @@ extractor.extract_with_pos(
     Path::new("./features_pos.txt"),
 )?;
 <span class="boring">}</span></code></pre>
+<h3 id="extract_two_stage"><a class="header" href="#extract_two_stage"><code>extract_two_stage</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_two_stage(
+    &amp;self,
+    corpus_path: &amp;Path,
+    output_prefix: &amp;Path,
+    feature_set: TwoStageFeatureSet,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>POS タグ付きコーパス（<code>word/POS word/POS ...</code>、<code>extract_with_pos</code> と同じ形式）を1パスで読み込み、<a href="../algorithm/two-stage-tagging.html">二段構成モデル</a>の学習に使う <a href="trainer.html#twostagetrainer"><code>TwoStageTrainer</code></a> 用の3ファイルを <code>output_prefix</code> から書き出します。</p>
+<ul>
+<li><code>{output_prefix}.stage1</code> – 境界特徴量（<code>label\tfeature1\t...</code>、ラベルは <code>B</code> または <code>O</code>）。<code>extract_with_pos</code> と同じ特徴量テンプレートを使用</li>
+<li><code>{output_prefix}.stage2</code> – 単語単位の特徴量（<code>label\tfeature1\t...</code>、ラベルは UPOS タグ）。<code>feature_set</code> で選択したテンプレートを使用（詳細は下記の <a href="#twostagefeatureset"><code>TwoStageFeatureSet</code></a>）</li>
+<li><code>{output_prefix}.lexicon</code> – 候補タグ語彙表（<code>surface\tTAG:count[,TAG:count...]</code>、出現頻度の高い順）</li>
+</ul>
+<p><code>TwoStageTrainer::new</code> は同じプレフィックスから同じ3つのパスを読み込みます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::TwoStageFeatureSet;
+
+extractor.extract_two_stage(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./two_stage_features"),
+    TwoStageFeatureSet::Fast,
+)?;
+<span class="boring">}</span></code></pre>
+<h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum TwoStageFeatureSet {
+    Full,
+    Balanced,
+    #[default]
+    Fast,
+}
+<span class="boring">}</span></code></pre>
+<p><a href="#extract_two_stage"><code>extract_two_stage</code></a> が書き出す stage-2 の単語単位テンプレートを選択します（テンプレートの全カタログは<a href="../algorithm/feature-extraction.html">単語単位の特徴量テンプレート</a>を参照）。タグ付け品質とスループットのトレードオフになります:</p>
+<ul>
+<li><code>Full</code> – すべての単語テンプレート（品質重視）</li>
+<li><code>Balanced</code> – <code>Fast</code> のテンプレートに加えて、先頭/末尾文字そのものと単語の文字種文字列</li>
+<li><code>Fast</code>（既定） – 実測に基づく最小構成: 表層、単語長、先頭/末尾文字種、隣接文脈文字とその文字種、2文字の接頭辞/接尾辞</li>
+</ul>
+<p><code>Display</code>（小文字: <code>"full"</code>、<code>"balanced"</code>、<code>"fast"</code>）と <code>FromStr</code>（不正な文字列には <code>ParseTwoStageFeatureSetError</code> を返す）も実装しています – これは <code>--stage2-features</code> CLI フラグが受け付けるのと同じ名前です。<a href="../training-guide/extracting-features.html">特徴量の抽出</a>を参照してください。</p>
 
                     </main>
 

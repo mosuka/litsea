@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -210,9 +210,21 @@
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Japanese-GSD</li>
-<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>単語 F1（held-out）</strong>: 91.48%</li>
-<li><strong>境界 F1（held-out）</strong>: 96.31%</li>
+<li><strong>学習オプション</strong>: Averaged Perceptron を50エポック学習し、AdaBoostのスカラー重みへ
+畳み込んだ後、<code>|weight|</code> 上位40,000特徴量に剪定 – 詳しい手順は
+<a href="../pre-trained-models.html#学習手順">学習手順</a>を参照</li>
+<li><strong>単語 F1（held-out）</strong>: 96.70%</li>
+<li><strong>境界 F1（held-out）</strong>: 98.59%</li>
+</ul>
+<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: Averaged Perceptron（単語分割と品詞推定の同時学習）</li>
+<li><strong>詳細</strong>: <a href="../pre-trained-models.html#japanese_posmodel">事前学習済みモデル</a>を参照</li>
+</ul>
+<h3 id="japanese_two_stagemodel"><a class="header" href="#japanese_two_stagemodel">japanese_two_stage.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（joint モデルより高速で出力形式は同じ）</li>
+<li><strong>詳細</strong>: <a href="../pre-trained-models.html#japanese_two_stagemodel">事前学習済みモデル</a>を参照</li>
 </ul>
 <h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
 <ul>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -206,6 +206,12 @@
 <pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p>Each token is annotated with a <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tag.</p>
+<h3 id="two-stage-pos-tagging"><a class="header" href="#two-stage-pos-tagging">Two-Stage POS Tagging</a></h3>
+<p>Litsea also ships a faster <a href="../algorithm/two-stage-tagging.html">two-stage</a> POS tagging architecture. The CLI auto-detects the model kind from the file, so the command is identical to the joint example above except for the model filename:</p>
+<pre><code class="language-sh">echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+</code></pre>
+<p>Output is the same shape as the joint example. <a href="../pre-trained-models.html#choosing-a-model">Pre-trained Models</a> recommends the two-stage models for new work.</p>
 <h2 id="library-quick-start"><a class="header" href="#library-quick-start">Library Quick Start</a></h2>
 <p>Here is a minimal Rust program that loads a model and segments text:</p>
 <pre class="playground"><code class="language-rust">use std::path::Path;

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-16e63408.js";
+            window.path_to_searchindex_js = "searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ef307d1e.js"></script>
+        <script src="toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,9 +184,10 @@
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
-<li><strong>コンパクトな学習済みモデル</strong> – モデルファイルはわずか数キロバイト</li>
+<li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> は 110 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
 <li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
 <li><strong>品詞推定（POS Tagging）</strong> – Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定</li>
+<li><strong>二段構成の品詞推定</strong> – 境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによるタグ付けを組み合わせた、より高速なアーキテクチャ。joint 方式比で 1.8-2.8 倍のスループット</li>
 <li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
 <li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
 <li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL（オプトインの <code>remote_model</code> フィーチャー）またはローカルファイルからモデルを読み込み</li>
@@ -213,7 +214,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="名前の由来"><a class="header" href="#名前の由来">名前の由来</a></h2>
 <p>クスノキ科には <em>Lindera</em>（クロモジ）と同じ科に属する <em>Litsea cubeba</em>（アオモジ）という小さな植物があります。これが <strong>Litsea</strong> という名前の由来です。</p>
 <h2 id="現在のバージョン"><a class="header" href="#現在のバージョン">現在のバージョン</a></h2>
-<p>Litsea v0.8.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
+<p>Litsea v0.11.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
 <h2 id="リンク"><a class="header" href="#リンク">リンク</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub リポジトリ</a></li>
@@ -224,7 +225,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="導入"><a class="header" href="#導入">導入</a></h1>
 <p>Litsea へようこそ！ このセクションでは、すぐに使い始められるようガイドします。</p>
-<p>Litsea は、<strong>単語分割</strong>（AdaBoost）と<strong>品詞推定付き単語分割</strong>（Averaged Perceptron）の両方をサポートする Rust 製コンパクト単語分割ライブラリです。</p>
+<p>Litsea は、<strong>単語分割</strong>（AdaBoost）、<strong>品詞推定付き単語分割</strong>（Averaged Perceptron）、そしてより高速な<a href="#二段構成-vs-joint-タグ付け">二段構成の品詞推定</a>アーキテクチャという 3 つのモードをサポートする Rust 製コンパクト単語分割ライブラリです。速度と精度のトレードオフに応じて使い分けられます。</p>
 <h2 id="次のステップ"><a class="header" href="#次のステップ">次のステップ</a></h2>
 <ul>
 <li><a href="#インストール">インストール</a> – ソースまたは crates.io から Litsea をインストール</li>
@@ -253,10 +254,10 @@ cargo build --release
 <h2 id="ライブラリとしての利用"><a class="header" href="#ライブラリとしての利用">ライブラリとしての利用</a></h2>
 <p>プロジェクトの <code>Cargo.toml</code> に Litsea を追加します:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.8.0"
+litsea = "0.11.0"
 </code></pre>
 <p>http(s) 経由のリモートモデル読み込みはオプトイン（opt-in）です。必要な場合は <code>remote_model</code> フィーチャーを有効にしてください:</p>
-<pre><code class="language-toml">litsea = { version = "0.8.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.11.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
 <p><strong>注意:</strong> ローカルファイルからのモデル読み込み（<code>load_model_from_path</code>）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（<code>tokio</code> など）が必要になるのは、非同期の <code>load_model</code> メソッドを使って HTTP/HTTPS 経由でモデルを読み込む場合のみです（オプトインの <code>remote_model</code> フィーチャーを有効にした場合にのみ利用できます）。</p>
@@ -302,6 +303,12 @@ litsea = "0.8.0"
 <pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p>各トークンには <a href="https://universaldependencies.org/u/pos/">Universal POS（UPOS）</a> タグが付与されます。</p>
+<h3 id="二段構成の品詞推定付き分割"><a class="header" href="#二段構成の品詞推定付き分割">二段構成の品詞推定付き分割</a></h3>
+<p>Litsea には、より高速な<a href="#二段構成-vs-joint-タグ付け">二段構成</a>の品詞推定アーキテクチャも同梱されています。CLI はファイルからモデルの種類を自動判定するため、コマンドはモデルファイル名以外は上の joint の例と同じです:</p>
+<pre><code class="language-sh">echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+</code></pre>
+<p>出力の形式は joint の例と同じです。新規に使う場合は<a href="#モデルの選択">事前学習済みモデル</a>で推奨されている二段構成モデルの利用を検討してください。</p>
 <h2 id="ライブラリ-クイックスタート"><a class="header" href="#ライブラリ-クイックスタート">ライブラリ クイックスタート</a></h2>
 <p>モデルを読み込みテキストを分割する最小限の Rust プログラムです:</p>
 <pre class="playground"><code class="language-rust">use std::path::Path;
@@ -388,7 +395,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
 <ul>
 <li><strong>辞書不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルのみに依存</li>
-<li><strong>コンパクトなモデル</strong> – 単語分割モデルファイルは通常 1-22 KB（分割 + 品詞付与の統合モデルは約 9-19 MB）で、重要な特徴量の重みのみを含む</li>
+<li><strong>コンパクトなモデル</strong> – レガシーな単語分割モデル（<code>RWCP.model</code>、<code>JEITA_Genpaku_ChaSen_IPAdic.model</code>）は約 16-22 KB。再学習された <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> は 110 KB〜2.0 MB で、<a href="#事前学習済みモデル">事前学習済みモデル</a>に記載の品質向上とのトレードオフ。二段構成の品詞モデルは約 5-8 MB、分割 + 品詞付与の統合モデルは約 9-19 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
 <li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
 <li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
 </ul>
@@ -404,11 +411,15 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     upos["upos.rs&lt;br/&gt;UPOSタグとラベル"]
     extractor["extractor.rs&lt;br/&gt;特徴量抽出"]
     trainer["trainer.rs&lt;br/&gt;学習オーケストレーション"]
+    two_stage["two_stage.rs&lt;br/&gt;二段構成モデルのコンテナ"]
+    word_features["word_features.rs（非公開）&lt;br/&gt;stage-2 単語特徴テンプレート"]
     packed_model["packed_model.rs（非公開）&lt;br/&gt;特徴テンプレート + packed AdaBoost テーブル"]
     packed_pos_model["packed_pos_model.rs（非公開）&lt;br/&gt;packed パーセプトロンテーブル（品詞）"]
+    packed_two_stage["packed_two_stage.rs（非公開）&lt;br/&gt;packed 二段構成タグ付けテーブル"]
     model_io["model_io.rs（非公開）&lt;br/&gt;モデルURI読み込み"]
     error["error.rs&lt;br/&gt;LitseaError / Result"]
-    metrics["metrics.rs&lt;br/&gt;評価指標"]
+    metrics["metrics.rs&lt;br/&gt;評価指標（in-sample）"]
+    evaluation["evaluation.rs&lt;br/&gt;held-out 品質指標"]
 
     language --&gt; segmenter
     upos --&gt; segmenter
@@ -416,15 +427,31 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     perceptron --&gt; segmenter
     packed_model --&gt; segmenter
     packed_pos_model --&gt; segmenter
+    packed_two_stage --&gt; segmenter
+    two_stage --&gt; segmenter
     packed_model --&gt; packed_pos_model
     segmenter --&gt; extractor
+    two_stage --&gt; extractor
+    word_features --&gt; extractor
+    evaluation --&gt; extractor
     adaboost --&gt; trainer
     perceptron --&gt; trainer
+    two_stage --&gt; trainer
+    adaboost --&gt; two_stage
+    perceptron --&gt; two_stage
+    upos --&gt; two_stage
+    language --&gt; word_features
+    word_features --&gt; packed_two_stage
+    language --&gt; packed_two_stage
+    perceptron --&gt; packed_two_stage
+    upos --&gt; packed_two_stage
     model_io --&gt; adaboost
     model_io --&gt; perceptron
     error --&gt; adaboost
     error --&gt; perceptron
     metrics --&gt; trainer
+    segmenter --&gt; evaluation
+    upos --&gt; evaluation
 </code></pre>
 <h2 id="モジュール詳細"><a class="header" href="#モジュール詳細">モジュール詳細</a></h2>
 <h3 id="languagers--言語定義"><a class="header" href="#languagers--言語定義"><code>language.rs</code> – 言語定義</a></h3>
@@ -441,16 +468,17 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h3 id="segmenterrs--単語分割と品詞付与"><a class="header" href="#segmenterrs--単語分割と品詞付与"><code>segmenter.rs</code> – 単語分割と品詞付与</a></h3>
 <p>主要なユーザー向けモジュールです。</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）
+<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）。加えて、オプションの二段構成状態（<code>Option&lt;TwoStageState&gt;</code>。<code>with_two_stage_learner</code> で設定）と、<code>segment()</code> / <code>segment_with_pos()</code> が使うコンパイル済みスコアリングテーブルの内部キャッシュ（<code>packed</code>・<code>packed_pos</code>・<code>packed_two_stage</code>）も保持する
 <ul>
 <li><code>new(language)</code> – デフォルト（空）の AdaBoost 学習器付きでセグメンターを作成</li>
 <li><code>with_learner(language, learner)</code> – 設定済みの AdaBoost 学習器（例: 学習済みモデルを読み込んだもの）付きでセグメンターを作成</li>
 <li><code>with_pos_learner(language, pos_learner)</code> – 分割+品詞付与用のセグメンターを作成</li>
+<li><code>with_two_stage_learner(language, learner)</code> – <code>TwoStageLearner</code> から二段構成の分割+品詞付与用セグメンターを作成</li>
 <li><code>segment(sentence)</code> – テキストを単語に分割し <code>Vec&lt;String&gt;</code> を返す</li>
-<li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> を返す（POS 学習器が未設定の場合は <code>PosLearnerNotSet</code>）</li>
+<li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> を返す（POS 学習器・二段構成学習器のいずれも未設定の場合は <code>PosLearnerNotSet</code>）</li>
 <li><code>char_type(ch)</code> – 1文字を種別コードに分類</li>
-<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – 学習データを追加</li>
-<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – 学習データを追加（それぞれ空白区切り・品詞付き・タブ区切り/空白保持。後者は韓国語で使用、issue #152 を参照）</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理</li>
 </ul>
 </li>
 </ul>
@@ -497,7 +525,9 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <ul>
 <li><code>new(language)</code> – 言語を指定して作成</li>
 <li><code>extract(corpus_path, features_path)</code> – コーパスを読み、特徴量ファイルを書き出す</li>
+<li><code>extract_tsv(corpus_path, features_path)</code> – タブ区切り・空白保持コーパス版（issue #152、韓国語で使用）</li>
 <li><code>extract_with_pos(corpus_path, features_path)</code> – 品詞付きコーパス版</li>
+<li><code>extract_two_stage(corpus_path, output_prefix, feature_set)</code> – 品詞付きコーパスから二段構成の学習特徴量（issue #147）を抽出: <code>{output_prefix}.stage1</code>（境界特徴量）、<code>.stage2</code>（単語レベル特徴量）、<code>.lexicon</code> を書き出す</li>
 </ul>
 </li>
 </ul>
@@ -516,6 +546,19 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <li><code>new(num_epochs, features_path)</code> / <code>load_model(uri)</code> / <code>train(running, model_path)</code>（<code>MulticlassMetrics</code> を返す）</li>
 </ul>
 </li>
+<li><strong><code>TwoStageTrainer</code></strong> – 二段構成モデルの学習（issue #147）: <code>Extractor::extract_two_stage</code> が書き出したファイルから stage-1 境界分類器（<code>AveragedPerceptron</code>）と stage-2 単語タガーを学習し、stage-1 を AdaBoost 形式へ畳み込んでから <code>TwoStageLearner</code> を組み立てる
+<ul>
+<li><code>new(num_epochs, dominance, features_prefix)</code> / <code>train(running, model_path)</code>（<code>TwoStageMetrics</code> を返す。完全な API は<a href="#trainer">Trainer</a>を参照）</li>
+</ul>
+</li>
+<li><strong><code>TwoStageMetrics</code></strong> – <code>TwoStageTrainer::train</code> 実行のステージごとの <code>MulticlassMetrics</code>（<code>stage1</code>・<code>stage2</code>）</li>
+</ul>
+<h3 id="two_stagers--二段構成モデルのコンテナ"><a class="header" href="#two_stagers--二段構成モデルのコンテナ"><code>two_stage.rs</code> – 二段構成モデルのコンテナ</a></h3>
+<p><code>litsea-two-stage v1</code> ファイル形式（<a href="#モデルファイル形式-2">モデルファイル形式</a>を参照）と、二段構成モデルをメモリ上に保持する型を定義します（issue #147）。</p>
+<ul>
+<li><strong><code>TwoStageLearner</code></strong> – stage-1 境界 <code>AdaBoost</code> モデル、stage-2 <code>AveragedPerceptron</code> 単語タガー、候補タグ語彙表（lexicon）をまとめる。<code>new()</code> / <code>from_parts(...)</code> / <code>load_model_from_path(path)</code> / <code>save_model(path)</code> は単一学習器の各型と同様の API</li>
+<li><strong><code>TwoStageFeatureSet</code></strong> – stage-2 の単語レベルテンプレート部分集合を選択する enum（<code>Fast</code>、<code>Balanced</code>、<code>Full</code>）</li>
+<li><strong><code>AnyPosModel</code></strong> / <strong><code>ModelKind</code></strong> – モデルファイルが joint（<code>AveragedPerceptron</code>）か二段構成かを自動判定してディスパッチする。<code>AnyPosModel::load(uri)</code>（async）はどちらの種類も読み込め、<code>into_segmenter(language)</code> は対応する <code>Segmenter</code>（<code>with_pos_learner</code> または <code>with_two_stage_learner</code> 経由）を構築する</li>
 </ul>
 <h3 id="errorrs--エラー処理"><a class="header" href="#errorrs--エラー処理"><code>error.rs</code> – エラー処理</a></h3>
 <ul>
@@ -527,10 +570,22 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <li><strong><code>BinaryMetrics</code></strong> – 正解率・適合率・再現率・混同行列（AdaBoost）</li>
 <li><strong><code>MulticlassMetrics</code></strong> – 正解率とマクロ平均適合率/再現率（Averaged Perceptron）</li>
 </ul>
+<h3 id="evaluationrs--held-out-評価指標"><a class="header" href="#evaluationrs--held-out-評価指標"><code>evaluation.rs</code> – held-out 評価指標</a></h3>
+<p><code>metrics.rs</code> が in-sample 品質（<code>train</code> が出力する、学習データそのもので測った指標）を報告するのに対し、このモジュールは held-out 品質を計算します: 文字オフセットのスパンを使って <code>Segmenter</code> の出力を gold コーパスと比較するため、文中の他の箇所のトークン化の違いに関わらず、予測トークンと gold トークンを正確に対応付けられます。</p>
+<ul>
+<li><strong><code>SegmentationMetrics</code></strong> – 単語分割の単語/境界の適合率・再現率・F1。<code>evaluate_segmentation(segmenter, gold)</code> が生成</li>
+<li><strong><code>PosMetrics</code></strong> – <code>SegmentationMetrics</code> に加え、タグ付き単語の適合率・再現率・F1 を保持。<code>evaluate_pos(segmenter, gold)</code> が生成（失敗しうる: <code>segment_with_pos</code> のエラーを伝播）</li>
+<li><strong><code>parse_gold_line(line, tsv)</code></strong> / <strong><code>parse_gold_pos_line(line)</code></strong> – gold コーパスの行をトークン列にパース（プレーンまたは品詞付き）。二段構成の extractor・trainer からも使用される</li>
+<li>CLI の <code>litsea evaluate</code> サブコマンドを支える</li>
+</ul>
 <h3 id="packed_modelrs--特徴テンプレートと-packed-adaboost-テーブル非公開"><a class="header" href="#packed_modelrs--特徴テンプレートと-packed-adaboost-テーブル非公開"><code>packed_model.rs</code> – 特徴テンプレートと packed AdaBoost テーブル（非公開）</a></h3>
 <p>宣言的な特徴テンプレートテーブル（<code>TEMPLATES</code>。全特徴量コンシューマの単一の真実の源）、モデルの特徴量文字列を packed 整数キーへ変換するロード時パーサ、そして <code>segment()</code> の 2 パススコアラーが読むマージ/密テーブルへ AdaBoost の重みをコンパイルした <code>PackedModel</code> を保持する内部モジュールです。公開APIには含まれません。</p>
 <h3 id="packed_pos_modelrs--packed-パーセプトロンテーブル非公開"><a class="header" href="#packed_pos_modelrs--packed-パーセプトロンテーブル非公開"><code>packed_pos_model.rs</code> – packed パーセプトロンテーブル（非公開）</a></h3>
 <p><code>PackedModel</code> の多クラス版となる内部モジュールです（issue #143）。Averaged Perceptron のクラス別重み行を同じ 2 パステーブル構造（文字を含むファミリーはスパースな <code>(クラス, 重み)</code> 行、タグ/文字種のみのテンプレートは密行 + presence ビットセット、事前パース済み <code>SegmentLabel</code>）へコンパイルし、<code>segment_with_pos()</code> が読み取ります。公開APIには含まれません。</p>
+<h3 id="packed_two_stagers--packed-二段構成タグ付けテーブル非公開"><a class="header" href="#packed_two_stagers--packed-二段構成タグ付けテーブル非公開"><code>packed_two_stage.rs</code> – packed 二段構成タグ付けテーブル（非公開）</a></h3>
+<p><code>TwoStageLearner</code> の stage-2 タガーと語彙表を、<code>segment_with_pos()</code> の二段構成パスが読む密/疎スコアリングテーブルへコンパイルする内部モジュールです。<code>packed_model.rs</code> / <code>packed_pos_model.rs</code> が AdaBoost と joint パーセプトロンに対して行っていることの二段構成版に相当します: 語彙表とドミナンススキップ対象タグをカバーするサーフェスマップ、<code>word_features.rs</code> 由来の文字を含む単語特徴テンプレート用のクラス別スパース行、文字種・単語長テンプレート用の密テーブル、から構成されます。公開APIには含まれません。</p>
+<h3 id="word_featuresrs--stage-2-単語特徴テンプレート非公開"><a class="header" href="#word_featuresrs--stage-2-単語特徴テンプレート非公開"><code>word_features.rs</code> – stage-2 単語特徴テンプレート（非公開）</a></h3>
+<p>二段構成タガーの stage-2 が使う単語レベルの特徴テンプレート（表層、単語長、先頭/末尾文字とその文字種、文脈文字/文字種/バイグラムなど）を定義する内部モジュールです。テンプレート集合の単一の真実の源であり、学習用の extractor（<code>extract_two_stage</code> 経由）が <code>write_word_features</code> で特徴量文字列を書き出し、<code>packed_two_stage.rs</code> が <code>parse_word_feature</code> で同じ文字列を整数キーへ逆変換します。両者はラウンドトリップテストで整合性が固定されています。公開APIには含まれません。</p>
 <h3 id="model_iors--モデル読み込みio非公開"><a class="header" href="#model_iors--モデル読み込みio非公開"><code>model_io.rs</code> – モデル読み込みI/O（非公開）</a></h3>
 <p>モデルURI（プレーンパス、<code>file://</code>、<code>remote_model</code> フィーチャー時の <code>http(s)://</code>）を解決して生のモデルバイト列を返す内部モジュールです。公開APIには含まれません。</p>
 <h2 id="公開エクスポート"><a class="header" href="#公開エクスポート">公開エクスポート</a></h2>
@@ -539,25 +594,33 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 </span><span class="boring">fn main() {
 </span>pub mod adaboost;
 pub mod error;
+pub mod evaluation;
 pub mod extractor;
 pub mod language;
 pub mod metrics;
 mod model_io;
 mod packed_model;
 mod packed_pos_model;
+mod packed_two_stage;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
+pub mod two_stage;
 pub mod upos;
+mod word_features;
 
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
+pub use evaluation::{PosMetrics, SegmentationMetrics};
 pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
-pub use trainer::{PosTrainer, Trainer};
+pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
+pub use two_stage::{
+    AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
+};
 pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 pub fn version() -&gt; &amp;'static str { ... }
@@ -649,6 +712,14 @@ bias_value
 <p>不正な形式のファイル（空、バイアス行より前で切り詰められている、バイアス行や特徴量が重複している、
 有限でない重みを含む、など）は読み込み時に拒否されます。詳細は
 <a href="#モデルファイル形式-2">モデルファイル形式</a>を参照してください。</p>
+<blockquote>
+<p><strong>本ページで説明しているのは AdaBoost の学習アルゴリズムです。</strong> 上記のファイル形式は、同梱されている3つの分割モデル
+（<code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>）の保存にも使われていますが、issue #165 以降、これらの
+モデルはブースティングでは生成されていません。2 クラスの Averaged Perceptron として学習し、同じスカラー重み形式へ
+無損失で畳み込んだものです（畳み込み手順は<a href="#学習手順">事前学習済みモデル</a>を参照）。
+<code>AdaBoost::load_model</code> が読み込めるファイルはすべてこの形式の正当なインスタンスですが、それは上記のブースティング
+ループによって実際に生成されたことを意味するわけではありません。</p>
+</blockquote>
 <h2 id="ハイパーパラメータ"><a class="header" href="#ハイパーパラメータ">ハイパーパラメータ</a></h2>
 <div class="table-wrapper">
 <table>
@@ -671,6 +742,7 @@ bias_value
 <li><strong>1 個の非境界ラベル</strong>: <code>O</code>（単語の継続）</li>
 </ul>
 <p>これらのラベルは Universal Dependencies プロジェクトの 17 個の <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグに対応し、<code>B-</code> プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。</p>
+<p>本ページでは、Averaged Perceptron の主な用途である 18 クラスの分割 + 品詞付与について説明していますが、同じアルゴリズムを 2 クラスモード（<code>B</code>/<code>O</code> ラベルのみ）で使うと、実際には同梱の <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code> の各分割モデルを学習しています。学習後、推論用に AdaBoost モデル形式へ無損失で畳み込まれます — 完全な導出は<a href="#学習手順">事前学習済みモデル: 学習手順</a>を参照してください。また、<a href="#二段構成-vs-joint-タグ付け">二段構成アーキテクチャ</a>の stage-2 単語タガーもこのアルゴリズムを使用しています。</p>
 <h2 id="アルゴリズム"><a class="header" href="#アルゴリズム">アルゴリズム</a></h2>
 <h3 id="重み表現"><a class="header" href="#重み表現">重み表現</a></h3>
 <p>パーセプトロンは<strong>特徴量ごとにクラス別の重みベクトル</strong>を保持し、単一の疎なマップに格納します。これにより、スコア計算と重みの更新は
@@ -764,7 +836,7 @@ feature2\tclass2\tweight2
 <tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
 <tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
 <tr><td>学習方式</td><td>サンプル再重み付けによる反復ブースティング</td><td>重み平均化によるオンライン学習</td></tr>
-<tr><td>モデルサイズ</td><td>数 KB</td><td>約 9-19 MB（同梱の品詞モデル）</td></tr>
+<tr><td>モデルサイズ</td><td>110 KB〜2.0 MB（再学習済み japanese/chinese/korean.model）／約 16〜22 KB（レガシー RWCP/JEITA）</td><td>約 9-19 MB（同梱の joint 品詞モデル）／約 5-8 MB（二段構成モデル）</td></tr>
 <tr><td>ハイパーパラメータ</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>
@@ -782,7 +854,7 @@ feature2\tclass2\tweight2
 </div>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="特徴量抽出"><a class="header" href="#特徴量抽出">特徴量抽出</a></h1>
-<p>Litsea は、各単語境界候補の周辺の局所的なコンテキストを捉えるために文字 n-gram 特徴量を使用します。本章ではすべての特徴量タイプをカタログ化します。</p>
+<p>Litsea は、各単語境界候補の周辺の局所的なコンテキストを捉えるために文字 n-gram 特徴量を使用します。本章では、AdaBoost・joint・二段構成 stage-1 パイプラインが共有する文字レベルの境界テンプレートと、二段構成の stage-2 タガーが使用する単語レベルのテンプレートの両方を含む、すべての特徴量タイプをカタログ化します。</p>
 <h2 id="特徴量カテゴリ"><a class="header" href="#特徴量カテゴリ">特徴量カテゴリ</a></h2>
 <p>入力の各文字位置 <em>i</em> について、セグメンタは文字、その種別コード、および前回の境界判定からなるスライディングウィンドウから特徴量を抽出します。</p>
 <h3 id="基本特徴量38-個"><a class="header" href="#基本特徴量38-個">基本特徴量（38 個）</a></h3>
@@ -889,6 +961,29 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li>ラベル（境界の場合 <code>1</code>、非境界の場合 <code>-1</code>）</li>
 <li>タブ区切りの特徴量文字列。アルファベット順にソートされた順序（テンプレートの出力順ではない）で書き出されるため、各行は <code>BC1:</code> 特徴量から始まる</li>
 </ol>
+<h2 id="単語単位の特徴量テンプレート二段構成"><a class="header" href="#単語単位の特徴量テンプレート二段構成">単語単位の特徴量テンプレート（二段構成）</a></h2>
+<p>ここまでは、各境界判定ごとに採点される文字レベルのテンプレート集合です。<a href="#二段構成-vs-joint-タグ付け">二段構成の品詞タグ付け</a>の stage-2 単語タガーは、これとは別の無関係なテンプレート集合を採点します。これは <code>litsea::word_features</code>（<code>N_WORD_TEMPLATES = 23</code>）で定義されており、文字位置ごとではなく、すでに分割済みの<strong>単語</strong>ごとに1行の特徴量を生成します。上記の <code>packed_model::TEMPLATES</code> とは別の宣言的テーブルであり、専用のランタイム <code>packed_two_stage::PackedTwoStageModel</code> へコンパイルされます（<a href="#コンパイル済みスコアリングテーブル">予測パイプライン</a>を参照）。</p>
+<p>文中の <code>[start, end)</code> の範囲にまたがる単語（<code>w</code> = 表層、<code>n = end - start</code>）について:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プレフィックス</th><th>値</th><th>表現</th></tr>
+</thead>
+<tbody>
+<tr><td><code>WS</code></td><td>単語の表層そのもの</td><td>ハッシュ化文字列</td></tr>
+<tr><td><code>WL</code></td><td><code>min(n, 4)</code></td><td>密配列（単語長）</td></tr>
+<tr><td><code>FC</code> / <code>LC</code></td><td>先頭 / 末尾の文字</td><td>ハッシュ化文字</td></tr>
+<tr><td><code>ft</code> / <code>lt</code></td><td>先頭 / 末尾の文字の文字種コード</td><td>密配列（文字種）</td></tr>
+<tr><td><code>TS</code></td><td>先頭最大8文字の文字種コード列</td><td>ハッシュ化文字列</td></tr>
+<tr><td><code>L1</code>-<code>L3</code> / <code>R1</code>-<code>R3</code></td><td>左/右に距離1-3の文脈文字</td><td>ハッシュ化文字</td></tr>
+<tr><td><code>cl1</code>-<code>cl3</code> / <code>cr1</code>-<code>cr3</code></td><td>距離1-3の文脈文字種</td><td>密配列（文字種）</td></tr>
+<tr><td><code>LB</code> / <code>RB</code></td><td>文脈バイグラム（左は距離2+1、右は距離1+2）</td><td>ハッシュ化ペア</td></tr>
+<tr><td><code>P2</code> / <code>S2</code></td><td>先頭 / 末尾の2文字（<code>n &gt;= 2</code> の単語のみ）</td><td>ハッシュ化ペア</td></tr>
+</tbody>
+</table>
+</div>
+<p>合計23個のテンプレートです。文の範囲外の文脈位置には、文字レベルパイプラインの <code>B1</code>-<code>B3</code> / <code>E1</code>-<code>E3</code> パディング（上記参照）と同様に、開始/終了センチネル文字が使用されます。</p>
+<p>すべてのテンプレートが毎回の抽出で書き出されるわけではありません。<code>.stage2</code> 特徴量ファイルにどのサブセットが含まれるかは、抽出時の <code>TwoStageFeatureSet</code>（<code>full</code> / <code>balanced</code> / <code>fast</code>）によって制御されます – CLI フラグと各バリアントに含まれるテンプレートについては<a href="#二段構成の特徴量抽出-1">特徴量の抽出</a>を参照してください。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="文字種分類"><a class="header" href="#文字種分類">文字種分類</a></h1>
 <p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種クラス</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
@@ -1084,6 +1179,13 @@ POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）�
 <p>セグメンタの言語では生成し得ないモデル特徴量（例: 日本語セグメンタにおける
 韓国語の文字種コード）はすべてのテーブルから除外されます。それらはスコアリング時に
 到達不能なので、スコアには影響しません。</p>
+<p>このテーブルとその4つの消費者がカバーするのは、文字レベル（stage-1・AdaBoost・
+joint）の特徴量セットのみです。<a href="#二段構成-vs-joint-タグ付け">二段構成の品詞タグ付け</a>の
+stage-2 単語タガーは、これとは別の並行する宣言的テーブル（<code>litsea::word_features</code>、
+23個の単語レベルテンプレート）から、専用のランタイム
+<code>packed_two_stage::PackedTwoStageModel</code> へコンパイルされます – テンプレート
+カタログについては<a href="#単語単位の特徴量テンプレート二段構成">特徴量抽出</a>を、
+<code>segment_with_pos</code> へのはめ込み方については後述のセクションを参照してください。</p>
 <h3 id="出力の等価性"><a class="header" href="#出力の等価性">出力の等価性</a></h3>
 <p>スコアの累積は 2 パス順で行われ、従来の文字列キー実装の累積順序とは異なるため、
 <code>f64</code> の合計はビット単位の同一性が保証されなくなりました。実測では出力差は
@@ -1125,6 +1227,18 @@ POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）�
 完全一致差分テストのオラクルに残されており、全同梱 POS モデル・ストレス
 文字列・実テキストコーパスで出力乖離ゼロが計測されています –
 <code>segment()</code> と同じ保証網です。</p>
+<h3 id="二段構成モードは異なる経路をたどる"><a class="header" href="#二段構成モードは異なる経路をたどる">二段構成モードは異なる経路をたどる</a></h3>
+<p>ここまでの説明は、Segmenter が joint（<code>AveragedPerceptron</code>）POS 学習器で
+構築された場合の <code>segment_with_pos</code> についてのものです。代わりに
+<a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a>
+で構築された場合、<code>segment_with_pos</code> は<strong>まず</strong>二段構成学習器の有無を確認し、
+設定されていれば上記の packed-perceptron 経路を一切実行しません: 通常の
+<code>segment()</code> の境界検出経路で分割し、その結果得られた各単語を
+<code>packed_two_stage::PackedTwoStageModel::tag_words</code> でタグ付けします –
+候補タグ語彙表の参照に加え、曖昧な既知単語にはマスク付き argmax、未知語には
+全クラス argmax のフォールバックを使用します。このパイプラインの詳細と、
+なぜ上記の文字単位の多クラス採点より高速なのかについては、
+<a href="#二段構成-vs-joint-タグ付け">二段構成 vs Joint タグ付け</a>を参照してください。</p>
 <h2 id="学習と予測の比較"><a class="header" href="#学習と予測の比較">学習と予測の比較</a></h2>
 <div class="table-wrapper">
 <table>
@@ -1313,9 +1427,9 @@ joint を維持し続けることで将来の比較の基準点を保てます�
 <tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Count</th><th>単語 F1（held-out）</th></tr>
 </thead>
 <tbody>
-<tr><td>日本語</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>91.48%</td></tr>
-<tr><td>中国語</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>77.56%</td></tr>
-<tr><td>韓国語</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>99.91%</td></tr>
+<tr><td>日本語</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>96.70%</td></tr>
+<tr><td>中国語</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>90.69%</td></tr>
+<tr><td>韓国語</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>99.90%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1395,9 +1509,21 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Japanese-GSD</li>
-<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>単語 F1（held-out）</strong>: 91.48%</li>
-<li><strong>境界 F1（held-out）</strong>: 96.31%</li>
+<li><strong>学習オプション</strong>: Averaged Perceptron を50エポック学習し、AdaBoostのスカラー重みへ
+畳み込んだ後、<code>|weight|</code> 上位40,000特徴量に剪定 – 詳しい手順は
+<a href="#学習手順">学習手順</a>を参照</li>
+<li><strong>単語 F1（held-out）</strong>: 96.70%</li>
+<li><strong>境界 F1（held-out）</strong>: 98.59%</li>
+</ul>
+<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: Averaged Perceptron（単語分割と品詞推定の同時学習）</li>
+<li><strong>詳細</strong>: <a href="#japanese_posmodel-1">事前学習済みモデル</a>を参照</li>
+</ul>
+<h3 id="japanese_two_stagemodel"><a class="header" href="#japanese_two_stagemodel">japanese_two_stage.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（joint モデルより高速で出力形式は同じ）</li>
+<li><strong>詳細</strong>: <a href="#japanese_two_stagemodel-1">事前学習済みモデル</a>を参照</li>
 </ul>
 <h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
 <ul>
@@ -1461,9 +1587,21 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Chinese-GSD</li>
-<li><strong>学習オプション</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>単語 F1（held-out）</strong>: 77.56%</li>
-<li><strong>境界 F1（held-out）</strong>: 87.81%</li>
+<li><strong>学習オプション</strong>: Averaged Perceptron を100エポック学習し、AdaBoostのスカラー重みへ
+畳み込んだ後、<code>|weight|</code> 上位70,000特徴量に剪定 – 詳しい手順は
+<a href="#学習手順">学習手順</a>を参照</li>
+<li><strong>単語 F1（held-out）</strong>: 90.69%</li>
+<li><strong>境界 F1（held-out）</strong>: 95.64%</li>
+</ul>
+<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: Averaged Perceptron（単語分割と品詞推定の同時学習）</li>
+<li><strong>詳細</strong>: <a href="#chinese_posmodel-1">事前学習済みモデル</a>を参照</li>
+</ul>
+<h3 id="chinese_two_stagemodel"><a class="header" href="#chinese_two_stagemodel">chinese_two_stage.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（joint モデルより高速で出力形式は同じ）</li>
+<li><strong>詳細</strong>: <a href="#chinese_two_stagemodel-1">事前学習済みモデル</a>を参照</li>
 </ul>
 <h2 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h2>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
@@ -1525,11 +1663,26 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Korean-GSD（空白保持 TSV コーパス）</li>
-<li><strong>学習オプション</strong>: <code>--format tsv</code>, <code>-t 0.0001 -i 20000</code></li>
-<li><strong>単語 F1（held-out）</strong>: 99.91%</li>
-<li><strong>境界 F1（held-out）</strong>: 99.96%</li>
+<li><strong>学習オプション</strong>: <code>--format tsv</code>、Averaged Perceptron を30エポック学習し、
+AdaBoostのスカラー重みへ畳み込み、剪定なし（3,994特徴量）– 詳しい手順は
+<a href="#学習手順">学習手順</a>を参照</li>
+<li><strong>単語 F1（held-out）</strong>: 99.90%</li>
+<li><strong>境界 F1（held-out）</strong>: 99.95%</li>
 </ul>
 <p>held-out 指標は、空白トークンをスコアリングから除外した上で、元の空白付きテキストに対して計算しています。</p>
+<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: Averaged Perceptron（単語分割と品詞推定の同時学習）</li>
+<li><strong>詳細</strong>: <a href="#korean_posmodel-1">事前学習済みモデル</a>を参照</li>
+</ul>
+<h3 id="korean_two_stagemodel"><a class="header" href="#korean_two_stagemodel">korean_two_stage.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（joint モデルより高速で出力形式は同じ）</li>
+<li><strong>注記</strong>: 上記の <code>korean.model</code> とは異なり、このモデルは空白非保持の
+<code>word/POS</code> コーパス（<code>korean_pos.model</code> と同じプロトコル）で学習されており、
+このページで説明している空白保持プロトコルは使用していません</li>
+<li><strong>詳細</strong>: <a href="#korean_two_stagemodel-1">事前学習済みモデル</a>を参照</li>
+</ul>
 <h2 id="使用例-2"><a class="header" href="#使用例-2">使用例</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
@@ -1673,20 +1826,22 @@ fn test_char_type_thai() {
 <p><code>litsea</code> クレートは、単語分割、モデル学習、特徴量抽出のための Rust API を提供します。</p>
 <h2 id="インストール-1"><a class="header" href="#インストール-1">インストール</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.8.0"
+litsea = "0.11.0"
 </code></pre>
-<p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（<code>load_model</code>）を使う場合のみ、非同期ランタイムを追加してください。</p>
+<p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（<code>load_model</code>）を使う場合のみ、非同期ランタイムを追加してください（<code>AnyPosModel::load</code> も常に同じ非同期経路でモデル URI を解決するため、これに該当します）。</p>
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
     C["litsea::adaboost"] --- D["AdaBoost"]
     E["litsea::language"] --- F["Language"]
     G["litsea::extractor"] --- H["Extractor"]
-    I["litsea::trainer"] --- J["Trainer, PosTrainer"]
+    I["litsea::trainer"] --- J["Trainer, PosTrainer, TwoStageTrainer, TwoStageMetrics"]
     K["litsea::error"] --- L["LitseaError, Result"]
     M["litsea::perceptron"] --- N["AveragedPerceptron"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
     Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
+    S["litsea::evaluation"] --- T["PosMetrics, SegmentationMetrics"]
+    U["litsea::two_stage"] --- V["AnyPosModel, ModelKind, TwoStageFeatureSet, TwoStageLearner"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -1700,9 +1855,11 @@ litsea = "0.8.0"
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS 品詞タグ、セグメントラベル</td></tr>
 <tr><td><code>litsea::language</code></td><td><code>Language</code></td><td>言語定義、文字分類</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>コーパスからの特徴量抽出</td></tr>
-<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PosTrainer</code></td><td>学習パイプラインの制御</td></tr>
+<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PosTrainer</code>, <code>TwoStageTrainer</code>, <code>TwoStageMetrics</code></td><td>学習パイプラインの制御</td></tr>
 <tr><td><code>litsea::error</code></td><td><code>LitseaError</code>, <code>Result</code></td><td>エラー型と <code>Result</code> エイリアス</td></tr>
-<tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>学習結果の評価指標</td></tr>
+<tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>学習結果の評価指標(in-sample)</td></tr>
+<tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>gold コーパスに対する held-out 評価</td></tr>
+<tr><td><code>litsea::two_stage</code></td><td><code>AnyPosModel</code>, <code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>二段構成モデルのコンテナと自動判定ローダー</td></tr>
 </tbody>
 </table>
 </div>
@@ -1745,6 +1902,26 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 
     Ok(())
 }</code></pre>
+<h2 id="クイックスタート任意の品詞モデル"><a class="header" href="#クイックスタート任意の品詞モデル">クイックスタート（任意の品詞モデル）</a></h2>
+<p>CLI の <code>segment --pos</code> はこのパターンを使っているため、呼び出し側がどちらの種類かを意識せずに、joint モデルと二段構成モデルのどちらのファイルでも動作します:</p>
+<pre class="playground"><code class="language-rust">use litsea::language::Language;
+use litsea::two_stage::AnyPosModel;
+
+#[tokio::main]
+async fn main() -&gt; litsea::Result&lt;()&gt; {
+    // joint（`*_pos.model`）と二段構成（`*_two_stage.model`）の
+    // どちらのモデルファイルにも対応 -- 種類は自動判定される。
+    let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
+    let segmenter = model.into_segmenter(Language::Japanese);
+
+    let tokens = segmenter.segment_with_pos("これはテストです。")?;
+    for (word, pos) in &amp;tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
+
+    Ok(())
+}</code></pre>
 <h2 id="api-ドキュメント"><a class="header" href="#api-ドキュメント">API ドキュメント</a></h2>
 <p>完全な API ドキュメントは <a href="https://docs.rs/litsea">docs.rs/litsea</a> で参照できます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -1757,9 +1934,12 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: pos_learner: Option&lt;AveragedPerceptron&gt;,
+    // private: two_stage: Option&lt;TwoStageState&gt;,
+    // internal: packed / packed_pos / packed_two_stage caches (see below)
 }
 <span class="boring">}</span></code></pre>
 <p>フィールドは非公開です。アクセサメソッド <code>language()</code>、<code>learner()</code>、<code>learner_mut()</code>、<code>pos_learner()</code>、<code>pos_learner_mut()</code> を使ってアクセスしてください。</p>
+<p>これらに加えて、構造体は <code>packed</code>、<code>packed_pos</code>、<code>packed_two_stage</code> も保持しています。これらは学習器の重みを <code>segment()</code> / <code>segment_with_pos()</code> が採点に使う整数インデックスのテーブル群へコンパイルした、遅延再構築されるキャッシュです（<a href="#コンパイル済みスコアリングテーブル">予測パイプライン</a>を参照）。これらは内部実装の詳細でありアクセサはなく、対応する学習器が変更されると自動的に無効化されます。<code>two_stage</code> は <a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a>（後述）が設定する stage-2 の状態を保持します。二段構成モデルから作成された Segmenter でなければ <code>None</code> です。</p>
 <h2 id="コンストラクタ"><a class="header" href="#コンストラクタ">コンストラクタ</a></h2>
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2014,6 +2194,52 @@ extractor.extract_with_pos(
     Path::new("./features_pos.txt"),
 )?;
 <span class="boring">}</span></code></pre>
+<h3 id="extract_two_stage"><a class="header" href="#extract_two_stage"><code>extract_two_stage</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_two_stage(
+    &amp;self,
+    corpus_path: &amp;Path,
+    output_prefix: &amp;Path,
+    feature_set: TwoStageFeatureSet,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>POS タグ付きコーパス（<code>word/POS word/POS ...</code>、<code>extract_with_pos</code> と同じ形式）を1パスで読み込み、<a href="#二段構成-vs-joint-タグ付け">二段構成モデル</a>の学習に使う <a href="#twostagetrainer"><code>TwoStageTrainer</code></a> 用の3ファイルを <code>output_prefix</code> から書き出します。</p>
+<ul>
+<li><code>{output_prefix}.stage1</code> – 境界特徴量（<code>label\tfeature1\t...</code>、ラベルは <code>B</code> または <code>O</code>）。<code>extract_with_pos</code> と同じ特徴量テンプレートを使用</li>
+<li><code>{output_prefix}.stage2</code> – 単語単位の特徴量（<code>label\tfeature1\t...</code>、ラベルは UPOS タグ）。<code>feature_set</code> で選択したテンプレートを使用（詳細は下記の <a href="#twostagefeatureset"><code>TwoStageFeatureSet</code></a>）</li>
+<li><code>{output_prefix}.lexicon</code> – 候補タグ語彙表（<code>surface\tTAG:count[,TAG:count...]</code>、出現頻度の高い順）</li>
+</ul>
+<p><code>TwoStageTrainer::new</code> は同じプレフィックスから同じ3つのパスを読み込みます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::TwoStageFeatureSet;
+
+extractor.extract_two_stage(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./two_stage_features"),
+    TwoStageFeatureSet::Fast,
+)?;
+<span class="boring">}</span></code></pre>
+<h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum TwoStageFeatureSet {
+    Full,
+    Balanced,
+    #[default]
+    Fast,
+}
+<span class="boring">}</span></code></pre>
+<p><a href="#extract_two_stage"><code>extract_two_stage</code></a> が書き出す stage-2 の単語単位テンプレートを選択します（テンプレートの全カタログは<a href="#特徴量抽出">単語単位の特徴量テンプレート</a>を参照）。タグ付け品質とスループットのトレードオフになります:</p>
+<ul>
+<li><code>Full</code> – すべての単語テンプレート（品質重視）</li>
+<li><code>Balanced</code> – <code>Fast</code> のテンプレートに加えて、先頭/末尾文字そのものと単語の文字種文字列</li>
+<li><code>Fast</code>（既定） – 実測に基づく最小構成: 表層、単語長、先頭/末尾文字種、隣接文脈文字とその文字種、2文字の接頭辞/接尾辞</li>
+</ul>
+<p><code>Display</code>（小文字: <code>"full"</code>、<code>"balanced"</code>、<code>"fast"</code>）と <code>FromStr</code>（不正な文字列には <code>ParseTwoStageFeatureSetError</code> を返す）も実装しています – これは <code>--stage2-features</code> CLI フラグが受け付けるのと同じ名前です。<a href="#特徴量の抽出">特徴量の抽出</a>を参照してください。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="trainer"><a class="header" href="#trainer">Trainer</a></h1>
 <p><code>Trainer</code> 構造体は、モデル学習パイプライン全体を制御します。</p>
@@ -2142,6 +2368,89 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }</code></pre>
+<h2 id="twostagetrainer"><a class="header" href="#twostagetrainer">TwoStageTrainer</a></h2>
+<p><code>TwoStageTrainer</code> は<a href="#二段構成-vs-joint-タグ付け">二段構成モデル</a>
+（issue #147）を学習します: 二値の境界分類器（stage 1）と単語単位の
+マルチクラスタガー（stage 2）を、いずれも <strong>Averaged Perceptron</strong> として
+学習し、候補タグ語彙表とともに単一の <code>litsea-two-stage v1</code> ファイルに
+組み立てます。学習後、stage 1 は既存の AdaBoost 形式のスカラー特徴量重みに
+畳み込まれます（品質を損なわない変換 – 導出はこのモジュールのソース
+ドキュメントを参照）。これによりランタイムは通常の <code>segment()</code> モデルと
+全く同じ方法で採点します。<code>TwoStageTrainer</code> と <code>TwoStageMetrics</code> はどちらも
+クレートのルートから <code>litsea::TwoStageTrainer</code> / <code>litsea::TwoStageMetrics</code>
+として再エクスポートされています。</p>
+<h3 id="twostagetrainernew"><a class="header" href="#twostagetrainernew"><code>TwoStageTrainer::new</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new(
+    num_epochs: usize,
+    dominance: f64,
+    features_prefix: &amp;Path,
+) -&gt; litsea::Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p><a href="#extractor"><code>Extractor::extract_two_stage</code></a> が書き出す 3 つのファイルを
+<code>features_prefix</code> から読み込みます（<code>{prefix}.stage1</code>、<code>{prefix}.stage2</code>、
+<code>{prefix}.lexicon</code>）。両ステージ分の学習インスタンスを登録します。</p>
+<p><code>dominance</code> は、組み立て後のモデルにおける分類器スキップの閾値です:
+既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、
+stage-2 分類器を呼ばずにタグ付けされます。値は <code>(0.5, 1.0]</code> の範囲内で
+なければならず、<code>new()</code> の時点で即座に検証されます。そのため範囲外の値は
+学習が始まる前に失敗し、学習後に失敗することはありません。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+use litsea::trainer::TwoStageTrainer;
+
+let trainer = TwoStageTrainer::new(
+    50,                            // num_epochs（両ステージ共通）
+    0.99,                          // dominance
+    Path::new("./features"),       // 特徴量プレフィックス
+)?;
+<span class="boring">}</span></code></pre>
+<h3 id="twostagetrainertrain"><a class="header" href="#twostagetrainertrain"><code>TwoStageTrainer::train</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn train(
+    mut self,
+    running: &amp;AtomicBool,
+    model_path: &amp;Path,
+) -&gt; litsea::Result&lt;TwoStageMetrics&gt;
+<span class="boring">}</span></code></pre>
+<p><code>Trainer::train</code> や <code>PosTrainer::train</code> と異なり、このメソッドは <code>self</code> を
+値として受け取ります（Trainer を消費します）。両ステージを Averaged
+Perceptron として <code>num_epochs</code> エポック分学習し、stage 1 を AdaBoost の
+重みへ畳み込み、語彙表とともに 2 つのステージを <code>litsea-two-stage v1</code>
+モデルへ組み立てて <code>model_path</code> に保存し、両ステージの in-sample
+メトリクスを返します。<code>running</code> フラグは他の Trainer と同様に、学習の
+途中停止を可能にします。</p>
+<pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::TwoStageTrainer;
+
+#[tokio::main]
+async fn main() -&gt; litsea::Result&lt;()&gt; {
+    let trainer = TwoStageTrainer::new(50, 0.99, Path::new("./features"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&amp;running, Path::new("./model.model"))?;
+
+    println!("Stage 1: {:.2}%, Stage 2: {:.2}%", metrics.stage1.accuracy, metrics.stage2.accuracy);
+
+    Ok(())
+}</code></pre>
+<h3 id="twostagemetrics"><a class="header" href="#twostagemetrics"><code>TwoStageMetrics</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct TwoStageMetrics {
+    pub stage1: MulticlassMetrics,
+    pub stage2: MulticlassMetrics,
+}
+<span class="boring">}</span></code></pre>
+<p><code>TwoStageTrainer::train</code> の実行結果である in-sample メトリクスです。
+<code>stage1</code> は境界分類器の 2 クラス（<code>B</code>/<code>O</code>）に対するメトリクス、<code>stage2</code> は
+単語単位のタガーの UPOS タグクラスに対するメトリクスです。どちらのフィールドも
+<code>MulticlassMetrics</code> 型で、<a href="#postrainer"><code>PosTrainer::train</code></a>（上記）が返すものと
+同じ型であり、正解率とマクロ平均の適合率・再現率を保持します。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="adaboost"><a class="header" href="#adaboost">AdaBoost</a></h1>
 <p><code>AdaBoost</code> 構造体は、単語境界検出のための二値分類を実装しています。</p>
@@ -2223,6 +2532,12 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 </span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>モデルの重みをファイルに保存します。モデルが空の場合はエラーを返します。</p>
+<h3 id="save_model_to_writer"><a class="header" href="#save_model_to_writer"><code>save_model_to_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model_to_writer&lt;W: Write&gt;(&amp;self, writer: &amp;mut W) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>save_model</code> と同じテキスト形式で、任意のライターへモデルを書き込みます。<code>save_model</code> はこのメソッドに処理を委譲しています。ファイルパスを経由せずにモデルをより大きなファイルの一部として埋め込めるよう公開されています – <a href="#二段構成モデル形式litsea-two-stage-v1">二段構成モデル形式</a>は、これを使って stage-1 の <code>AdaBoost</code> モデルを直接埋め込んでいます。ライターはフラッシュされません。モデルが空の場合はエラーを返します。</p>
 <h2 id="学習メソッド"><a class="header" href="#学習メソッド">学習メソッド</a></h2>
 <h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2369,6 +2684,13 @@ attrs.insert("UC4:I".to_string());
 let label = learner.predict(&amp;attrs);
 // label == "B-ADP", "O", etc.
 <span class="boring">}</span></code></pre>
+<h2 id="アクセサ-2"><a class="header" href="#アクセサ-2">アクセサ</a></h2>
+<h3 id="classes"><a class="header" href="#classes"><code>classes</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn classes(&amp;self) -&gt; &amp;[String]
+<span class="boring">}</span></code></pre>
+<p>登録されているクラス名を、格納順（重みベクトルのインデックスや <code>predict</code> の argmax タイブレーク〔先勝ちの strictly-greater〕で使われる並び）で返します。クラスが未登録の場合は空です。二段構成モデルへの畳み込み手順（<a href="#学習手順">事前学習済みモデル</a>を参照）や、packed 二段構成ランタイムで使用されています。</p>
 <h2 id="モデルの入出力"><a class="header" href="#モデルの入出力">モデルの入出力</a></h2>
 <h3 id="save_model-1"><a class="header" href="#save_model-1"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2376,6 +2698,12 @@ let label = learner.predict(&amp;attrs);
 </span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>モデルをファイルに保存します。モデルが空の場合はエラーを返します。</p>
+<h3 id="save_model_to_writer-1"><a class="header" href="#save_model_to_writer-1"><code>save_model_to_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model_to_writer&lt;W: Write&gt;(&amp;self, writer: &amp;mut W) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>save_model</code> と同じテキスト形式で、任意のライターへモデルを書き込みます。<code>save_model</code> はこのメソッドに処理を委譲しています。ファイルパスを経由せずにモデルをより大きなファイルの一部として埋め込めるよう公開されています – <a href="#二段構成モデル形式litsea-two-stage-v1">二段構成モデル形式</a>は、これを使って stage-2 の単語タガーを直接埋め込んでいます。ライターはフラッシュされません。クラスが未登録の場合（空のモデル）はエラーを返します。</p>
 <h3 id="load_model_from_path-1"><a class="header" href="#load_model_from_path-1"><code>load_model_from_path</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2648,10 +2976,16 @@ assert_eq!(err.input(), "french");
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="評価-2"><a class="header" href="#評価-2">評価</a></h1>
-<p>セグメンテーションおよび品詞推定同時実行の held-out 品質評価
+<p>セグメンテーションおよび品詞タグ付けの held-out 品質評価
 （<code>litsea::evaluation</code>）です。
 <a href="#evaluate"><code>litsea evaluate</code></a> サブコマンドの背後にある
-ライブラリ API です。</p>
+ライブラリ API です。<code>evaluate_pos</code> はどちらの品詞タグ付けアーキテクチャに
+対しても動作します – <a href="#with_pos_learner"><code>with_pos_learner</code></a>
+で作成した Segmenter（joint）でも、
+<a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a> で作成した
+Segmenter（二段構成。<a href="#二段構成-vs-joint-タグ付け">二段構成 vs Joint
+タグ付け</a>を参照）でも構いません。
+どちらも同じシグネチャの <code>segment_with_pos</code> を実装しているためです。</p>
 <h2 id="メトリクス型"><a class="header" href="#メトリクス型">メトリクス型</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2698,8 +3032,9 @@ where
     S: Into&lt;String&gt;,
 <span class="boring">}</span></code></pre>
 <p><code>evaluate_segmentation</code> と同様ですが、[<code>Segmenter::segment_with_pos</code>] を
-実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器が
-設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を返します。</p>
+実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器も
+二段構成学習器も設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を
+返します。</p>
 <h3 id="ゴールド行パーサ"><a class="header" href="#ゴールド行パーサ">ゴールド行パーサ</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2729,6 +3064,160 @@ let metrics = evaluate_segmentation(&amp;segmenter, sentences);
 println!("word F1: {:.2}%", metrics.word_f1);
 <span class="boring">Ok::&lt;(), Box&lt;dyn std::error::Error&gt;&gt;(())
 </span><span class="boring">}</span></code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="二段構成モデルtwo-stage-model"><a class="header" href="#二段構成モデルtwo-stage-model">二段構成モデル（Two-Stage Model）</a></h1>
+<p><code>two_stage</code> モジュールは <code>litsea-two-stage v1</code> モデルコンテナ
+（<code>TwoStageLearner</code>）、stage-2 特徴量セットの選択肢（<code>TwoStageFeatureSet</code>）、
+自動判別 POS モデルローダー（<code>AnyPosModel</code> / <code>ModelKind</code>）を定義します。
+アーキテクチャと計測済みの品質・速度比較は
+<a href="#二段構成-vs-joint-タグ付け">二段構成 vs Joint タグ付け</a> を、
+モデルの新規学習は
+<a href="#twostagetrainer"><code>TwoStageTrainer</code></a> を参照してください。</p>
+<h2 id="twostagelearner"><a class="header" href="#twostagelearner"><code>TwoStageLearner</code></a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct TwoStageLearner {
+    // private: stage1: AdaBoost,
+    // private: stage2: AveragedPerceptron,
+    // private: lexicon: HashMap&lt;String, Vec&lt;(Upos, u32)&gt;&gt;,
+    // private: dominance: f64,
+}
+<span class="boring">}</span></code></pre>
+<p>二段構成モデルの 3 パーツを保持します: stage-1 境界分類器
+（スカラー重み、AdaBoost 形式）、候補タグ語彙表、stage-2 単語レベル
+タガー（<code>AveragedPerceptron</code>）。構築・シリアライズの規約は
+<code>AdaBoost</code> / <code>AveragedPerceptron</code> と同じです。</p>
+<h3 id="コンストラクタ-5"><a class="header" href="#コンストラクタ-5">コンストラクタ</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn new() -&gt; Self
+pub fn from_parts(
+    stage1: AdaBoost,
+    stage2: AveragedPerceptron,
+    lexicon: impl IntoIterator&lt;Item = (String, Vec&lt;(Upos, u32)&gt;)&gt;,
+    dominance: f64,
+) -&gt; Result&lt;Self&gt;
+<span class="boring">}</span></code></pre>
+<p><code>new</code> は空の learner を作成します（使用前に <code>load_model*</code> 系メソッドで
+埋める必要があります）。<code>from_parts</code> はパーツから learner を構築し、
+組み合わせを検証します: <code>dominance</code> は <code>(0.5, 1.0]</code> の範囲内、
+stage-2 の各クラス名は有効な <code>Upos</code> タグである必要があり、
+各語彙エントリは非空のサーフェス（タブ・改行を含まない）、
+正のカウントを持つ非空のタグリスト、重複タグ・重複サーフェスが
+無いことが要求されます。語彙エントリは入力順に関わらず正規順序
+（カウント降順、同数はタグ名昇順）に正規化されます。</p>
+<h3 id="モデルの入出力-1"><a class="header" href="#モデルの入出力-1">モデルの入出力</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; Result&lt;()&gt;
+pub fn save_model_to_writer&lt;W: Write&gt;(&amp;self, writer: &amp;mut W) -&gt; Result&lt;()&gt;
+pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; Result&lt;()&gt;
+pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; Result&lt;()&gt;
+pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>AdaBoost</code>/<code>AveragedPerceptron</code> と同じ規約です: <code>save_model</code>/<code>load_model</code>
+はファイルパス、または（<code>load_model</code> のみ）<code>file://</code>/<code>http(s)://</code> の URI
+に対応します（後者は <code>remote_model</code> フィーチャが必要）。
+<code>*_to_writer</code>/<code>*_from_reader</code> 系は任意の writer/reader に対応します。
+空の learner（語彙エントリが無い、またはどちらかの内部 learner が
+未学習）の保存は <code>LitseaError::InvalidInput</code> を返します。
+読み込みはファイル構造全体を検証します（オンディスクのレイアウトは
+<a href="#モデルファイル形式-2">モデルファイル形式</a> を参照）。
+不正な内容は <code>LitseaError::InvalidData</code> で拒否され、読み込みエラー時に
+learner は変更されません。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::two_stage::TwoStageLearner;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+<span class="boring">}</span></code></pre>
+<h3 id="アクセサ-3"><a class="header" href="#アクセサ-3">アクセサ</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn stage1(&amp;self) -&gt; &amp;AdaBoost
+pub fn stage2(&amp;self) -&gt; &amp;AveragedPerceptron
+pub fn dominance(&amp;self) -&gt; f64
+pub fn lexicon_len(&amp;self) -&gt; usize
+pub fn lexicon_entry(&amp;self, surface: &amp;str) -&gt; Option&lt;&amp;[(Upos, u32)]&gt;
+<span class="boring">}</span></code></pre>
+<p><code>dominance</code> は分類器スキップの閾値です: 推論時、あるサーフェスの
+最頻タグが学習時出現の少なくともこの割合を占める場合、stage-2
+分類器を一切呼び出さずにタグ付けします。<code>lexicon_entry</code> は
+学習中に観測されたサーフェスの候補タグを頻度降順で返し、
+一度も観測されていないサーフェスには <code>None</code> を返します。</p>
+<p>実際に推論を実行するには、<code>TwoStageLearner</code> を直接呼び出すのではなく
+<a href="#with_two_stage_learner"><code>Segmenter::with_two_stage_learner</code></a>
+経由で <code>Segmenter</code> にインストールしてください——segmenter がこれを
+高速ルックアップ用の packed スコアリングテーブルへコンパイルします。</p>
+<h2 id="twostagefeatureset-1"><a class="header" href="#twostagefeatureset-1"><code>TwoStageFeatureSet</code></a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[non_exhaustive]
+pub enum TwoStageFeatureSet {
+    Full,
+    Balanced,
+    #[default]
+    Fast,
+}
+<span class="boring">}</span></code></pre>
+<p><a href="#extract_two_stage"><code>Extractor::extract_two_stage</code></a> が書き出す
+23 個の単語レベル stage-2 テンプレート（<a href="#特徴量抽出">特徴量抽出</a>
+参照）のうちどれを使うかを選択します。<code>Fast</code>（既定値）は計測済みの
+最小セット——サーフェス、単語長、先頭/末尾文字タイプ、隣接文脈文字＋
+タイプ、2文字プレフィックス/サフィックス。<code>Balanced</code> はこれに
+先頭/末尾文字そのものと単語タイプコード文字列を追加します。<code>Full</code> は
+全テンプレートを含みます。分割精度は 3 セットとも同一です（stage-1 が
+決定するため）——変わるのはタグ付け精度とスループットのみです。
+3 セットの相対的な順序（正確な数値ではありません——この型自身の
+rustdoc に記載の数値は、同梱モデルとは異なるエポック数で計測した
+初期プロトタイプのものです）についてはこの型自身の rustdoc を、
+同梱モデルの現在の実測値は <a href="#事前学習済みモデル">学習済みモデル</a>
+を参照してください。</p>
+<p><code>FromStr</code>（大文字小文字を区別しない: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>）と
+<code>Display</code>（小文字）を実装しています。<code>#[non_exhaustive]</code> が付与されて
+おり、外部の <code>match</code> 式にはワイルドカードアームが必要です。</p>
+<h2 id="anyposmodel-と-modelkind"><a class="header" href="#anyposmodel-と-modelkind"><code>AnyPosModel</code> と <code>ModelKind</code></a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum ModelKind {
+    AdaBoost,
+    AveragedPerceptron,
+    TwoStage,
+}
+
+pub enum AnyPosModel {
+    Joint(Box&lt;AveragedPerceptron&gt;),
+    TwoStage(Box&lt;TwoStageLearner&gt;),
+}
+<span class="boring">}</span></code></pre>
+<p><code>ModelKind::detect(content: &amp;str) -&gt; ModelKind</code> はモデルファイルの
+1行目を調べて形式を判別します——これは判別のためのヒューリスティックで
+あり完全な検証ではありません。実際の検証は対応するローダーが行います。</p>
+<p><code>AnyPosModel::load(uri: &amp;str) -&gt; Result&lt;Self&gt;</code> は joint モデルと
+二段構成モデルのどちらも受け付けるコードのための単一フェッチ
+エントリポイントです（<code>litsea segment --pos</code> と <code>litsea evaluate --pos</code>
+が実際に使用しています）: モデルバイト列を一度だけ取得し、種類を
+判別してから対応するローダーで解析します。ファイルがプレーンな
+AdaBoost 分割モデル（タグ付け不可）の場合、バイト列が有効な UTF-8 で
+ない場合、判別された形式の解析に失敗した場合はいずれも
+<code>LitseaError::InvalidData</code> を返します。</p>
+<p><code>AnyPosModel::into_segmenter(self, language: Language) -&gt; Segmenter</code> は
+対応する <code>Segmenter</code> を構築します——<code>Joint</code> には <code>with_pos_learner</code>、
+<code>TwoStage</code> には <code>with_two_stage_learner</code>——呼び出し側がモデル種別で
+分岐する必要はありません:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::language::Language;
+use litsea::two_stage::AnyPosModel;
+
+let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
+let segmenter = model.into_segmenter(Language::Japanese);
+let tagged = segmenter.segment_with_pos("これはテストです。")?;
+// ファイルが joint モデルでも二段構成モデルでも同じように動作します。
+<span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cliリファレンス概要"><a class="header" href="#cliリファレンス概要">CLIリファレンス概要</a></h1>
 <p><code>litsea</code> CLIは、単語分割、モデル学習、テキスト処理のためのコマンドを提供します。</p>
@@ -2791,6 +3280,27 @@ println!("word F1: {:.2}%", metrics.word_f1);
 <li>POS モデルを学習する: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
 <li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
 </ol>
+<h3 id="二段構成ワークフロー高速な品詞推定"><a class="header" href="#二段構成ワークフロー高速な品詞推定">二段構成ワークフロー（高速な品詞推定）</a></h3>
+<pre><code class="language-mermaid">flowchart LR
+    A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
+    B --&gt; C["3. litsea extract --two-stage"]
+    C --&gt; D["4. litsea train --two-stage"]
+    D --&gt; E["5. litsea segment --pos"]
+</code></pre>
+<ol>
+<li>UD Treebank をダウンロードする: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
+<li>品詞付きコーパスを準備する: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
+<li>二段構成の特徴量を抽出する: <code>litsea extract --two-stage -l japanese pos_corpus.txt features_prefix</code></li>
+<li>二段構成モデルを学習する: <code>litsea train --two-stage --num-epochs 50 features_prefix model.model</code></li>
+<li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model.model</code></li>
+</ol>
+<p><code>segment --pos</code> と <code>evaluate --pos</code> はファイルヘッダから二段構成モデルを
+自動判別するため、学習後の利用に追加のフラグは不要です。アーキテクチャと
+新規用途で推奨する理由については
+<a href="#二段構成-vs-joint-タグ付け">二段構成 vs Joint タグ付け</a>を、フラグの
+完全なリファレンスは
+<a href="#二段構成モデルの学習-1">モデルの学習</a>や
+<a href="#二段構成モデルの学習"><code>train</code></a>を参照してください。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="extract-1"><a class="header" href="#extract-1">extract</a></h1>
 <p>モデル学習用にコーパスファイルから特徴量を抽出します。</p>
@@ -2948,14 +3458,17 @@ O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	.
 <p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
 <h2 id="使用例-5"><a class="header" href="#使用例-5">使用例</a></h2>
 <p>基本的な学習:</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
+<p>これは通常の AdaBoost 学習の一般的な例です。同梱の <code>japanese.model</code>、
+<code>chinese.model</code>、<code>korean.model</code> は別の手順を使っています –
+<a href="#学習手順">学習手順</a>を参照してください。</p>
 <p>高精度な学習（低い閾値、多い反復回数）:</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>既存モデルからの再学習:</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/japanese.model \
-    ./new_features.txt ./models/japanese_v2.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/my_model.model \
+    ./new_features.txt ./models/my_model_v2.model
 </code></pre>
 <h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
 <div class="table-wrapper">
@@ -3029,12 +3542,12 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 </code></pre>
 <h3 id="出力-2"><a class="header" href="#出力-2">出力</a></h3>
 <pre><code class="language-text">Result Metrics (Two-Stage):
-  Stage 1 (boundary) Accuracy: 99.36% ( 277213 )
-  Stage 1 Macro Precision: 99.30%
-  Stage 1 Macro Recall: 99.35%
-  Stage 2 (tagging) Accuracy: 98.53% ( 168333 )
-  Stage 2 Macro Precision: 98.39%
-  Stage 2 Macro Recall: 97.59%
+  Stage 1 (boundary) Accuracy: 99.86% ( 277213 )
+  Stage 1 Macro Precision: 99.85%
+  Stage 1 Macro Recall: 99.86%
+  Stage 2 (tagging) Accuracy: 99.09% ( 168333 )
+  Stage 2 Macro Precision: 98.96%
+  Stage 2 Macro Recall: 98.77%
 </code></pre>
 <p>他のモードと同様、これらは in-sample のメトリクスです。現実的な品質を見積もるには
 <code>litsea evaluate --pos</code> でホールドアウトされたテキストを評価してください。
@@ -3207,12 +3720,12 @@ litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japan
 <p>出力:</p>
 <pre><code class="language-text">Evaluation Metrics:
   Sentences: 543
-  Word Precision: 91.50%
-  Word Recall: 91.47%
-  Word F1: 91.48%
-  Boundary Precision: 96.32%
-  Boundary Recall: 96.29%
-  Boundary F1: 96.31%
+  Word Precision: 96.73%
+  Word Recall: 96.66%
+  Word F1: 96.70%
+  Boundary Precision: 98.63%
+  Boundary Recall: 98.56%
+  Boundary F1: 98.59%
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
@@ -3231,9 +3744,8 @@ litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japan
 <li><a href="#モデルの学習">POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 10 features.txt model.model</code></li>
 </ol>
 <h2 id="言語ごとの違い"><a class="header" href="#言語ごとの違い">言語ごとの違い</a></h2>
-<p>パイプライン（準備 → 抽出 → 学習）、スクリプト、学習ハイパーパラメータ
-（同梱モデルは <code>-t 0.0001 -i 20000</code>）は 3 言語で共通です。言語固有なのは
-次の 2 点だけです:</p>
+<p>パイプライン（準備 → 抽出 → 学習）とスクリプトは 3 言語で共通です。
+言語固有なのは次の 2 点だけです:</p>
 <ol>
 <li><strong><code>extract</code> の <code>-l</code> フラグ</strong> — 言語別の文字種分類を選択します（日本語 8 種、
 中国語 9 種、韓国語 10 種。韓国語は WC 特徴を使いません —
@@ -3253,7 +3765,13 @@ litsea extract -l japanese corpus.txt features.txt
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l korean --format tsv corpus.tsv features.txt
 </code></pre>
-<p><code>train</code> ステップは 3 言語とも同一です。</p>
+<p><code>train</code> ステップのコマンドの形は 3 言語とも同一ですが、実際に使う
+ハイパーパラメータは異なります。<code>litsea train</code> でゼロから通常の AdaBoost
+モデルを学習する場合、<code>-t 0.0001 -i 20000</code>（<a href="#モデルの学習">モデルの学習</a>を参照）は
+良い出発点ですが、これは同梱の <code>japanese</code>/<code>chinese</code>/<code>korean</code> モデルが
+使っている値ではありません。それらのモデルは言語ごとに異なるエポック数と
+剪定を伴う別の手順で学習されています。実際の手順は
+<a href="#学習手順">学習手順</a>を参照してください。</p>
 <h2 id="その他のトピック"><a class="header" href="#その他のトピック">その他のトピック</a></h2>
 <ul>
 <li><a href="#モデルの評価">モデルの評価</a> – モデル品質の評価</li>
@@ -3434,6 +3952,18 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <li>最初の列: ラベル（<code>1</code> = 境界、<code>-1</code> = 非境界）</li>
 <li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
+<h2 id="空白保持tsvコーパス形式"><a class="header" href="#空白保持tsvコーパス形式">空白保持（TSV）コーパス形式</a></h2>
+<p>文の元の空白を保持したコーパス — 韓国語モデルの学習に使用（単語間の空白が
+韓国語における最も強力な境界シグナルであるため。詳細は
+<a href="#空白保持学習space-preserving-training">韓国語</a>を参照）
+— から抽出するには、既定のスペース区切り形式の代わりに <code>--format tsv</code> を
+指定します:</p>
+<pre><code class="language-sh">litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+</code></pre>
+<p>入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
+空白文字そのもの（<code>" "</code>）を含められます。出力される特徴量ファイルの形式は既定の
+<code>extract</code> と同一で、コーパスの解析方法のみが異なります。<code>--format tsv</code> は
+<code>--pos</code> または <code>--two-stage</code> と併用できません。</p>
 <h2 id="品詞付き特徴量の抽出"><a class="header" href="#品詞付き特徴量の抽出">品詞付き特徴量の抽出</a></h2>
 <p>品詞推定モデル用には、<code>--pos</code> フラグを使用して、二値境界ラベルの代わりに品詞ラベル付きの特徴量を抽出します。</p>
 <h3 id="コマンド-1"><a class="header" href="#コマンド-1">コマンド</a></h3>
@@ -3459,6 +3989,51 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <li>最初の列: セグメントラベル（例: <code>B-PRON</code>、<code>O</code>）</li>
 <li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
+<h2 id="二段構成の特徴量抽出-1"><a class="header" href="#二段構成の特徴量抽出-1">二段構成の特徴量抽出</a></h2>
+<p><a href="#二段構成-vs-joint-タグ付け">二段構成の品詞タグ付け</a>（issue #147）用には、
+<code>--pos</code> の代わりに <code>--two-stage</code> を使用します:</p>
+<pre><code class="language-sh">litsea extract --two-stage [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+</code></pre>
+<h3 id="使用例-2-1"><a class="header" href="#使用例-2-1">使用例</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+</code></pre>
+<p><code>--two-stage</code> は <code>--pos</code> と同じ POS タグ付きコーパス（<code>word/POS word/POS ...</code>）を
+読み込みますが、コーパスを1パスで処理し、<code>&lt;FEATURES_PREFIX&gt;</code> から1ファイルではなく
+<strong>3ファイル</strong>を書き出します:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ファイル</th><th>内容</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage1</code></td><td>境界特徴量（ラベルは <code>B</code> または <code>O</code>）。<code>--pos</code> と同じテンプレート</td></tr>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage2</code></td><td>単語単位の特徴量（ラベルは UPOS タグ）。<code>--stage2-features</code> で選択したテンプレート</td></tr>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.lexicon</code></td><td>候補タグ語彙表（<code>surface\tTAG:count[,TAG:count...]</code>、出現頻度の高い順）</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>litsea train --two-stage</code> は同じプレフィックスから3ファイルすべてを読み込みます。
+<code>--two-stage</code> は <code>--pos</code> または <code>--format tsv</code> と併用できません。</p>
+<h3 id="--stage2-features-の選び方"><a class="header" href="#--stage2-features-の選び方"><code>--stage2-features</code> の選び方</a></h3>
+<p><code>--stage2-features</code> は <code>&lt;FEATURES_PREFIX&gt;.stage2</code> に書き出す stage-2 の単語単位
+テンプレート（<a href="#単語単位の特徴量テンプレート二段構成">単語単位の特徴量テンプレート（二段構成）</a>を参照）を選択し、
+タグ付け品質とスループットをトレードオフします:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>値</th><th>テンプレート</th><th>トレードオフ</th></tr>
+</thead>
+<tbody>
+<tr><td><code>full</code></td><td>全23個の単語テンプレート</td><td>最も高精度、最も低速</td></tr>
+<tr><td><code>balanced</code></td><td><code>full</code> のサブセット</td><td>中間的な構成</td></tr>
+<tr><td><code>fast</code>（既定）</td><td>最小のサブセット</td><td>最速、それでいて競争力のある品質</td></tr>
+</tbody>
+</table>
+</div>
+<p>この既定値の背後にある品質・スループットの実測比較については、
+<a href="#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a>を参照してください。</p>
+<pre><code class="language-sh">litsea extract --two-stage --stage2-features balanced -l chinese ./pos_corpus.txt ./two_stage_features
+</code></pre>
 <h2 id="ファイルサイズの目安"><a class="header" href="#ファイルサイズの目安">ファイルサイズの目安</a></h2>
 <p>特徴量ファイルは、各文字位置が38-42個の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
@@ -3468,8 +4043,12 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <pre><code class="language-sh">litsea train [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <h2 id="基本的な使用例"><a class="header" href="#基本的な使用例">基本的な使用例</a></h2>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
+<p>これは通常の AdaBoost 学習の一般的な例です。同梱の <code>japanese.model</code>、
+<code>chinese.model</code>、<code>korean.model</code> は<strong>この方法では作られていません</strong> –
+これらのファイルの実際の学習手順は
+<a href="#学習手順">学習手順</a>を参照してください。</p>
 <h2 id="学習プロセス"><a class="header" href="#学習プロセス">学習プロセス</a></h2>
 <pre><code class="language-mermaid">flowchart TD
     A["Initialize features&lt;br/&gt;(read feature names)"] --&gt; B["Initialize instances&lt;br/&gt;(read labels + features)"]
@@ -3493,13 +4072,19 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <tr><th>パラメータ</th><th>フラグ</th><th>デフォルト値</th><th>ガイダンス</th></tr>
 </thead>
 <tbody>
-<tr><td>閾値</td><td><code>-t</code></td><td>0.01</td><td>0.0001 から開始することを推奨（同梱モデルで使用）。値を低くすると早期停止が遅くなるが、学習時間も増加する</td></tr>
-<tr><td>反復回数</td><td><code>-i</code></td><td>100</td><td>20000 から開始することを推奨（同梱モデルで使用）。AdaBoost は 1 反復につき特徴を 1 つ選択するため、この値がモデルの特徴数の上限になる。デフォルト値では非常に小さいモデルになり、held-out 精度が大幅に低くなる</td></tr>
+<tr><td>閾値</td><td><code>-t</code></td><td>0.01</td><td>0.0001 から開始することを推奨。値を低くすると早期停止が遅くなるが、学習時間も増加する</td></tr>
+<tr><td>反復回数</td><td><code>-i</code></td><td>100</td><td>20000 から開始することを推奨。AdaBoost は 1 反復につき特徴を 1 つ選択するため、この値がモデルの特徴数の上限になる。デフォルト値では非常に小さいモデルになり、held-out 精度が大幅に低くなる</td></tr>
 </tbody>
 </table>
 </div>
+<p><strong>注</strong>: これらはゼロから通常の AdaBoost モデルを学習する際の一般的な
+出発点です。同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は
+別の手順（2 クラスの Averaged Perceptron を AdaBoost の重みへ畳み込み、
+言語ごとに異なるエポック数と剪定を適用）で作られています – これらの
+ファイルが実際にどう作られているかは、事前学習済みモデルの
+<a href="#学習手順">学習手順</a>を参照してください。</p>
 <h2 id="出力の解釈"><a class="header" href="#出力の解釈">出力の解釈</a></h2>
-<p>メトリクスは学習データに対して計算されます。反復回数が十分であれば、モデルは学習コーパスにほぼ完全に適合できてしまうため、現実的な品質を見積もるにはホールドアウトされたテキストで評価してください。</p>
+<p>メトリクスは学習データに対して計算されます。反復回数が十分であれば、モデルは学習コーパスにほぼ完全に適合できてしまうため、現実的な品質を見積もるにはホールドアウトされたテキストで評価してください。以下の数値は <code>train</code> の出力形式を示す代表例であり、同梱の <code>japanese.model</code> の実際の学習ログではありません。</p>
 <pre><code class="language-text">Result Metrics:
   Accuracy: 100.00% ( 1075868 / 1075869 )
   Precision: 100.00% ( 161283 / 161284 )
@@ -3539,10 +4124,17 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <tr><td>分類</td><td>二値（境界 / 非境界）</td><td>多クラス（18 セグメントラベル）</td></tr>
 <tr><td>ラベル</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
 <tr><td>ハイパーパラメータ</td><td>閾値、反復回数</td><td>エポック数</td></tr>
-<tr><td>モデルサイズ</td><td>約 18-22 KB</td><td>約 9-19 MB</td></tr>
+<tr><td>モデルサイズ</td><td>約 110 KB 〜 2.0 MB（同梱モデル）</td><td>約 9-19 MB</td></tr>
 </tbody>
 </table>
 </div>
+<p>上記の AdaBoost のモデルサイズ範囲は、同梱の <code>japanese.model</code>（約 1.1 MB）、
+<code>chinese.model</code>（約 2.0 MB）、<code>korean.model</code>（約 110 KB）を反映したものです。
+上の基本例のように控えめな <code>-i</code> 値で学習したモデルは、これよりずっと
+小さくなります。レガシーの <code>RWCP.model</code> と
+<code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はさらに小さく（約 16-22 KB）なります。
+正確なモデルごとのサイズは<a href="#事前学習済みモデル">事前学習済みモデル</a>を
+参照してください。</p>
 <h3 id="品詞学習のハイパーパラメータ"><a class="header" href="#品詞学習のハイパーパラメータ">品詞学習のハイパーパラメータ</a></h3>
 <div class="table-wrapper">
 <table>
@@ -3647,18 +4239,20 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 </table>
 </div>
 <h2 id="事前学習済みモデルのベンチマーク"><a class="header" href="#事前学習済みモデルのベンチマーク">事前学習済みモデルのベンチマーク</a></h2>
-<p>同梱モデルは <code>-t 0.0001 -i 20000</code> で学習し、学習コーパスの held-out テスト分割で
-評価しています。<strong>単語 F1</strong> は単語の完全一致、<strong>境界 F1</strong> は個々の境界判定の
-スコアです。</p>
+<p>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は、通常の AdaBoost
+<code>-t</code>/<code>-i</code> 学習ではなく binary-perceptron 畳み込み手順で学習しています –
+正確な手順は<a href="#学習手順">学習手順</a>を参照してください。
+いずれも学習コーパスの held-out テスト分割で評価しています。<strong>単語 F1</strong> は
+単語の完全一致、<strong>境界 F1</strong> は個々の境界判定のスコアです。</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>モデル</th><th>単語 F1</th><th>境界 F1</th><th>学習コーパス</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
-<tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
+<tr><td>japanese.model</td><td>96.70%</td><td>98.59%</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>99.90%</td><td>99.95%</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>90.69%</td><td>95.64%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
@@ -3692,6 +4286,13 @@ litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.
 <li><strong>コーパスの品質向上</strong> – 一貫したトークン化とクリーンなテキストを確保する</li>
 <li><strong>再学習</strong> – 既存のモデルから開始し、追加データで学習する（<a href="#モデルの再学習">モデルの再学習</a>を参照）</li>
 </ol>
+<p>上記の閾値・反復回数のチューニングは、通常の AdaBoost 学習
+（<code>--pos</code>/<code>--two-stage</code> を付けない <code>litsea train</code>）に適用されるものです。
+同梱モデル自身が通常の AdaBoost に対して達成している +5〜13pt の held-out
+品質向上は、<code>-t</code>/<code>-i</code> のチューニングによるものではなく、2 クラスの
+Averaged Perceptron を学習してから無損失に AdaBoost の重みへ畳み込む手順に
+よるものです。段階的な改善ではなく同梱モデルと同水準の品質を目指す場合は、
+<a href="#学習手順">学習手順</a>のレシピを参照してください。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="モデルの再学習"><a class="header" href="#モデルの再学習">モデルの再学習</a></h1>
 <p>既存のモデルに新しいデータで学習を再開することで、モデルを改善できます。</p>
@@ -3704,9 +4305,9 @@ litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # 既存モデルから再学習
 litsea train -t 0.0001 -i 20000 \
-    -m ./models/japanese.model \
+    -m ./models/my_model.model \
     ./new_features.txt \
-    ./models/japanese_v2.model
+    ./models/my_model_v2.model
 </code></pre>
 <h2 id="仕組み-2"><a class="header" href="#仕組み-2">仕組み</a></h2>
 <pre><code class="language-mermaid">flowchart LR
@@ -3731,6 +4332,16 @@ litsea train -t 0.0001 -i 20000 \
 <li>出力モデルのパスは入力モデルと同じパスを指定できます（上書き）</li>
 <li><code>-m</code> フラグはファイルパス、<code>file://</code>、<code>http://</code>、<code>https://</code> URI に対応しています</li>
 <li>再学習は既存の重みから開始するため、必要な反復回数が少なくなる場合があります</li>
+<li><code>-m</code> は通常の AdaBoost 学習でのみ利用できます。<code>train --two-stage</code> は
+<code>-m</code>/<code>--load-model-uri</code> に<strong>対応していません</strong> – 二段構成モデルの増分学習は
+サポートされていないため、更新したい場合は <code>train --two-stage</code> で
+ゼロから再学習する必要があります</li>
+<li>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> はこの <code>-m</code> を
+使うレシピでは作られていません – これらは
+<a href="#学習手順">学習手順</a>で説明している
+perceptron 畳み込み手順で学習されています。これらの上に <code>-m</code> で
+さらに増分 AdaBoost 学習を行うと、2 つの手法が混ざってしまいます。
+同梱モデルを更新したい場合は、その手順でゼロから再学習してください</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="モデルファイル形式-2"><a class="header" href="#モデルファイル形式-2">モデルファイル形式</a></h1>
@@ -3823,25 +4434,28 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 上記の lexicon 規則、パラメータの範囲を検証し、エラーにはセクション名を付けて
 報告します（例: <code>[stage2] section: ...</code>）。</p>
 <h2 id="ファイルサイズ"><a class="header" href="#ファイルサイズ">ファイルサイズ</a></h2>
-<p>モデルファイルは非常にコンパクトです:</p>
+<p>モデルファイルのサイズは、モデルの種類と言語によって大きく異なります:</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>モデル</th><th>サイズ</th><th>特徴量</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>約 20 KB</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>約 20 KB</td><td>UD Korean-GSD</td></tr>
-<tr><td>chinese.model</td><td>約 18 KB</td><td>UD Chinese-GSD</td></tr>
+<tr><td>japanese.model</td><td>約 1.1 MB</td><td>UD Japanese-GSD</td></tr>
+<tr><td>chinese.model</td><td>約 2.0 MB</td><td>UD Chinese-GSD</td></tr>
+<tr><td>korean.model</td><td>約 110 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>RWCP.model</td><td>約 22 KB</td><td>オリジナルの TinySegmenter</td></tr>
+<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 16 KB</td><td>JEITA コーパス</td></tr>
+<tr><td>japanese_two_stage.model</td><td>約 5.4 MB</td><td>UD Japanese-GSD（二段構成）</td></tr>
+<tr><td>chinese_two_stage.model</td><td>約 8.0 MB</td><td>UD Chinese-GSD（二段構成）</td></tr>
+<tr><td>korean_two_stage.model</td><td>約 5.0 MB</td><td>UD Korean-GSD（二段構成）</td></tr>
 <tr><td>japanese_pos.model</td><td>約 11 MB</td><td>UD Japanese-GSD（品詞）</td></tr>
 <tr><td>chinese_pos.model</td><td>約 19 MB</td><td>UD Chinese-GSD（品詞）</td></tr>
 <tr><td>korean_pos.model</td><td>約 8.9 MB</td><td>UD Korean-GSD（品詞）</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 16 KB</td><td>JEITA コーパス</td></tr>
 </tbody>
 </table>
 </div>
-<p>単語分割モデルのコンパクトなサイズは Litsea の主要な利点の一つであり、アプリケーションに直接埋め込んだり、最小限のオーバーヘッドで HTTP 経由で配信したりできます。単語分割と品詞推定を同時に行う結合モデルは、クラスごとの重みを保持するためサイズが大きくなります（数メガバイト）。</p>
+<p><code>RWCP.model</code> と <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく 110 KB〜2.0 MB になりましたが、それでも品詞推定の結合モデル（<code>*_pos.model</code>）や二段構成モデル（<code>*_two_stage.model</code>）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。</p>
 <h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
 <ul>
 <li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>
@@ -3881,7 +4495,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="フィーチャーの有効化"><a class="header" href="#フィーチャーの有効化">フィーチャーの有効化</a></h2>
 <p>0.6.0 以降、<code>remote_model</code> フィーチャーは<strong>オプトイン</strong>です（ライブラリのデフォルトはローカル読み込みのみとし、依存関係のツリーをコンパクトに保っています）。CLI ではこのフィーチャーが有効化されているため、<code>litsea segment https://...</code> はそのまま動作します。ライブラリ利用者は以下が必要です:</p>
-<pre><code class="language-toml">litsea = { version = "0.8.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.11.0", features = ["remote_model"] }
 </code></pre>
 <h2 id="実装の詳細"><a class="header" href="#実装の詳細">実装の詳細</a></h2>
 <ul>
@@ -4179,7 +4793,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 タグ付き単語 F1 です（<a href="#モデルの評価">モデルの評価</a>を
 参照）。韓国語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
 従うため、空白なしのテキストで評価しています。</p>
-<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
+<h3 id="japanese_posmodel-1"><a class="header" href="#japanese_posmodel-1">japanese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4199,7 +4813,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 </tbody>
 </table>
 </div>
-<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
+<h3 id="chinese_posmodel-1"><a class="header" href="#chinese_posmodel-1">chinese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4219,7 +4833,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 </tbody>
 </table>
 </div>
-<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
+<h3 id="korean_posmodel-1"><a class="header" href="#korean_posmodel-1">korean_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4272,7 +4886,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 硬い上限ではありません: 以下の <code>chinese_two_stage.model</code>（50 エポック）は
 公開済み（10 エポック）の <code>chinese_pos.model</code> より高い held-out Word F1 を
 達成しています。</p>
-<h3 id="japanese_two_stagemodel"><a class="header" href="#japanese_two_stagemodel">japanese_two_stage.model</a></h3>
+<h3 id="japanese_two_stagemodel-1"><a class="header" href="#japanese_two_stagemodel-1">japanese_two_stage.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4290,7 +4904,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 </tbody>
 </table>
 </div>
-<h3 id="chinese_two_stagemodel"><a class="header" href="#chinese_two_stagemodel">chinese_two_stage.model</a></h3>
+<h3 id="chinese_two_stagemodel-1"><a class="header" href="#chinese_two_stagemodel-1">chinese_two_stage.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4308,7 +4922,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 </tbody>
 </table>
 </div>
-<h3 id="korean_two_stagemodel"><a class="header" href="#korean_two_stagemodel">korean_two_stage.model</a></h3>
+<h3 id="korean_two_stagemodel-1"><a class="header" href="#korean_two_stagemodel-1">korean_two_stage.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4336,7 +4950,7 @@ stage 2 の全クラスフォールバックを払うことになり、安価な
 <code>korean.model</code> が使う空白保持 TSV コーパス（issue #152）ではありません。
 二段構成の extractor は両ステージに単一のコーパスを使うため、空白保持＋
 POS 付きを組み合わせた形式の構築は別機能であり未実装です。上記の数値は
-<code>korean_pos.model</code> とは比較可能ですが、<code>korean.model</code> の 99.91%
+<code>korean_pos.model</code> とは比較可能ですが、<code>korean.model</code> の 99.90%
 （全く異なるコーパス・プロトコル）とは比較できません – 二段構成が
 優れている/劣っているという結果ではありません。</p>
 <h4 id="使用方法-1"><a class="header" href="#使用方法-1">使用方法</a></h4>

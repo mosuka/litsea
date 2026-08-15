@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -253,6 +253,13 @@ attrs.insert("UC4:I".to_string());
 let label = learner.predict(&amp;attrs);
 // label == "B-ADP", "O", etc.
 <span class="boring">}</span></code></pre>
+<h2 id="アクセサ"><a class="header" href="#アクセサ">アクセサ</a></h2>
+<h3 id="classes"><a class="header" href="#classes"><code>classes</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn classes(&amp;self) -&gt; &amp;[String]
+<span class="boring">}</span></code></pre>
+<p>登録されているクラス名を、格納順（重みベクトルのインデックスや <code>predict</code> の argmax タイブレーク〔先勝ちの strictly-greater〕で使われる並び）で返します。クラスが未登録の場合は空です。二段構成モデルへの畳み込み手順（<a href="../pre-trained-models.html#学習手順">事前学習済みモデル</a>を参照）や、packed 二段構成ランタイムで使用されています。</p>
 <h2 id="モデルの入出力"><a class="header" href="#モデルの入出力">モデルの入出力</a></h2>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -260,6 +267,12 @@ let label = learner.predict(&amp;attrs);
 </span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>モデルをファイルに保存します。モデルが空の場合はエラーを返します。</p>
+<h3 id="save_model_to_writer"><a class="header" href="#save_model_to_writer"><code>save_model_to_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model_to_writer&lt;W: Write&gt;(&amp;self, writer: &amp;mut W) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>save_model</code> と同じテキスト形式で、任意のライターへモデルを書き込みます。<code>save_model</code> はこのメソッドに処理を委譲しています。ファイルパスを経由せずにモデルをより大きなファイルの一部として埋め込めるよう公開されています – <a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成モデル形式</a>は、これを使って stage-2 の単語タガーを直接埋め込んでいます。ライターはフラッシュされません。クラスが未登録の場合（空のモデル）はエラーを返します。</p>
 <h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

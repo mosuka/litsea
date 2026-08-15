@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,9 +191,9 @@ litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
 # Retrain from existing model
 litsea train -t 0.0001 -i 20000 \
-    -m ./models/japanese.model \
+    -m ./models/my_model.model \
     ./new_features.txt \
-    ./models/japanese_v2.model
+    ./models/my_model_v2.model
 </code></pre>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
 <pre><code class="language-mermaid">flowchart LR
@@ -218,6 +218,17 @@ litsea train -t 0.0001 -i 20000 \
 <li>The output model can be the same path as the input model (overwrites)</li>
 <li>The <code>-m</code> flag accepts file paths, <code>file://</code>, <code>http://</code>, and <code>https://</code> URIs</li>
 <li>Retraining starts from the existing weights, so fewer iterations may be needed</li>
+<li><code>-m</code> is only available for plain AdaBoost training. <code>train --two-stage</code>
+does <strong>not</strong> support <code>-m</code>/<code>--load-model-uri</code> – incremental training of a
+two-stage model is not supported, so if you need to update one you must
+retrain it from scratch with <code>train --two-stage</code></li>
+<li>The bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are not
+produced with this plain <code>-m</code> recipe – they go through the
+perceptron-collapse procedure described in <a href="../pre-trained-models.html#training-procedure">Training
+Procedure</a>. Running further
+incremental AdaBoost training on top of one of them with <code>-m</code> would mix
+the two approaches; to update one of the bundled models, retrain it from
+scratch with that procedure instead</li>
 </ul>
 
                     </main>

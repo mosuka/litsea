@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -283,6 +283,68 @@ extractor.extract_with_pos(
     Path::new("./features_pos.txt"),
 )?;
 <span class="boring">}</span></code></pre>
+<h3 id="extract_two_stage"><a class="header" href="#extract_two_stage"><code>extract_two_stage</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_two_stage(
+    &amp;self,
+    corpus_path: &amp;Path,
+    output_prefix: &amp;Path,
+    feature_set: TwoStageFeatureSet,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>Reads a POS-tagged corpus (<code>word/POS word/POS ...</code>, the same format as
+<code>extract_with_pos</code>) in a single pass and writes the three files consumed by
+<a href="trainer.html#twostagetrainer"><code>TwoStageTrainer</code></a>, used to train a <a href="../algorithm/two-stage-tagging.html">two-stage
+model</a>, from <code>output_prefix</code>:</p>
+<ul>
+<li><code>{output_prefix}.stage1</code> – boundary features (<code>label\tfeature1\t...</code>,
+label <code>B</code> or <code>O</code>), using the same feature templates as <code>extract_with_pos</code></li>
+<li><code>{output_prefix}.stage2</code> – word-level features (<code>label\tfeature1\t...</code>,
+label a UPOS tag), using the templates selected by <code>feature_set</code> (see
+<a href="#twostagefeatureset"><code>TwoStageFeatureSet</code></a> below)</li>
+<li><code>{output_prefix}.lexicon</code> – the candidate-tag lexicon
+(<code>surface\tTAG:count[,TAG:count...]</code>, most-frequent-first)</li>
+</ul>
+<p><code>TwoStageTrainer::new</code> reads the same three paths back from the same
+prefix.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::TwoStageFeatureSet;
+
+extractor.extract_two_stage(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./two_stage_features"),
+    TwoStageFeatureSet::Fast,
+)?;
+<span class="boring">}</span></code></pre>
+<h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum TwoStageFeatureSet {
+    Full,
+    Balanced,
+    #[default]
+    Fast,
+}
+<span class="boring">}</span></code></pre>
+<p>Selects which stage-2 word-level templates
+<a href="#extract_two_stage"><code>extract_two_stage</code></a> writes (see <a href="../algorithm/feature-extraction.html">Word-Level Feature
+Templates</a> for the full template
+catalog), trading tagging quality for throughput:</p>
+<ul>
+<li><code>Full</code> – every word template (quality-leaning)</li>
+<li><code>Balanced</code> – the <code>Fast</code> templates plus first/last char identity and the
+word type string</li>
+<li><code>Fast</code> (default) – the minimal measured set: surface, word length,
+first/last char type, adjacent context char + type, 2-char prefix/suffix</li>
+</ul>
+<p>Also implements <code>Display</code> (lowercase: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>) and
+<code>FromStr</code> (returns <code>ParseTwoStageFeatureSetError</code> for invalid strings) –
+the same names the <code>--stage2-features</code> CLI flag accepts; see <a href="../training-guide/extracting-features.html">Extracting
+Features</a>.</p>
 
                     </main>
 

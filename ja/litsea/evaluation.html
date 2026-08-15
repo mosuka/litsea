@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,10 +181,16 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="評価"><a class="header" href="#評価">評価</a></h1>
-<p>セグメンテーションおよび品詞推定同時実行の held-out 品質評価
+<p>セグメンテーションおよび品詞タグ付けの held-out 品質評価
 （<code>litsea::evaluation</code>）です。
 <a href="../litsea-cli/evaluate.html"><code>litsea evaluate</code></a> サブコマンドの背後にある
-ライブラリ API です。</p>
+ライブラリ API です。<code>evaluate_pos</code> はどちらの品詞タグ付けアーキテクチャに
+対しても動作します – <a href="segmenter.html#with_pos_learner"><code>with_pos_learner</code></a>
+で作成した Segmenter（joint）でも、
+<a href="segmenter.html#with_two_stage_learner"><code>with_two_stage_learner</code></a> で作成した
+Segmenter（二段構成。<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint
+タグ付け</a>を参照）でも構いません。
+どちらも同じシグネチャの <code>segment_with_pos</code> を実装しているためです。</p>
 <h2 id="メトリクス型"><a class="header" href="#メトリクス型">メトリクス型</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -231,8 +237,9 @@ where
     S: Into&lt;String&gt;,
 <span class="boring">}</span></code></pre>
 <p><code>evaluate_segmentation</code> と同様ですが、[<code>Segmenter::segment_with_pos</code>] を
-実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器が
-設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を返します。</p>
+実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器も
+二段構成学習器も設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を
+返します。</p>
 <h3 id="ゴールド行パーサ"><a class="header" href="#ゴールド行パーサ">ゴールド行パーサ</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -271,7 +278,7 @@ println!("word F1: {:.2}%", metrics.word_f1);
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../litsea-cli.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../litsea/two-stage.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -285,7 +292,7 @@ println!("word F1: {:.2}%", metrics.word_f1);
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../litsea-cli.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../litsea/two-stage.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

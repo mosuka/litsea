@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -213,6 +213,18 @@
 <li>最初の列: ラベル（<code>1</code> = 境界、<code>-1</code> = 非境界）</li>
 <li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
+<h2 id="空白保持tsvコーパス形式"><a class="header" href="#空白保持tsvコーパス形式">空白保持（TSV）コーパス形式</a></h2>
+<p>文の元の空白を保持したコーパス — 韓国語モデルの学習に使用（単語間の空白が
+韓国語における最も強力な境界シグナルであるため。詳細は
+<a href="../language-support/korean.html#空白保持学習space-preserving-training">韓国語</a>を参照）
+— から抽出するには、既定のスペース区切り形式の代わりに <code>--format tsv</code> を
+指定します:</p>
+<pre><code class="language-sh">litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+</code></pre>
+<p>入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
+空白文字そのもの（<code>" "</code>）を含められます。出力される特徴量ファイルの形式は既定の
+<code>extract</code> と同一で、コーパスの解析方法のみが異なります。<code>--format tsv</code> は
+<code>--pos</code> または <code>--two-stage</code> と併用できません。</p>
 <h2 id="品詞付き特徴量の抽出"><a class="header" href="#品詞付き特徴量の抽出">品詞付き特徴量の抽出</a></h2>
 <p>品詞推定モデル用には、<code>--pos</code> フラグを使用して、二値境界ラベルの代わりに品詞ラベル付きの特徴量を抽出します。</p>
 <h3 id="コマンド-1"><a class="header" href="#コマンド-1">コマンド</a></h3>
@@ -238,6 +250,51 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <li>最初の列: セグメントラベル（例: <code>B-PRON</code>、<code>O</code>）</li>
 <li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
+<h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
+<p><a href="../algorithm/two-stage-tagging.html">二段構成の品詞タグ付け</a>（issue #147）用には、
+<code>--pos</code> の代わりに <code>--two-stage</code> を使用します:</p>
+<pre><code class="language-sh">litsea extract --two-stage [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+</code></pre>
+<h3 id="使用例-2"><a class="header" href="#使用例-2">使用例</a></h3>
+<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+</code></pre>
+<p><code>--two-stage</code> は <code>--pos</code> と同じ POS タグ付きコーパス（<code>word/POS word/POS ...</code>）を
+読み込みますが、コーパスを1パスで処理し、<code>&lt;FEATURES_PREFIX&gt;</code> から1ファイルではなく
+<strong>3ファイル</strong>を書き出します:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ファイル</th><th>内容</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage1</code></td><td>境界特徴量（ラベルは <code>B</code> または <code>O</code>）。<code>--pos</code> と同じテンプレート</td></tr>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage2</code></td><td>単語単位の特徴量（ラベルは UPOS タグ）。<code>--stage2-features</code> で選択したテンプレート</td></tr>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.lexicon</code></td><td>候補タグ語彙表（<code>surface\tTAG:count[,TAG:count...]</code>、出現頻度の高い順）</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>litsea train --two-stage</code> は同じプレフィックスから3ファイルすべてを読み込みます。
+<code>--two-stage</code> は <code>--pos</code> または <code>--format tsv</code> と併用できません。</p>
+<h3 id="--stage2-features-の選び方"><a class="header" href="#--stage2-features-の選び方"><code>--stage2-features</code> の選び方</a></h3>
+<p><code>--stage2-features</code> は <code>&lt;FEATURES_PREFIX&gt;.stage2</code> に書き出す stage-2 の単語単位
+テンプレート（<a href="../algorithm/feature-extraction.html#単語単位の特徴量テンプレート二段構成">単語単位の特徴量テンプレート（二段構成）</a>を参照）を選択し、
+タグ付け品質とスループットをトレードオフします:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>値</th><th>テンプレート</th><th>トレードオフ</th></tr>
+</thead>
+<tbody>
+<tr><td><code>full</code></td><td>全23個の単語テンプレート</td><td>最も高精度、最も低速</td></tr>
+<tr><td><code>balanced</code></td><td><code>full</code> のサブセット</td><td>中間的な構成</td></tr>
+<tr><td><code>fast</code>（既定）</td><td>最小のサブセット</td><td>最速、それでいて競争力のある品質</td></tr>
+</tbody>
+</table>
+</div>
+<p>この既定値の背後にある品質・スループットの実測比較については、
+<a href="../algorithm/two-stage-tagging.html#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a>を参照してください。</p>
+<pre><code class="language-sh">litsea extract --two-stage --stage2-features balanced -l chinese ./pos_corpus.txt ./two_stage_features
+</code></pre>
 <h2 id="ファイルサイズの目安"><a class="header" href="#ファイルサイズの目安">ファイルサイズの目安</a></h2>
 <p>特徴量ファイルは、各文字位置が38-42個の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。</p>
 

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -236,14 +236,17 @@
 <p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <p>基本的な学習:</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
+<p>これは通常の AdaBoost 学習の一般的な例です。同梱の <code>japanese.model</code>、
+<code>chinese.model</code>、<code>korean.model</code> は別の手順を使っています –
+<a href="../pre-trained-models.html#学習手順">学習手順</a>を参照してください。</p>
 <p>高精度な学習（低い閾値、多い反復回数）:</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
 <p>既存モデルからの再学習:</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/japanese.model \
-    ./new_features.txt ./models/japanese_v2.model
+<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m ./models/my_model.model \
+    ./new_features.txt ./models/my_model_v2.model
 </code></pre>
 <h2 id="ハイパーパラメータの調整"><a class="header" href="#ハイパーパラメータの調整">ハイパーパラメータの調整</a></h2>
 <div class="table-wrapper">
@@ -317,12 +320,12 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 </code></pre>
 <h3 id="出力-2"><a class="header" href="#出力-2">出力</a></h3>
 <pre><code class="language-text">Result Metrics (Two-Stage):
-  Stage 1 (boundary) Accuracy: 99.36% ( 277213 )
-  Stage 1 Macro Precision: 99.30%
-  Stage 1 Macro Recall: 99.35%
-  Stage 2 (tagging) Accuracy: 98.53% ( 168333 )
-  Stage 2 Macro Precision: 98.39%
-  Stage 2 Macro Recall: 97.59%
+  Stage 1 (boundary) Accuracy: 99.86% ( 277213 )
+  Stage 1 Macro Precision: 99.85%
+  Stage 1 Macro Recall: 99.86%
+  Stage 2 (tagging) Accuracy: 99.09% ( 168333 )
+  Stage 2 Macro Precision: 98.96%
+  Stage 2 Macro Recall: 98.77%
 </code></pre>
 <p>他のモードと同様、これらは in-sample のメトリクスです。現実的な品質を見積もるには
 <code>litsea evaluate --pos</code> でホールドアウトされたテキストを評価してください。

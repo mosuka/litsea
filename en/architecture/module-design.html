@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -191,11 +191,15 @@
     upos["upos.rs&lt;br/&gt;UPOS tags and labels"]
     extractor["extractor.rs&lt;br/&gt;Feature extraction"]
     trainer["trainer.rs&lt;br/&gt;Training orchestration"]
+    two_stage["two_stage.rs&lt;br/&gt;Two-stage model container"]
+    word_features["word_features.rs (private)&lt;br/&gt;Stage-2 word feature templates"]
     packed_model["packed_model.rs (private)&lt;br/&gt;Feature templates + packed AdaBoost tables"]
     packed_pos_model["packed_pos_model.rs (private)&lt;br/&gt;Packed perceptron tables (POS)"]
+    packed_two_stage["packed_two_stage.rs (private)&lt;br/&gt;Packed two-stage tagging tables"]
     model_io["model_io.rs (private)&lt;br/&gt;Model URI loading"]
     error["error.rs&lt;br/&gt;LitseaError / Result"]
-    metrics["metrics.rs&lt;br/&gt;Evaluation metrics"]
+    metrics["metrics.rs&lt;br/&gt;Evaluation metrics (in-sample)"]
+    evaluation["evaluation.rs&lt;br/&gt;Held-out quality metrics"]
 
     language --&gt; segmenter
     upos --&gt; segmenter
@@ -203,15 +207,31 @@
     perceptron --&gt; segmenter
     packed_model --&gt; segmenter
     packed_pos_model --&gt; segmenter
+    packed_two_stage --&gt; segmenter
+    two_stage --&gt; segmenter
     packed_model --&gt; packed_pos_model
     segmenter --&gt; extractor
+    two_stage --&gt; extractor
+    word_features --&gt; extractor
+    evaluation --&gt; extractor
     adaboost --&gt; trainer
     perceptron --&gt; trainer
+    two_stage --&gt; trainer
+    adaboost --&gt; two_stage
+    perceptron --&gt; two_stage
+    upos --&gt; two_stage
+    language --&gt; word_features
+    word_features --&gt; packed_two_stage
+    language --&gt; packed_two_stage
+    perceptron --&gt; packed_two_stage
+    upos --&gt; packed_two_stage
     model_io --&gt; adaboost
     model_io --&gt; perceptron
     error --&gt; adaboost
     error --&gt; perceptron
     metrics --&gt; trainer
+    segmenter --&gt; evaluation
+    upos --&gt; evaluation
 </code></pre>
 <h2 id="module-details"><a class="header" href="#module-details">Module Details</a></h2>
 <h3 id="languagers--language-definitions"><a class="header" href="#languagers--language-definitions"><code>language.rs</code> – Language Definitions</a></h3>
@@ -228,16 +248,17 @@
 <h3 id="segmenterrs--word-segmentation-and-pos-tagging"><a class="header" href="#segmenterrs--word-segmentation-and-pos-tagging"><code>segmenter.rs</code> – Word Segmentation and POS Tagging</a></h3>
 <p>The main user-facing module.</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, an <code>AdaBoost</code> learner, and an optional <code>AveragedPerceptron</code> POS learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, <code>pos_learner_mut()</code>)
+<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, an <code>AdaBoost</code> learner, and an optional <code>AveragedPerceptron</code> POS learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, <code>pos_learner_mut()</code>), plus an optional two-stage state (<code>Option&lt;TwoStageState&gt;</code>, set by <code>with_two_stage_learner</code>) and internal caches for the compiled scoring tables (<code>packed</code>, <code>packed_pos</code>, <code>packed_two_stage</code>) that back <code>segment()</code> / <code>segment_with_pos()</code>
 <ul>
 <li><code>new(language)</code> – Create a segmenter with a default (empty) AdaBoost learner</li>
 <li><code>with_learner(language, learner)</code> – Create a segmenter with a pre-configured AdaBoost learner (e.g. one that has loaded a pre-trained model)</li>
 <li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
+<li><code>with_two_stage_learner(language, learner)</code> – Create a segmenter for two-stage segmentation + POS tagging from a <code>TwoStageLearner</code></li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
-<li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> without a POS learner)</li>
+<li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> unless a POS learner or a two-stage learner is set)</li>
 <li><code>char_type(ch)</code> – Classify a single character into its type code</li>
-<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> – Add training data</li>
-<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> – Process a corpus with a custom callback</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – Add training data (space-separated, POS-tagged, or tab-separated/space-preserving respectively; the latter is used for Korean, see issue #152)</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_writer(corpus, callback)</code> – Process a corpus with a custom callback</li>
 </ul>
 </li>
 </ul>
@@ -284,7 +305,9 @@
 <ul>
 <li><code>new(language)</code> – Create an extractor for a specific language</li>
 <li><code>extract(corpus_path, features_path)</code> – Read a corpus, write a features file</li>
+<li><code>extract_tsv(corpus_path, features_path)</code> – Same for tab-separated, space-preserving corpora (issue #152, used for Korean)</li>
 <li><code>extract_with_pos(corpus_path, features_path)</code> – Same for POS-tagged corpora</li>
+<li><code>extract_two_stage(corpus_path, output_prefix, feature_set)</code> – Extract two-stage training features (issue #147) from a POS-tagged corpus: writes <code>{output_prefix}.stage1</code> (boundary features), <code>.stage2</code> (word-level features), and <code>.lexicon</code></li>
 </ul>
 </li>
 </ul>
@@ -303,6 +326,19 @@
 <li><code>new(num_epochs, features_path)</code> / <code>load_model(uri)</code> / <code>train(running, model_path)</code> returning <code>MulticlassMetrics</code></li>
 </ul>
 </li>
+<li><strong><code>TwoStageTrainer</code></strong> – Two-stage model training (issue #147): trains a stage-1 boundary <code>AveragedPerceptron</code> and a stage-2 word tagger from the files <code>Extractor::extract_two_stage</code> writes, then collapses stage 1 to AdaBoost format and assembles a <code>TwoStageLearner</code>
+<ul>
+<li><code>new(num_epochs, dominance, features_prefix)</code> / <code>train(running, model_path)</code> returning <code>TwoStageMetrics</code> (see <a href="../litsea/trainer.html">Trainer</a> for the full API)</li>
+</ul>
+</li>
+<li><strong><code>TwoStageMetrics</code></strong> – One <code>MulticlassMetrics</code> per stage of a <code>TwoStageTrainer::train</code> run (<code>stage1</code>, <code>stage2</code>)</li>
+</ul>
+<h3 id="two_stagers--two-stage-model-container"><a class="header" href="#two_stagers--two-stage-model-container"><code>two_stage.rs</code> – Two-Stage Model Container</a></h3>
+<p>Defines the <code>litsea-two-stage v1</code> file format (see <a href="../advanced/model-file-format.html">Model File Format</a>) and the types that hold a two-stage model in memory (issue #147).</p>
+<ul>
+<li><strong><code>TwoStageLearner</code></strong> – Bundles a stage-1 boundary <code>AdaBoost</code> model, a stage-2 <code>AveragedPerceptron</code> word tagger, and a candidate-tag lexicon; <code>new()</code> / <code>from_parts(...)</code> / <code>load_model_from_path(path)</code> / <code>save_model(path)</code> mirror the single-learner types’ API</li>
+<li><strong><code>TwoStageFeatureSet</code></strong> – Enum selecting the stage-2 word-level template subset (<code>Fast</code>, <code>Balanced</code>, <code>Full</code>)</li>
+<li><strong><code>AnyPosModel</code></strong> / <strong><code>ModelKind</code></strong> – Auto-detect whether a model file is a joint (<code>AveragedPerceptron</code>) or two-stage model and dispatch accordingly; <code>AnyPosModel::load(uri)</code> (async) loads either kind, and <code>into_segmenter(language)</code> builds the matching <code>Segmenter</code> (via <code>with_pos_learner</code> or <code>with_two_stage_learner</code>)</li>
 </ul>
 <h3 id="errorrs--error-handling"><a class="header" href="#errorrs--error-handling"><code>error.rs</code> – Error Handling</a></h3>
 <ul>
@@ -314,10 +350,22 @@
 <li><strong><code>BinaryMetrics</code></strong> – Accuracy, precision, recall, confusion matrix (AdaBoost)</li>
 <li><strong><code>MulticlassMetrics</code></strong> – Accuracy and macro-averaged precision/recall (Averaged Perceptron)</li>
 </ul>
+<h3 id="evaluationrs--held-out-evaluation-metrics"><a class="header" href="#evaluationrs--held-out-evaluation-metrics"><code>evaluation.rs</code> – Held-Out Evaluation Metrics</a></h3>
+<p>While <code>metrics.rs</code> reports in-sample quality (measured on the training data itself, as printed by <code>train</code>), this module computes held-out quality: it compares a <code>Segmenter</code>’s output against a gold corpus using character-offset spans, so predicted and gold tokens can be matched exactly regardless of tokenization differences elsewhere in the sentence.</p>
+<ul>
+<li><strong><code>SegmentationMetrics</code></strong> – Word and boundary precision/recall/F1 for word segmentation, produced by <code>evaluate_segmentation(segmenter, gold)</code></li>
+<li><strong><code>PosMetrics</code></strong> – Wraps a <code>SegmentationMetrics</code> plus tagged-word precision/recall/F1, produced by <code>evaluate_pos(segmenter, gold)</code> (fallible: propagates <code>segment_with_pos</code> errors)</li>
+<li><strong><code>parse_gold_line(line, tsv)</code></strong> / <strong><code>parse_gold_pos_line(line)</code></strong> – Parse a gold corpus line into tokens (plain or POS-tagged); also used by the two-stage extractor and trainer</li>
+<li>Backs the CLI’s <code>litsea evaluate</code> subcommand</li>
+</ul>
 <h3 id="packed_modelrs--feature-templates-and-packed-adaboost-tables-private"><a class="header" href="#packed_modelrs--feature-templates-and-packed-adaboost-tables-private"><code>packed_model.rs</code> – Feature Templates and Packed AdaBoost Tables (private)</a></h3>
 <p>Internal module holding the declarative feature-template table (<code>TEMPLATES</code>, the single source of truth for all feature consumers), the load-time parser that converts model feature strings into packed integer keys, and <code>PackedModel</code> – the AdaBoost weights compiled into the merged/dense tables read by <code>segment()</code>’s two-pass scorer. Not part of the public API.</p>
 <h3 id="packed_pos_modelrs--packed-perceptron-tables-private"><a class="header" href="#packed_pos_modelrs--packed-perceptron-tables-private"><code>packed_pos_model.rs</code> – Packed Perceptron Tables (private)</a></h3>
 <p>Internal multiclass twin of <code>PackedModel</code> (issue #143): compiles the Averaged Perceptron’s per-class weight rows into the same two-pass table structure (sparse <code>(class, weight)</code> rows for the char-bearing families, dense rows plus a presence bitset for the tag/type-only templates, pre-parsed <code>SegmentLabel</code>s) read by <code>segment_with_pos()</code>. Not part of the public API.</p>
+<h3 id="packed_two_stagers--packed-two-stage-tagging-tables-private"><a class="header" href="#packed_two_stagers--packed-two-stage-tagging-tables-private"><code>packed_two_stage.rs</code> – Packed Two-Stage Tagging Tables (private)</a></h3>
+<p>Internal module that compiles a <code>TwoStageLearner</code>’s stage-2 tagger and lexicon into the dense/sparse scoring tables <code>segment_with_pos()</code>’s two-stage path reads, mirroring what <code>packed_model.rs</code> / <code>packed_pos_model.rs</code> do for the AdaBoost and joint-perceptron learners: a surface map covering the lexicon and dominance-skip tags, sparse per-class rows for the char-valued word-feature templates (from <code>word_features.rs</code>), and dense tables for the type-valued and word-length templates. Not part of the public API.</p>
+<h3 id="word_featuresrs--stage-2-word-feature-templates-private"><a class="header" href="#word_featuresrs--stage-2-word-feature-templates-private"><code>word_features.rs</code> – Stage-2 Word Feature Templates (private)</a></h3>
+<p>Internal module defining the word-level feature templates used by the two-stage tagger’s stage 2 (surface, word length, first/last char and type, context chars/types/bigrams, …). It is the single source of truth for the template set: the training extractor (via <code>extract_two_stage</code>) writes feature strings with <code>write_word_features</code>, and <code>packed_two_stage.rs</code> compiles the same strings back into integer keys with <code>parse_word_feature</code>, pinned against each other by a round-trip test. Not part of the public API.</p>
 <h3 id="model_iors--model-loading-io-private"><a class="header" href="#model_iors--model-loading-io-private"><code>model_io.rs</code> – Model Loading I/O (private)</a></h3>
 <p>Internal module that resolves a model URI (plain path, <code>file://</code>, or <code>http(s)://</code> with the <code>remote_model</code> feature) and returns the raw model bytes. Not part of the public API.</p>
 <h2 id="public-exports"><a class="header" href="#public-exports">Public Exports</a></h2>
@@ -326,25 +374,33 @@
 </span><span class="boring">fn main() {
 </span>pub mod adaboost;
 pub mod error;
+pub mod evaluation;
 pub mod extractor;
 pub mod language;
 pub mod metrics;
 mod model_io;
 mod packed_model;
 mod packed_pos_model;
+mod packed_two_stage;
 pub mod perceptron;
 pub mod segmenter;
 pub mod trainer;
+pub mod two_stage;
 pub mod upos;
+mod word_features;
 
 pub use adaboost::AdaBoost;
 pub use error::{LitseaError, Result};
+pub use evaluation::{PosMetrics, SegmentationMetrics};
 pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::Segmenter;
-pub use trainer::{PosTrainer, Trainer};
+pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
+pub use two_stage::{
+    AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
+};
 pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 pub fn version() -&gt; &amp;'static str { ... }

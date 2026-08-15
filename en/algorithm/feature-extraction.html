@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="feature-extraction"><a class="header" href="#feature-extraction">Feature Extraction</a></h1>
-<p>Litsea uses character n-gram features to capture the local context around each potential word boundary. This chapter catalogs all feature types.</p>
+<p>Litsea uses character n-gram features to capture the local context around each potential word boundary. This chapter catalogs all feature types: the character-level boundary templates shared by the AdaBoost, joint, and two-stage stage-1 pipelines, and the word-level templates used by two-stage’s stage-2 tagger.</p>
 <h2 id="feature-categories"><a class="header" href="#feature-categories">Feature Categories</a></h2>
 <p>For each character position <em>i</em> in the input, the segmenter extracts features from a sliding window of characters, their type codes, and previous boundary decisions.</p>
 <h3 id="base-features-38-features"><a class="header" href="#base-features-38-features">Base Features (38 features)</a></h3>
@@ -288,6 +288,43 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li>A label (<code>1</code> for boundary, <code>-1</code> for non-boundary)</li>
 <li>Tab-separated feature strings, written in alphabetically sorted order (not template emission order), so each line starts with the <code>BC1:</code> feature</li>
 </ol>
+<h2 id="word-level-feature-templates-two-stage"><a class="header" href="#word-level-feature-templates-two-stage">Word-Level Feature Templates (Two-Stage)</a></h2>
+<p>Everything above is the character-level template set scored at each
+boundary decision. <a href="two-stage-tagging.html">Two-stage POS tagging</a>’s stage-2
+word tagger scores a separate, unrelated template set defined in
+<code>litsea::word_features</code> (<code>N_WORD_TEMPLATES = 23</code>) – one row of features
+per already-segmented <em>word</em>, not per character position. It is a
+different declarative table from <code>packed_model::TEMPLATES</code> above, compiled
+into its own runtime, <code>packed_two_stage::PackedTwoStageModel</code> (see
+<a href="prediction-pipeline.html#the-compiled-scoring-tables">Prediction Pipeline</a>).</p>
+<p>For a word spanning <code>[start, end)</code> of a sentence (<code>w</code> = surface,
+<code>n = end - start</code>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Prefix</th><th>Value</th><th>Representation</th></tr>
+</thead>
+<tbody>
+<tr><td><code>WS</code></td><td>The word surface itself</td><td>Hashed string</td></tr>
+<tr><td><code>WL</code></td><td><code>min(n, 4)</code></td><td>Dense (word length)</td></tr>
+<tr><td><code>FC</code> / <code>LC</code></td><td>First / last character</td><td>Hashed char</td></tr>
+<tr><td><code>ft</code> / <code>lt</code></td><td>First / last character’s type code</td><td>Dense (type)</td></tr>
+<tr><td><code>TS</code></td><td>Type codes of the first &lt;= 8 characters</td><td>Hashed string</td></tr>
+<tr><td><code>L1</code>-<code>L3</code> / <code>R1</code>-<code>R3</code></td><td>Context characters at distance 1-3 to the left/right</td><td>Hashed char</td></tr>
+<tr><td><code>cl1</code>-<code>cl3</code> / <code>cr1</code>-<code>cr3</code></td><td>Context character types at distance 1-3</td><td>Dense (type)</td></tr>
+<tr><td><code>LB</code> / <code>RB</code></td><td>Context bigrams (distance 2+1 left / 1+2 right)</td><td>Hashed pair</td></tr>
+<tr><td><code>P2</code> / <code>S2</code></td><td>First / last two characters (words with <code>n &gt;= 2</code> only)</td><td>Hashed pair</td></tr>
+</tbody>
+</table>
+</div>
+<p>That is 23 templates in total. Context positions beyond the sentence use
+begin/end sentinel characters, analogous to the character-level pipeline’s
+<code>B1</code>-<code>B3</code> / <code>E1</code>-<code>E3</code> padding above.</p>
+<p>Not every template is written on every extraction: which subset lands in
+the <code>.stage2</code> feature file is controlled by <code>TwoStageFeatureSet</code>
+(<code>full</code> / <code>balanced</code> / <code>fast</code>) at extraction time – see <a href="../training-guide/extracting-features.html#two-stage-feature-extraction">Extracting
+Features</a>
+for the CLI flag and what each variant includes.</p>
 
                     </main>
 

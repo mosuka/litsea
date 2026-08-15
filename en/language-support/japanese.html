@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -210,9 +210,22 @@
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <ul>
 <li><strong>Training corpus</strong>: UD Japanese-GSD</li>
-<li><strong>Training options</strong>: <code>-t 0.0001 -i 20000</code></li>
-<li><strong>Word F1 (held-out)</strong>: 91.48%</li>
-<li><strong>Boundary F1 (held-out)</strong>: 96.31%</li>
+<li><strong>Training options</strong>: 50 epochs of Averaged Perceptron training, collapsed
+to AdaBoost scalar weights, then pruned to the top 40,000 features by
+<code>|weight|</code> – see <a href="../pre-trained-models.html#training-procedure">Training
+Procedure</a> for the full recipe</li>
+<li><strong>Word F1 (held-out)</strong>: 96.70%</li>
+<li><strong>Boundary F1 (held-out)</strong>: 98.59%</li>
+</ul>
+<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
+<ul>
+<li><strong>Algorithm</strong>: Averaged Perceptron (joint segmentation + POS tagging)</li>
+<li><strong>Details</strong>: see <a href="../pre-trained-models.html#japanese_posmodel">Pre-trained Models</a></li>
+</ul>
+<h3 id="japanese_two_stagemodel"><a class="header" href="#japanese_two_stagemodel">japanese_two_stage.model</a></h3>
+<ul>
+<li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (faster than the joint model, same output shape)</li>
+<li><strong>Details</strong>: see <a href="../pre-trained-models.html#japanese_two_stagemodel">Pre-trained Models</a></li>
 </ul>
 <h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
 <ul>

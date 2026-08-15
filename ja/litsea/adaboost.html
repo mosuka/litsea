@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-16e63408.js";
+            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ef307d1e.js"></script>
+        <script src="../toc-72f19d1d.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -260,6 +260,12 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 </span>pub fn save_model(&amp;self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>モデルの重みをファイルに保存します。モデルが空の場合はエラーを返します。</p>
+<h3 id="save_model_to_writer"><a class="header" href="#save_model_to_writer"><code>save_model_to_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn save_model_to_writer&lt;W: Write&gt;(&amp;self, writer: &amp;mut W) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>save_model</code> と同じテキスト形式で、任意のライターへモデルを書き込みます。<code>save_model</code> はこのメソッドに処理を委譲しています。ファイルパスを経由せずにモデルをより大きなファイルの一部として埋め込めるよう公開されています – <a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成モデル形式</a>は、これを使って stage-1 の <code>AdaBoost</code> モデルを直接埋め込んでいます。ライターはフラッシュされません。モデルが空の場合はエラーを返します。</p>
 <h2 id="学習メソッド"><a class="header" href="#学習メソッド">学習メソッド</a></h2>
 <h3 id="initialize_features"><a class="header" href="#initialize_features"><code>initialize_features</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

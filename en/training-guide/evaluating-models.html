@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cf2e077d.js";
+            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ffba73c1.js"></script>
+        <script src="../toc-4bbd3799.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -213,18 +213,22 @@ training (see the benchmarks below).</p>
 </table>
 </div>
 <h2 id="pre-trained-model-benchmarks"><a class="header" href="#pre-trained-model-benchmarks">Pre-trained Model Benchmarks</a></h2>
-<p>The bundled models are trained with <code>-t 0.0001 -i 20000</code> and evaluated on
-the held-out test split of their training treebank. <strong>Word F1</strong> scores
-exact word matches; <strong>Boundary F1</strong> scores individual boundary decisions.</p>
+<p>The bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are
+trained with a binary-perceptron-collapse procedure, not plain AdaBoost
+<code>-t</code>/<code>-i</code> training – see <a href="../pre-trained-models.html#training-procedure">Training
+Procedure</a> for the exact
+recipe. All are evaluated on the held-out test split of their training
+treebank. <strong>Word F1</strong> scores exact word matches; <strong>Boundary F1</strong> scores
+individual boundary decisions.</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Model</th><th>Word F1</th><th>Boundary F1</th><th>Training Corpus</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>91.48%</td><td>96.31%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
-<tr><td>chinese.model</td><td>77.56%</td><td>87.81%</td><td>UD Chinese-GSD</td></tr>
+<tr><td>japanese.model</td><td>96.70%</td><td>98.59%</td><td>UD Japanese-GSD</td></tr>
+<tr><td>korean.model</td><td>99.90%</td><td>99.95%</td><td>UD Korean-GSD</td></tr>
+<tr><td>chinese.model</td><td>90.69%</td><td>95.64%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
 </div>
@@ -261,6 +265,14 @@ very small models with much lower held-out accuracy</li>
 <li><strong>Better corpus quality</strong> – Ensure consistent tokenization and clean text</li>
 <li><strong>Retraining</strong> – Start from an existing model and train with additional data (see <a href="retraining-models.html">Retraining Models</a>)</li>
 </ol>
+<p>The threshold/iteration tuning above applies to plain AdaBoost training
+(<code>litsea train</code> without <code>--pos</code>/<code>--two-stage</code>). The bundled models’ own
++5-13pt held-out quality gains over plain AdaBoost did not come from
+tuning <code>-t</code>/<code>-i</code> – they came from training a 2-class Averaged Perceptron
+and collapsing it losslessly to AdaBoost weights instead. If you are
+chasing bundled-model-level quality rather than incremental gains, see
+<a href="../pre-trained-models.html#training-procedure">Training Procedure</a> for that
+recipe.</p>
 
                     </main>
 
