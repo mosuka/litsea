@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
+            window.path_to_searchindex_js = "../searchindex-a0e7dee3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-4bbd3799.js"></script>
@@ -248,7 +248,7 @@
 <h3 id="segmenterrs--word-segmentation-and-pos-tagging"><a class="header" href="#segmenterrs--word-segmentation-and-pos-tagging"><code>segmenter.rs</code> – Word Segmentation and POS Tagging</a></h3>
 <p>The main user-facing module.</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, an <code>AdaBoost</code> learner, and an optional <code>AveragedPerceptron</code> POS learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, <code>pos_learner_mut()</code>), plus an optional two-stage state (<code>Option&lt;TwoStageState&gt;</code>, set by <code>with_two_stage_learner</code>) and internal caches for the compiled scoring tables (<code>packed</code>, <code>packed_pos</code>, <code>packed_two_stage</code>) that back <code>segment()</code> / <code>segment_with_pos()</code>
+<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code>, an <code>AdaBoost</code> learner, and an optional <code>AveragedPerceptron</code> POS learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, <code>pos_learner_mut()</code>), plus internal caches for the compiled scoring tables (<code>packed</code>, <code>packed_pos</code>) that back <code>segment()</code> / <code>segment_with_pos()</code>, and an optional compiled two-stage tagging model (set by <code>with_two_stage_learner</code>; unlike the caches it is the stage-2 model itself – the raw learner parts are dropped after compilation)
 <ul>
 <li><code>new(language)</code> – Create a segmenter with a default (empty) AdaBoost learner</li>
 <li><code>with_learner(language, learner)</code> – Create a segmenter with a pre-configured AdaBoost learner (e.g. one that has loaded a pre-trained model)</li>

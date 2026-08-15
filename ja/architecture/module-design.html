@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
+            window.path_to_searchindex_js = "../searchindex-579b70ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -248,7 +248,7 @@
 <h3 id="segmenterrs--単語分割と品詞付与"><a class="header" href="#segmenterrs--単語分割と品詞付与"><code>segmenter.rs</code> – 単語分割と品詞付与</a></h3>
 <p>主要なユーザー向けモジュールです。</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）。加えて、オプションの二段構成状態（<code>Option&lt;TwoStageState&gt;</code>。<code>with_two_stage_learner</code> で設定）と、<code>segment()</code> / <code>segment_with_pos()</code> が使うコンパイル済みスコアリングテーブルの内部キャッシュ（<code>packed</code>・<code>packed_pos</code>・<code>packed_two_stage</code>）も保持する
+<li><strong><code>Segmenter</code></strong> – <code>Language</code>、<code>AdaBoost</code> 学習器、オプションの <code>AveragedPerceptron</code> 品詞学習器を保持（フィールドは非公開。<code>language()</code>・<code>learner()</code>・<code>learner_mut()</code>・<code>pos_learner()</code>・<code>pos_learner_mut()</code> を使用）。加えて、<code>segment()</code> / <code>segment_with_pos()</code> が使うコンパイル済みスコアリングテーブルの内部キャッシュ（<code>packed</code>・<code>packed_pos</code>）と、オプションのコンパイル済み二段構成タグ付けモデル（<code>with_two_stage_learner</code> で設定。キャッシュとは異なり stage-2 モデルそのものであり、生の学習器パーツはコンパイル後に破棄される）も保持する
 <ul>
 <li><code>new(language)</code> – デフォルト（空）の AdaBoost 学習器付きでセグメンターを作成</li>
 <li><code>with_learner(language, learner)</code> – 設定済みの AdaBoost 学習器（例: 学習済みモデルを読み込んだもの）付きでセグメンターを作成</li>

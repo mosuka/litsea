@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-98ce92a1.js";
+            window.path_to_searchindex_js = "../searchindex-579b70ac.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -189,12 +189,12 @@
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: pos_learner: Option&lt;AveragedPerceptron&gt;,
-    // private: two_stage: Option&lt;TwoStageState&gt;,
-    // internal: packed / packed_pos / packed_two_stage caches (see below)
+    // private: two_stage: Option&lt;PackedTwoStageModel&gt;（コンパイル済み stage-2 モデル）
+    // internal: packed / packed_pos caches (see below)
 }
 <span class="boring">}</span></code></pre>
 <p>フィールドは非公開です。アクセサメソッド <code>language()</code>、<code>learner()</code>、<code>learner_mut()</code>、<code>pos_learner()</code>、<code>pos_learner_mut()</code> を使ってアクセスしてください。</p>
-<p>これらに加えて、構造体は <code>packed</code>、<code>packed_pos</code>、<code>packed_two_stage</code> も保持しています。これらは学習器の重みを <code>segment()</code> / <code>segment_with_pos()</code> が採点に使う整数インデックスのテーブル群へコンパイルした、遅延再構築されるキャッシュです（<a href="../algorithm/prediction-pipeline.html#コンパイル済みスコアリングテーブル">予測パイプライン</a>を参照）。これらは内部実装の詳細でありアクセサはなく、対応する学習器が変更されると自動的に無効化されます。<code>two_stage</code> は <a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a>（後述）が設定する stage-2 の状態を保持します。二段構成モデルから作成された Segmenter でなければ <code>None</code> です。</p>
+<p>これらに加えて、構造体は <code>packed</code> と <code>packed_pos</code> も保持しています。これらは学習器の重みを <code>segment()</code> / <code>segment_with_pos()</code> が採点に使う整数インデックスのテーブル群へコンパイルした、遅延再構築されるキャッシュです（<a href="../algorithm/prediction-pipeline.html#コンパイル済みスコアリングテーブル">予測パイプライン</a>を参照）。これらは内部実装の詳細でありアクセサはなく、対応する学習器が変更されると自動的に無効化されます。<code>two_stage</code> は <a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a>（後述）が設定するコンパイル済み stage-2 タグ付けモデルを保持します。二段構成モデルから作成された Segmenter でなければ <code>None</code> です。キャッシュとは異なり、保持された学習器から導出されるものではありません — 生の stage-2 パーツはコンパイル後に破棄され、このフィールドへの変更経路は存在しません。</p>
 <h2 id="コンストラクタ"><a class="header" href="#コンストラクタ">コンストラクタ</a></h2>
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

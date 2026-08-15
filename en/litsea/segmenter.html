@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4499bc6b.js";
+            window.path_to_searchindex_js = "../searchindex-a0e7dee3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-4bbd3799.js"></script>
@@ -189,20 +189,22 @@
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: pos_learner: Option&lt;AveragedPerceptron&gt;,
-    // private: two_stage: Option&lt;TwoStageState&gt;,
-    // internal: packed / packed_pos / packed_two_stage caches (see below)
+    // private: two_stage: Option&lt;PackedTwoStageModel&gt; (compiled stage-2 model)
+    // internal: packed / packed_pos caches (see below)
 }
 <span class="boring">}</span></code></pre>
 <p>The fields are private; use the accessor methods <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, <code>pos_learner()</code>, and <code>pos_learner_mut()</code> to reach them.</p>
-<p>Besides these, the struct also holds <code>packed</code>, <code>packed_pos</code>, and
-<code>packed_two_stage</code>: lazily-rebuilt caches of the learners’ weights compiled
-into the integer-indexed tables <code>segment()</code> / <code>segment_with_pos()</code> score
-against (see <a href="../algorithm/prediction-pipeline.html#the-compiled-scoring-tables">Prediction Pipeline</a>).
+<p>Besides these, the struct also holds <code>packed</code> and <code>packed_pos</code>:
+lazily-rebuilt caches of the learners’ weights compiled into the
+integer-indexed tables <code>segment()</code> / <code>segment_with_pos()</code> score against
+(see <a href="../algorithm/prediction-pipeline.html#the-compiled-scoring-tables">Prediction Pipeline</a>).
 They are internal implementation detail with no accessors of their own,
 invalidated automatically whenever the corresponding learner is mutated.
-<code>two_stage</code> holds the stage-2 state set by
+<code>two_stage</code> holds the compiled stage-2 tagging model set by
 <a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a> (see below); it is
-<code>None</code> unless the segmenter was built from a two-stage model.</p>
+<code>None</code> unless the segmenter was built from a two-stage model. Unlike the
+caches it is not derived from a retained learner — the raw stage-2 parts
+are dropped after compilation and there is no mutation path for it.</p>
 <h2 id="constructors"><a class="header" href="#constructors">Constructors</a></h2>
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
