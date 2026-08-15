@@ -58,6 +58,17 @@ and extract features with `litsea extract --format tsv`. At inference no
 special handling is needed: `segment()` receives the spaced text as-is and
 emits each space as its own token.
 
+Because each space is its own single-character token, the character-level
+labeling (see [AdaBoost](../algorithm/adaboost.md)) marks two separate
+boundaries around it: the space itself starts a new token (label `B`), and
+the character immediately following the space starts the next token (also
+label `B`). Both are deterministic given the corpus construction -- a space
+is always exactly one token, and whatever follows it always begins the next
+token -- so the model learns them as a near-trivial rule. Only the second of
+these (the boundary that starts the following real word) affects the
+held-out Word F1 score, since pure-whitespace tokens are excluded from
+scoring (see [Evaluation](../litsea/evaluation.md)).
+
 ## Pre-trained Model
 
 ### korean.model
