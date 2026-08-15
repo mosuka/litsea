@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c4421d23.js";
+            window.path_to_searchindex_js = "searchindex-cf2e077d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ffba73c1.js"></script>
@@ -1550,6 +1550,16 @@ boundary context. Generate the corpus with <code>corpus_udtreebank.sh -s</code>
 and extract features with <code>litsea extract --format tsv</code>. At inference no
 special handling is needed: <code>segment()</code> receives the spaced text as-is and
 emits each space as its own token.</p>
+<p>Because each space is its own single-character token, the character-level
+labeling (see <a href="#adaboost-binary-classification">AdaBoost</a>) marks two separate
+boundaries around it: the space itself starts a new token (label <code>B</code>), and
+the character immediately following the space starts the next token (also
+label <code>B</code>). Both are deterministic given the corpus construction – a space
+is always exactly one token, and whatever follows it always begins the next
+token – so the model learns them as a near-trivial rule. Only the second of
+these (the boundary that starts the following real word) affects the
+held-out Word F1 score, since pure-whitespace tokens are excluded from
+scoring (see <a href="#evaluation-2">Evaluation</a>).</p>
 <h2 id="pre-trained-model-1"><a class="header" href="#pre-trained-model-1">Pre-trained Model</a></h2>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1073d414.js";
+            window.path_to_searchindex_js = "searchindex-16e63408.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ef307d1e.js"></script>
@@ -1520,6 +1520,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <p>韓国語ではWC（単語＋文字タイプ）特徴量を<strong>使用しません</strong>。ほとんどのハングル音節はSNとSFの2つのタイプにしか分類されないため、WC特徴量は低エントロピーでノイズの多い組み合わせを生成し、モデルの精度を低下させます。</p>
 <h3 id="空白保持学習space-preserving-training"><a class="header" href="#空白保持学習space-preserving-training">空白保持学習（Space-Preserving Training）</a></h3>
 <p>韓国語は語節（어절）の間に空白を入れて表記され、その空白がほとんどの語境界を示します。そのため韓国語モデルは <strong>空白保持 TSV コーパス</strong> で学習しています。トークンをタブで区切り、語節間の各空白を独立したトークンとして保持することで、学習テキストに元の文の空白文字が含まれ、モデルはそれを境界のコンテキストとして利用できます。コーパスは <code>corpus_udtreebank.sh -s</code>（ツリーバンクの <code>SpaceAfter</code> アノテーションから空白を復元）で生成し、特徴量は <code>litsea extract --format tsv</code> で抽出します。推論時に特別な処理は不要です: <code>segment()</code> は空白を含むテキストをそのまま受け取り、各空白を独立したトークンとして出力します。</p>
+<p>コーパス内では各空白が独立した1文字トークンになるため、文字単位のラベル付け（<a href="#adaboost-二値分類">AdaBoost</a> 参照）は空白の前後に2つの別々の境界を付与します: 空白自体が新しいトークンの開始（ラベル <code>B</code>）であり、空白の直後の文字も次のトークンの開始（同じく <code>B</code>）です。空白は必ずちょうど1トークンであり、その直後は必ず次のトークンの開始になるため、どちらもコーパスの構成上決定的（モデルがほぼ自明な規則として学習可能）です。held-out の単語 F1 に影響するのはこのうち後者（実単語の開始境界）のみで、純粋な空白トークンはスコアリングから除外されます（<a href="#評価-2">評価</a> 参照）。</p>
 <h2 id="学習済みモデル-2"><a class="header" href="#学習済みモデル-2">学習済みモデル</a></h2>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
