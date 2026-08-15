@@ -59,3 +59,27 @@ flowchart LR
 3. Extract POS features: `litsea extract --pos -l japanese pos_corpus.txt features_pos.txt`
 4. Train a POS model: `litsea train --pos --num-epochs 10 features_pos.txt model_pos.model`
 5. Segment with POS tags: `echo "text" | litsea segment --pos -l japanese model_pos.model`
+
+### Two-Stage Workflow (Faster POS Tagging)
+
+```mermaid
+flowchart LR
+    A["1. scripts/download_udtreebank.sh"] --> B["2. scripts/corpus_udtreebank.sh -p"]
+    B --> C["3. litsea extract --two-stage"]
+    C --> D["4. litsea train --two-stage"]
+    D --> E["5. litsea segment --pos"]
+```
+
+1. Download a UD Treebank: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)`
+2. Convert to POS corpus format: `bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt`
+3. Extract two-stage features: `litsea extract --two-stage -l japanese pos_corpus.txt features_prefix`
+4. Train a two-stage model: `litsea train --two-stage --num-epochs 50 features_prefix model.model`
+5. Segment with POS tags: `echo "text" | litsea segment --pos -l japanese model.model`
+
+`segment --pos` and `evaluate --pos` auto-detect a two-stage model from its
+file header, so no extra flag is needed to use one once trained. See
+[Two-Stage vs. Joint Tagging](algorithm/two-stage-tagging.md) for the
+architecture and why to prefer it for new work, and [Training
+Models](training-guide/training-models.md#two-stage-model-training) or
+[`train`](litsea-cli/train.md#two-stage-model-training) for the full flag
+reference.

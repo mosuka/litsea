@@ -47,6 +47,24 @@ Each line represents one character position. For the corpus line `これ は テ
 - First column: label (`1` = boundary, `-1` = non-boundary)
 - Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the `BC1:` feature)
 
+## Space-Preserving (TSV) Corpus Format
+
+For a corpus that preserves the original spacing of the sentence -- used to
+train the Korean model, since inter-word spaces are its strongest boundary
+signal (see [Korean](../language-support/korean.md#space-preserving-training))
+-- pass `--format tsv` instead of extracting from the default
+space-separated format:
+
+```sh
+litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+```
+
+The input is a tab-separated corpus (one sentence per line, tokens
+separated by tabs) in which a token may be a literal space character
+(`" "`). The output feature file format is identical to the default
+`extract`; only the corpus parsing differs. `--format tsv` cannot be
+combined with `--pos` or `--two-stage`.
+
 ## POS Feature Extraction
 
 For POS tagging models, use the `--pos` flag to extract features with POS labels instead of binary boundary labels.
@@ -84,6 +102,55 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 
 - First column: segment label (e.g., `B-PRON`, `O`)
 - Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the `BC1:` feature)
+
+## Two-Stage Feature Extraction
+
+For [two-stage POS tagging](../algorithm/two-stage-tagging.md) (issue #147),
+use `--two-stage` instead of `--pos`:
+
+```sh
+litsea extract --two-stage [--stage2-features full|balanced|fast] <CORPUS_FILE> <FEATURES_PREFIX>
+```
+
+### Example
+
+```sh
+litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+```
+
+`--two-stage` reads the same POS-tagged corpus as `--pos`
+(`word/POS word/POS ...`) but, in a single pass over the corpus, writes
+**three** files from `<FEATURES_PREFIX>` instead of one:
+
+| File | Contents |
+|------|----------|
+| `<FEATURES_PREFIX>.stage1` | Boundary features (label `B` or `O`), the same templates as `--pos` |
+| `<FEATURES_PREFIX>.stage2` | Word-level features (label a UPOS tag), the templates selected by `--stage2-features` |
+| `<FEATURES_PREFIX>.lexicon` | The candidate-tag lexicon (`surface\tTAG:count[,TAG:count...]`, most-frequent-first) |
+
+`litsea train --two-stage` reads all three files back from the same
+prefix. `--two-stage` cannot be combined with `--pos` or `--format tsv`.
+
+### Choosing `--stage2-features`
+
+`--stage2-features` selects which stage-2 word-level templates (see
+[Word-Level Feature Templates](../algorithm/feature-extraction.md#word-level-feature-templates-two-stage))
+get written to `<FEATURES_PREFIX>.stage2`, trading tagging quality for
+throughput:
+
+| Value | Templates | Trade-off |
+|-------|-----------|-----------|
+| `full` | All 23 word templates | Most accurate, slowest |
+| `balanced` | A subset of `full` | Middle ground |
+| `fast` (default) | The smallest subset | Fastest, still competitive quality |
+
+See [Choosing a stage-2 feature
+set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set) for
+the measured quality/throughput comparison behind this default.
+
+```sh
+litsea extract --two-stage --stage2-features balanced -l chinese ./pos_corpus.txt ./two_stage_features
+```
 
 ## File Size Expectations
 

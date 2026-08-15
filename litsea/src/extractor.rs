@@ -4,6 +4,9 @@
 //! for POS tagging, a "word/POS"-tagged corpus) into the tab-separated
 //! label + feature rows consumed by the trainers
 //! ([`Trainer`](crate::trainer::Trainer) / [`PosTrainer`](crate::trainer::PosTrainer)).
+//! [`Extractor::extract_two_stage`] extracts the same kind of rows for the
+//! two-stage architecture instead, splitting them across the three files
+//! read by [`TwoStageTrainer`](crate::trainer::TwoStageTrainer).
 
 use std::collections::HashSet;
 use std::fmt;
@@ -24,8 +27,12 @@ use crate::word_features::write_word_features;
 /// Extractor struct for processing text data and extracting features.
 /// It reads pre-segmented sentences from a corpus file (the word boundaries
 /// are given by the corpus itself) and writes the extracted training
-/// features to a specified output file. The internal `Segmenter` is used
-/// only as the feature generator; its model is never used to segment.
+/// features to one or more output files (a single features file for
+/// [`extract`](Self::extract)/[`extract_tsv`](Self::extract_tsv)/
+/// [`extract_with_pos`](Self::extract_with_pos), or three files for
+/// [`extract_two_stage`](Self::extract_two_stage)). The internal `Segmenter`
+/// is used only as the feature generator; its model is never used to
+/// segment.
 #[derive(Debug)]
 pub struct Extractor {
     segmenter: Segmenter,
@@ -60,7 +67,9 @@ impl Extractor {
     /// Corpus format: one sentence per line, each line consisting of
     /// space-separated words (the words define the boundary labels).
     /// Output format: each line is "label\tfeature1\tfeature2\t..." with
-    /// label 1 (word start) or -1 (continuation).
+    /// label 1 (word start) or -1 (continuation); one row per character
+    /// position of the sentence except the first (whose boundary label is
+    /// degenerate: it always starts a word).
     ///
     /// # Arguments
     /// * `corpus_path` - The path to the input corpus file containing sentences.
@@ -90,7 +99,7 @@ impl Extractor {
     /// the sentence in the training text so the model can learn from space
     /// characters as boundary context (issue #152). Output format is the same
     /// as [`extract`](Self::extract): one `label\tfeature\t...` row per
-    /// character position, with features in sorted order.
+    /// character position except the first, with features in sorted order.
     ///
     /// # Arguments
     /// * `corpus_path` - The path to the input tab-separated corpus file.

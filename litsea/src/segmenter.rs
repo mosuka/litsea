@@ -1,8 +1,10 @@
 //! Text segmentation engine.
 //!
-//! Defines [`Segmenter`], which performs word segmentation (AdaBoost) and
-//! joint segmentation + POS tagging (Averaged Perceptron), scoring through
-//! the packed tables of [`crate::packed_model`] / [`crate::packed_pos_model`].
+//! Defines [`Segmenter`], which performs word segmentation (AdaBoost),
+//! joint segmentation + POS tagging (Averaged Perceptron), and two-stage
+//! segmentation + POS tagging (boundary classifier + lexicon + word-level
+//! tagger, issue #147), scoring through the packed tables of
+//! `crate::packed_model` / `crate::packed_pos_model` / `crate::packed_two_stage`.
 //! Also hosts the corpus-processing pipeline used to build training features.
 
 use std::collections::HashSet;
@@ -20,8 +22,8 @@ use crate::perceptron::AveragedPerceptron;
 use crate::two_stage::TwoStageLearner;
 use crate::upos::{SegmentLabel, Upos};
 
-/// The stage-2 half of a decomposed [`TwoStageLearner`], retained so the
-/// packed tagging tables can be rebuilt if they are ever invalidated
+/// The stage-2 half of a decomposed [`TwoStageLearner`], retained alongside
+/// the packed tagging tables built from it once, at construction time
 /// (mirroring how the segmenter retains its other learners).
 #[derive(Debug)]
 struct TwoStageState {
@@ -33,15 +35,22 @@ struct TwoStageState {
     dominance: f64,
 }
 
-/// Text segmenter supporting two modes: word segmentation via AdaBoost
-/// binary classification, and joint word segmentation + POS tagging via an
-/// Averaged Perceptron (see [`segment_with_pos`](Self::segment_with_pos)).
-/// Characters are classified into language-specific type codes with direct
-/// `match`-based rules ([`Language::char_type`]).
+/// Text segmenter supporting three modes: word segmentation via AdaBoost
+/// binary classification; joint word segmentation + POS tagging via an
+/// Averaged Perceptron; and two-stage word segmentation + POS tagging via a
+/// boundary classifier, lexicon, and word-level tagger (see
+/// [`with_two_stage_learner`](Self::with_two_stage_learner)). Word
+/// segmentation and POS tagging are dispatched through
+/// [`segment`](Self::segment) and
+/// [`segment_with_pos`](Self::segment_with_pos) respectively. Characters are
+/// classified into language-specific type codes with direct `match`-based
+/// rules ([`Language::char_type`]).
 #[derive(Debug)]
 pub struct Segmenter {
     language: Language,
-    /// The AdaBoost learner. All mutation must flow through
+    /// The AdaBoost learner (for a two-stage segmenter, this is the stage-1
+    /// boundary classifier — a collapsed perceptron stored in AdaBoost
+    /// format, not a boosted model). All mutation must flow through
     /// [`learner_mut`](Self::learner_mut) (as [`add_corpus`](Self::add_corpus)
     /// does) so that `packed` is invalidated alongside.
     learner: AdaBoost,
@@ -196,13 +205,16 @@ impl Segmenter {
         self.language
     }
 
-    /// Returns a reference to the AdaBoost learner used for segmentation.
+    /// Returns a reference to the AdaBoost learner used for segmentation
+    /// (for a two-stage segmenter, this is the stage-1 boundary classifier).
     #[must_use]
     pub fn learner(&self) -> &AdaBoost {
         &self.learner
     }
 
-    /// Returns a mutable reference to the AdaBoost learner used for segmentation.
+    /// Returns a mutable reference to the AdaBoost learner used for
+    /// segmentation (for a two-stage segmenter, this is the stage-1
+    /// boundary classifier).
     ///
     /// The caller may mutate the learner (load a model, add instances,
     /// train), so the compiled packed scoring table is dropped here; the
@@ -213,7 +225,9 @@ impl Segmenter {
         &mut self.learner
     }
 
-    /// Returns a reference to the POS learner, if one is set.
+    /// Returns a reference to the POS learner, if one is set (always `None`
+    /// for a two-stage segmenter, even though it does perform POS tagging —
+    /// see [`with_two_stage_learner`](Self::with_two_stage_learner)).
     #[must_use]
     pub fn pos_learner(&self) -> Option<&AveragedPerceptron> {
         self.pos_learner.as_ref()
@@ -344,9 +358,13 @@ impl Segmenter {
         f(packed)
     }
 
-    /// Runs `f` with the packed two-stage tagging tables, rebuilding them
-    /// first if they were invalidated. The fast path takes only an
-    /// uncontended read lock (one per sentence). The caller passes the
+    /// Runs `f` with the packed two-stage tagging tables, building them on
+    /// first use and caching them for the lifetime of the segmenter (there
+    /// is no mutable accessor for the two-stage state, so unlike
+    /// [`with_packed`](Self::with_packed) and
+    /// [`with_packed_pos`](Self::with_packed_pos) this cache is never
+    /// invalidated after it is first populated). The fast path takes only
+    /// an uncontended read lock (one per sentence). The caller passes the
     /// two-stage state it already borrowed (presence is checked by
     /// [`segment_with_pos`](Self::segment_with_pos)).
     fn with_packed_two_stage<R>(
@@ -662,12 +680,13 @@ impl Segmenter {
     ///
     /// # Note
     /// The method scores each character position through the compiled
-    /// [`crate::packed_model::PackedModel`] in two passes — a scatter-add
+    /// `crate::packed_model::PackedModel` in two passes — a scatter-add
     /// static pass over the tag-independent features and a sequential pass
     /// over the 16 tag-dependent dense templates — deciding at each position
     /// whether it starts a new word. No attribute strings are constructed:
-    /// the AdaBoost learner is only consulted for its bias term and to
-    /// (re)build the packed table after a learner mutation.
+    /// the AdaBoost learner (for a two-stage segmenter, a collapsed
+    /// perceptron stored in AdaBoost format) is only consulted for its bias
+    /// term and to (re)build the packed table after a learner mutation.
     /// If the sentence is empty, it returns an empty vector.
     ///
     /// # Example
@@ -872,15 +891,18 @@ impl Segmenter {
         result
     }
 
-    /// Segments a sentence into words and jointly predicts each word's UPOS tag.
+    /// Segments the sentence and tags each word with its POS, using either
+    /// the joint per-character Averaged Perceptron path or, if a two-stage
+    /// learner is set, the two-stage boundary+lexicon path — see the
+    /// `# Two-stage mode` section below.
     ///
-    /// Uses the Averaged Perceptron (`pos_learner`) to predict the label
-    /// (`B-<POS>` / `O`) at each character position and returns word/POS
-    /// pairs. The first word's POS is derived from the predicted label at
-    /// the first character position.
+    /// In the joint path, the Averaged Perceptron (`pos_learner`) predicts
+    /// the label (`B-<POS>` / `O`) at each character position and the
+    /// method returns word/POS pairs. The first word's POS is derived from
+    /// the predicted label at the first character position.
     ///
     /// Scoring runs against the compiled packed POS tables
-    /// ([`crate::packed_pos_model::PackedPosModel`], issue #143) in the same
+    /// (`crate::packed_pos_model::PackedPosModel`, issue #143) in the same
     /// two passes as [`segment`](Self::segment): a static pass scatter-adds
     /// every tag-free feature into an `n x n_classes` score matrix, and a
     /// sequential pass adds the 16 tag-dependent dense rows and takes the
@@ -1965,8 +1987,8 @@ mod tests {
         // every non-empty bocchan line must match the string-keyed
         // reference exactly, for every bundled Japanese model. Added with
         // the WC merged-row restructuring (#157); japanese.model exercises
-        // the WC scatter path (96 WC features), RWCP.model the empty-map
-        // skip, and JEITA the small-model path.
+        // the WC scatter path (6384 WC features, per the #165 retraining),
+        // RWCP.model the empty-map skip, and JEITA the small-model path.
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
         let text = std::fs::read_to_string(&path).unwrap();
         let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();

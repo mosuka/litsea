@@ -111,20 +111,23 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 
 ## ファイルサイズ
 
-モデルファイルは非常にコンパクトです:
+モデルファイルのサイズは、モデルの種類と言語によって大きく異なります:
 
 | モデル | サイズ | 特徴量 |
 |-------|------|----------|
-| japanese.model | 約 20 KB | UD Japanese-GSD |
-| korean.model | 約 20 KB | UD Korean-GSD |
-| chinese.model | 約 18 KB | UD Chinese-GSD |
+| japanese.model | 約 1.1 MB | UD Japanese-GSD |
+| chinese.model | 約 2.0 MB | UD Chinese-GSD |
+| korean.model | 約 110 KB | UD Korean-GSD |
 | RWCP.model | 約 22 KB | オリジナルの TinySegmenter |
+| JEITA_Genpaku_ChaSen_IPAdic.model | 約 16 KB | JEITA コーパス |
+| japanese_two_stage.model | 約 5.4 MB | UD Japanese-GSD（二段構成） |
+| chinese_two_stage.model | 約 8.0 MB | UD Chinese-GSD（二段構成） |
+| korean_two_stage.model | 約 5.0 MB | UD Korean-GSD（二段構成） |
 | japanese_pos.model | 約 11 MB | UD Japanese-GSD（品詞） |
 | chinese_pos.model | 約 19 MB | UD Chinese-GSD（品詞） |
 | korean_pos.model | 約 8.9 MB | UD Korean-GSD（品詞） |
-| JEITA_Genpaku_ChaSen_IPAdic.model | 約 16 KB | JEITA コーパス |
 
-単語分割モデルのコンパクトなサイズは Litsea の主要な利点の一つであり、アプリケーションに直接埋め込んだり、最小限のオーバーヘッドで HTTP 経由で配信したりできます。単語分割と品詞推定を同時に行う結合モデルは、クラスごとの重みを保持するためサイズが大きくなります（数メガバイト）。
+`RWCP.model` と `JEITA_Genpaku_ChaSen_IPAdic.model` は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された `japanese.model`・`chinese.model`・`korean.model`（[事前学習済みモデル](../pre-trained-models.md)を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく 110 KB〜2.0 MB になりましたが、それでも品詞推定の結合モデル（`*_pos.model`）や二段構成モデル（`*_two_stage.model`）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。
 
 ## 互換性
 

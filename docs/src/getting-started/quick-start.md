@@ -48,6 +48,17 @@ Output:
 
 Each token is annotated with a [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tag.
 
+### Two-Stage POS Tagging
+
+Litsea also ships a faster [two-stage](../algorithm/two-stage-tagging.md) POS tagging architecture. The CLI auto-detects the model kind from the file, so the command is identical to the joint example above except for the model filename:
+
+```sh
+echo "今日はいい天気ですね。" \
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+```
+
+Output is the same shape as the joint example. [Pre-trained Models](../pre-trained-models.md#choosing-a-model) recommends the two-stage models for new work.
+
 ## Library Quick Start
 
 Here is a minimal Rust program that loads a model and segments text:

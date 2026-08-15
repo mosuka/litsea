@@ -2,7 +2,7 @@
 
 Welcome to Litsea! This section will help you get up and running quickly.
 
-Litsea is a compact word segmentation library in Rust that supports both **word segmentation** (AdaBoost) and **joint segmentation with POS tagging** (Averaged Perceptron).
+Litsea is a compact word segmentation library in Rust that supports **word segmentation** (AdaBoost), **joint segmentation with POS tagging** (Averaged Perceptron), and the faster [two-stage POS tagging](algorithm/two-stage-tagging.md) architecture -- three modes covering different speed/accuracy tradeoffs.
 
 ## Next Steps
 

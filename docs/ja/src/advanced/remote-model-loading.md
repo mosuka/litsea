@@ -34,7 +34,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 0.6.0 以降、`remote_model` フィーチャーは**オプトイン**です（ライブラリのデフォルトはローカル読み込みのみとし、依存関係のツリーをコンパクトに保っています）。CLI ではこのフィーチャーが有効化されているため、`litsea segment https://...` はそのまま動作します。ライブラリ利用者は以下が必要です:
 
 ```toml
-litsea = { version = "0.8.0", features = ["remote_model"] }
+litsea = { version = "0.11.0", features = ["remote_model"] }
 ```
 
 ## 実装の詳細

@@ -43,15 +43,19 @@ Of the **actual** boundaries, what fraction did the model **find**. High recall 
 
 ## Pre-trained Model Benchmarks
 
-The bundled models are trained with `-t 0.0001 -i 20000` and evaluated on
-the held-out test split of their training treebank. **Word F1** scores
-exact word matches; **Boundary F1** scores individual boundary decisions.
+The bundled `japanese.model`, `chinese.model`, and `korean.model` are
+trained with a binary-perceptron-collapse procedure, not plain AdaBoost
+`-t`/`-i` training -- see [Training
+Procedure](../pre-trained-models.md#training-procedure) for the exact
+recipe. All are evaluated on the held-out test split of their training
+treebank. **Word F1** scores exact word matches; **Boundary F1** scores
+individual boundary decisions.
 
 | Model | Word F1 | Boundary F1 | Training Corpus |
 |-------|---------|-------------|-----------------|
-| japanese.model | 91.48% | 96.31% | UD Japanese-GSD |
-| korean.model | 99.91% | 99.96% | UD Korean-GSD |
-| chinese.model | 77.56% | 87.81% | UD Chinese-GSD |
+| japanese.model | 96.70% | 98.59% | UD Japanese-GSD |
+| korean.model | 99.90% | 99.95% | UD Korean-GSD |
+| chinese.model | 90.69% | 95.64% | UD Chinese-GSD |
 
 Korean is trained and evaluated on text that preserves the original
 inter-eojeol spaces (space-preserving TSV corpus; space tokens are excluded
@@ -92,3 +96,12 @@ If accuracy is unsatisfactory, consider:
    very small models with much lower held-out accuracy
 4. **Better corpus quality** -- Ensure consistent tokenization and clean text
 5. **Retraining** -- Start from an existing model and train with additional data (see [Retraining Models](retraining-models.md))
+
+The threshold/iteration tuning above applies to plain AdaBoost training
+(`litsea train` without `--pos`/`--two-stage`). The bundled models' own
++5-13pt held-out quality gains over plain AdaBoost did not come from
+tuning `-t`/`-i` -- they came from training a 2-class Averaged Perceptron
+and collapsing it losslessly to AdaBoost weights instead. If you are
+chasing bundled-model-level quality rather than incremental gains, see
+[Training Procedure](../pre-trained-models.md#training-procedure) for that
+recipe.

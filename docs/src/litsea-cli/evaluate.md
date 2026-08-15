@@ -83,10 +83,10 @@ Output:
 ```text
 Evaluation Metrics:
   Sentences: 543
-  Word Precision: 91.50%
-  Word Recall: 91.47%
-  Word F1: 91.48%
-  Boundary Precision: 96.32%
-  Boundary Recall: 96.29%
-  Boundary F1: 96.31%
+  Word Precision: 96.73%
+  Word Recall: 96.66%
+  Word F1: 96.70%
+  Boundary Precision: 98.63%
+  Boundary Recall: 98.56%
+  Boundary F1: 98.59%
 ```

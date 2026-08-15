@@ -86,6 +86,21 @@ let label = learner.predict(&attrs);
 // label == "B-ADP", "O", etc.
 ```
 
+## Accessors
+
+### `classes`
+
+```rust
+pub fn classes(&self) -> &[String]
+```
+
+Returns the registered class names in their sorted storage order -- the
+order used for weight-vector indexing and `predict`'s argmax tie-breaking
+(first strictly-greater class wins). Empty if no classes are registered.
+Used by the two-stage collapse procedure (see [Pre-trained
+Models](../pre-trained-models.md#training-procedure)) and by the packed
+two-stage runtime.
+
 ## Model I/O
 
 ### `save_model`
@@ -95,6 +110,20 @@ pub fn save_model(&self, path: &Path) -> litsea::Result<()>
 ```
 
 Saves model weights to a file. Returns an error if the model is empty.
+
+### `save_model_to_writer`
+
+```rust
+pub fn save_model_to_writer<W: Write>(&self, writer: &mut W) -> litsea::Result<()>
+```
+
+Writes the model to an arbitrary writer in the same text format as
+`save_model`; this is the format-producing core `save_model` delegates to.
+It is public so the model can be embedded as a section of a larger file
+without going through a file path -- the [two-stage model
+format](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)
+uses it to embed the stage-2 word tagger directly. The writer is not
+flushed. Returns an error if no classes are registered (an empty model).
 
 ### `load_model_from_path`
 

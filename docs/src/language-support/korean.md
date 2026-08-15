@@ -69,17 +69,33 @@ these (the boundary that starts the following real word) affects the
 held-out Word F1 score, since pure-whitespace tokens are excluded from
 scoring (see [Evaluation](../litsea/evaluation.md)).
 
-## Pre-trained Model
+## Pre-trained Models
 
 ### korean.model
 
 - **Training corpus**: UD Korean-GSD (space-preserving TSV corpus)
-- **Training options**: `--format tsv`, `-t 0.0001 -i 20000`
-- **Word F1 (held-out)**: 99.91%
-- **Boundary F1 (held-out)**: 99.96%
+- **Training options**: `--format tsv`, 30 epochs of Averaged Perceptron
+  training, collapsed to AdaBoost scalar weights, not pruned (3,994
+  features) -- see [Training
+  Procedure](../pre-trained-models.md#training-procedure) for the full recipe
+- **Word F1 (held-out)**: 99.90%
+- **Boundary F1 (held-out)**: 99.95%
 
 Held-out metrics are computed on the original spaced text with space tokens
 excluded from scoring.
+
+### korean_pos.model
+
+- **Algorithm**: Averaged Perceptron (joint segmentation + POS tagging)
+- **Details**: see [Pre-trained Models](../pre-trained-models.md#korean_posmodel)
+
+### korean_two_stage.model
+
+- **Algorithm**: two-stage segmentation + POS tagging (faster than the joint model, same output shape)
+- **Note**: unlike `korean.model` above, this model is trained on the
+  *unspaced* `word/POS` corpus (the same protocol as `korean_pos.model`),
+  not the space-preserving protocol described on this page
+- **Details**: see [Pre-trained Models](../pre-trained-models.md#korean_two_stagemodel)
 
 ## Example
 

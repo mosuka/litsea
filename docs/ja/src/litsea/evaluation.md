@@ -1,9 +1,15 @@
 # 評価
 
-セグメンテーションおよび品詞推定同時実行の held-out 品質評価
+セグメンテーションおよび品詞タグ付けの held-out 品質評価
 （`litsea::evaluation`）です。
 [`litsea evaluate`](../litsea-cli/evaluate.md) サブコマンドの背後にある
-ライブラリ API です。
+ライブラリ API です。`evaluate_pos` はどちらの品詞タグ付けアーキテクチャに
+対しても動作します -- [`with_pos_learner`](segmenter.md#with_pos_learner)
+で作成した Segmenter（joint）でも、
+[`with_two_stage_learner`](segmenter.md#with_two_stage_learner) で作成した
+Segmenter（二段構成。[二段構成 vs Joint
+タグ付け](../algorithm/two-stage-tagging.md)を参照）でも構いません。
+どちらも同じシグネチャの `segment_with_pos` を実装しているためです。
 
 ## メトリクス型
 
@@ -57,8 +63,9 @@ where
 ```
 
 `evaluate_segmentation` と同様ですが、[`Segmenter::segment_with_pos`] を
-実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器が
-設定されていない場合は `LitseaError::PosLearnerNotSet` を返します。
+実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器も
+二段構成学習器も設定されていない場合は `LitseaError::PosLearnerNotSet` を
+返します。
 
 ### ゴールド行パーサ
 

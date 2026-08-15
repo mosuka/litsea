@@ -128,6 +128,17 @@ Malformed files (empty, truncated before the bias line, duplicate bias lines or
 features, non-finite weights) are rejected at load time. See
 [Model File Format](../advanced/model-file-format.md) for details.
 
+> **This page describes the AdaBoost *training algorithm*.** The file
+> format above is also how litsea stores the three bundled segmentation
+> models (`japanese.model`, `chinese.model`, `korean.model`) -- but as of
+> issue #165, those are no longer produced by boosting. They are trained
+> as a 2-class Averaged Perceptron and losslessly collapsed into this same
+> scalar-weight format (see [Pre-trained
+> Models](../pre-trained-models.md#training-procedure) for the collapse
+> procedure). Any file `AdaBoost::load_model` can read is a valid instance
+> of this format, but that does not mean it was actually produced by the
+> boosting loop described above.
+
 ## Hyperparameters
 
 | Parameter | Default | Description |

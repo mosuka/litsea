@@ -38,6 +38,7 @@
   - [UPOS](litsea/upos.md)
   - [Language](litsea/language.md)
   - [評価](litsea/evaluation.md)
+  - [二段構成モデル](litsea/two-stage.md)
 
 # litsea-cli (CLI)
 

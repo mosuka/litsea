@@ -27,9 +27,21 @@
 ### japanese.model
 
 - **学習コーパス**: UD Japanese-GSD
-- **学習オプション**: `-t 0.0001 -i 20000`
-- **単語 F1（held-out）**: 91.48%
-- **境界 F1（held-out）**: 96.31%
+- **学習オプション**: Averaged Perceptron を50エポック学習し、AdaBoostのスカラー重みへ
+  畳み込んだ後、`|weight|` 上位40,000特徴量に剪定 -- 詳しい手順は
+  [学習手順](../pre-trained-models.md#学習手順)を参照
+- **単語 F1（held-out）**: 96.70%
+- **境界 F1（held-out）**: 98.59%
+
+### japanese_pos.model
+
+- **アルゴリズム**: Averaged Perceptron（単語分割と品詞推定の同時学習）
+- **詳細**: [事前学習済みモデル](../pre-trained-models.md#japanese_posmodel)を参照
+
+### japanese_two_stage.model
+
+- **アルゴリズム**: 二段構成の単語分割＋品詞推定（joint モデルより高速で出力形式は同じ）
+- **詳細**: [事前学習済みモデル](../pre-trained-models.md#japanese_two_stagemodel)を参照
 
 ### RWCP.model
 

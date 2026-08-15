@@ -5,7 +5,7 @@ Litsea is an extremely compact word segmentation and POS (Part-of-Speech) taggin
 ## Key Features
 
 - **Word Segmentation** using AdaBoost binary classification on character n-gram features
-- **POS Tagging** using Averaged Perceptron with UPOS (Universal POS) tagset from [Universal Dependencies](https://universaldependencies.org/u/pos/) (17 tags)
+- **POS Tagging** using Averaged Perceptron with UPOS (Universal POS) tagset from [Universal Dependencies](https://universaldependencies.org/u/pos/) (17 tags), available in two architectures: joint (`--pos`) and the faster two-stage (`--two-stage`)
 - **Multilingual Support** for Japanese, Korean, and Chinese
 - **Backward Compatible** — existing segmentation-only workflows continue to work as before
 
@@ -80,8 +80,10 @@ Feature extraction completed successfully.
 Train the features output by the above command using AdaBoost. Use `-t` to set the weak classifier accuracy threshold and `-i` to set the maximum number of iterations:
 
 ```sh
-./target/release/litsea train -t 0.0001 -i 20000 ./features.txt ./models/japanese.model
+./target/release/litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 ```
+
+(The bundled `japanese.model`/`chinese.model`/`korean.model` are *not* produced this way — see [Pre-trained models](#pre-trained-models) below for their actual training procedure.)
 
 The `train` command reports metrics computed on the training data (with enough iterations the model can fit the training corpus almost perfectly; evaluate on held-out text for a realistic quality estimate):
 
@@ -120,7 +122,7 @@ echo "中文分词测试。" | ./target/release/litsea segment -l chinese ./mode
 
 ## How to segment sentences with POS tagging
 
-Litsea supports joint word segmentation and POS tagging using the `--pos` flag. POS tags follow the [UPOS tagset](https://universaldependencies.org/u/pos/) from Universal Dependencies (17 tags).
+Litsea supports joint word segmentation and POS tagging using the `--pos` flag. POS tags follow the [UPOS tagset](https://universaldependencies.org/u/pos/) from Universal Dependencies (17 tags). The `--pos` flag works with both joint (`*_pos.model`) and two-stage (`*_two_stage.model`, see below) model files — the model kind is auto-detected from the file, so the command is identical either way.
 
 Use the pre-trained POS model to segment sentences with POS tags:
 
@@ -180,6 +182,17 @@ Result Metrics (POS):
   Macro Recall: 93.30%
 ```
 
+## How to train two-stage models
+
+For faster POS tagging, use `--two-stage` instead of `--pos`. It trains a binary boundary classifier (stage 1) plus a word-level tagger (stage 2), assembled with a candidate-tag lexicon into a single `litsea-two-stage v1` model file:
+
+```sh
+./target/release/litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+./target/release/litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+```
+
+`segment --pos` and `evaluate --pos` auto-detect a two-stage model from its file header, so no extra flag is needed to use one once trained. See [Two-Stage vs. Joint Tagging](docs/src/algorithm/two-stage-tagging.md) for the architecture and measured quality/speed comparison.
+
 ## How to split text into sentences
 
 Use the `scripts/split_sentences.sh` shell script to split text into sentences using regex-based rules. Each input line is treated as a paragraph and split into individual sentences:
@@ -200,22 +213,25 @@ The output will look like:
 ## Pre-trained models
 
 - **japanese.model**
-  Trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank. Held-out word F1: 91.48%.
+  Trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank as a 2-class Averaged Perceptron, losslessly collapsed to AdaBoost-format scalar weights (see [Pre-trained Models](docs/src/pre-trained-models.md) for the procedure). Held-out word F1: 96.70%.
 
 - **korean.model**
-  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank with a space-preserving corpus. Held-out word F1: 99.91%.
+  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank with a space-preserving corpus, same collapsed-perceptron procedure as above. Held-out word F1: 99.90%.
 
 - **chinese.model**
-  Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank. Held-out word F1: 77.56%.
+  Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank, same collapsed-perceptron procedure as above. Held-out word F1: 90.69%.
 
 - **japanese_pos.model**
-  Joint word segmentation and POS tagging model trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank using Averaged Perceptron. Training accuracy: 98.23%.
+  Joint word segmentation and POS tagging model trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank using Averaged Perceptron. Held-out word/tagged-word F1: 96.56% / 92.51%.
 
 - **chinese_pos.model**
-  Joint word segmentation and POS tagging model trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank using Averaged Perceptron. Training accuracy: 97.04%.
+  Joint word segmentation and POS tagging model trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank using Averaged Perceptron. Held-out word/tagged-word F1: 90.52% / 81.18%.
 
 - **korean_pos.model**
-  Joint word segmentation and POS tagging model trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank using Averaged Perceptron. Training accuracy: 95.14%.
+  Joint word segmentation and POS tagging model trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank using Averaged Perceptron. Held-out word/tagged-word F1: 80.51% / 71.03%.
+
+- **japanese_two_stage.model** / **chinese_two_stage.model** / **korean_two_stage.model**
+  Two-stage word segmentation and POS tagging models (see [How to train two-stage models](#how-to-train-two-stage-models)). As bundled, every language beats the corresponding joint model above on both word and tagged-word F1: Japanese 96.78% / 92.95%, Chinese 90.82% / 82.29%, Korean 83.24% / 78.86%.
 
 - **JEITA_Genpaku_ChaSen_IPAdic.model**
   This model is trained using the morphologically analyzed corpus published by the Japan Electronics and Information Technology Industries Association (JEITA). It employs data from Project Sugita Genpaku analyzed with ChaSen+IPAdic.
@@ -228,8 +244,10 @@ The output will look like:
 You can further improve performance by resuming training from an existing model with new corpora:
 
 ```sh
-./target/release/litsea train -t 0.0001 -i 20000 -m ./models/japanese.model ./new_features.txt ./models/japanese.model
+./target/release/litsea train -t 0.0001 -i 20000 -m ./models/my_model.model ./new_features.txt ./models/my_model.model
 ```
+
+(This incremental-retraining path applies to plain AdaBoost models. The bundled `japanese.model`/`chinese.model`/`korean.model` are retrained from scratch via the collapsed-perceptron procedure instead, not incrementally. `train --two-stage` does not support `-m`/incremental training at all.)
 
 ## License
 

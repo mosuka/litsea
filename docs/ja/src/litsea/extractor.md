@@ -107,3 +107,53 @@ extractor.extract_with_pos(
     Path::new("./features_pos.txt"),
 )?;
 ```
+
+### `extract_two_stage`
+
+```rust
+pub fn extract_two_stage(
+    &self,
+    corpus_path: &Path,
+    output_prefix: &Path,
+    feature_set: TwoStageFeatureSet,
+) -> litsea::Result<()>
+```
+
+POS タグ付きコーパス（`word/POS word/POS ...`、`extract_with_pos` と同じ形式）を1パスで読み込み、[二段構成モデル](../algorithm/two-stage-tagging.md)の学習に使う [`TwoStageTrainer`](trainer.md#twostagetrainer) 用の3ファイルを `output_prefix` から書き出します。
+
+- `{output_prefix}.stage1` -- 境界特徴量（`label\tfeature1\t...`、ラベルは `B` または `O`）。`extract_with_pos` と同じ特徴量テンプレートを使用
+- `{output_prefix}.stage2` -- 単語単位の特徴量（`label\tfeature1\t...`、ラベルは UPOS タグ）。`feature_set` で選択したテンプレートを使用（詳細は下記の [`TwoStageFeatureSet`](#twostagefeatureset)）
+- `{output_prefix}.lexicon` -- 候補タグ語彙表（`surface\tTAG:count[,TAG:count...]`、出現頻度の高い順）
+
+`TwoStageTrainer::new` は同じプレフィックスから同じ3つのパスを読み込みます。
+
+```rust
+use std::path::Path;
+
+use litsea::TwoStageFeatureSet;
+
+extractor.extract_two_stage(
+    Path::new("./pos_corpus.txt"),
+    Path::new("./two_stage_features"),
+    TwoStageFeatureSet::Fast,
+)?;
+```
+
+## TwoStageFeatureSet
+
+```rust
+pub enum TwoStageFeatureSet {
+    Full,
+    Balanced,
+    #[default]
+    Fast,
+}
+```
+
+[`extract_two_stage`](#extract_two_stage) が書き出す stage-2 の単語単位テンプレートを選択します（テンプレートの全カタログは[単語単位の特徴量テンプレート](../algorithm/feature-extraction.md)を参照）。タグ付け品質とスループットのトレードオフになります:
+
+- `Full` -- すべての単語テンプレート（品質重視）
+- `Balanced` -- `Fast` のテンプレートに加えて、先頭/末尾文字そのものと単語の文字種文字列
+- `Fast`（既定） -- 実測に基づく最小構成: 表層、単語長、先頭/末尾文字種、隣接文脈文字とその文字種、2文字の接頭辞/接尾辞
+
+`Display`（小文字: `"full"`、`"balanced"`、`"fast"`）と `FromStr`（不正な文字列には `ParseTwoStageFeatureSetError` を返す）も実装しています -- これは `--stage2-features` CLI フラグが受け付けるのと同じ名前です。[特徴量の抽出](../training-guide/extracting-features.md)を参照してください。

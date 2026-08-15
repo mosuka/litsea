@@ -31,10 +31,11 @@ pub enum LitseaError {
     #[error("unsupported: {0}")]
     Unsupported(&'static str),
 
-    /// `segment_with_pos` was called on a segmenter without a POS learner.
+    /// `segment_with_pos` was called on a segmenter without a POS learner
+    /// or a two-stage learner.
     #[error(
-        "POS learner is not set; build the segmenter with with_pos_learner() \
-         or add training data with add_corpus_with_pos()"
+        "POS learner is not set; build the segmenter with with_pos_learner(), \
+         with_two_stage_learner(), or add training data with add_corpus_with_pos()"
     )]
     PosLearnerNotSet,
 

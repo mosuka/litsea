@@ -117,20 +117,23 @@ above, and the parameter range, and reports errors with the section name
 
 ## File Size
 
-Model files are very compact:
+Model file sizes vary considerably by model type and language:
 
 | Model | Size | Features |
 |-------|------|----------|
-| japanese.model | ~20 KB | UD Japanese-GSD |
-| korean.model | ~20 KB | UD Korean-GSD |
-| chinese.model | ~18 KB | UD Chinese-GSD |
+| japanese.model | ~1.1 MB | UD Japanese-GSD |
+| chinese.model | ~2.0 MB | UD Chinese-GSD |
+| korean.model | ~110 KB | UD Korean-GSD |
 | RWCP.model | ~22 KB | Original TinySegmenter |
+| JEITA_Genpaku_ChaSen_IPAdic.model | ~16 KB | JEITA corpus |
+| japanese_two_stage.model | ~5.4 MB | UD Japanese-GSD (two-stage) |
+| chinese_two_stage.model | ~8.0 MB | UD Chinese-GSD (two-stage) |
+| korean_two_stage.model | ~5.0 MB | UD Korean-GSD (two-stage) |
 | japanese_pos.model | ~11 MB | UD Japanese-GSD (POS) |
 | chinese_pos.model | ~19 MB | UD Chinese-GSD (POS) |
 | korean_pos.model | ~8.9 MB | UD Korean-GSD (POS) |
-| JEITA_Genpaku_ChaSen_IPAdic.model | ~16 KB | JEITA corpus |
 
-The compact size of the word-segmentation models is a key advantage of Litsea -- they can be embedded directly in applications or served over HTTP with minimal overhead. The joint segmentation + POS models are larger (megabytes) because they carry per-class weights.
+`RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model` are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained `japanese.model`, `chinese.model`, and `korean.model` (see [Pre-trained Models](../pre-trained-models.md)) trade some of that compactness for substantial quality gains: they are now 110 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte joint POS (`*_pos.model`) and two-stage (`*_two_stage.model`) models, which are larger because they carry per-class or per-stage weights.
 
 ## Compatibility
 

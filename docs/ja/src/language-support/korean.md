@@ -56,11 +56,26 @@ Litseaは、ハングル文字タイプの特殊な検出機能を備えた韓�
 ### korean.model
 
 - **学習コーパス**: UD Korean-GSD（空白保持 TSV コーパス）
-- **学習オプション**: `--format tsv`, `-t 0.0001 -i 20000`
-- **単語 F1（held-out）**: 99.91%
-- **境界 F1（held-out）**: 99.96%
+- **学習オプション**: `--format tsv`、Averaged Perceptron を30エポック学習し、
+  AdaBoostのスカラー重みへ畳み込み、剪定なし（3,994特徴量）-- 詳しい手順は
+  [学習手順](../pre-trained-models.md#学習手順)を参照
+- **単語 F1（held-out）**: 99.90%
+- **境界 F1（held-out）**: 99.95%
 
 held-out 指標は、空白トークンをスコアリングから除外した上で、元の空白付きテキストに対して計算しています。
+
+### korean_pos.model
+
+- **アルゴリズム**: Averaged Perceptron（単語分割と品詞推定の同時学習）
+- **詳細**: [事前学習済みモデル](../pre-trained-models.md#korean_posmodel)を参照
+
+### korean_two_stage.model
+
+- **アルゴリズム**: 二段構成の単語分割＋品詞推定（joint モデルより高速で出力形式は同じ）
+- **注記**: 上記の `korean.model` とは異なり、このモデルは空白非保持の
+  `word/POS` コーパス（`korean_pos.model` と同じプロトコル）で学習されており、
+  このページで説明している空白保持プロトコルは使用していません
+- **詳細**: [事前学習済みモデル](../pre-trained-models.md#korean_two_stagemodel)を参照
 
 ## 使用例
 

@@ -1,9 +1,15 @@
 //! Litsea is an extremely compact word segmentation and POS tagging library implemented in Rust.
 //!
-//! It performs word segmentation using a compact pre-trained model based on AdaBoost
-//! binary classification, inspired by TinySegmenter and TinySegmenterMaker.
-//! It also supports joint word segmentation and POS (Part-of-Speech) tagging
-//! using an Averaged Perceptron with Universal POS (UPOS) tags.
+//! It performs word segmentation using a compact pre-trained model in the
+//! [`AdaBoost`] text format, inspired by TinySegmenter and
+//! TinySegmenterMaker; the bundled segmentation models are trained via a
+//! lossless Averaged Perceptron collapse rather than AdaBoost boosting (see
+//! the `litsea::trainer` module docs), but the format and inference path are
+//! unchanged. It also supports joint word segmentation and POS
+//! (Part-of-Speech) tagging using an Averaged Perceptron with Universal POS
+//! (UPOS) tags, as well as a faster two-stage POS architecture (a binary
+//! boundary classifier plus a word-level tagger, see the [`two_stage`]
+//! module).
 //!
 //! # Supported Languages
 //! - Japanese

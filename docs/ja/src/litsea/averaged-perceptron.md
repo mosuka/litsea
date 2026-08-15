@@ -86,6 +86,16 @@ let label = learner.predict(&attrs);
 // label == "B-ADP", "O", etc.
 ```
 
+## アクセサ
+
+### `classes`
+
+```rust
+pub fn classes(&self) -> &[String]
+```
+
+登録されているクラス名を、格納順（重みベクトルのインデックスや `predict` の argmax タイブレーク〔先勝ちの strictly-greater〕で使われる並び）で返します。クラスが未登録の場合は空です。二段構成モデルへの畳み込み手順（[事前学習済みモデル](../pre-trained-models.md#学習手順)を参照）や、packed 二段構成ランタイムで使用されています。
+
 ## モデルの入出力
 
 ### `save_model`
@@ -95,6 +105,14 @@ pub fn save_model(&self, path: &Path) -> litsea::Result<()>
 ```
 
 モデルをファイルに保存します。モデルが空の場合はエラーを返します。
+
+### `save_model_to_writer`
+
+```rust
+pub fn save_model_to_writer<W: Write>(&self, writer: &mut W) -> litsea::Result<()>
+```
+
+`save_model` と同じテキスト形式で、任意のライターへモデルを書き込みます。`save_model` はこのメソッドに処理を委譲しています。ファイルパスを経由せずにモデルをより大きなファイルの一部として埋め込めるよう公開されています -- [二段構成モデル形式](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)は、これを使って stage-2 の単語タガーを直接埋め込んでいます。ライターはフラッシュされません。クラスが未登録の場合（空のモデル）はエラーを返します。
 
 ### `load_model_from_path`
 

@@ -81,6 +81,11 @@ const SECTION_STAGE2: &str = "[stage2]";
 /// no `[params]` section. The value comes from the #147 prototype sweep,
 /// where 0.99 reduced classifier invocations by ~20% at a -0.02pt tagged-F1
 /// cost.
+///
+/// Caveat: this finding is from the original prototype sweep (10 training
+/// epochs) and has not been re-validated against the bundled models (50
+/// epochs); it is kept as the default because no re-sweep has suggested a
+/// better value, not because the specific percentages above still hold.
 pub const DEFAULT_DOMINANCE: f64 = 0.99;
 
 /// The kind of model stored in a litsea model file, detected from its
@@ -88,7 +93,12 @@ pub const DEFAULT_DOMINANCE: f64 = 0.99;
 /// accepts both joint and two-stage models).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelKind {
-    /// AdaBoost word-segmentation model (`feature\tweight` lines + bias).
+    /// AdaBoost-format word-segmentation model (`feature\tweight` lines +
+    /// bias). Names the on-disk *format*, not necessarily the training
+    /// algorithm: the bundled segmentation models (issue #165) and a
+    /// two-stage model's embedded stage-1 boundary classifier are both
+    /// trained as a 2-class Averaged Perceptron and losslessly collapsed
+    /// into this same format.
     AdaBoost,
     /// Averaged-perceptron joint POS model (class count header).
     AveragedPerceptron,
@@ -711,8 +721,19 @@ pub struct ParseTwoStageFeatureSetError {
 /// | `Balanced` | 92.92 | ~2.2x |
 /// | `Fast` (default) | 92.71 | ~2.5x |
 ///
+/// Caveat: this table reflects the original #167 prototype sweep (10
+/// training epochs), not the bundled models (50 epochs) — for example the
+/// bundled `japanese_two_stage.model` uses `Fast` and reaches 92.95%
+/// tagged F1, not the 92.71% above. The rows are still useful for the
+/// *relative* full/balanced/fast comparison; for current, per-model
+/// figures see `docs/src/algorithm/two-stage-tagging.md` ("Two-Stage vs.
+/// Joint Tagging").
+///
 /// Segmentation quality is identical across sets (it is decided by
 /// stage 1).
+///
+/// Marked `#[non_exhaustive]`: new feature sets may be added, so external
+/// `match` expressions must carry a wildcard arm.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 #[non_exhaustive]
 pub enum TwoStageFeatureSet {

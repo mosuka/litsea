@@ -7,9 +7,10 @@ Unlike traditional morphological analyzers such as [MeCab](https://taku910.githu
 ## Key Features
 
 - **Fast and safe Rust implementation** -- built with Rust's safety guarantees and performance
-- **Compact pre-trained models** -- model files are only a few kilobytes in size
+- **Compact pre-trained models** -- the legacy `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` files are kilobyte-scale; the quality-optimized `japanese`/`chinese`/`korean.model` files are 110 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP
 - **No dictionary dependency** -- segmentation is driven entirely by a statistical model
 - **POS tagging** -- joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron
+- **Two-stage POS tagging** -- a faster architecture that segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, at 1.8-2.8x the throughput of joint tagging
 - **Multilingual support** -- Japanese, Chinese (Simplified/Traditional), and Korean
 - **Model training capabilities** -- train custom models using AdaBoost or Averaged Perceptron with your own corpora
 - **Remote model loading** -- load models from HTTP/HTTPS URLs (opt-in `remote_model` feature) or local files
@@ -48,7 +49,7 @@ There is a small plant called *Litsea cubeba* (Aomoji) in the same Lauraceae fam
 
 ## Current Version
 
-Litsea v0.8.0 -- Rust Edition 2024, minimum Rust version 1.87.
+Litsea v0.11.0 -- Rust Edition 2024, minimum Rust version 1.87.
 
 ## Links
 

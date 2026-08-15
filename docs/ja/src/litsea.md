@@ -6,10 +6,10 @@
 
 ```toml
 [dependencies]
-litsea = "0.8.0"
+litsea = "0.11.0"
 ```
 
-ローカルファイルからのモデル読み込みは同期 API（`load_model_from_path`）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（`load_model`）を使う場合のみ、非同期ランタイムを追加してください。
+ローカルファイルからのモデル読み込みは同期 API（`load_model_from_path`）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（`load_model`）を使う場合のみ、非同期ランタイムを追加してください（`AnyPosModel::load` も常に同じ非同期経路でモデル URI を解決するため、これに該当します）。
 
 ## モジュール構成
 
@@ -19,11 +19,13 @@ graph LR
     C["litsea::adaboost"] --- D["AdaBoost"]
     E["litsea::language"] --- F["Language"]
     G["litsea::extractor"] --- H["Extractor"]
-    I["litsea::trainer"] --- J["Trainer, PosTrainer"]
+    I["litsea::trainer"] --- J["Trainer, PosTrainer, TwoStageTrainer, TwoStageMetrics"]
     K["litsea::error"] --- L["LitseaError, Result"]
     M["litsea::perceptron"] --- N["AveragedPerceptron"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
     Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
+    S["litsea::evaluation"] --- T["PosMetrics, SegmentationMetrics"]
+    U["litsea::two_stage"] --- V["AnyPosModel, ModelKind, TwoStageFeatureSet, TwoStageLearner"]
 ```
 
 | モジュール | 主要な型 | 用途 |
@@ -34,9 +36,11 @@ graph LR
 | `litsea::upos` | `Upos`, `SegmentLabel` | UPOS 品詞タグ、セグメントラベル |
 | `litsea::language` | `Language` | 言語定義、文字分類 |
 | `litsea::extractor` | `Extractor` | コーパスからの特徴量抽出 |
-| `litsea::trainer` | `Trainer`, `PosTrainer` | 学習パイプラインの制御 |
+| `litsea::trainer` | `Trainer`, `PosTrainer`, `TwoStageTrainer`, `TwoStageMetrics` | 学習パイプラインの制御 |
 | `litsea::error` | `LitseaError`, `Result` | エラー型と `Result` エイリアス |
-| `litsea::metrics` | `BinaryMetrics`, `MulticlassMetrics` | 学習結果の評価指標 |
+| `litsea::metrics` | `BinaryMetrics`, `MulticlassMetrics` | 学習結果の評価指標(in-sample) |
+| `litsea::evaluation` | `PosMetrics`, `SegmentationMetrics` | gold コーパスに対する held-out 評価 |
+| `litsea::two_stage` | `AnyPosModel`, `ModelKind`, `TwoStageFeatureSet`, `TwoStageLearner` | 二段構成モデルのコンテナと自動判定ローダー |
 
 主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::Segmenter;` は `use litsea::segmenter::Segmenter;` の短縮形として使えます。
 
@@ -77,6 +81,31 @@ fn main() -> litsea::Result<()> {
     let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
     let tokens = segmenter.segment_with_pos("これはテストです。")?;
 
+    for (word, pos) in &tokens {
+        print!("{}/{} ", word, pos);
+    }
+    println!();
+
+    Ok(())
+}
+```
+
+## クイックスタート（任意の品詞モデル）
+
+CLI の `segment --pos` はこのパターンを使っているため、呼び出し側がどちらの種類かを意識せずに、joint モデルと二段構成モデルのどちらのファイルでも動作します:
+
+```rust
+use litsea::language::Language;
+use litsea::two_stage::AnyPosModel;
+
+#[tokio::main]
+async fn main() -> litsea::Result<()> {
+    // joint（`*_pos.model`）と二段構成（`*_two_stage.model`）の
+    // どちらのモデルファイルにも対応 -- 種類は自動判定される。
+    let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
+    let segmenter = model.into_segmenter(Language::Japanese);
+
+    let tokens = segmenter.segment_with_pos("これはテストです。")?;
     for (word, pos) in &tokens {
         print!("{}/{} ", word, pos);
     }

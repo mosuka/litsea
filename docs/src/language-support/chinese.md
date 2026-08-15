@@ -30,14 +30,27 @@ The "F" type captures high-frequency grammatical words that are critical for seg
 
 These characters appear overwhelmingly in grammatical roles and signal word boundaries differently from content words.
 
-## Pre-trained Model
+## Pre-trained Models
 
 ### chinese.model
 
 - **Training corpus**: UD Chinese-GSD
-- **Training options**: `-t 0.0001 -i 20000`
-- **Word F1 (held-out)**: 77.56%
-- **Boundary F1 (held-out)**: 87.81%
+- **Training options**: 100 epochs of Averaged Perceptron training,
+  collapsed to AdaBoost scalar weights, then pruned to the top 70,000
+  features by `|weight|` -- see [Training
+  Procedure](../pre-trained-models.md#training-procedure) for the full recipe
+- **Word F1 (held-out)**: 90.69%
+- **Boundary F1 (held-out)**: 95.64%
+
+### chinese_pos.model
+
+- **Algorithm**: Averaged Perceptron (joint segmentation + POS tagging)
+- **Details**: see [Pre-trained Models](../pre-trained-models.md#chinese_posmodel)
+
+### chinese_two_stage.model
+
+- **Algorithm**: two-stage segmentation + POS tagging (faster than the joint model, same output shape)
+- **Details**: see [Pre-trained Models](../pre-trained-models.md#chinese_two_stagemodel)
 
 ## Example
 

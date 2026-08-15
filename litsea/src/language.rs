@@ -2,7 +2,7 @@
 //!
 //! Defines [`Language`] and the per-language character classification
 //! rules: every character maps to a language-specific type code (e.g. "H"
-//! for hiragana) through direct `match`-based Unicode range checks, feeding
+//! for Kanji) through direct `match`-based Unicode range checks, feeding
 //! the type-based feature templates of the segmenter.
 
 use std::fmt;

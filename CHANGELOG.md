@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.11.0
+
 ### Added
 
 - The `litsea-two-stage v1` model file format and its container type

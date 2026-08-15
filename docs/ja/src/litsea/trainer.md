@@ -152,3 +152,98 @@ async fn main() -> litsea::Result<()> {
     Ok(())
 }
 ```
+
+## TwoStageTrainer
+
+`TwoStageTrainer` は[二段構成モデル](../algorithm/two-stage-tagging.md)
+（issue #147）を学習します: 二値の境界分類器（stage 1）と単語単位の
+マルチクラスタガー（stage 2）を、いずれも **Averaged Perceptron** として
+学習し、候補タグ語彙表とともに単一の `litsea-two-stage v1` ファイルに
+組み立てます。学習後、stage 1 は既存の AdaBoost 形式のスカラー特徴量重みに
+畳み込まれます（品質を損なわない変換 -- 導出はこのモジュールのソース
+ドキュメントを参照）。これによりランタイムは通常の `segment()` モデルと
+全く同じ方法で採点します。`TwoStageTrainer` と `TwoStageMetrics` はどちらも
+クレートのルートから `litsea::TwoStageTrainer` / `litsea::TwoStageMetrics`
+として再エクスポートされています。
+
+### `TwoStageTrainer::new`
+
+```rust
+pub fn new(
+    num_epochs: usize,
+    dominance: f64,
+    features_prefix: &Path,
+) -> litsea::Result<Self>
+```
+
+[`Extractor::extract_two_stage`](extractor.md) が書き出す 3 つのファイルを
+`features_prefix` から読み込みます（`{prefix}.stage1`、`{prefix}.stage2`、
+`{prefix}.lexicon`）。両ステージ分の学習インスタンスを登録します。
+
+`dominance` は、組み立て後のモデルにおける分類器スキップの閾値です:
+既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、
+stage-2 分類器を呼ばずにタグ付けされます。値は `(0.5, 1.0]` の範囲内で
+なければならず、`new()` の時点で即座に検証されます。そのため範囲外の値は
+学習が始まる前に失敗し、学習後に失敗することはありません。
+
+```rust
+use std::path::Path;
+use litsea::trainer::TwoStageTrainer;
+
+let trainer = TwoStageTrainer::new(
+    50,                            // num_epochs（両ステージ共通）
+    0.99,                          // dominance
+    Path::new("./features"),       // 特徴量プレフィックス
+)?;
+```
+
+### `TwoStageTrainer::train`
+
+```rust
+pub fn train(
+    mut self,
+    running: &AtomicBool,
+    model_path: &Path,
+) -> litsea::Result<TwoStageMetrics>
+```
+
+`Trainer::train` や `PosTrainer::train` と異なり、このメソッドは `self` を
+値として受け取ります（Trainer を消費します）。両ステージを Averaged
+Perceptron として `num_epochs` エポック分学習し、stage 1 を AdaBoost の
+重みへ畳み込み、語彙表とともに 2 つのステージを `litsea-two-stage v1`
+モデルへ組み立てて `model_path` に保存し、両ステージの in-sample
+メトリクスを返します。`running` フラグは他の Trainer と同様に、学習の
+途中停止を可能にします。
+
+```rust
+use std::sync::atomic::AtomicBool;
+use std::path::Path;
+
+use litsea::trainer::TwoStageTrainer;
+
+#[tokio::main]
+async fn main() -> litsea::Result<()> {
+    let trainer = TwoStageTrainer::new(50, 0.99, Path::new("./features"))?;
+    let running = AtomicBool::new(true);
+    let metrics = trainer.train(&running, Path::new("./model.model"))?;
+
+    println!("Stage 1: {:.2}%, Stage 2: {:.2}%", metrics.stage1.accuracy, metrics.stage2.accuracy);
+
+    Ok(())
+}
+```
+
+### `TwoStageMetrics`
+
+```rust
+pub struct TwoStageMetrics {
+    pub stage1: MulticlassMetrics,
+    pub stage2: MulticlassMetrics,
+}
+```
+
+`TwoStageTrainer::train` の実行結果である in-sample メトリクスです。
+`stage1` は境界分類器の 2 クラス（`B`/`O`）に対するメトリクス、`stage2` は
+単語単位のタガーの UPOS タグクラスに対するメトリクスです。どちらのフィールドも
+`MulticlassMetrics` 型で、[`PosTrainer::train`](#postrainer)（上記）が返すものと
+同じ型であり、正解率とマクロ平均の適合率・再現率を保持します。
