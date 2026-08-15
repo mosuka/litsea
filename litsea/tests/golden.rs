@@ -362,9 +362,16 @@ fn golden_segment_with_pos_korean() {
 // segments with a binary boundary classifier, then stage 2 tags each word
 // through the candidate-tag lexicon (skipping the classifier entirely for
 // single-candidate and dominance-dominant surfaces). Divergences from the
-// joint snapshots above are therefore expected — several of them are
-// improvements, e.g. Chinese "我喜欢吃中国菜。" segments correctly here
-// while the joint model splits it as "我喜"/"欢吃".
+// joint snapshots above are therefore expected.
+//
+// These are snapshots of current behavior, not of correct behavior: both
+// architectures get things wrong, and often in different places. Chinese
+// "我喜欢吃中国菜。" (gold: 我 / 喜欢 / 吃 / 中国 / 菜) is the clearest
+// case — two-stage recovers the first three tokens that joint mangles into
+// "我喜"/"欢吃", but then splits "中国" as "中"/"国菜", where "国菜" is not
+// a word (UD Chinese-GSD tokenizes 中國 as one token throughout). Joint
+// gets that tail right and the head wrong. Neither is a target to converge
+// on; when a model is retrained, re-derive these from its actual output.
 // ---------------------------------------------------------------------------
 
 #[test]
