@@ -71,7 +71,7 @@ Defines the `Language` enum and character type classification.
 
 The main user-facing module.
 
-- **`Segmenter`** -- Holds a `Language`, an `AdaBoost` learner, and an optional `AveragedPerceptron` POS learner (fields are private; use `language()`, `learner()`, `learner_mut()`, `pos_learner()`, `pos_learner_mut()`), plus an optional two-stage state (`Option<TwoStageState>`, set by `with_two_stage_learner`) and internal caches for the compiled scoring tables (`packed`, `packed_pos`, `packed_two_stage`) that back `segment()` / `segment_with_pos()`
+- **`Segmenter`** -- Holds a `Language`, an `AdaBoost` learner, and an optional `AveragedPerceptron` POS learner (fields are private; use `language()`, `learner()`, `learner_mut()`, `pos_learner()`, `pos_learner_mut()`), plus internal caches for the compiled scoring tables (`packed`, `packed_pos`) that back `segment()` / `segment_with_pos()`, and an optional compiled two-stage tagging model (set by `with_two_stage_learner`; unlike the caches it is the stage-2 model itself -- the raw learner parts are dropped after compilation)
   - `new(language)` -- Create a segmenter with a default (empty) AdaBoost learner
   - `with_learner(language, learner)` -- Create a segmenter with a pre-configured AdaBoost learner (e.g. one that has loaded a pre-trained model)
   - `with_pos_learner(language, pos_learner)` -- Create a segmenter for joint segmentation + POS tagging
