@@ -116,6 +116,17 @@ pub struct Segmenter {
     two_stage: Option<PackedTwoStageModel>,
 }
 
+// Compile-time assertion: parallel batch callers (e.g. the CLI's
+// `segment --threads`, issue #185) share one `Segmenter` across worker
+// threads and move per-worker `SegmentBuffer`s into them. A future field
+// whose type is not `Send + Sync` (an `Rc`, a `RefCell`, a raw pointer)
+// must fail to compile here, at the definition, rather than at a caller.
+const _: fn() = || {
+    fn assert_send_sync<T: Send + Sync>() {}
+    assert_send_sync::<Segmenter>();
+    assert_send_sync::<SegmentBuffer>();
+};
+
 impl Segmenter {
     /// Creates a new instance of [`Segmenter`] with a default (untrained)
     /// AdaBoost learner.

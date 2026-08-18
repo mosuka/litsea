@@ -20,8 +20,8 @@ use clap::{Args, Parser, Subcommand};
 
 use litsea::version;
 use litsea::{
-    AdaBoost, AnyPosModel, Extractor, Language, PosTrainer, SegmentBuffer, Segmenter, Trainer,
-    TwoStageFeatureSet, TwoStageTrainer, evaluation,
+    AdaBoost, AnyPosModel, Extractor, Language, LitseaError, PosTrainer, SegmentBuffer, Segmenter,
+    Trainer, TwoStageFeatureSet, TwoStageTrainer, evaluation,
 };
 
 /// Arguments for the extract command.
@@ -127,6 +127,13 @@ struct SegmentArgs {
     /// Segment with POS tagging (auto-detects joint or two-stage model)
     #[arg(long)]
     pos: bool,
+
+    /// Number of worker threads for batch segmentation (issue #185). The
+    /// default (1) keeps the current single-threaded behavior; with N > 1,
+    /// lines are processed in parallel and written in input order, so the
+    /// output is byte-identical either way
+    #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u16).range(1..))]
+    threads: u16,
 
     /// Model URI: a plain path, file:// path, or http(s):// URL
     model_uri: String,
@@ -385,6 +392,97 @@ fn flush_output<W: Write>(writer: &mut W) -> io::Result<()> {
     }
 }
 
+/// Lines read per parallel chunk (issue #185): large enough to amortize the
+/// per-chunk thread spawns and per-worker state reuse, small enough to
+/// bound memory on unbounded streams.
+const PARALLEL_CHUNK_LINES: usize = 4096;
+
+/// Processes stdin lines through `process` across `threads` worker threads,
+/// writing outputs to `writer` in input order (issue #185).
+///
+/// Lines are read in chunks of [`PARALLEL_CHUNK_LINES`]; each chunk is
+/// split into `threads` contiguous slices, and each worker appends one
+/// newline-terminated output line per non-empty trimmed input line to a
+/// per-worker output buffer, using its own entry of `states` (worker-local
+/// scratch, reused across chunks). The main thread then writes the worker
+/// buffers in slice order, so the overall output is byte-identical to the
+/// sequential loop: same trim and empty-line-skip behavior, same order. A
+/// downstream broken pipe terminates successfully, matching
+/// [`write_output_line`].
+///
+/// # Arguments
+/// * `threads` - Number of worker threads (`states.len()` must match).
+/// * `states` - One reusable worker-local state per thread.
+/// * `process` - Renders one trimmed, non-empty input line into the output
+///   buffer (no trailing newline; the driver adds it).
+/// * `reader` - The line source (stdin).
+/// * `writer` - The output sink (stdout).
+///
+/// # Returns
+/// `Ok(())` when the input is exhausted or the downstream pipe closes.
+///
+/// # Errors
+/// Propagates read/write I/O errors and any error returned by `process`.
+fn process_lines_parallel<S, F, R, W>(
+    threads: usize,
+    states: &mut [S],
+    process: F,
+    reader: R,
+    writer: &mut W,
+) -> Result<(), Box<dyn Error>>
+where
+    S: Send,
+    F: Fn(&str, &mut S, &mut String) -> Result<(), LitseaError> + Sync,
+    R: BufRead,
+    W: Write,
+{
+    debug_assert_eq!(states.len(), threads);
+    let mut lines = reader.lines();
+    let mut chunk: Vec<String> = Vec::with_capacity(PARALLEL_CHUNK_LINES);
+    loop {
+        chunk.clear();
+        for line in lines.by_ref().take(PARALLEL_CHUNK_LINES) {
+            chunk.push(line?);
+        }
+        if chunk.is_empty() {
+            return Ok(());
+        }
+        let slice_len = chunk.len().div_ceil(threads);
+        let outputs: Result<Vec<String>, LitseaError> = std::thread::scope(|scope| {
+            let handles: Vec<_> = chunk
+                .chunks(slice_len)
+                .zip(states.iter_mut())
+                .map(|(slice, state)| {
+                    let process = &process;
+                    scope.spawn(move || {
+                        let mut out = String::new();
+                        for raw in slice {
+                            let line = raw.trim();
+                            if line.is_empty() {
+                                continue;
+                            }
+                            process(line, state, &mut out)?;
+                            out.push('\n');
+                        }
+                        Ok(out)
+                    })
+                })
+                .collect();
+            handles
+                .into_iter()
+                .map(|handle| handle.join().expect("segmentation worker panicked"))
+                .collect()
+        });
+        for out in outputs? {
+            match writer.write_all(out.as_bytes()) {
+                Ok(()) => {}
+                Err(e) if e.kind() == io::ErrorKind::BrokenPipe => return Ok(()),
+                Err(e) => return Err(e.into()),
+            }
+        }
+    }
+}
+
 /// Segment sentences read from standard input using a trained model.
 /// This function loads the model from the given model URI (a plain path, a
 /// `file://` path, or an `http(s)://` URL with the `remote_model` feature):
@@ -408,11 +506,37 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     let stdout = io::stdout();
     let mut writer = io::BufWriter::new(stdout.lock());
 
+    let threads = usize::from(args.threads);
+
     if args.pos {
         // Joint or two-stage segmentation + POS tagging; the model kind is
         // auto-detected from the file (issue #147).
         let model = AnyPosModel::load(args.model_uri.as_str()).await?;
         let segmenter = model.into_segmenter(language);
+
+        if threads > 1 {
+            // Parallel path (#185): workers need no reusable scratch for
+            // the POS pipeline, so the per-worker state is empty.
+            let mut states = vec![(); threads];
+            process_lines_parallel(
+                threads,
+                &mut states,
+                |line, (), out| {
+                    for (k, (word, pos)) in segmenter.segment_with_pos(line)?.iter().enumerate() {
+                        if k > 0 {
+                            out.push(' ');
+                        }
+                        out.push_str(word);
+                        out.push('/');
+                        out.push_str(&pos.to_string());
+                    }
+                    Ok(())
+                },
+                stdin.lock(),
+                &mut writer,
+            )?;
+            return flush_output(&mut writer).map_err(Into::into);
+        }
 
         for line in stdin.lock().lines() {
             let line = line?;
@@ -433,6 +557,30 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
         learner.load_model(args.model_uri.as_str()).await?;
 
         let segmenter = Segmenter::with_learner(language, learner);
+
+        if threads > 1 {
+            // Parallel path (#185): one reusable SegmentBuffer per worker
+            // (issue #184), so the steady state allocates nothing per line
+            // in any worker.
+            let mut states: Vec<SegmentBuffer> =
+                (0..threads).map(|_| SegmentBuffer::new()).collect();
+            process_lines_parallel(
+                threads,
+                &mut states,
+                |line, buf, out| {
+                    for (k, &(start, end)) in segmenter.segment_into(line, buf).iter().enumerate() {
+                        if k > 0 {
+                            out.push(' ');
+                        }
+                        out.push_str(&line[start..end]);
+                    }
+                    Ok(())
+                },
+                stdin.lock(),
+                &mut writer,
+            )?;
+            return flush_output(&mut writer).map_err(Into::into);
+        }
 
         // Reuse one segmentation buffer and one output line across the
         // whole stream (issue #184): after the first few lines the loop

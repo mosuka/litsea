@@ -4,6 +4,21 @@
 
 ### Added
 
+- `litsea segment --threads N` (#185): parallel batch segmentation in
+  the CLI. Lines are read in chunks, segmented across `N` worker threads
+  (each with its own reusable `SegmentBuffer`, #184), and written
+  strictly in input order, so the output is byte-identical to the
+  single-threaded default for both the plain and `--pos` pipelines
+  (pinned by an order-sensitive CLI test). The default (`--threads 1`)
+  uses exactly the previous sequential loop. `Segmenter` and
+  `SegmentBuffer` now carry a compile-time `Send + Sync` assertion at
+  the definition site so a future non-thread-safe field fails the build
+  rather than a caller. Measured on the 8-logical-core development
+  machine under background load: 2 threads ~1.5x, 4 threads ~2.2x,
+  8 threads ~2.5x wall-clock on a 10.6M-char Japanese batch; Korean
+  (pointwise model + buffer reuse compounding) reached ~22.9M chars/s
+  end-to-end single-threaded and ~53M chars/s at 8 threads.
+
 - `Segmenter::segment_into` and `SegmentBuffer` (#184): an
   allocation-free segmentation API returning tokens as byte ranges into
   the input, with every per-call allocation (context arrays, score

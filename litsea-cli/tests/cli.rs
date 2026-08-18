@@ -43,6 +43,72 @@ fn test_segment_golden_output() {
     assert_eq!(String::from_utf8_lossy(&output.stdout), "これ は テスト です 。\n");
 }
 
+/// Pins `--threads` (issue #185): parallel output must be byte-identical
+/// to the single-threaded default, including trim/empty-line handling and
+/// input order, for both the plain and the `--pos` pipelines.
+#[test]
+fn test_segment_threads_output_identical() {
+    // Enough lines to split across several workers, with varied lengths,
+    // empty lines, whitespace-only lines, and surrounding whitespace.
+    // Every content line embeds its index, so any reordering (across
+    // workers or within a worker) changes the output — a symmetric input
+    // would let an order bug cancel out invisibly.
+    let mut input = String::new();
+    for i in 0..120 {
+        match i % 5 {
+            0 => input.push_str(&format!("これは{i}番目のテストです。\n")),
+            1 => input.push_str(&format!("  価格は{i}円です。  \n")),
+            2 => input.push('\n'),
+            3 => input.push_str(&format!("東京都{i}に住んでいます。私の猫は可愛い。\n")),
+            _ => input.push_str("   \n"),
+        }
+    }
+
+    let model_owned = model_path("japanese.model");
+    let model = model_owned.to_str().unwrap();
+    let sequential = run_litsea(&["segment", "-l", "japanese", model], Some(&input));
+    assert!(sequential.status.success());
+    for threads in ["2", "4"] {
+        let parallel =
+            run_litsea(&["segment", "--threads", threads, "-l", "japanese", model], Some(&input));
+        assert!(parallel.status.success());
+        assert_eq!(
+            parallel.stdout, sequential.stdout,
+            "--threads {threads} diverged from single-threaded output"
+        );
+    }
+
+    let pos_model_owned = model_path("japanese_two_stage.model");
+    let pos_model = pos_model_owned.to_str().unwrap();
+    let sequential = run_litsea(&["segment", "--pos", "-l", "japanese", pos_model], Some(&input));
+    assert!(sequential.status.success());
+    let parallel = run_litsea(
+        &["segment", "--pos", "--threads", "4", "-l", "japanese", pos_model],
+        Some(&input),
+    );
+    assert!(parallel.status.success());
+    assert_eq!(parallel.stdout, sequential.stdout, "--pos --threads 4 diverged");
+}
+
+/// Pins `--threads` validation: zero is rejected at argument parsing.
+#[test]
+fn test_segment_threads_rejects_zero() {
+    let output = run_litsea(
+        &[
+            "segment",
+            "--threads",
+            "0",
+            "-l",
+            "japanese",
+            model_path("japanese.model").to_str().unwrap(),
+        ],
+        Some("これはテストです。\n"),
+    );
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("--threads"), "unexpected stderr: {stderr}");
+}
+
 /// Pins segment's `--pos` routing: the Averaged Perceptron model must be
 /// selected and word/POS pairs printed (same expectation as the golden suite).
 #[test]

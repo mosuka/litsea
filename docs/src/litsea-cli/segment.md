@@ -20,6 +20,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
 | `--pos` | off | Enable POS-tagged segmentation output. Accepts a joint model (`train --pos`) or a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --two-stage`), auto-detected from the file |
+| `--threads <N>` | `1` | Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with `N > 1`, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without `--pos`). Wall-clock time for large inputs drops with core count; single-line latency is unchanged |
 
 ## Input / Output
 
@@ -100,6 +101,23 @@ echo "今日はいい天気ですね。" \
 ```sh
 cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > output.txt
 ```
+
+## Parallel Batch Segmentation (`--threads`)
+
+Sentences are independent, so batch throughput scales with cores without
+any engine change: lines are read in chunks, each chunk is split across
+the workers (each holding its own reusable segmentation buffer), and the
+outputs are written strictly in input order.
+
+```sh
+litsea segment --threads 8 -l japanese ./models/japanese.model < corpus.txt > segmented.txt
+```
+
+`--threads 1` (the default) uses exactly the previous sequential loop.
+Note `cargo bench -- external_corpus` remains a single-threaded *engine*
+measurement — CLI-level thread scaling and engine throughput are different
+numbers and should not be compared directly (see
+[Benchmarking](../advanced/benchmarking.md)).
 
 ## Notes
 
