@@ -4,6 +4,22 @@
 
 ### Added
 
+- `Segmenter::segment_into` and `SegmentBuffer` (#184): an
+  allocation-free segmentation API returning tokens as byte ranges into
+  the input, with every per-call allocation (context arrays, score
+  buffer, tag scratch, output ranges) owned by a caller-reusable buffer.
+  `segment()` is now a thin wrapper over the same single scoring
+  implementation, so the whole differential/golden suite pins both entry
+  points; the CLI's `segment` loop reuses one buffer and its output is
+  byte-identical (pinned by the CLI golden test). Paired same-run
+  benchmarks (`cargo bench -- segment_into`, two runs each) measured the
+  buffer-reusing API at japanese +40-81%, korean +67-78%, chinese
+  +32-39% over `segment()` on the bench corpora — allocator traffic had
+  measured at roughly a quarter of the batch profile (#183's
+  investigation). With the pointwise `korean.model` (#183) the two
+  effects compound to ~23.7-23.9M chars/s on the Korean bench corpus on
+  the development machine.
+
 - A pointwise fast path for `segment()` (#183): `PackedModel` records at
   compile time whether any of the 16 tag-dependent templates
   (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`, which read the previous boundary

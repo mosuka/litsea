@@ -97,10 +97,11 @@ on earlier boundary decisions:
 
 The bias is a cached field (`-sum(model) / 2.0`, kept in sync by every
 weight-mutating path) and is read once per sentence. The packed context
-(`packed_context`) borrows word-assembly string slices directly from the
-input and carries parallel `u32` char-code and `u8` type-id arrays; the
-sentinel entries (`B3`...`E3`) map to code points just above the Unicode
-scalar range.
+carries parallel `u32` char-code and `u8` type-id arrays plus per-character
+byte offsets (the boundary pipeline emits tokens as byte ranges of the
+input, #184; `segment()` materializes them as `String`s, `segment_into()`
+returns them directly from a reusable buffer); the sentinel entries
+(`B3`...`E3`) map to code points just above the Unicode scalar range.
 
 ### The Compiled Scoring Tables
 

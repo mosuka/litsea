@@ -77,6 +77,7 @@ graph TD
   - `with_pos_learner(language, pos_learner)` -- 分割+品詞付与用のセグメンターを作成
   - `with_two_stage_learner(language, learner)` -- `TwoStageLearner` から二段構成の分割+品詞付与用セグメンターを作成
   - `segment(sentence)` -- テキストを単語に分割し `Vec<String>` を返す
+  - `segment_into(sentence, buf)` -- アロケーションフリー版（#184）: 再利用可能な `SegmentBuffer` から借用したトークンのバイト範囲を返す
   - `segment_with_pos(sentence)` -- 分割と品詞付与を行い `Result<Vec<(String, Upos)>>` を返す（POS 学習器・二段構成学習器のいずれも未設定の場合は `PosLearnerNotSet`）
   - `char_type(ch)` -- 1文字を種別コードに分類
   - `add_corpus(corpus)` / `add_corpus_with_pos(corpus)` / `add_corpus_tsv(corpus)` -- 学習データを追加（それぞれ空白区切り・品詞付き・タブ区切り/空白保持。後者は韓国語で使用、issue #152 を参照）
@@ -215,7 +216,7 @@ pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
-pub use segmenter::Segmenter;
+pub use segmenter::{SegmentBuffer, Segmenter};
 pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{
     AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,

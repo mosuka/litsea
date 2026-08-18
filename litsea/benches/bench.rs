@@ -17,7 +17,7 @@ use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_m
 use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
 use litsea::perceptron::AveragedPerceptron;
-use litsea::segmenter::Segmenter;
+use litsea::segmenter::{SegmentBuffer, Segmenter};
 use litsea::two_stage::TwoStageLearner;
 
 /// Load an AdaBoost model file from the models directory.
@@ -284,11 +284,54 @@ fn bench_predict_adaboost(c: &mut Criterion) {
     });
 }
 
+/// Paired comparison of the owned-output `segment()` API against the
+/// buffer-reusing `segment_into()` API (issue #184) on the same three
+/// segmentation workloads as `external_corpus` (same corpora, same
+/// per-line iteration, chars/sec via `Throughput::Elements`). The
+/// `*-strings` ids are the `segment()` baseline; the `*-ranges` ids reuse
+/// one `SegmentBuffer` across the whole corpus, so their difference is the
+/// per-call allocation cost the new API removes. Compare ids within one
+/// run (same machine state), per the paired methodology in
+/// `docs/src/advanced/benchmarking.md`.
+fn bench_segment_into(c: &mut Criterion) {
+    let mut group = c.benchmark_group("segment_into");
+    group.sample_size(30);
+
+    let cases: &[(&str, Language, &str, &str)] = &[
+        ("japanese", Language::Japanese, "japanese.model", "wagahaiwa_nekodearu.txt"),
+        ("korean", Language::Korean, "korean.model", "mujeong.txt"),
+        ("chinese", Language::Chinese, "chinese.model", "rulin_waishi.txt"),
+    ];
+    for (id, language, model, corpus) in cases {
+        let (lines, chars) = load_corpus_lines(corpus);
+        let segmenter = Segmenter::with_learner(*language, load_adaboost_model(model));
+        group.throughput(Throughput::Elements(chars));
+        group.bench_function(format!("{id}-strings"), |b| {
+            b.iter(|| {
+                for line in &lines {
+                    black_box(segmenter.segment(black_box(line)));
+                }
+            });
+        });
+        group.bench_function(format!("{id}-ranges"), |b| {
+            let mut buf = SegmentBuffer::new();
+            b.iter(|| {
+                for line in &lines {
+                    black_box(segmenter.segment_into(black_box(line), &mut buf));
+                }
+            });
+        });
+    }
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     bench_segment_short,
     bench_segment_long,
     bench_external_corpus,
+    bench_segment_into,
     bench_char_type,
     bench_add_corpus,
     bench_predict_adaboost,

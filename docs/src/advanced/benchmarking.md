@@ -78,6 +78,26 @@ single passes, and `cargo bench` inherits litsea's tuned release profile
 (thin LTO, single codegen unit) while the external bench crates build with
 the default release profile.
 
+## API Comparison (`segment_into`)
+
+The `segment_into` group pairs the owned-output `segment()` API against
+the buffer-reusing `segment_into()` API (issue #184) on the same three
+segmentation corpora as `external_corpus` (same per-line workload,
+chars/sec via `Throughput::Elements`):
+
+| Bench ID | API |
+|----------|-----|
+| `japanese-strings` / `korean-strings` / `chinese-strings` | `segment()` (one `String` per token, fresh scratch per call) |
+| `japanese-ranges` / `korean-ranges` / `chinese-ranges` | `segment_into()` with one reused `SegmentBuffer` |
+
+Compare the two ids of a language within one run: their difference is the
+per-call allocation cost the buffer-reusing API removes. The scoring work
+is identical (`segment()` is a wrapper over `segment_into()`).
+
+```sh
+cargo bench -- segment_into
+```
+
 ### Run-to-Run Variance
 
 The published figures in this book (including the two-stage vs. joint

@@ -77,6 +77,56 @@ let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
 ```
 
+Internally this is a thin wrapper over
+[`segment_into`](#segment_into--segmentbuffer) with a fresh buffer per
+call, materializing each range as an owned `String` — there is a single
+scoring implementation.
+
+### `segment_into` / `SegmentBuffer`
+
+```rust
+pub struct SegmentBuffer { /* internal scratch + output storage */ }
+
+impl SegmentBuffer {
+    pub fn new() -> Self
+}
+
+impl Segmenter {
+    pub fn segment_into<'b>(
+        &self,
+        sentence: &str,
+        buf: &'b mut SegmentBuffer,
+    ) -> &'b [(usize, usize)]
+}
+```
+
+The allocation-free variant of `segment` (issue #184). Each returned
+`(start, end)` pair is a byte range into `sentence`
+(`&sentence[start..end]` is the token), in order, tiling the sentence
+exactly. The buffer owns every per-call allocation (context arrays, score
+buffer, tag scratch, output ranges); reusing one buffer across a batch of
+sentences reaches a steady state where segmentation allocates nothing.
+Empty input yields an empty slice.
+
+At the published throughputs this matters: `segment` allocates one
+`String` per token (millions per second in batch workloads) plus per-call
+scratch, which measured as roughly a quarter of the batch profile. The
+buffer holds plain data (no borrows), so it can be reused across
+sentences, models, and languages; for parallel processing use one buffer
+per thread.
+
+```rust
+use litsea::segmenter::{SegmentBuffer, Segmenter};
+
+let mut buf = SegmentBuffer::new();
+for line in lines {
+    for &(start, end) in segmenter.segment_into(line, &mut buf) {
+        let token: &str = &line[start..end];
+        // write/inspect token without allocating
+    }
+}
+```
+
 ### `char_type`
 
 ```rust

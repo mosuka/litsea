@@ -30,7 +30,7 @@ graph LR
 
 | Module | Primary Types | Purpose |
 |--------|--------------|---------|
-| `litsea::segmenter` | `Segmenter` | Word segmentation, joint segmentation with POS tagging |
+| `litsea::segmenter` | `Segmenter`, `SegmentBuffer` | Word segmentation (owned or allocation-free output), joint segmentation with POS tagging |
 | `litsea::adaboost` | `AdaBoost` | Binary classification, model I/O |
 | `litsea::perceptron` | `AveragedPerceptron` | Multiclass classification (POS tagging), model I/O |
 | `litsea::upos` | `Upos`, `SegmentLabel` | UPOS POS tags, segment labels |

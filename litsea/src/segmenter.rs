@@ -22,6 +22,52 @@ use crate::perceptron::AveragedPerceptron;
 use crate::two_stage::TwoStageLearner;
 use crate::upos::{SegmentLabel, Upos};
 
+/// Reusable scratch and output storage for
+/// [`Segmenter::segment_into`], the allocation-free variant of
+/// [`Segmenter::segment`] (issue #184).
+///
+/// A `SegmentBuffer` owns every per-call allocation the segmentation hot
+/// path needs — the packed context arrays, the static score buffer, the
+/// boundary-tag scratch, and the output token ranges. Each `segment_into`
+/// call clears and refills it, so a buffer reused across a batch of
+/// sentences reaches a steady state where segmentation allocates nothing:
+/// every vector keeps the capacity of the longest sentence seen so far.
+///
+/// The buffer holds plain data (no borrows), so one buffer can be reused
+/// across sentences, models, and languages; for parallel batch processing
+/// use one buffer per thread. Construct with [`SegmentBuffer::new`] (or
+/// `Default`); the fields are internal.
+#[derive(Debug, Default)]
+pub struct SegmentBuffer {
+    /// Packed char codes with sentinels (see `Segmenter::packed_context`).
+    char_codes: Vec<u32>,
+    /// Char type ids with sentinels.
+    type_ids: Vec<u8>,
+    /// Byte offset of each real character, plus the sentence length as the
+    /// final entry — the source for the output ranges.
+    char_starts: Vec<usize>,
+    /// Per-position static-pass score accumulator.
+    static_scores: Vec<f64>,
+    /// Boundary-tag scratch for the sequential pass (unused on the
+    /// pointwise fast path, #183).
+    tags: Vec<u8>,
+    /// Output: byte ranges of the segmented tokens, in order.
+    ranges: Vec<(usize, usize)>,
+}
+
+impl SegmentBuffer {
+    /// Creates an empty buffer.
+    ///
+    /// # Returns
+    /// A new [`SegmentBuffer`] with no allocated capacity; capacity grows
+    /// on first use and is retained across [`Segmenter::segment_into`]
+    /// calls.
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
 /// Text segmenter supporting three modes: word segmentation via AdaBoost
 /// binary classification; joint word segmentation + POS tagging via an
 /// Averaged Perceptron; and two-stage word segmentation + POS tagging via a
@@ -276,7 +322,9 @@ impl Segmenter {
     }
 
     /// Packed variant of [`sentence_context`](Self::sentence_context) for
-    /// [`segment`](Self::segment)'s hot loop.
+    /// [`segment_with_pos`](Self::segment_with_pos)'s joint hot loop
+    /// (the boundary pipeline uses the slice-free
+    /// [`packed_context_into`](Self::packed_context_into) instead, #184).
     ///
     /// Returns `(chars, char_codes, type_ids)` with the same layout (three
     /// head sentinels, real characters, three tail sentinels): `chars` holds
@@ -302,6 +350,34 @@ impl Segmenter {
         char_codes.extend_from_slice(&[SENTINEL_BASE + 3, SENTINEL_BASE + 4, SENTINEL_BASE + 5]);
         type_ids.extend_from_slice(&[OTHER_TYPE_ID; 3]);
         (chars, char_codes, type_ids)
+    }
+
+    /// Fills `buf`'s context arrays for [`segment_into`](Self::segment_into):
+    /// the same sentinel layout as [`packed_context`](Self::packed_context)
+    /// for `char_codes` / `type_ids`, plus `char_starts` holding the byte
+    /// offset of every real character followed by `text.len()` (so the word
+    /// covering real characters `r..s` spans bytes
+    /// `char_starts[r]..char_starts[s]`). No string slices are stored, which
+    /// is what lets the buffer be reused across sentences.
+    fn packed_context_into(&self, text: &str, buf: &mut SegmentBuffer) {
+        buf.char_codes.clear();
+        buf.type_ids.clear();
+        buf.char_starts.clear();
+        buf.char_codes
+            .extend_from_slice(&[SENTINEL_BASE, SENTINEL_BASE + 1, SENTINEL_BASE + 2]);
+        buf.type_ids.extend_from_slice(&[OTHER_TYPE_ID; 3]);
+        for (i, ch) in text.char_indices() {
+            buf.char_starts.push(i);
+            buf.char_codes.push(u32::from(ch));
+            buf.type_ids.push(self.language.char_type_id(ch));
+        }
+        buf.char_starts.push(text.len());
+        buf.char_codes.extend_from_slice(&[
+            SENTINEL_BASE + 3,
+            SENTINEL_BASE + 4,
+            SENTINEL_BASE + 5,
+        ]);
+        buf.type_ids.extend_from_slice(&[OTHER_TYPE_ID; 3]);
     }
 
     /// Runs `f` with the packed scoring table, rebuilding it first if a
@@ -665,18 +741,82 @@ impl Segmenter {
     /// This will segment the sentence into words and return them as a vector of strings.
     #[must_use]
     pub fn segment(&self, sentence: &str) -> Vec<String> {
+        // Thin wrapper over segment_into (issue #184): a fresh buffer per
+        // call, with each output range materialized as an owned String.
+        // Keeping a single scoring implementation means every differential
+        // and golden test of this method also pins segment_into's core.
+        let mut buf = SegmentBuffer::new();
+        self.segment_into(sentence, &mut buf)
+            .iter()
+            .map(|&(start, end)| sentence[start..end].to_string())
+            .collect()
+    }
+
+    /// Segments a sentence into byte ranges of `sentence`, reusing `buf`'s
+    /// allocations — the allocation-free variant of
+    /// [`segment`](Self::segment) (issue #184).
+    ///
+    /// Each returned `(start, end)` pair is a byte range into `sentence`
+    /// (`&sentence[start..end]` is the token), in order; the ranges tile
+    /// the sentence exactly. Reusing the same [`SegmentBuffer`] across a
+    /// batch of sentences amortizes every per-call allocation away: after
+    /// the first few sentences the buffer's vectors have the capacity they
+    /// need and segmentation allocates nothing.
+    ///
+    /// # Arguments
+    /// * `sentence` - The sentence to segment.
+    /// * `buf` - The scratch/output buffer to (re)use; cleared and refilled
+    ///   by this call.
+    ///
+    /// # Returns
+    /// The segmented tokens as byte ranges into `sentence`, borrowed from
+    /// `buf` (valid until the next use of `buf`). Empty for an empty
+    /// sentence.
+    ///
+    /// # Example
+    /// ```
+    /// use std::path::PathBuf;
+    ///
+    /// use litsea::adaboost::AdaBoost;
+    /// use litsea::language::Language;
+    /// use litsea::segmenter::{SegmentBuffer, Segmenter};
+    ///
+    /// let model_file =
+    ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("RWCP.model");
+    /// let mut learner = AdaBoost::new(0.01, 100);
+    /// learner.load_model_from_path(&model_file).unwrap();
+    /// let segmenter = Segmenter::with_learner(Language::Japanese, learner);
+    ///
+    /// let sentence = "これはテストです。";
+    /// let mut buf = SegmentBuffer::new();
+    /// let tokens: Vec<&str> = segmenter
+    ///     .segment_into(sentence, &mut buf)
+    ///     .iter()
+    ///     .map(|&(start, end)| &sentence[start..end])
+    ///     .collect();
+    /// assert_eq!(tokens, vec!["これ", "は", "テスト", "です", "。"]);
+    /// ```
+    pub fn segment_into<'b>(
+        &self,
+        sentence: &str,
+        buf: &'b mut SegmentBuffer,
+    ) -> &'b [(usize, usize)] {
+        buf.ranges.clear();
         if sentence.is_empty() {
-            return Vec::new();
+            return &buf.ranges;
         }
-        let (chars, char_codes, type_ids) = self.packed_context(sentence);
+        self.packed_context_into(sentence, buf);
 
         // The bias is a sum over all model weights; compute it once per
         // sentence instead of once per character.
         let bias = self.learner.bias();
 
         self.with_packed(|packed| {
+            let char_codes = &buf.char_codes;
+            let type_ids = &buf.type_ids;
+            let char_starts = &buf.char_starts;
             let type_radix = self.language.type_codes().len();
-            let n = chars.len();
+            let n = char_codes.len();
             // Decision positions: lo..=hi (position 3 is the first real
             // character and always starts the first word).
             let lo = 4usize;
@@ -687,7 +827,9 @@ impl Segmenter {
             // The f64 accumulation order differs from the string-keyed
             // reference here (see the module docs of packed_model); output
             // equality is pinned empirically by the differential tests.
-            let mut static_scores = vec![0.0f64; n];
+            buf.static_scores.clear();
+            buf.static_scores.resize(n, 0.0);
+            let static_scores = &mut buf.static_scores;
             // Unigram families: the char/type at context position q feeds
             // template UW(k+1)/UC(k+1) at decision position i = q + 3 - k
             // (their slot delta k reads context index i - 3 + k). UW is one
@@ -767,14 +909,20 @@ impl Segmenter {
             // Padding for lookback: tags[0..3] are fixed U (unknown), and
             // tags[3] is also U since there is no boundary decision before
             // the first character.
-            let mut result = Vec::new();
-            let mut word = chars[3].to_string();
+            // A boundary at decision position i means real character i - 3
+            // starts a new word, closing the current word at byte offset
+            // char_starts[i - 3]; the final word always ends at the last
+            // char_starts entry (the sentence length).
+            let static_scores = &buf.static_scores;
+            let ranges = &mut buf.ranges;
+            let mut word_start = 0usize; // real-character index
             if packed.has_tag_features {
                 let t = type_radix;
                 let d = &packed.dense;
-                let mut tags: Vec<u8> = Vec::with_capacity(n);
+                buf.tags.clear();
+                let tags = &mut buf.tags;
                 tags.extend_from_slice(&[TAG_U; 4]);
-                for (i, ch) in chars.iter().enumerate().take(n - 3).skip(4) {
+                for i in 4..=hi {
                     let (p1, p2, p3) =
                         (tags[i - 3] as usize, tags[i - 2] as usize, tags[i - 1] as usize);
                     let (c1, c2, c3, c4) = (
@@ -802,12 +950,12 @@ impl Segmenter {
                         + d[36][((p3 * t + c1) * t + c2) * t + c3]
                         + d[37][((p3 * t + c2) * t + c3) * t + c4];
                     if score >= 0.0 {
-                        result.push(std::mem::take(&mut word));
+                        ranges.push((char_starts[word_start], char_starts[i - 3]));
+                        word_start = i - 3;
                         tags.push(TAG_B);
                     } else {
                         tags.push(TAG_O);
                     }
-                    word.push_str(ch);
                 }
             } else {
                 // Pointwise fast path (#183): every tag-dependent table is
@@ -816,16 +964,16 @@ impl Segmenter {
                 // reduces exactly to the static score plus the bias. This
                 // branch is equivalence-pinned against segment_reference
                 // by the tag-free differential test.
-                for (i, ch) in chars.iter().enumerate().take(n - 3).skip(4) {
+                for i in 4..=hi {
                     if bias + static_scores[i] >= 0.0 {
-                        result.push(std::mem::take(&mut word));
+                        ranges.push((char_starts[word_start], char_starts[i - 3]));
+                        word_start = i - 3;
                     }
-                    word.push_str(ch);
                 }
             }
-            result.push(word);
-            result
-        })
+            ranges.push((char_starts[word_start], char_starts[n - 6]));
+        });
+        &buf.ranges
     }
 
     /// Reference implementation of [`segment`](Self::segment) using the
@@ -1756,6 +1904,90 @@ mod tests {
         assert!(!lines.is_empty());
         let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost("RWCP.model"));
         assert_segment_matches_reference(&segmenter, &lines);
+    }
+
+    /// Reconstructs tokens from `segment_into`'s byte ranges and asserts
+    /// they match `segment()`'s output, and that the ranges tile the input
+    /// exactly: first start 0, each start equal to the previous end, last
+    /// end equal to the sentence length.
+    fn assert_segment_into_matches(segmenter: &Segmenter, sentences: &[&str]) {
+        let mut buf = SegmentBuffer::new();
+        for sentence in sentences {
+            let ranges = segmenter.segment_into(sentence, &mut buf);
+            let mut cursor = 0usize;
+            for &(start, end) in ranges {
+                assert_eq!(start, cursor, "ranges do not tile {sentence:?}: {ranges:?}");
+                assert!(start < end, "empty or reversed range in {sentence:?}: {ranges:?}");
+                cursor = end;
+            }
+            assert_eq!(cursor, sentence.len(), "ranges do not cover {sentence:?}: {ranges:?}");
+            let tokens: Vec<String> =
+                ranges.iter().map(|&(s, e)| sentence[s..e].to_string()).collect();
+            assert_eq!(
+                tokens,
+                segmenter.segment(sentence),
+                "segment_into diverged from segment on {sentence:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_segment_into_tiles_and_matches_segment() {
+        let sentences = [
+            "これはテストです。",
+            "私の猫は可愛い。",
+            "東京都に住んでいます。",
+            "字",
+            "こんにちは",
+            "価格は1000円です。",
+            "RustでNLPを実装する。",
+        ];
+        // Tagged path (bundled models with tag features) and legacy models.
+        for model in ["japanese.model", "RWCP.model", "JEITA_Genpaku_ChaSen_IPAdic.model"] {
+            let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost(model));
+            assert_segment_into_matches(&segmenter, &sentences);
+            assert_segment_into_matches(&segmenter, &STRESS_SENTENCES);
+        }
+        // Pointwise fast path (#183): korean.model is tag-free, and its
+        // corpus contains multi-byte Hangul plus literal space tokens.
+        let segmenter = Segmenter::with_learner(Language::Korean, load_adaboost("korean.model"));
+        assert_segment_into_matches(
+            &segmenter,
+            &["이것은 테스트입니다.", "나는 고양이를 좋아한다.", "글", "2024년 봄."],
+        );
+        // Empty input yields an empty range slice.
+        let mut buf = SegmentBuffer::new();
+        assert!(segmenter.segment_into("", &mut buf).is_empty());
+    }
+
+    #[test]
+    fn test_segment_into_buffer_reuse_is_stateless() {
+        // A buffer carrying capacity (and stale contents) from previous
+        // sentences must produce exactly what a fresh buffer produces:
+        // long -> short -> long again, across models with and without tag
+        // features. This is the load-bearing test for the clear/refill
+        // logic — stale range, tag, or score entries would surface here.
+        let tagged = Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"));
+        let pointwise =
+            Segmenter::with_learner(Language::Japanese, load_adaboost_tag_free("japanese.model"));
+        let sequence = [
+            "東京都に住んでいます。価格は1000円です。これはテストです。",
+            "字",
+            "こんにちは",
+            "東京都に住んでいます。価格は1000円です。これはテストです。",
+            "",
+            "私の猫は可愛い。",
+        ];
+        for segmenter in [&tagged, &pointwise] {
+            let mut reused = SegmentBuffer::new();
+            for sentence in sequence {
+                let got: Vec<(usize, usize)> =
+                    segmenter.segment_into(sentence, &mut reused).to_vec();
+                let mut fresh = SegmentBuffer::new();
+                let want = segmenter.segment_into(sentence, &mut fresh);
+                assert_eq!(got, want, "reused buffer diverged on {sentence:?}");
+            }
+        }
     }
 
     /// Loads a bundled model with its tag-dependent (`UP*`/`BP*`/`UQ*`/
