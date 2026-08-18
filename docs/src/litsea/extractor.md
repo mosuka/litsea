@@ -91,6 +91,32 @@ extractor.extract_tsv(
 )?;
 ```
 
+### `extract_tag_free` / `extract_tsv_tag_free`
+
+```rust
+pub fn extract_tag_free(
+    &self,
+    corpus_path: &Path,
+    features_path: &Path,
+) -> litsea::Result<()>
+
+pub fn extract_tsv_tag_free(
+    &self,
+    corpus_path: &Path,
+    features_path: &Path,
+) -> litsea::Result<()>
+```
+
+The tag-free variants of `extract` / `extract_tsv` (issue #183): identical
+input and output formats, but the 16 tag-dependent templates
+(`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`, which read the previous boundary
+decisions) are dropped from every row. A model trained on these features
+is *pointwise*, so `segment()` skips its sequential scoring pass entirely.
+The bundled `korean.model` is trained this way; see [Tag-Free (Pointwise)
+Models](../pre-trained-models.md#tag-free-pointwise-models) for the
+measured per-language quality/speed trade-off. These back the CLI's
+`extract --tag-free`.
+
 ### `extract_with_pos`
 
 ```rust

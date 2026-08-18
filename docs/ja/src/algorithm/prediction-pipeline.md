@@ -84,6 +84,14 @@ i=11(。): Extract features → predict → label=+1 (B) → push "です", word
    score = bias + static[i] + sum(dense[タグ依存テンプレート][mixed-radix index])
    ```
 
+   **pointwise 高速パス**（issue #183）: モデルにタグ依存特徴が 1 つも
+   無い場合（`litsea extract --tag-free` で学習した場合。同梱の
+   `korean.model` がこれに該当）、コンパイル済みモデルがロード時にこれを
+   記録し、逐次パスは丸ごとスキップされます -- 判定は `bias + static[i]
+   >= 0` に帰着し、タグの簿記も行われません。出力はどちらの経路でも同一
+   です（スキップされるロードはそれぞれ `0.0` を加算するだけのため）。
+   消えるのは位置間の直列依存だけです。
+
 バイアスはキャッシュされたフィールド（`-sum(model) / 2.0`、重みを変更する
 すべての経路で同期される）で、文ごとに 1 回だけ読み取られます。packed
 コンテキスト（`packed_context`）は、単語組み立て用の文字列スライスを入力から

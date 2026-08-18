@@ -51,7 +51,7 @@ Recall = TP / (TP + FN)
 | モデル | 単語 F1 | 境界 F1 | 学習コーパス |
 |-------|---------|---------|-----------------|
 | japanese.model | 96.70% | 98.59% | UD Japanese-GSD |
-| korean.model | 99.90% | 99.95% | UD Korean-GSD |
+| korean.model | 99.91% | 99.96% | UD Korean-GSD |
 | chinese.model | 90.69% | 95.64% | UD Chinese-GSD |
 
 韓国語は、元の語節（어절）間の空白を保持したテキスト（空白保持 TSV コーパス。

@@ -87,6 +87,14 @@ on earlier boundary decisions:
    score = bias + static[i] + sum(dense[tag-dependent template][mixed-radix index])
    ```
 
+   **Pointwise fast path** (issue #183): if the model has no tag-dependent
+   features at all (e.g. it was trained with `litsea extract --tag-free`,
+   like the bundled `korean.model`), the compiled model records this at
+   load time and the sequential pass is skipped entirely -- the decision
+   reduces to `bias + static[i] >= 0` with no tag bookkeeping. Output is
+   identical either way (the skipped loads would each add `0.0`); only the
+   serial dependency between positions disappears.
+
 The bias is a cached field (`-sum(model) / 2.0`, kept in sync by every
 weight-mutating path) and is read once per sentence. The packed context
 (`packed_context`) borrows word-assembly string slices directly from the

@@ -74,12 +74,18 @@ scoring (see [Evaluation](../litsea/evaluation.md)).
 ### korean.model
 
 - **Training corpus**: UD Korean-GSD (space-preserving TSV corpus)
-- **Training options**: `--format tsv`, 30 epochs of Averaged Perceptron
-  training, collapsed to AdaBoost scalar weights, not pruned (3,994
-  features) -- see [Training
+- **Training options**: `--format tsv --tag-free`, 30 epochs of Averaged
+  Perceptron training, collapsed to AdaBoost scalar weights, not pruned
+  (3,132 features) -- see [Training
   Procedure](../pre-trained-models.md#training-procedure) for the full recipe
-- **Word F1 (held-out)**: 99.90%
-- **Boundary F1 (held-out)**: 99.95%
+- **Word F1 (held-out)**: 99.91%
+- **Boundary F1 (held-out)**: 99.96%
+
+The model is trained without the 16 tag-dependent feature templates
+(`--tag-free`, issue #183): with the space signal available they measured
+as contributing nothing, and a pointwise model lets `segment()` skip its
+sequential scoring pass entirely. See [Tag-Free (Pointwise)
+Models](../pre-trained-models.md#tag-free-pointwise-models).
 
 Held-out metrics are computed on the original spaced text with space tokens
 excluded from scoring.

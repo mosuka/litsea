@@ -216,7 +216,7 @@ The output will look like:
   Trained on the [UD Japanese-GSD](https://github.com/UniversalDependencies/UD_Japanese-GSD) Treebank as a 2-class Averaged Perceptron, losslessly collapsed to AdaBoost-format scalar weights (see [Pre-trained Models](docs/src/pre-trained-models.md) for the procedure). Held-out word F1: 96.70%.
 
 - **korean.model**
-  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank with a space-preserving corpus, same collapsed-perceptron procedure as above. Held-out word F1: 99.90%.
+  Trained on the [UD Korean-GSD](https://github.com/UniversalDependencies/UD_Korean-GSD) Treebank with a space-preserving corpus, same collapsed-perceptron procedure as above but tag-free (`extract --tag-free`), making it pointwise so `segment` skips its sequential scoring pass. Held-out word F1: 99.91%.
 
 - **chinese.model**
   Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank, same collapsed-perceptron procedure as above. Held-out word F1: 90.69%.

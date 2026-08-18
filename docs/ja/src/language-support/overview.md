@@ -8,7 +8,7 @@ Litseaは、`Language` 列挙型に基づく統一的なフレームワークを
 |----------|-------------|------------|---------------|---------------------|
 | 日本語 | `Language::Japanese` | `japanese`, `ja` | 42 | 96.70% |
 | 中国語 | `Language::Chinese` | `chinese`, `zh` | 42 | 90.69% |
-| 韓国語 | `Language::Korean` | `korean`, `ko` | 38 | 99.90% |
+| 韓国語 | `Language::Korean` | `korean`, `ko` | 38 | 99.91% |
 
 ## Language 列挙型
 

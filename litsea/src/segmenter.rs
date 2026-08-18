@@ -635,7 +635,11 @@ impl Segmenter {
     /// `crate::packed_model::PackedModel` in two passes — a scatter-add
     /// static pass over the tag-independent features and a sequential pass
     /// over the 16 tag-dependent dense templates — deciding at each position
-    /// whether it starts a new word. No attribute strings are constructed:
+    /// whether it starts a new word. For a pointwise model (no tag-dependent
+    /// features, e.g. one trained with those templates filtered out) the
+    /// sequential pass is skipped entirely (issue #183); output is
+    /// unaffected, since the skipped loads would all contribute `0.0`.
+    /// No attribute strings are constructed:
     /// the AdaBoost learner (for a two-stage segmenter, a collapsed
     /// perceptron stored in AdaBoost format) is only consulted for its bias
     /// term and to (re)build the packed table after a learner mutation.
@@ -763,46 +767,61 @@ impl Segmenter {
             // Padding for lookback: tags[0..3] are fixed U (unknown), and
             // tags[3] is also U since there is no boundary decision before
             // the first character.
-            let t = type_radix;
-            let d = &packed.dense;
-            let mut tags: Vec<u8> = Vec::with_capacity(n);
-            tags.extend_from_slice(&[TAG_U; 4]);
             let mut result = Vec::new();
             let mut word = chars[3].to_string();
-            for (i, ch) in chars.iter().enumerate().take(n - 3).skip(4) {
-                let (p1, p2, p3) =
-                    (tags[i - 3] as usize, tags[i - 2] as usize, tags[i - 1] as usize);
-                let (c1, c2, c3, c4) = (
-                    type_ids[i - 3] as usize,
-                    type_ids[i - 2] as usize,
-                    type_ids[i - 1] as usize,
-                    type_ids[i] as usize,
-                );
-                let score = bias
-                    + static_scores[i]
-                    + d[0][p1]
-                    + d[1][p2]
-                    + d[2][p3]
-                    + d[3][p1 * 3 + p2]
-                    + d[4][p2 * 3 + p3]
-                    + d[27][p1 * t + c1]
-                    + d[28][p2 * t + c2]
-                    + d[29][p3 * t + c3]
-                    + d[30][(p2 * t + c2) * t + c3]
-                    + d[31][(p2 * t + c3) * t + c4]
-                    + d[32][(p3 * t + c2) * t + c3]
-                    + d[33][(p3 * t + c3) * t + c4]
-                    + d[34][((p2 * t + c1) * t + c2) * t + c3]
-                    + d[35][((p2 * t + c2) * t + c3) * t + c4]
-                    + d[36][((p3 * t + c1) * t + c2) * t + c3]
-                    + d[37][((p3 * t + c2) * t + c3) * t + c4];
-                if score >= 0.0 {
-                    result.push(std::mem::take(&mut word));
-                    tags.push(TAG_B);
-                } else {
-                    tags.push(TAG_O);
+            if packed.has_tag_features {
+                let t = type_radix;
+                let d = &packed.dense;
+                let mut tags: Vec<u8> = Vec::with_capacity(n);
+                tags.extend_from_slice(&[TAG_U; 4]);
+                for (i, ch) in chars.iter().enumerate().take(n - 3).skip(4) {
+                    let (p1, p2, p3) =
+                        (tags[i - 3] as usize, tags[i - 2] as usize, tags[i - 1] as usize);
+                    let (c1, c2, c3, c4) = (
+                        type_ids[i - 3] as usize,
+                        type_ids[i - 2] as usize,
+                        type_ids[i - 1] as usize,
+                        type_ids[i] as usize,
+                    );
+                    let score = bias
+                        + static_scores[i]
+                        + d[0][p1]
+                        + d[1][p2]
+                        + d[2][p3]
+                        + d[3][p1 * 3 + p2]
+                        + d[4][p2 * 3 + p3]
+                        + d[27][p1 * t + c1]
+                        + d[28][p2 * t + c2]
+                        + d[29][p3 * t + c3]
+                        + d[30][(p2 * t + c2) * t + c3]
+                        + d[31][(p2 * t + c3) * t + c4]
+                        + d[32][(p3 * t + c2) * t + c3]
+                        + d[33][(p3 * t + c3) * t + c4]
+                        + d[34][((p2 * t + c1) * t + c2) * t + c3]
+                        + d[35][((p2 * t + c2) * t + c3) * t + c4]
+                        + d[36][((p3 * t + c1) * t + c2) * t + c3]
+                        + d[37][((p3 * t + c2) * t + c3) * t + c4];
+                    if score >= 0.0 {
+                        result.push(std::mem::take(&mut word));
+                        tags.push(TAG_B);
+                    } else {
+                        tags.push(TAG_O);
+                    }
+                    word.push_str(ch);
                 }
-                word.push_str(ch);
+            } else {
+                // Pointwise fast path (#183): every tag-dependent table is
+                // all-zero, so the 16 loads above would each add 0.0 and
+                // the tag bookkeeping would feed nothing — the decision
+                // reduces exactly to the static score plus the bias. This
+                // branch is equivalence-pinned against segment_reference
+                // by the tag-free differential test.
+                for (i, ch) in chars.iter().enumerate().take(n - 3).skip(4) {
+                    if bias + static_scores[i] >= 0.0 {
+                        result.push(std::mem::take(&mut word));
+                    }
+                    word.push_str(ch);
+                }
             }
             result.push(word);
             result
@@ -1737,6 +1756,57 @@ mod tests {
         assert!(!lines.is_empty());
         let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost("RWCP.model"));
         assert_segment_matches_reference(&segmenter, &lines);
+    }
+
+    /// Loads a bundled model with its tag-dependent (`UP*`/`BP*`/`UQ*`/
+    /// `BQ*`/`TQ*`) feature lines filtered out, producing a pointwise model
+    /// that exercises `segment()`'s tag-free fast path (#183).
+    fn load_adaboost_tag_free(model: &str) -> AdaBoost {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model);
+        let text = std::fs::read_to_string(&path).unwrap();
+        let filtered: String = text
+            .lines()
+            .filter(|l| !crate::packed_model::is_tag_dependent_feature(l))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mut learner = AdaBoost::default();
+        learner.load_model_from_reader(filtered.as_bytes()).unwrap();
+        learner
+    }
+
+    #[test]
+    fn test_segment_differential_tag_free_fast_path() {
+        // The pointwise fast path (#183) must produce output identical to
+        // the string-keyed reference. Filter the tag features out of a real
+        // bundled model, confirm the gate actually fires, and run the same
+        // differential coverage as the tagged path gets: fixed sentences,
+        // stress sentences, and real bocchan text.
+        let segmenter =
+            Segmenter::with_learner(Language::Japanese, load_adaboost_tag_free("japanese.model"));
+        assert!(
+            segmenter.with_packed(|p| !p.has_tag_features),
+            "tag-filtered model must take the pointwise fast path"
+        );
+        let sentences = [
+            "これはテストです。",
+            "私の猫は可愛い。",
+            "東京都に住んでいます。",
+            "字",
+            "こんにちは",
+            "価格は1000円です。",
+            "RustでNLPを実装する。",
+        ];
+        assert_segment_matches_reference(&segmenter, &sentences);
+        assert_segment_matches_reference(&segmenter, &STRESS_SENTENCES);
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
+        let text = std::fs::read_to_string(&path).unwrap();
+        let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).take(100).collect();
+        assert!(!lines.is_empty());
+        assert_segment_matches_reference(&segmenter, &lines);
+
+        // Control: the unfiltered bundled model takes the tagged path.
+        let tagged = Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"));
+        assert!(tagged.with_packed(|p| p.has_tag_features));
     }
 
     #[test]

@@ -95,6 +95,73 @@ fn test_extract_features_format() {
     }
 }
 
+/// Pins extract's `--tag-free` routing (issue #183): the output must
+/// contain no tag-dependent (UP*/BP*/UQ*/BQ*/TQ*) feature columns.
+#[test]
+fn test_extract_tag_free_format() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let corpus = dir.path().join("corpus.txt");
+    std::fs::write(&corpus, "これ は テスト です 。\n").expect("write corpus");
+    let features = dir.path().join("features.txt");
+
+    let output = run_litsea(
+        &[
+            "extract",
+            "--tag-free",
+            "-l",
+            "japanese",
+            corpus.to_str().unwrap(),
+            features.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let content = std::fs::read_to_string(&features).expect("read features");
+    assert!(!content.is_empty());
+    let tag_prefixes = ["UP", "BP", "UQ", "BQ", "TQ"];
+    for line in content.lines() {
+        let mut fields = line.split('\t');
+        let label = fields.next().expect("label");
+        assert!(label == "1" || label == "-1", "unexpected label {label:?} in {line:?}");
+        let mut has_features = false;
+        for feature in fields {
+            has_features = true;
+            let is_tag = tag_prefixes.iter().any(|p| {
+                feature.starts_with(p)
+                    && feature[p.len()..].starts_with(|c: char| c.is_ascii_digit())
+            });
+            assert!(!is_tag, "tag-dependent feature {feature:?} in {line:?}");
+        }
+        assert!(has_features, "line has no features: {line:?}");
+    }
+}
+
+/// Pins the `--tag-free` conflict rule: it is a boundary-pipeline flag and
+/// must be rejected together with --pos or --two-stage.
+#[test]
+fn test_extract_tag_free_rejects_pos_and_two_stage() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let corpus = dir.path().join("corpus.txt");
+    std::fs::write(&corpus, "これ/PRON は/ADP\n").expect("write corpus");
+    let features = dir.path().join("features.txt");
+
+    for extra in [&["--pos"][..], &["--two-stage"][..]] {
+        let mut args = vec!["extract", "--tag-free"];
+        args.extend_from_slice(extra);
+        args.extend_from_slice(&[
+            "-l",
+            "japanese",
+            corpus.to_str().unwrap(),
+            features.to_str().unwrap(),
+        ]);
+        let output = run_litsea(&args, None);
+        assert!(!output.status.success(), "expected --tag-free {extra:?} to fail");
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("cannot be combined"), "unexpected stderr: {stderr}");
+    }
+}
+
 /// Pins extract's `--format tsv` routing: tab-separated tokens with a
 /// literal space token are accepted, and the preserved space shows up
 /// inside character-context features (issue #152).

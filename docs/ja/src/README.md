@@ -7,7 +7,7 @@
 ## 主な特徴
 
 - **高速かつ安全な Rust 実装** -- Rust の安全性保証とパフォーマンスを活用
-- **コンパクトな学習済みモデル** -- レガシーな `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` はキロバイト級。品質を最適化した `japanese`/`chinese`/`korean.model` は 110 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ
+- **コンパクトな学習済みモデル** -- レガシーな `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` はキロバイト級。品質を最適化した `japanese`/`chinese`/`korean.model` は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ
 - **辞書不要** -- 統計モデルのみで分割を実行
 - **品詞推定（POS Tagging）** -- Averaged Perceptron 多クラス分類により、単語分割と同時に UPOS 品詞タグを推定
 - **二段構成の品詞推定** -- 境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによるタグ付けを組み合わせた、より高速なアーキテクチャ。joint 方式比で 1.8-2.8 倍のスループット

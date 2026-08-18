@@ -87,6 +87,31 @@ extractor.extract_tsv(
 )?;
 ```
 
+### `extract_tag_free` / `extract_tsv_tag_free`
+
+```rust
+pub fn extract_tag_free(
+    &self,
+    corpus_path: &Path,
+    features_path: &Path,
+) -> litsea::Result<()>
+
+pub fn extract_tsv_tag_free(
+    &self,
+    corpus_path: &Path,
+    features_path: &Path,
+) -> litsea::Result<()>
+```
+
+`extract` / `extract_tsv` のタグなし版です（issue #183）: 入力・出力形式は
+同一ですが、16 個のタグ依存テンプレート（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`。
+直前の境界判定結果を参照する）を全行から除外します。この特徴量で学習した
+モデルは *pointwise* になり、`segment()` は逐次スコアリングパスを丸ごと
+スキップします。同梱の `korean.model` はこの方法で学習されています。
+言語別の品質・速度トレードオフの実測値は
+[タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)
+を参照してください。CLI の `extract --tag-free` の実体です。
+
 ### `extract_with_pos`
 
 ```rust
