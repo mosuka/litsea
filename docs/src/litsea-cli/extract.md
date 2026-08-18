@@ -24,6 +24,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--pos` or `--two-stage` |
 | `--two-stage` | off | Extract [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) training features instead of joint POS features. Requires a POS corpus as input; cannot be combined with `--pos` |
 | `--stage2-features <SET>` | `fast` | Stage-2 word-feature set for `--two-stage`: `full` (best quality), `balanced`, or `fast` (best throughput) |
+| `--tag-free` | off | Exclude the 16 tag-dependent feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) so the trained model is pointwise and `segment()` skips its sequential scoring pass (issue #183; used for the bundled `korean.model` -- see [Tag-Free (Pointwise) Models](../pre-trained-models.md#tag-free-pointwise-models) for the per-language quality/speed trade-off). Composable with `--format tsv`; cannot be combined with `--pos` or `--two-stage` |
 
 ## Corpus Format
 

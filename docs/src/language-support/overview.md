@@ -8,7 +8,7 @@ Litsea supports word segmentation for three languages through a unified framewor
 |----------|-------------|------------|---------------|--------------------|
 | Japanese | `Language::Japanese` | `japanese`, `ja` | 42 | 96.70% |
 | Chinese | `Language::Chinese` | `chinese`, `zh` | 42 | 90.69% |
-| Korean | `Language::Korean` | `korean`, `ko` | 38 | 99.90% |
+| Korean | `Language::Korean` | `korean`, `ko` | 38 | 99.91% |
 
 ## The Language Enum
 

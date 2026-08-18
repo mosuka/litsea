@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### Added
+
+- A pointwise fast path for `segment()` (#183): `PackedModel` records at
+  compile time whether any of the 16 tag-dependent templates
+  (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`, which read the previous boundary
+  decisions) carries a non-zero weight, and when none does, the sequential
+  scoring pass and its tag bookkeeping are skipped entirely. Output is
+  unchanged in both directions -- the skipped loads would each add `0.0` --
+  pinned by a tag-free differential test against the string-keyed
+  reference; models with tag features are unaffected. The serial
+  dependency between positions was measured at ~10-25% of `segment()`
+  runtime (patch experiment, paired runs), so a pointwise model recovers
+  that in full.
+- `litsea extract --tag-free` and the backing
+  `Extractor::extract_tag_free` / `Extractor::extract_tsv_tag_free`
+  methods: extract boundary features with the 16 tag-dependent templates
+  dropped, producing training data for pointwise models. Composable with
+  `--format tsv`; rejected with `--pos` / `--two-stage`.
+
+### Changed
+
+- `models/korean.model` is retrained tag-free (#183): with the
+  space-preserving corpus the tag features measured as contributing
+  nothing (held-out Word F1 99.91% vs. 99.90%, Boundary F1 99.96% vs.
+  99.95%), and the model shrinks from 3,994 features / ~110 KB to 3,132
+  features / ~86 KB while becoming eligible for the pointwise fast path.
+  Segmentation output on the golden-test sentences is unchanged. The
+  bundled Japanese and Chinese models keep their tag features -- the
+  measured trade-off (ja: -0.37pt Word F1 for ~+45-50% throughput, zh:
+  -0.51pt for ~+12%) is documented in Pre-trained Models for users who
+  prefer to retrain for speed.
+
 ## 0.11.0
 
 ### Added

@@ -190,10 +190,10 @@ impl Template {
     /// it depends on earlier segmentation decisions and must be scored in
     /// the sequential pass (`UP*`, `BP*`, `UQ*`, `BQ*`, `TQ*` — 16
     /// templates). Tag-free templates depend only on the input text and are
-    /// scored in the static pass. Test-only: production uses the pinned id
-    /// ranges (`TAG_HEAD_IDS` etc.), and the partition test asserts they
-    /// agree with this predicate.
-    #[cfg(test)]
+    /// scored in the static pass. The hot loop uses hard-coded indices
+    /// pinned by tests against the id ranges (`TAG_HEAD_IDS` etc.);
+    /// production calls this only once per model compilation, to decide
+    /// [`PackedModel::has_tag_features`] (issue #183).
     pub(crate) fn has_tag_slot(&self) -> bool {
         self.slots.iter().any(|slot| matches!(slot, Slot::Tag(_)))
     }
@@ -329,6 +329,20 @@ pub(crate) const WC_IDS: std::ops::Range<usize> = 38..42;
 #[inline]
 pub(crate) fn wc_key(wc_index: usize, chr: u32, typ: u8) -> u64 {
     ((wc_index as u64) << 32) | (u64::from(chr) << 8) | u64::from(typ)
+}
+
+/// Returns true when `feature` (a rendered attribute string such as
+/// `"UP1:U"`, or a model-file line starting with one) belongs to one of the
+/// 16 tag-dependent templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`). Used by
+/// [`Extractor`](crate::extractor::Extractor)'s tag-free extraction
+/// (issue #183) to drop those features so the trained model is pointwise
+/// and [`PackedModel::has_tag_features`] stays false.
+pub(crate) fn is_tag_dependent_feature(feature: &str) -> bool {
+    TEMPLATES.iter().any(|t| {
+        t.has_tag_slot()
+            && feature.starts_with(t.prefix)
+            && feature.as_bytes().get(t.prefix.len()) == Some(&b':')
+    })
 }
 
 /// Number of templates shared by all languages (everything before `WC1`).
@@ -467,6 +481,13 @@ pub(crate) struct PackedModel {
     /// tag-dependent sequential pass; the `uc`/`bc`/`tc` scatter vectors
     /// above are derived views of ids 14..27.
     pub(crate) dense: Vec<Vec<f64>>,
+    /// True iff any tag-dependent (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) table
+    /// holds a non-zero weight. When false, the model is pointwise: the 16
+    /// tag-dependent loads all add `0.0`, so `segment()` skips the
+    /// sequential pass and its tag bookkeeping entirely (issue #183). The
+    /// two paths are exactly equivalent — the skipped loads contribute
+    /// nothing — so the gate cannot change output.
+    pub(crate) has_tag_features: bool,
 }
 
 impl PackedModel {
@@ -538,6 +559,13 @@ impl PackedModel {
         let tc: Vec<[f64; 4]> = (0..t * t * t)
             .map(|v| std::array::from_fn(|k| dense[TC_FIRST_ID + k][v]))
             .collect();
+        // One linear scan at build time decides the pointwise fast path
+        // (#183): a model whose tag-dependent tables are all zero scores
+        // identically without the sequential pass.
+        let has_tag_features = TEMPLATES
+            .iter()
+            .enumerate()
+            .any(|(tid, tpl)| tpl.has_tag_slot() && dense[tid].iter().any(|&w| w != 0.0));
         PackedModel {
             uw,
             bw,
@@ -546,6 +574,7 @@ impl PackedModel {
             bc,
             tc,
             dense,
+            has_tag_features,
         }
     }
 }
@@ -760,6 +789,43 @@ mod tests {
         assert_eq!(packed.dense[21][6], -0.25);
         // UC1:SN was skipped: its dense table stays all-zero.
         assert!(packed.dense[14].iter().all(|&w| w == 0.0));
+    }
+
+    #[test]
+    fn test_is_tag_dependent_feature() {
+        // Every tag-dependent template prefix matches; every tag-free
+        // prefix does not; near-misses without the ':' separator or with a
+        // longer prefix do not.
+        for f in ["UP1:U", "BP2:BO", "UQ3:BH", "BQ4:OII", "TQ1:UOOI"] {
+            assert!(is_tag_dependent_feature(f), "{f} should be tag-dependent");
+        }
+        // Model-file lines (feature + tab + weight) match on their prefix.
+        assert!(is_tag_dependent_feature("UP1:U\t0.5"));
+        for f in ["UW1:あ", "BW2:xy", "UC1:H", "BC2:OI", "TC1:III", "WC1:あI", "UP1", "UPX:U", ""]
+        {
+            assert!(!is_tag_dependent_feature(f), "{f} should not be tag-dependent");
+        }
+    }
+
+    #[test]
+    fn test_has_tag_features_flag() {
+        fn build(model: &str) -> PackedModel {
+            let mut learner = AdaBoost::new(0.01, 100);
+            learner.load_model_from_reader(model.as_bytes()).unwrap();
+            PackedModel::build(Language::Japanese, &learner)
+        }
+
+        // Tag-free model: only static-pass families -> pointwise.
+        assert!(!build("UW3:あ\t0.5\nBC2:OI\t-0.25\n0.0\n").has_tag_features);
+        // Any non-zero tag-dependent weight flips the flag, family by family.
+        assert!(build("UW3:あ\t0.5\nUP1:U\t0.1\n0.0\n").has_tag_features);
+        assert!(build("BQ1:BII\t-0.1\n0.0\n").has_tag_features);
+        assert!(build("TQ4:OIII\t0.1\n0.0\n").has_tag_features);
+        // A tag feature carrying an explicit zero weight contributes
+        // nothing to any score, so the model is still pointwise.
+        assert!(!build("UW3:あ\t0.5\nUP1:U\t0\n0.0\n").has_tag_features);
+        // An empty model is pointwise (all tables zero).
+        assert!(!build("0.0\n").has_tag_features);
     }
 
     // --- Dense-table tests (#138) ---

@@ -53,6 +53,13 @@ struct ExtractArgs {
     #[arg(long, default_value = "fast", value_parser = TwoStageFeatureSet::from_str)]
     stage2_features: TwoStageFeatureSet,
 
+    /// Exclude the 16 tag-dependent feature templates (UP*/BP*/UQ*/BQ*/TQ*,
+    /// which read the previous boundary decisions) so the trained model is
+    /// pointwise and segment() skips its sequential scoring pass entirely
+    /// (issue #183). Cannot be combined with --pos or --two-stage
+    #[arg(long)]
+    tag_free: bool,
+
     /// Path to the input corpus file (one pre-segmented sentence per line)
     corpus_file: PathBuf,
     /// Path to the output features file (with --two-stage, the prefix for
@@ -187,7 +194,9 @@ struct CommandArgs {
 /// `extract_with_pos`; otherwise each line is space-separated words, or
 /// tab-separated tokens with `--format tsv` (a token may be a literal
 /// space, preserving the original spacing; not supported with `--pos` or
-/// `--two-stage`).
+/// `--two-stage`). `--tag-free` (boundary pipeline only, composable with
+/// `--format tsv`) drops the 16 tag-dependent templates so the trained
+/// model is pointwise (issue #183).
 ///
 /// # Arguments
 /// * `args` - The arguments for the extract command [`ExtractArgs`].
@@ -197,6 +206,11 @@ struct CommandArgs {
 fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
     let extractor = Extractor::new(args.language);
 
+    if args.tag_free && (args.pos || args.two_stage) {
+        // Tag-free extraction is a boundary-pipeline concept (#183); the
+        // POS pipelines use their own label/feature scheme.
+        return Err("--tag-free cannot be combined with --pos or --two-stage".into());
+    }
     if args.two_stage {
         if args.pos {
             return Err("--two-stage cannot be combined with --pos".into());
@@ -216,8 +230,12 @@ fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
             return Err("--format tsv is not supported together with --pos".into());
         }
         extractor.extract_with_pos(args.corpus_file.as_path(), args.features_file.as_path())?;
+    } else if args.format == "tsv" && args.tag_free {
+        extractor.extract_tsv_tag_free(args.corpus_file.as_path(), args.features_file.as_path())?;
     } else if args.format == "tsv" {
         extractor.extract_tsv(args.corpus_file.as_path(), args.features_file.as_path())?;
+    } else if args.tag_free {
+        extractor.extract_tag_free(args.corpus_file.as_path(), args.features_file.as_path())?;
     } else {
         extractor.extract(args.corpus_file.as_path(), args.features_file.as_path())?;
     }

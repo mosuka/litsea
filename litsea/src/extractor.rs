@@ -120,6 +120,64 @@ impl Extractor {
         })
     }
 
+    /// Extracts features like [`extract`](Self::extract), but drops the 16
+    /// tag-dependent templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`), which read
+    /// the boundary decisions at the previous one to three positions.
+    ///
+    /// A model trained on the resulting features is *pointwise*: every
+    /// position's score depends only on the input text, so `segment()`
+    /// skips its sequential scoring pass entirely (issue #183). The
+    /// bundled `korean.model` is trained this way; for Japanese and
+    /// Chinese the tag features carry some quality (see the measured
+    /// trade-off in the Pre-trained Models documentation), so this is an
+    /// explicit speed-over-quality choice there.
+    ///
+    /// # Arguments
+    /// * `corpus_path` - The path to the input corpus file (the
+    ///   space-separated format of [`extract`](Self::extract)).
+    /// * `features_path` - The path to the output features file.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an I/O error if the corpus file cannot be opened or read, or
+    /// if the features file cannot be created or written.
+    pub fn extract_tag_free(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
+        let segmenter = &self.segmenter;
+        Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_with_writer(line, |mut attrs, label| {
+                attrs.retain(|a| !crate::packed_model::is_tag_dependent_feature(a));
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
+    }
+
+    /// Extracts features like [`extract_tsv`](Self::extract_tsv) (the
+    /// space-preserving tab-separated corpus format), but drops the 16
+    /// tag-dependent templates — the tag-free variant of
+    /// [`extract_tag_free`](Self::extract_tag_free) for TSV corpora.
+    ///
+    /// # Arguments
+    /// * `corpus_path` - The path to the input tab-separated corpus file.
+    /// * `features_path` - The path to the output features file.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an I/O error if the corpus file cannot be opened or read, or
+    /// if the features file cannot be created or written.
+    pub fn extract_tsv_tag_free(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
+        let segmenter = &self.segmenter;
+        Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_tsv_with_writer(line, |mut attrs, label| {
+                attrs.retain(|a| !crate::packed_model::is_tag_dependent_feature(a));
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
+    }
+
     /// Extracts features from a POS-tagged corpus and writes them to a file.
     ///
     /// Corpus format: each line is "word/POS word/POS ...".
@@ -355,6 +413,80 @@ mod tests {
             }
         }
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_tag_free() -> Result<()> {
+        use crate::packed_model::is_tag_dependent_feature;
+
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "これ は テスト です 。")?;
+        writeln!(corpus_file, "別 の 文 も あり ます 。")?;
+        corpus_file.as_file().sync_all()?;
+
+        let full_file = NamedTempFile::new()?;
+        let tag_free_file = NamedTempFile::new()?;
+        let extractor = Extractor::default();
+        extractor.extract(corpus_file.path(), full_file.path())?;
+        extractor.extract_tag_free(corpus_file.path(), tag_free_file.path())?;
+
+        let mut full = String::new();
+        File::open(full_file.path())?.read_to_string(&mut full)?;
+        let mut tag_free = String::new();
+        File::open(tag_free_file.path())?.read_to_string(&mut tag_free)?;
+
+        // The tag-free output must be exactly the full output with the
+        // tag-dependent columns removed: same rows, same labels, same
+        // remaining features in the same (sorted) order.
+        let full_rows: Vec<&str> = full.lines().collect();
+        let tag_free_rows: Vec<&str> = tag_free.lines().collect();
+        assert_eq!(full_rows.len(), tag_free_rows.len());
+        for (full_row, tag_free_row) in full_rows.iter().zip(&tag_free_rows) {
+            let expected: Vec<&str> = full_row
+                .split('\t')
+                .enumerate()
+                .filter(|(i, f)| *i == 0 || !is_tag_dependent_feature(f))
+                .map(|(_, f)| f)
+                .collect();
+            let actual: Vec<&str> = tag_free_row.split('\t').collect();
+            assert_eq!(actual, expected, "tag-free row diverged: {tag_free_row}");
+            assert!(
+                actual.iter().skip(1).all(|f| !is_tag_dependent_feature(f)),
+                "tag-dependent feature left in: {tag_free_row}"
+            );
+        }
+        // Sanity: the filter actually removed something.
+        assert!(full.len() > tag_free.len());
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_tsv_tag_free() -> Result<()> {
+        use crate::language::Language;
+        use crate::packed_model::is_tag_dependent_feature;
+
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "나는\t \t봄\t.")?;
+        corpus_file.as_file().sync_all()?;
+
+        let features_file = NamedTempFile::new()?;
+        let extractor = Extractor::new(Language::Korean);
+        extractor.extract_tsv_tag_free(corpus_file.path(), features_file.path())?;
+
+        let mut output = String::new();
+        File::open(features_file.path())?.read_to_string(&mut output)?;
+        // "나는 봄." = 5 chars -> 4 rows, same as extract_tsv.
+        assert_eq!(output.lines().count(), 4);
+        for line in output.lines() {
+            let fields: Vec<&str> = line.split('\t').collect();
+            assert!(fields.len() >= 2, "Line should have label + features: {line}");
+            assert!(fields[0] == "1" || fields[0] == "-1");
+            assert!(
+                fields[1..].iter().all(|f| !is_tag_dependent_feature(f)),
+                "tag-dependent feature left in: {line}"
+            );
+        }
         Ok(())
     }
 

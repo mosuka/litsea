@@ -24,6 +24,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--pos` および `--two-stage` と併用できません |
 | `--two-stage` | off | 通常の品詞特徴量の代わりに[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。`--pos` とは併用できません |
 | `--stage2-features <SET>` | `fast` | `--two-stage` 用の stage-2 単語特徴セット: `full`（品質最優先）、`balanced`、`fast`（速度最優先） |
+| `--tag-free` | オフ | 16 個のタグ依存特徴量テンプレート（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`）を除外し、学習されるモデルを pointwise にして `segment()` の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の `korean.model` で使用 -- 言語別の品質・速度トレードオフは[タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)を参照）。`--format tsv` と併用可。`--pos` / `--two-stage` とは併用不可 |
 
 ## コーパスの形式
 

@@ -7,7 +7,7 @@ Unlike traditional morphological analyzers such as [MeCab](https://taku910.githu
 ## Key Features
 
 - **Fast and safe Rust implementation** -- built with Rust's safety guarantees and performance
-- **Compact pre-trained models** -- the legacy `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` files are kilobyte-scale; the quality-optimized `japanese`/`chinese`/`korean.model` files are 110 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP
+- **Compact pre-trained models** -- the legacy `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` files are kilobyte-scale; the quality-optimized `japanese`/`chinese`/`korean.model` files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP
 - **No dictionary dependency** -- segmentation is driven entirely by a statistical model
 - **POS tagging** -- joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron
 - **Two-stage POS tagging** -- a faster architecture that segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, at 1.8-2.8x the throughput of joint tagging

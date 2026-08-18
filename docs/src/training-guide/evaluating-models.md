@@ -54,7 +54,7 @@ individual boundary decisions.
 | Model | Word F1 | Boundary F1 | Training Corpus |
 |-------|---------|-------------|-----------------|
 | japanese.model | 96.70% | 98.59% | UD Japanese-GSD |
-| korean.model | 99.90% | 99.95% | UD Korean-GSD |
+| korean.model | 99.91% | 99.96% | UD Korean-GSD |
 | chinese.model | 90.69% | 95.64% | UD Chinese-GSD |
 
 Korean is trained and evaluated on text that preserves the original

@@ -134,7 +134,7 @@ feature2\tclass2\tweight2
 | 重みの管理 | 特徴量ごとに1つの重み | クラス×特徴量の重み行列 |
 | 汎化手法 | アンサンブル | 重みの平均化 |
 | 学習方式 | サンプル再重み付けによる反復ブースティング | 重み平均化によるオンライン学習 |
-| モデルサイズ | 110 KB〜2.0 MB（再学習済み japanese/chinese/korean.model）／約 16〜22 KB（レガシー RWCP/JEITA） | 約 9-19 MB（同梱の joint 品詞モデル）／約 5-8 MB（二段構成モデル） |
+| モデルサイズ | 約 86 KB〜2.0 MB（再学習済み japanese/chinese/korean.model）／約 16〜22 KB（レガシー RWCP/JEITA） | 約 9-19 MB（同梱の joint 品詞モデル）／約 5-8 MB（二段構成モデル） |
 | ハイパーパラメータ | `threshold`, `num_iterations` | `num_epochs` |
 
 ## ハイパーパラメータ

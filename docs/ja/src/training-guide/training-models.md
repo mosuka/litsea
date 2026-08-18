@@ -102,10 +102,10 @@ litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 | 分類 | 二値（境界 / 非境界） | 多クラス（18 セグメントラベル） |
 | ラベル | `1`, `-1` | `B-NOUN`, `B-VERB`, ..., `O` |
 | ハイパーパラメータ | 閾値、反復回数 | エポック数 |
-| モデルサイズ | 約 110 KB 〜 2.0 MB（同梱モデル） | 約 9-19 MB |
+| モデルサイズ | 約 86 KB 〜 2.0 MB（同梱モデル） | 約 9-19 MB |
 
 上記の AdaBoost のモデルサイズ範囲は、同梱の `japanese.model`（約 1.1 MB）、
-`chinese.model`（約 2.0 MB）、`korean.model`（約 110 KB）を反映したものです。
+`chinese.model`（約 2.0 MB）、`korean.model`（約 86 KB）を反映したものです。
 上の基本例のように控えめな `-i` 値で学習したモデルは、これよりずっと
 小さくなります。レガシーの `RWCP.model` と
 `JEITA_Genpaku_ChaSen_IPAdic.model` はさらに小さく（約 16-22 KB）なります。

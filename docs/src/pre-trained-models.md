@@ -44,10 +44,11 @@ below) rather than plain `train`.
 | Language | Korean |
 | Training Corpus | UD Korean-GSD (space-preserving TSV corpus) |
 | Epochs | 30 |
-| Pruned To | not pruned (3,994 features) |
-| Word F1 (held-out) | 99.90% |
-| Boundary F1 (held-out) | 99.95% |
-| File Size | ~110 KB |
+| Feature Templates | tag-free (pointwise, issue #183) |
+| Pruned To | not pruned (3,132 features) |
+| Word F1 (held-out) | 99.91% |
+| Boundary F1 (held-out) | 99.96% |
+| File Size | ~86 KB |
 
 The Korean model is trained and evaluated on text that preserves the
 original inter-eojeol spaces (each space is its own token; space tokens are
@@ -55,9 +56,19 @@ excluded from the F1 computation). Spaces mark most word boundaries in
 Korean, so a model that sees them during training resolves the UD
 Korean-GSD standard almost deterministically -- this is also why Korean's
 feature count and file size stay small (there is little ambiguity left for
-the model to learn) and its quality is essentially unchanged from the prior
-AdaBoost model (99.90% vs. 99.91%, within measurement noise). Japanese and
-Chinese are written without spaces, so their protocol is unchanged.
+the model to learn). Japanese and Chinese are written without spaces, so
+their protocol is unchanged.
+
+The Korean model is additionally trained **without the 16 tag-dependent
+feature templates** (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`, which read the
+boundary decisions at the previous one to three positions): with the space
+signal available, those templates measured as contributing nothing (99.91%
+tag-free vs. 99.90% with them, with ~22% fewer features). A model with no
+tag-dependent features is *pointwise* -- every position's decision depends
+only on the input text -- so `segment()` skips its sequential scoring pass
+entirely (issue #183). See [Tag-Free (Pointwise)
+Models](#tag-free-pointwise-models) below for the trade-off in the other
+languages.
 
 ### chinese.model
 
@@ -99,8 +110,10 @@ binary-perceptron-collapse procedure (#165), which needs no engine changes
 but does need a few extra steps beyond plain `litsea train`:
 
 ```sh
-# 1. Extract plain boundary features (the same step as before).
-litsea extract -l <language> [--format tsv for Korean] <corpus> <features.txt>
+# 1. Extract plain boundary features (the same step as before). Add
+#    --tag-free to drop the 16 tag-dependent templates and train a
+#    pointwise model (used for korean.model; see the next section).
+litsea extract -l <language> [--format tsv for Korean] [--tag-free] <corpus> <features.txt>
 
 # 2. Remap boundary labels 1/-1 -> B/O. This is required for correctness. not
 #    cosmetic: it makes the perceptron's own tie-break (lowest class index
@@ -132,6 +145,35 @@ single "correct" epoch count; pruning quality tends to degrade gracefully
 until a language-specific cliff, so sweep a few pruning levels around
 where `cargo bench` throughput starts recovering rather than guessing one
 number.
+
+## Tag-Free (Pointwise) Models
+
+16 of the boundary feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) read
+the model's own boundary decisions at the previous one to three positions.
+They chain each decision to the previous ones, which forces `segment()`'s
+scoring into a strictly sequential pass. A model trained **without** them
+(`litsea extract --tag-free`) is *pointwise* -- every position depends
+only on the input text -- and `segment()` detects this at model-load time
+and skips the sequential pass entirely (issue #183).
+
+What the tag features are worth differs sharply by language (all figures
+from converged epoch sweeps on the UD GSD test splits, issue #183):
+
+| Language | Word F1 with tags | Word F1 tag-free | Throughput change |
+|----------|-------------------|------------------|-------------------|
+| Korean | 99.90% | **99.91%** | faster (sequential pass skipped) |
+| Japanese | **96.70%** | 96.33% | ~+45-50% measured end-to-end |
+| Chinese | **90.69%** | 90.18% | ~+12% measured end-to-end |
+
+With the inter-eojeol space signal available, Korean's tag features
+contribute nothing, so `korean.model` ships tag-free (and ~22% smaller).
+For Japanese and Chinese they still buy 0.37-0.51pt of Word F1, so the
+bundled models keep them -- quality stays the default. If your workload
+prefers speed, retrain with the same procedure above plus `--tag-free` on
+the extract step; the throughput numbers were measured on this project's
+development machine with the paired methodology of
+[Benchmarking](advanced/benchmarking.md), so expect the ratio, not the
+absolute numbers, to carry over.
 
 ## POS Tagging Models
 
@@ -290,7 +332,7 @@ space-preserving TSV corpus `korean.model` uses (issue #152). The two-stage
 extractor takes a single corpus for both stages, and building a combined
 space-preserving + POS-tagged format is a separate feature not yet
 implemented; the numbers above are therefore comparable to `korean_pos.model`
-but not to `korean.model`'s 99.90% (a different corpus and protocol
+but not to `korean.model`'s 99.91% (a different corpus and protocol
 entirely, not a stronger or weaker two-stage result).
 
 #### Usage

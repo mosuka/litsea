@@ -102,10 +102,10 @@ litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
 | Classification | Binary (boundary / non-boundary) | Multiclass (18 segment labels) |
 | Labels | `1`, `-1` | `B-NOUN`, `B-VERB`, ..., `O` |
 | Hyperparameters | Threshold, Iterations | Number of epochs |
-| Model size | ~110 KB - 2.0 MB (bundled models) | ~9-19 MB |
+| Model size | ~86 KB - 2.0 MB (bundled models) | ~9-19 MB |
 
 The AdaBoost model-size range above reflects the bundled `japanese.model`
-(~1.1 MB), `chinese.model` (~2.0 MB), and `korean.model` (~110 KB); a model
+(~1.1 MB), `chinese.model` (~2.0 MB), and `korean.model` (~86 KB); a model
 trained with modest `-i` values (as in the basic example above) can be much
 smaller. The legacy `RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model`
 are smaller still (~16-22 KB). See [Pre-trained
