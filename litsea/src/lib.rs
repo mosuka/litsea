@@ -40,7 +40,7 @@ pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
-pub use segmenter::Segmenter;
+pub use segmenter::{SegmentBuffer, Segmenter};
 pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{
     AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,

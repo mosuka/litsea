@@ -77,6 +77,7 @@ The main user-facing module.
   - `with_pos_learner(language, pos_learner)` -- Create a segmenter for joint segmentation + POS tagging
   - `with_two_stage_learner(language, learner)` -- Create a segmenter for two-stage segmentation + POS tagging from a `TwoStageLearner`
   - `segment(sentence)` -- Segment text into words, returns `Vec<String>`
+  - `segment_into(sentence, buf)` -- Allocation-free variant (#184): returns token byte ranges borrowed from a reusable `SegmentBuffer`
   - `segment_with_pos(sentence)` -- Segment and tag, returns `Result<Vec<(String, Upos)>>` (`PosLearnerNotSet` unless a POS learner or a two-stage learner is set)
   - `char_type(ch)` -- Classify a single character into its type code
   - `add_corpus(corpus)` / `add_corpus_with_pos(corpus)` / `add_corpus_tsv(corpus)` -- Add training data (space-separated, POS-tagged, or tab-separated/space-preserving respectively; the latter is used for Korean, see issue #152)
@@ -215,7 +216,7 @@ pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
-pub use segmenter::Segmenter;
+pub use segmenter::{SegmentBuffer, Segmenter};
 pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{
     AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,

@@ -62,6 +62,55 @@ let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
 ```
 
+内部的には [`segment_into`](#segment_into--segmentbuffer) の薄いラッパーで、
+呼び出しごとに新しいバッファを使い、各 range を所有 `String` として
+実体化します — 採点実装は 1 つだけです。
+
+### `segment_into` / `SegmentBuffer`
+
+```rust
+pub struct SegmentBuffer { /* 内部のスクラッチ + 出力ストレージ */ }
+
+impl SegmentBuffer {
+    pub fn new() -> Self
+}
+
+impl Segmenter {
+    pub fn segment_into<'b>(
+        &self,
+        sentence: &str,
+        buf: &'b mut SegmentBuffer,
+    ) -> &'b [(usize, usize)]
+}
+```
+
+`segment` のアロケーションフリー版です（issue #184）。返される各
+`(start, end)` ペアは `sentence` へのバイト範囲（`&sentence[start..end]`
+がトークン）で、出現順に並び、文を過不足なく敷き詰めます。バッファは
+呼び出しごとに必要なアロケーション（コンテキスト配列・スコアバッファ・
+タグスクラッチ・出力 range）をすべて所有するため、バッチ処理で 1 つの
+バッファを使い回すと、定常状態では分割が一切アロケートしなくなります。
+空の入力には空のスライスを返します。
+
+公開スループット水準ではこれが効きます: `segment` はトークンごとに
+`String` を 1 つ確保し（バッチ処理では毎秒数百万個）、さらに呼び出し
+ごとのスクラッチも確保します — 計測ではバッチプロファイルの約 1/4 が
+アロケータ系でした。バッファは借用を持たないプレーンなデータなので、
+文・モデル・言語をまたいで再利用できます。並列処理ではスレッドごとに
+1 つのバッファを使ってください。
+
+```rust
+use litsea::segmenter::{SegmentBuffer, Segmenter};
+
+let mut buf = SegmentBuffer::new();
+for line in lines {
+    for &(start, end) in segmenter.segment_into(line, &mut buf) {
+        let token: &str = &line[start..end];
+        // アロケーションなしでトークンを参照・出力
+    }
+}
+```
+
 ### `char_type`
 
 ```rust

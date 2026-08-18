@@ -30,7 +30,7 @@ graph LR
 
 | モジュール | 主要な型 | 用途 |
 |--------|--------------|---------|
-| `litsea::segmenter` | `Segmenter` | 単語分割、品詞推定付き分割 |
+| `litsea::segmenter` | `Segmenter`, `SegmentBuffer` | 単語分割（所有出力またはアロケーションフリー出力）、品詞推定付き分割 |
 | `litsea::adaboost` | `AdaBoost` | 二値分類、モデルの入出力 |
 | `litsea::perceptron` | `AveragedPerceptron` | 多クラス分類（品詞推定）、モデルの入出力 |
 | `litsea::upos` | `Upos`, `SegmentLabel` | UPOS 品詞タグ、セグメントラベル |

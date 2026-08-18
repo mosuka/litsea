@@ -76,6 +76,26 @@ Criterion の `elem/s` 表示がそのまま **chars/sec** として読めます
 チューニング済み release プロファイル（thin LTO、codegen-units=1）を継承します
 （外部ベンチのクレートはデフォルトの release プロファイル）。
 
+## API 比較（`segment_into`）
+
+`segment_into` グループは、所有出力の `segment()` API とバッファ再利用の
+`segment_into()` API（issue #184）を、`external_corpus` と同じ 3 つの
+分割コーパス（同じ行単位ワークロード、`Throughput::Elements` による
+chars/sec 表示）でペア比較します:
+
+| ベンチ ID | API |
+|----------|-----|
+| `japanese-strings` / `korean-strings` / `chinese-strings` | `segment()`（トークンごとに `String` 1 つ、呼び出しごとに新規スクラッチ） |
+| `japanese-ranges` / `korean-ranges` / `chinese-ranges` | 1 つの `SegmentBuffer` を再利用する `segment_into()` |
+
+同一 run 内で同じ言語の 2 つの ID を比較してください: その差が、バッファ
+再利用 API が取り除く呼び出しごとのアロケーションコストです。採点処理は
+同一です（`segment()` は `segment_into()` のラッパー）。
+
+```sh
+cargo bench -- segment_into
+```
+
 ### 実行間のばらつき
 
 本ドキュメントに掲載している数値（[二段構成 vs Joint タグ付け](../algorithm/two-stage-tagging.md)や

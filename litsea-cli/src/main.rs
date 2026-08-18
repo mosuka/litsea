@@ -20,8 +20,8 @@ use clap::{Args, Parser, Subcommand};
 
 use litsea::version;
 use litsea::{
-    AdaBoost, AnyPosModel, Extractor, Language, PosTrainer, Segmenter, Trainer, TwoStageFeatureSet,
-    TwoStageTrainer, evaluation,
+    AdaBoost, AnyPosModel, Extractor, Language, PosTrainer, SegmentBuffer, Segmenter, Trainer,
+    TwoStageFeatureSet, TwoStageTrainer, evaluation,
 };
 
 /// Arguments for the extract command.
@@ -434,14 +434,26 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
 
         let segmenter = Segmenter::with_learner(language, learner);
 
+        // Reuse one segmentation buffer and one output line across the
+        // whole stream (issue #184): after the first few lines the loop
+        // allocates nothing per line. Output is identical to the previous
+        // `segment(line).join(" ")` — the ranges are the same tokens.
+        let mut buf = SegmentBuffer::new();
+        let mut out = String::new();
         for line in stdin.lock().lines() {
             let line = line?;
             let line = line.trim();
             if line.is_empty() {
                 continue;
             }
-            let tokens = segmenter.segment(line);
-            if !write_output_line(&mut writer, &tokens.join(" "))? {
+            out.clear();
+            for (k, &(start, end)) in segmenter.segment_into(line, &mut buf).iter().enumerate() {
+                if k > 0 {
+                    out.push(' ');
+                }
+                out.push_str(&line[start..end]);
+            }
+            if !write_output_line(&mut writer, &out)? {
                 return Ok(());
             }
         }
