@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a0e7dee3.js";
+            window.path_to_searchindex_js = "../searchindex-14ceddf2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-4bbd3799.js"></script>
@@ -258,6 +258,30 @@ extractor.extract_tsv(
     Path::new("./ko_features.txt"),
 )?;
 <span class="boring">}</span></code></pre>
+<h3 id="extract_tag_free--extract_tsv_tag_free"><a class="header" href="#extract_tag_free--extract_tsv_tag_free"><code>extract_tag_free</code> / <code>extract_tsv_tag_free</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_tag_free(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+
+pub fn extract_tsv_tag_free(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>The tag-free variants of <code>extract</code> / <code>extract_tsv</code> (issue #183): identical
+input and output formats, but the 16 tag-dependent templates
+(<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>, which read the previous boundary
+decisions) are dropped from every row. A model trained on these features
+is <em>pointwise</em>, so <code>segment()</code> skips its sequential scoring pass entirely.
+The bundled <code>korean.model</code> is trained this way; see <a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise)
+Models</a> for the
+measured per-language quality/speed trade-off. These back the CLI’s
+<code>extract --tag-free</code>.</p>
 <h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

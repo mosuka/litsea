@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a0e7dee3.js";
+            window.path_to_searchindex_js = "searchindex-14ceddf2.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-4bbd3799.js"></script>
@@ -184,7 +184,7 @@
 <h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
 <ul>
 <li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
-<li><strong>Compact pre-trained models</strong> – the legacy <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> files are kilobyte-scale; the quality-optimized <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> files are 110 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP</li>
+<li><strong>Compact pre-trained models</strong> – the legacy <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> files are kilobyte-scale; the quality-optimized <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP</li>
 <li><strong>No dictionary dependency</strong> – segmentation is driven entirely by a statistical model</li>
 <li><strong>POS tagging</strong> – joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron</li>
 <li><strong>Two-stage POS tagging</strong> – a faster architecture that segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, at 1.8-2.8x the throughput of joint tagging</li>
@@ -396,7 +396,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
 <li><strong>No dictionary dependency</strong> – Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns</li>
-<li><strong>Compact models</strong> – Legacy word-segmentation models (<code>RWCP.model</code>, <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>) are ~16-22 KB; the retrained <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> are 110 KB-2.0 MB, trading file size for the quality gains documented in <a href="#pre-trained-models-3">Pre-trained Models</a>; two-stage POS models are ~5-8 MB and joint POS models are ~9-19 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
+<li><strong>Compact models</strong> – Legacy word-segmentation models (<code>RWCP.model</code>, <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>) are ~16-22 KB; the retrained <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> are ~86 KB-2.0 MB, trading file size for the quality gains documented in <a href="#pre-trained-models-3">Pre-trained Models</a>; two-stage POS models are ~5-8 MB and joint POS models are ~9-19 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
 <li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
 </ul>
@@ -840,7 +840,7 @@ always produces byte-identical files; loading does not depend on the order</li>
 <tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
 <tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>
 <tr><td>Training</td><td>Iterative boosting with sample reweighting</td><td>Online learning with weight averaging</td></tr>
-<tr><td>Model size</td><td>110 KB-2.0 MB (retrained japanese/chinese/korean.model) / ~16-22 KB (legacy RWCP/JEITA)</td><td>~9-19 MB (bundled joint POS models) / ~5-8 MB (two-stage models)</td></tr>
+<tr><td>Model size</td><td>~86 KB-2.0 MB (retrained japanese/chinese/korean.model) / ~16-22 KB (legacy RWCP/JEITA)</td><td>~9-19 MB (bundled joint POS models) / ~5-8 MB (two-stage models)</td></tr>
 <tr><td>Hyperparameters</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>
@@ -1168,6 +1168,13 @@ starts a new word; otherwise it continues the current one. The decision
 is pushed to the tags array and feeds the next positions’ lookups.</p>
 <pre><code class="language-text">score = bias + static[i] + sum(dense[tag-dependent template][mixed-radix index])
 </code></pre>
+<p><strong>Pointwise fast path</strong> (issue #183): if the model has no tag-dependent
+features at all (e.g. it was trained with <code>litsea extract --tag-free</code>,
+like the bundled <code>korean.model</code>), the compiled model records this at
+load time and the sequential pass is skipped entirely – the decision
+reduces to <code>bias + static[i] &gt;= 0</code> with no tag bookkeeping. Output is
+identical either way (the skipped loads would each add <code>0.0</code>); only the
+serial dependency between positions disappears.</p>
 </li>
 </ol>
 <p>The bias is a cached field (<code>-sum(model) / 2.0</code>, kept in sync by every
@@ -1471,7 +1478,7 @@ a code or flag change.</p>
 <tbody>
 <tr><td>Japanese</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>96.70%</td></tr>
 <tr><td>Chinese</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>90.69%</td></tr>
-<tr><td>Korean</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>99.90%</td></tr>
+<tr><td>Korean</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>99.91%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1725,13 +1732,18 @@ scoring (see <a href="#evaluation-2">Evaluation</a>).</p>
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
 <li><strong>Training corpus</strong>: UD Korean-GSD (space-preserving TSV corpus)</li>
-<li><strong>Training options</strong>: <code>--format tsv</code>, 30 epochs of Averaged Perceptron
-training, collapsed to AdaBoost scalar weights, not pruned (3,994
-features) – see <a href="#training-procedure">Training
+<li><strong>Training options</strong>: <code>--format tsv --tag-free</code>, 30 epochs of Averaged
+Perceptron training, collapsed to AdaBoost scalar weights, not pruned
+(3,132 features) – see <a href="#training-procedure">Training
 Procedure</a> for the full recipe</li>
-<li><strong>Word F1 (held-out)</strong>: 99.90%</li>
-<li><strong>Boundary F1 (held-out)</strong>: 99.95%</li>
+<li><strong>Word F1 (held-out)</strong>: 99.91%</li>
+<li><strong>Boundary F1 (held-out)</strong>: 99.96%</li>
 </ul>
+<p>The model is trained without the 16 tag-dependent feature templates
+(<code>--tag-free</code>, issue #183): with the space signal available they measured
+as contributing nothing, and a pointwise model lets <code>segment()</code> skip its
+sequential scoring pass entirely. See <a href="#tag-free-pointwise-models">Tag-Free (Pointwise)
+Models</a>.</p>
 <p>Held-out metrics are computed on the original spaced text with space tokens
 excluded from scoring.</p>
 <h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
@@ -2273,6 +2285,30 @@ extractor.extract_tsv(
     Path::new("./ko_features.txt"),
 )?;
 <span class="boring">}</span></code></pre>
+<h3 id="extract_tag_free--extract_tsv_tag_free"><a class="header" href="#extract_tag_free--extract_tsv_tag_free"><code>extract_tag_free</code> / <code>extract_tsv_tag_free</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_tag_free(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+
+pub fn extract_tsv_tag_free(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>The tag-free variants of <code>extract</code> / <code>extract_tsv</code> (issue #183): identical
+input and output formats, but the 16 tag-dependent templates
+(<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>, which read the previous boundary
+decisions) are dropped from every row. A model trained on these features
+is <em>pointwise</em>, so <code>segment()</code> skips its sequential scoring pass entirely.
+The bundled <code>korean.model</code> is trained this way; see <a href="#tag-free-pointwise-models">Tag-Free (Pointwise)
+Models</a> for the
+measured per-language quality/speed trade-off. These back the CLI’s
+<code>extract --tag-free</code>.</p>
 <h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -3472,6 +3508,7 @@ reference.</p>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--pos</code> or <code>--two-stage</code></td></tr>
 <tr><td><code>--two-stage</code></td><td>off</td><td>Extract <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> training features instead of joint POS features. Requires a POS corpus as input; cannot be combined with <code>--pos</code></td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td>Stage-2 word-feature set for <code>--two-stage</code>: <code>full</code> (best quality), <code>balanced</code>, or <code>fast</code> (best throughput)</td></tr>
+<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code> – see <a href="#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--pos</code> or <code>--two-stage</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -4287,12 +4324,12 @@ in Pre-trained Models for how those files are actually made.</p>
 <tr><td>Classification</td><td>Binary (boundary / non-boundary)</td><td>Multiclass (18 segment labels)</td></tr>
 <tr><td>Labels</td><td><code>1</code>, <code>-1</code></td><td><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>O</code></td></tr>
 <tr><td>Hyperparameters</td><td>Threshold, Iterations</td><td>Number of epochs</td></tr>
-<tr><td>Model size</td><td>~110 KB - 2.0 MB (bundled models)</td><td>~9-19 MB</td></tr>
+<tr><td>Model size</td><td>~86 KB - 2.0 MB (bundled models)</td><td>~9-19 MB</td></tr>
 </tbody>
 </table>
 </div>
 <p>The AdaBoost model-size range above reflects the bundled <code>japanese.model</code>
-(~1.1 MB), <code>chinese.model</code> (~2.0 MB), and <code>korean.model</code> (~110 KB); a model
+(~1.1 MB), <code>chinese.model</code> (~2.0 MB), and <code>korean.model</code> (~86 KB); a model
 trained with modest <code>-i</code> values (as in the basic example above) can be much
 smaller. The legacy <code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>
 are smaller still (~16-22 KB). See <a href="#pre-trained-models-3">Pre-trained
@@ -4417,7 +4454,7 @@ individual boundary decisions.</p>
 </thead>
 <tbody>
 <tr><td>japanese.model</td><td>96.70%</td><td>98.59%</td><td>UD Japanese-GSD</td></tr>
-<tr><td>korean.model</td><td>99.90%</td><td>99.95%</td><td>UD Korean-GSD</td></tr>
+<tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>90.69%</td><td>95.64%</td><td>UD Chinese-GSD</td></tr>
 </tbody>
 </table>
@@ -4620,7 +4657,7 @@ above, and the parameter range, and reports errors with the section name
 <tbody>
 <tr><td>japanese.model</td><td>~1.1 MB</td><td>UD Japanese-GSD</td></tr>
 <tr><td>chinese.model</td><td>~2.0 MB</td><td>UD Chinese-GSD</td></tr>
-<tr><td>korean.model</td><td>~110 KB</td><td>UD Korean-GSD</td></tr>
+<tr><td>korean.model</td><td>~86 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
 <tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
 <tr><td>japanese_two_stage.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
@@ -4632,7 +4669,7 @@ above, and the parameter range, and reports errors with the section name
 </tbody>
 </table>
 </div>
-<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> (see <a href="#pre-trained-models-3">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now 110 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte joint POS (<code>*_pos.model</code>) and two-stage (<code>*_two_stage.model</code>) models, which are larger because they carry per-class or per-stage weights.</p>
+<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> (see <a href="#pre-trained-models-3">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte joint POS (<code>*_pos.model</code>) and two-stage (<code>*_two_stage.model</code>) models, which are larger because they carry per-class or per-stage weights.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
@@ -4879,10 +4916,11 @@ below) rather than plain <code>train</code>.</p>
 <tr><td>Language</td><td>Korean</td></tr>
 <tr><td>Training Corpus</td><td>UD Korean-GSD (space-preserving TSV corpus)</td></tr>
 <tr><td>Epochs</td><td>30</td></tr>
-<tr><td>Pruned To</td><td>not pruned (3,994 features)</td></tr>
-<tr><td>Word F1 (held-out)</td><td>99.90%</td></tr>
-<tr><td>Boundary F1 (held-out)</td><td>99.95%</td></tr>
-<tr><td>File Size</td><td>~110 KB</td></tr>
+<tr><td>Feature Templates</td><td>tag-free (pointwise, issue #183)</td></tr>
+<tr><td>Pruned To</td><td>not pruned (3,132 features)</td></tr>
+<tr><td>Word F1 (held-out)</td><td>99.91%</td></tr>
+<tr><td>Boundary F1 (held-out)</td><td>99.96%</td></tr>
+<tr><td>File Size</td><td>~86 KB</td></tr>
 </tbody>
 </table>
 </div>
@@ -4892,9 +4930,18 @@ excluded from the F1 computation). Spaces mark most word boundaries in
 Korean, so a model that sees them during training resolves the UD
 Korean-GSD standard almost deterministically – this is also why Korean’s
 feature count and file size stay small (there is little ambiguity left for
-the model to learn) and its quality is essentially unchanged from the prior
-AdaBoost model (99.90% vs. 99.91%, within measurement noise). Japanese and
-Chinese are written without spaces, so their protocol is unchanged.</p>
+the model to learn). Japanese and Chinese are written without spaces, so
+their protocol is unchanged.</p>
+<p>The Korean model is additionally trained <strong>without the 16 tag-dependent
+feature templates</strong> (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>, which read the
+boundary decisions at the previous one to three positions): with the space
+signal available, those templates measured as contributing nothing (99.91%
+tag-free vs. 99.90% with them, with ~22% fewer features). A model with no
+tag-dependent features is <em>pointwise</em> – every position’s decision depends
+only on the input text – so <code>segment()</code> skips its sequential scoring pass
+entirely (issue #183). See <a href="#tag-free-pointwise-models">Tag-Free (Pointwise)
+Models</a> below for the trade-off in the other
+languages.</p>
 <h3 id="chinesemodel-1"><a class="header" href="#chinesemodel-1">chinese.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -4947,8 +4994,10 @@ Models</a> for the plain AdaBoost procedure.
 <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are retrained with the
 binary-perceptron-collapse procedure (#165), which needs no engine changes
 but does need a few extra steps beyond plain <code>litsea train</code>:</p>
-<pre><code class="language-sh"># 1. Extract plain boundary features (the same step as before).
-litsea extract -l &lt;language&gt; [--format tsv for Korean] &lt;corpus&gt; &lt;features.txt&gt;
+<pre><code class="language-sh"># 1. Extract plain boundary features (the same step as before). Add
+#    --tag-free to drop the 16 tag-dependent templates and train a
+#    pointwise model (used for korean.model; see the next section).
+litsea extract -l &lt;language&gt; [--format tsv for Korean] [--tag-free] &lt;corpus&gt; &lt;features.txt&gt;
 
 # 2. Remap boundary labels 1/-1 -&gt; B/O. This is required for correctness. not
 #    cosmetic: it makes the perceptron's own tie-break (lowest class index
@@ -4979,6 +5028,37 @@ single “correct” epoch count; pruning quality tends to degrade gracefully
 until a language-specific cliff, so sweep a few pruning levels around
 where <code>cargo bench</code> throughput starts recovering rather than guessing one
 number.</p>
+<h2 id="tag-free-pointwise-models"><a class="header" href="#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a></h2>
+<p>16 of the boundary feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) read
+the model’s own boundary decisions at the previous one to three positions.
+They chain each decision to the previous ones, which forces <code>segment()</code>’s
+scoring into a strictly sequential pass. A model trained <strong>without</strong> them
+(<code>litsea extract --tag-free</code>) is <em>pointwise</em> – every position depends
+only on the input text – and <code>segment()</code> detects this at model-load time
+and skips the sequential pass entirely (issue #183).</p>
+<p>What the tag features are worth differs sharply by language (all figures
+from converged epoch sweeps on the UD GSD test splits, issue #183):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Language</th><th>Word F1 with tags</th><th>Word F1 tag-free</th><th>Throughput change</th></tr>
+</thead>
+<tbody>
+<tr><td>Korean</td><td>99.90%</td><td><strong>99.91%</strong></td><td>faster (sequential pass skipped)</td></tr>
+<tr><td>Japanese</td><td><strong>96.70%</strong></td><td>96.33%</td><td>~+45-50% measured end-to-end</td></tr>
+<tr><td>Chinese</td><td><strong>90.69%</strong></td><td>90.18%</td><td>~+12% measured end-to-end</td></tr>
+</tbody>
+</table>
+</div>
+<p>With the inter-eojeol space signal available, Korean’s tag features
+contribute nothing, so <code>korean.model</code> ships tag-free (and ~22% smaller).
+For Japanese and Chinese they still buy 0.37-0.51pt of Word F1, so the
+bundled models keep them – quality stays the default. If your workload
+prefers speed, retrain with the same procedure above plus <code>--tag-free</code> on
+the extract step; the throughput numbers were measured on this project’s
+development machine with the paired methodology of
+<a href="#benchmarking">Benchmarking</a>, so expect the ratio, not the
+absolute numbers, to carry over.</p>
 <h2 id="pos-tagging-models"><a class="header" href="#pos-tagging-models">POS Tagging Models</a></h2>
 <p>In-sample rows are the <code>train</code> command’s metrics on the training data;
 held-out rows are word / tagged-word F1 measured with <code>litsea evaluate --pos</code> on the UD GSD test splits (see
@@ -5152,7 +5232,7 @@ space-preserving TSV corpus <code>korean.model</code> uses (issue #152). The two
 extractor takes a single corpus for both stages, and building a combined
 space-preserving + POS-tagged format is a separate feature not yet
 implemented; the numbers above are therefore comparable to <code>korean_pos.model</code>
-but not to <code>korean.model</code>’s 99.90% (a different corpus and protocol
+but not to <code>korean.model</code>’s 99.91% (a different corpus and protocol
 entirely, not a stronger or weaker two-stage result).</p>
 <h4 id="usage-1-3"><a class="header" href="#usage-1-3">Usage</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model

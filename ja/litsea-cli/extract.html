@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-579b70ac.js";
+            window.path_to_searchindex_js = "../searchindex-93f60752.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -209,6 +209,7 @@
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--pos</code> および <code>--two-stage</code> と併用できません</td></tr>
 <tr><td><code>--two-stage</code></td><td>off</td><td>通常の品詞特徴量の代わりに<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。<code>--pos</code> とは併用できません</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td><code>--two-stage</code> 用の stage-2 単語特徴セット: <code>full</code>（品質最優先）、<code>balanced</code>、<code>fast</code>（速度最優先）</td></tr>
+<tr><td><code>--tag-free</code></td><td>オフ</td><td>16 個のタグ依存特徴量テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>）を除外し、学習されるモデルを pointwise にして <code>segment()</code> の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の <code>korean.model</code> で使用 – 言語別の品質・速度トレードオフは<a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を参照）。<code>--format tsv</code> と併用可。<code>--pos</code> / <code>--two-stage</code> とは併用不可</td></tr>
 </tbody>
 </table>
 </div>

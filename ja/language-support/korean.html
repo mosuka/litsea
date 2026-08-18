@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-579b70ac.js";
+            window.path_to_searchindex_js = "../searchindex-93f60752.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -236,13 +236,20 @@
 <h3 id="koreanmodel"><a class="header" href="#koreanmodel">korean.model</a></h3>
 <ul>
 <li><strong>学習コーパス</strong>: UD Korean-GSD（空白保持 TSV コーパス）</li>
-<li><strong>学習オプション</strong>: <code>--format tsv</code>、Averaged Perceptron を30エポック学習し、
-AdaBoostのスカラー重みへ畳み込み、剪定なし（3,994特徴量）– 詳しい手順は
+<li><strong>学習オプション</strong>: <code>--format tsv --tag-free</code>、Averaged Perceptron を
+30エポック学習し、AdaBoostのスカラー重みへ畳み込み、剪定なし
+（3,132特徴量）– 詳しい手順は
 <a href="../pre-trained-models.html#学習手順">学習手順</a>を参照</li>
-<li><strong>単語 F1（held-out）</strong>: 99.90%</li>
-<li><strong>境界 F1（held-out）</strong>: 99.95%</li>
+<li><strong>単語 F1（held-out）</strong>: 99.91%</li>
+<li><strong>境界 F1（held-out）</strong>: 99.96%</li>
 </ul>
 <p>held-out 指標は、空白トークンをスコアリングから除外した上で、元の空白付きテキストに対して計算しています。</p>
+<p>このモデルは 16 個のタグ依存特徴量テンプレートを使わずに学習しています
+（<code>--tag-free</code>、issue #183）: 空白シグナルがあるため、これらは計測上
+何も寄与しておらず、pointwise なモデルにすることで <code>segment()</code> は逐次
+スコアリングパスを丸ごとスキップできます。詳細は
+<a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>
+を参照してください。</p>
 <h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
 <ul>
 <li><strong>アルゴリズム</strong>: Averaged Perceptron（単語分割と品詞推定の同時学習）</li>

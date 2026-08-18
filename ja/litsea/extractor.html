@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-579b70ac.js";
+            window.path_to_searchindex_js = "../searchindex-93f60752.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -254,6 +254,29 @@ extractor.extract_tsv(
     Path::new("./ko_features.txt"),
 )?;
 <span class="boring">}</span></code></pre>
+<h3 id="extract_tag_free--extract_tsv_tag_free"><a class="header" href="#extract_tag_free--extract_tsv_tag_free"><code>extract_tag_free</code> / <code>extract_tsv_tag_free</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_tag_free(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+
+pub fn extract_tsv_tag_free(
+    &amp;self,
+    corpus_path: &amp;Path,
+    features_path: &amp;Path,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>extract</code> / <code>extract_tsv</code> のタグなし版です（issue #183）: 入力・出力形式は
+同一ですが、16 個のタグ依存テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>。
+直前の境界判定結果を参照する）を全行から除外します。この特徴量で学習した
+モデルは <em>pointwise</em> になり、<code>segment()</code> は逐次スコアリングパスを丸ごと
+スキップします。同梱の <code>korean.model</code> はこの方法で学習されています。
+言語別の品質・速度トレードオフの実測値は
+<a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>
+を参照してください。CLI の <code>extract --tag-free</code> の実体です。</p>
 <h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
