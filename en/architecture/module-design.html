@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-14ceddf2.js";
+            window.path_to_searchindex_js = "../searchindex-546539a9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-4bbd3799.js"></script>
@@ -255,6 +255,7 @@
 <li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
 <li><code>with_two_stage_learner(language, learner)</code> – Create a segmenter for two-stage segmentation + POS tagging from a <code>TwoStageLearner</code></li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
+<li><code>segment_into(sentence, buf)</code> – Allocation-free variant (#184): returns token byte ranges borrowed from a reusable <code>SegmentBuffer</code></li>
 <li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> unless a POS learner or a two-stage learner is set)</li>
 <li><code>char_type(ch)</code> – Classify a single character into its type code</li>
 <li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – Add training data (space-separated, POS-tagged, or tab-separated/space-preserving respectively; the latter is used for Korean, see issue #152)</li>
@@ -396,7 +397,7 @@ pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
-pub use segmenter::Segmenter;
+pub use segmenter::{SegmentBuffer, Segmenter};
 pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{
     AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,

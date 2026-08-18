@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-93f60752.js";
+            window.path_to_searchindex_js = "searchindex-0d67541c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-72f19d1d.js"></script>
@@ -475,6 +475,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <li><code>with_pos_learner(language, pos_learner)</code> – 分割+品詞付与用のセグメンターを作成</li>
 <li><code>with_two_stage_learner(language, learner)</code> – <code>TwoStageLearner</code> から二段構成の分割+品詞付与用セグメンターを作成</li>
 <li><code>segment(sentence)</code> – テキストを単語に分割し <code>Vec&lt;String&gt;</code> を返す</li>
+<li><code>segment_into(sentence, buf)</code> – アロケーションフリー版（#184）: 再利用可能な <code>SegmentBuffer</code> から借用したトークンのバイト範囲を返す</li>
 <li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> を返す（POS 学習器・二段構成学習器のいずれも未設定の場合は <code>PosLearnerNotSet</code>）</li>
 <li><code>char_type(ch)</code> – 1文字を種別コードに分類</li>
 <li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – 学習データを追加（それぞれ空白区切り・品詞付き・タブ区切り/空白保持。後者は韓国語で使用、issue #152 を参照）</li>
@@ -616,7 +617,7 @@ pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
-pub use segmenter::Segmenter;
+pub use segmenter::{SegmentBuffer, Segmenter};
 pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{
     AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
@@ -1159,10 +1160,11 @@ scatter-add する</li>
 </ol>
 <p>バイアスはキャッシュされたフィールド（<code>-sum(model) / 2.0</code>、重みを変更する
 すべての経路で同期される）で、文ごとに 1 回だけ読み取られます。packed
-コンテキスト（<code>packed_context</code>）は、単語組み立て用の文字列スライスを入力から
-直接借用し、並行して <code>u32</code> 文字コード配列と <code>u8</code> 文字種 ID 配列を保持します。
-センチネルエントリ（<code>B3</code>…<code>E3</code>）は Unicode スカラー範囲の直上のコードに
-マップされます。</p>
+コンテキストは <code>u32</code> 文字コード配列と <code>u8</code> 文字種 ID 配列に加えて文字ごとの
+バイトオフセットを保持します（境界パイプラインはトークンを入力へのバイト
+範囲として出力します。#184。<code>segment()</code> はそれを <code>String</code> として実体化し、
+<code>segment_into()</code> は再利用可能なバッファからそのまま返します）。センチネル
+エントリ（<code>B3</code>…<code>E3</code>）は Unicode スカラー範囲の直上のコードにマップされます。</p>
 <h3 id="コンパイル済みスコアリングテーブル"><a class="header" href="#コンパイル済みスコアリングテーブル">コンパイル済みスコアリングテーブル</a></h3>
 <p>特徴テンプレートは宣言的なテーブル（<code>packed_model::TEMPLATES</code>）として一度だけ
 定義され、そこから 4 つの消費者が導出されます: 学習・抽出で使用される
@@ -1864,7 +1866,7 @@ litsea = "0.11.0"
 <tr><th>モジュール</th><th>主要な型</th><th>用途</th></tr>
 </thead>
 <tbody>
-<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>単語分割、品詞推定付き分割</td></tr>
+<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code>, <code>SegmentBuffer</code></td><td>単語分割（所有出力またはアロケーションフリー出力）、品詞推定付き分割</td></tr>
 <tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code></td><td>二値分類、モデルの入出力</td></tr>
 <tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>多クラス分類（品詞推定）、モデルの入出力</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS 品詞タグ、セグメントラベル</td></tr>
@@ -1990,6 +1992,51 @@ let segmenter = Segmenter::new(Language::Japanese);
 </span><span class="boring">fn main() {
 </span>let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
+<span class="boring">}</span></code></pre>
+<p>内部的には <a href="#segment_into--segmentbuffer"><code>segment_into</code></a> の薄いラッパーで、
+呼び出しごとに新しいバッファを使い、各 range を所有 <code>String</code> として
+実体化します — 採点実装は 1 つだけです。</p>
+<h3 id="segment_into--segmentbuffer"><a class="header" href="#segment_into--segmentbuffer"><code>segment_into</code> / <code>SegmentBuffer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SegmentBuffer { /* 内部のスクラッチ + 出力ストレージ */ }
+
+impl SegmentBuffer {
+    pub fn new() -&gt; Self
+}
+
+impl Segmenter {
+    pub fn segment_into&lt;'b&gt;(
+        &amp;self,
+        sentence: &amp;str,
+        buf: &amp;'b mut SegmentBuffer,
+    ) -&gt; &amp;'b [(usize, usize)]
+}
+<span class="boring">}</span></code></pre>
+<p><code>segment</code> のアロケーションフリー版です（issue #184）。返される各
+<code>(start, end)</code> ペアは <code>sentence</code> へのバイト範囲（<code>&amp;sentence[start..end]</code>
+がトークン）で、出現順に並び、文を過不足なく敷き詰めます。バッファは
+呼び出しごとに必要なアロケーション（コンテキスト配列・スコアバッファ・
+タグスクラッチ・出力 range）をすべて所有するため、バッチ処理で 1 つの
+バッファを使い回すと、定常状態では分割が一切アロケートしなくなります。
+空の入力には空のスライスを返します。</p>
+<p>公開スループット水準ではこれが効きます: <code>segment</code> はトークンごとに
+<code>String</code> を 1 つ確保し（バッチ処理では毎秒数百万個）、さらに呼び出し
+ごとのスクラッチも確保します — 計測ではバッチプロファイルの約 1/4 が
+アロケータ系でした。バッファは借用を持たないプレーンなデータなので、
+文・モデル・言語をまたいで再利用できます。並列処理ではスレッドごとに
+1 つのバッファを使ってください。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::segmenter::{SegmentBuffer, Segmenter};
+
+let mut buf = SegmentBuffer::new();
+for line in lines {
+    for &amp;(start, end) in segmenter.segment_into(line, &amp;mut buf) {
+        let token: &amp;str = &amp;line[start..end];
+        // アロケーションなしでトークンを参照・出力
+    }
+}
 <span class="boring">}</span></code></pre>
 <h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4648,6 +4695,27 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 （外部ベンチは 101 回のプロセスインターリーブ実行）であり、<code>cargo bench</code> は litsea の
 チューニング済み release プロファイル（thin LTO、codegen-units=1）を継承します
 （外部ベンチのクレートはデフォルトの release プロファイル）。</p>
+<h2 id="api-比較segment_into"><a class="header" href="#api-比較segment_into">API 比較（<code>segment_into</code>）</a></h2>
+<p><code>segment_into</code> グループは、所有出力の <code>segment()</code> API とバッファ再利用の
+<code>segment_into()</code> API（issue #184）を、<code>external_corpus</code> と同じ 3 つの
+分割コーパス（同じ行単位ワークロード、<code>Throughput::Elements</code> による
+chars/sec 表示）でペア比較します:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ベンチ ID</th><th>API</th></tr>
+</thead>
+<tbody>
+<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code></td><td><code>segment()</code>（トークンごとに <code>String</code> 1 つ、呼び出しごとに新規スクラッチ）</td></tr>
+<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code></td><td>1 つの <code>SegmentBuffer</code> を再利用する <code>segment_into()</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>同一 run 内で同じ言語の 2 つの ID を比較してください: その差が、バッファ
+再利用 API が取り除く呼び出しごとのアロケーションコストです。採点処理は
+同一です（<code>segment()</code> は <code>segment_into()</code> のラッパー）。</p>
+<pre><code class="language-sh">cargo bench -- segment_into
+</code></pre>
 <h3 id="実行間のばらつき"><a class="header" href="#実行間のばらつき">実行間のばらつき</a></h3>
 <p>本ドキュメントに掲載している数値（<a href="#二段構成-vs-joint-タグ付け">二段構成 vs Joint タグ付け</a>や
 <a href="#事前学習済みモデル">事前学習済みモデル</a>ページの二段構成 vs joint の比較を含む）は、

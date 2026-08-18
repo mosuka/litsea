@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-14ceddf2.js";
+            window.path_to_searchindex_js = "../searchindex-546539a9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-4bbd3799.js"></script>
@@ -258,10 +258,11 @@ serial dependency between positions disappears.</p>
 </ol>
 <p>The bias is a cached field (<code>-sum(model) / 2.0</code>, kept in sync by every
 weight-mutating path) and is read once per sentence. The packed context
-(<code>packed_context</code>) borrows word-assembly string slices directly from the
-input and carries parallel <code>u32</code> char-code and <code>u8</code> type-id arrays; the
-sentinel entries (<code>B3</code>…<code>E3</code>) map to code points just above the Unicode
-scalar range.</p>
+carries parallel <code>u32</code> char-code and <code>u8</code> type-id arrays plus per-character
+byte offsets (the boundary pipeline emits tokens as byte ranges of the
+input, #184; <code>segment()</code> materializes them as <code>String</code>s, <code>segment_into()</code>
+returns them directly from a reusable buffer); the sentinel entries
+(<code>B3</code>…<code>E3</code>) map to code points just above the Unicode scalar range.</p>
 <h3 id="the-compiled-scoring-tables"><a class="header" href="#the-compiled-scoring-tables">The Compiled Scoring Tables</a></h3>
 <p>The feature template is defined once as a declarative table
 (<code>packed_model::TEMPLATES</code>), from which four consumers derive: the string

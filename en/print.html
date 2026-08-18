@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-14ceddf2.js";
+            window.path_to_searchindex_js = "searchindex-546539a9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-4bbd3799.js"></script>
@@ -476,6 +476,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <li><code>with_pos_learner(language, pos_learner)</code> – Create a segmenter for joint segmentation + POS tagging</li>
 <li><code>with_two_stage_learner(language, learner)</code> – Create a segmenter for two-stage segmentation + POS tagging from a <code>TwoStageLearner</code></li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
+<li><code>segment_into(sentence, buf)</code> – Allocation-free variant (#184): returns token byte ranges borrowed from a reusable <code>SegmentBuffer</code></li>
 <li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> unless a POS learner or a two-stage learner is set)</li>
 <li><code>char_type(ch)</code> – Classify a single character into its type code</li>
 <li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – Add training data (space-separated, POS-tagged, or tab-separated/space-preserving respectively; the latter is used for Korean, see issue #152)</li>
@@ -617,7 +618,7 @@ pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
-pub use segmenter::Segmenter;
+pub use segmenter::{SegmentBuffer, Segmenter};
 pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{
     AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
@@ -1179,10 +1180,11 @@ serial dependency between positions disappears.</p>
 </ol>
 <p>The bias is a cached field (<code>-sum(model) / 2.0</code>, kept in sync by every
 weight-mutating path) and is read once per sentence. The packed context
-(<code>packed_context</code>) borrows word-assembly string slices directly from the
-input and carries parallel <code>u32</code> char-code and <code>u8</code> type-id arrays; the
-sentinel entries (<code>B3</code>…<code>E3</code>) map to code points just above the Unicode
-scalar range.</p>
+carries parallel <code>u32</code> char-code and <code>u8</code> type-id arrays plus per-character
+byte offsets (the boundary pipeline emits tokens as byte ranges of the
+input, #184; <code>segment()</code> materializes them as <code>String</code>s, <code>segment_into()</code>
+returns them directly from a reusable buffer); the sentinel entries
+(<code>B3</code>…<code>E3</code>) map to code points just above the Unicode scalar range.</p>
 <h3 id="the-compiled-scoring-tables"><a class="header" href="#the-compiled-scoring-tables">The Compiled Scoring Tables</a></h3>
 <p>The feature template is defined once as a declarative table
 (<code>packed_model::TEMPLATES</code>), from which four consumers derive: the string
@@ -1925,7 +1927,7 @@ litsea = "0.11.0"
 <tr><th>Module</th><th>Primary Types</th><th>Purpose</th></tr>
 </thead>
 <tbody>
-<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code></td><td>Word segmentation, joint segmentation with POS tagging</td></tr>
+<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code>, <code>SegmentBuffer</code></td><td>Word segmentation (owned or allocation-free output), joint segmentation with POS tagging</td></tr>
 <tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code></td><td>Binary classification, model I/O</td></tr>
 <tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>Multiclass classification (POS tagging), model I/O</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS POS tags, segment labels</td></tr>
@@ -2066,6 +2068,52 @@ let segmenter = Segmenter::new(Language::Japanese);
 </span><span class="boring">fn main() {
 </span>let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
+<span class="boring">}</span></code></pre>
+<p>Internally this is a thin wrapper over
+<a href="#segment_into--segmentbuffer"><code>segment_into</code></a> with a fresh buffer per
+call, materializing each range as an owned <code>String</code> — there is a single
+scoring implementation.</p>
+<h3 id="segment_into--segmentbuffer"><a class="header" href="#segment_into--segmentbuffer"><code>segment_into</code> / <code>SegmentBuffer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SegmentBuffer { /* internal scratch + output storage */ }
+
+impl SegmentBuffer {
+    pub fn new() -&gt; Self
+}
+
+impl Segmenter {
+    pub fn segment_into&lt;'b&gt;(
+        &amp;self,
+        sentence: &amp;str,
+        buf: &amp;'b mut SegmentBuffer,
+    ) -&gt; &amp;'b [(usize, usize)]
+}
+<span class="boring">}</span></code></pre>
+<p>The allocation-free variant of <code>segment</code> (issue #184). Each returned
+<code>(start, end)</code> pair is a byte range into <code>sentence</code>
+(<code>&amp;sentence[start..end]</code> is the token), in order, tiling the sentence
+exactly. The buffer owns every per-call allocation (context arrays, score
+buffer, tag scratch, output ranges); reusing one buffer across a batch of
+sentences reaches a steady state where segmentation allocates nothing.
+Empty input yields an empty slice.</p>
+<p>At the published throughputs this matters: <code>segment</code> allocates one
+<code>String</code> per token (millions per second in batch workloads) plus per-call
+scratch, which measured as roughly a quarter of the batch profile. The
+buffer holds plain data (no borrows), so it can be reused across
+sentences, models, and languages; for parallel processing use one buffer
+per thread.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::segmenter::{SegmentBuffer, Segmenter};
+
+let mut buf = SegmentBuffer::new();
+for line in lines {
+    for &amp;(start, end) in segmenter.segment_into(line, &amp;mut buf) {
+        let token: &amp;str = &amp;line[start..end];
+        // write/inspect token without allocating
+    }
+}
 <span class="boring">}</span></code></pre>
 <h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4828,6 +4876,27 @@ uses in-process warmup and sampling instead of 101 process-interleaved
 single passes, and <code>cargo bench</code> inherits litsea’s tuned release profile
 (thin LTO, single codegen unit) while the external bench crates build with
 the default release profile.</p>
+<h2 id="api-comparison-segment_into"><a class="header" href="#api-comparison-segment_into">API Comparison (<code>segment_into</code>)</a></h2>
+<p>The <code>segment_into</code> group pairs the owned-output <code>segment()</code> API against
+the buffer-reusing <code>segment_into()</code> API (issue #184) on the same three
+segmentation corpora as <code>external_corpus</code> (same per-line workload,
+chars/sec via <code>Throughput::Elements</code>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Bench ID</th><th>API</th></tr>
+</thead>
+<tbody>
+<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code></td><td><code>segment()</code> (one <code>String</code> per token, fresh scratch per call)</td></tr>
+<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code></td><td><code>segment_into()</code> with one reused <code>SegmentBuffer</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Compare the two ids of a language within one run: their difference is the
+per-call allocation cost the buffer-reusing API removes. The scoring work
+is identical (<code>segment()</code> is a wrapper over <code>segment_into()</code>).</p>
+<pre><code class="language-sh">cargo bench -- segment_into
+</code></pre>
 <h3 id="run-to-run-variance"><a class="header" href="#run-to-run-variance">Run-to-Run Variance</a></h3>
 <p>The published figures in this book (including the two-stage vs. joint
 comparisons on the <a href="#two-stage-vs-joint-tagging">Two-Stage vs. Joint

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-14ceddf2.js";
+            window.path_to_searchindex_js = "../searchindex-546539a9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-4bbd3799.js"></script>
@@ -259,6 +259,27 @@ uses in-process warmup and sampling instead of 101 process-interleaved
 single passes, and <code>cargo bench</code> inherits litsea’s tuned release profile
 (thin LTO, single codegen unit) while the external bench crates build with
 the default release profile.</p>
+<h2 id="api-comparison-segment_into"><a class="header" href="#api-comparison-segment_into">API Comparison (<code>segment_into</code>)</a></h2>
+<p>The <code>segment_into</code> group pairs the owned-output <code>segment()</code> API against
+the buffer-reusing <code>segment_into()</code> API (issue #184) on the same three
+segmentation corpora as <code>external_corpus</code> (same per-line workload,
+chars/sec via <code>Throughput::Elements</code>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Bench ID</th><th>API</th></tr>
+</thead>
+<tbody>
+<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code></td><td><code>segment()</code> (one <code>String</code> per token, fresh scratch per call)</td></tr>
+<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code></td><td><code>segment_into()</code> with one reused <code>SegmentBuffer</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Compare the two ids of a language within one run: their difference is the
+per-call allocation cost the buffer-reusing API removes. The scoring work
+is identical (<code>segment()</code> is a wrapper over <code>segment_into()</code>).</p>
+<pre><code class="language-sh">cargo bench -- segment_into
+</code></pre>
 <h3 id="run-to-run-variance"><a class="header" href="#run-to-run-variance">Run-to-Run Variance</a></h3>
 <p>The published figures in this book (including the two-stage vs. joint
 comparisons on the <a href="../algorithm/two-stage-tagging.html">Two-Stage vs. Joint

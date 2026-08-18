@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-93f60752.js";
+            window.path_to_searchindex_js = "../searchindex-0d67541c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -230,6 +230,51 @@ let segmenter = Segmenter::new(Language::Japanese);
 </span><span class="boring">fn main() {
 </span>let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
+<span class="boring">}</span></code></pre>
+<p>内部的には <a href="#segment_into--segmentbuffer"><code>segment_into</code></a> の薄いラッパーで、
+呼び出しごとに新しいバッファを使い、各 range を所有 <code>String</code> として
+実体化します — 採点実装は 1 つだけです。</p>
+<h3 id="segment_into--segmentbuffer"><a class="header" href="#segment_into--segmentbuffer"><code>segment_into</code> / <code>SegmentBuffer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SegmentBuffer { /* 内部のスクラッチ + 出力ストレージ */ }
+
+impl SegmentBuffer {
+    pub fn new() -&gt; Self
+}
+
+impl Segmenter {
+    pub fn segment_into&lt;'b&gt;(
+        &amp;self,
+        sentence: &amp;str,
+        buf: &amp;'b mut SegmentBuffer,
+    ) -&gt; &amp;'b [(usize, usize)]
+}
+<span class="boring">}</span></code></pre>
+<p><code>segment</code> のアロケーションフリー版です（issue #184）。返される各
+<code>(start, end)</code> ペアは <code>sentence</code> へのバイト範囲（<code>&amp;sentence[start..end]</code>
+がトークン）で、出現順に並び、文を過不足なく敷き詰めます。バッファは
+呼び出しごとに必要なアロケーション（コンテキスト配列・スコアバッファ・
+タグスクラッチ・出力 range）をすべて所有するため、バッチ処理で 1 つの
+バッファを使い回すと、定常状態では分割が一切アロケートしなくなります。
+空の入力には空のスライスを返します。</p>
+<p>公開スループット水準ではこれが効きます: <code>segment</code> はトークンごとに
+<code>String</code> を 1 つ確保し（バッチ処理では毎秒数百万個）、さらに呼び出し
+ごとのスクラッチも確保します — 計測ではバッチプロファイルの約 1/4 が
+アロケータ系でした。バッファは借用を持たないプレーンなデータなので、
+文・モデル・言語をまたいで再利用できます。並列処理ではスレッドごとに
+1 つのバッファを使ってください。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::segmenter::{SegmentBuffer, Segmenter};
+
+let mut buf = SegmentBuffer::new();
+for line in lines {
+    for &amp;(start, end) in segmenter.segment_into(line, &amp;mut buf) {
+        let token: &amp;str = &amp;line[start..end];
+        // アロケーションなしでトークンを参照・出力
+    }
+}
 <span class="boring">}</span></code></pre>
 <h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

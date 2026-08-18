@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-93f60752.js";
+            window.path_to_searchindex_js = "../searchindex-0d67541c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -256,10 +256,11 @@ scatter-add する</li>
 </ol>
 <p>バイアスはキャッシュされたフィールド（<code>-sum(model) / 2.0</code>、重みを変更する
 すべての経路で同期される）で、文ごとに 1 回だけ読み取られます。packed
-コンテキスト（<code>packed_context</code>）は、単語組み立て用の文字列スライスを入力から
-直接借用し、並行して <code>u32</code> 文字コード配列と <code>u8</code> 文字種 ID 配列を保持します。
-センチネルエントリ（<code>B3</code>…<code>E3</code>）は Unicode スカラー範囲の直上のコードに
-マップされます。</p>
+コンテキストは <code>u32</code> 文字コード配列と <code>u8</code> 文字種 ID 配列に加えて文字ごとの
+バイトオフセットを保持します（境界パイプラインはトークンを入力へのバイト
+範囲として出力します。#184。<code>segment()</code> はそれを <code>String</code> として実体化し、
+<code>segment_into()</code> は再利用可能なバッファからそのまま返します）。センチネル
+エントリ（<code>B3</code>…<code>E3</code>）は Unicode スカラー範囲の直上のコードにマップされます。</p>
 <h3 id="コンパイル済みスコアリングテーブル"><a class="header" href="#コンパイル済みスコアリングテーブル">コンパイル済みスコアリングテーブル</a></h3>
 <p>特徴テンプレートは宣言的なテーブル（<code>packed_model::TEMPLATES</code>）として一度だけ
 定義され、そこから 4 つの消費者が導出されます: 学習・抽出で使用される

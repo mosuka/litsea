@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-93f60752.js";
+            window.path_to_searchindex_js = "../searchindex-0d67541c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -255,6 +255,7 @@
 <li><code>with_pos_learner(language, pos_learner)</code> – 分割+品詞付与用のセグメンターを作成</li>
 <li><code>with_two_stage_learner(language, learner)</code> – <code>TwoStageLearner</code> から二段構成の分割+品詞付与用セグメンターを作成</li>
 <li><code>segment(sentence)</code> – テキストを単語に分割し <code>Vec&lt;String&gt;</code> を返す</li>
+<li><code>segment_into(sentence, buf)</code> – アロケーションフリー版（#184）: 再利用可能な <code>SegmentBuffer</code> から借用したトークンのバイト範囲を返す</li>
 <li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> を返す（POS 学習器・二段構成学習器のいずれも未設定の場合は <code>PosLearnerNotSet</code>）</li>
 <li><code>char_type(ch)</code> – 1文字を種別コードに分類</li>
 <li><code>add_corpus(corpus)</code> / <code>add_corpus_with_pos(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – 学習データを追加（それぞれ空白区切り・品詞付き・タブ区切り/空白保持。後者は韓国語で使用、issue #152 を参照）</li>
@@ -396,7 +397,7 @@ pub use extractor::Extractor;
 pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
-pub use segmenter::Segmenter;
+pub use segmenter::{SegmentBuffer, Segmenter};
 pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{
     AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-14ceddf2.js";
+            window.path_to_searchindex_js = "../searchindex-546539a9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-4bbd3799.js"></script>
@@ -245,6 +245,52 @@ let segmenter = Segmenter::new(Language::Japanese);
 </span><span class="boring">fn main() {
 </span>let tokens = segmenter.segment("これはテストです。");
 // ["これ", "は", "テスト", "です", "。"]
+<span class="boring">}</span></code></pre>
+<p>Internally this is a thin wrapper over
+<a href="#segment_into--segmentbuffer"><code>segment_into</code></a> with a fresh buffer per
+call, materializing each range as an owned <code>String</code> — there is a single
+scoring implementation.</p>
+<h3 id="segment_into--segmentbuffer"><a class="header" href="#segment_into--segmentbuffer"><code>segment_into</code> / <code>SegmentBuffer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct SegmentBuffer { /* internal scratch + output storage */ }
+
+impl SegmentBuffer {
+    pub fn new() -&gt; Self
+}
+
+impl Segmenter {
+    pub fn segment_into&lt;'b&gt;(
+        &amp;self,
+        sentence: &amp;str,
+        buf: &amp;'b mut SegmentBuffer,
+    ) -&gt; &amp;'b [(usize, usize)]
+}
+<span class="boring">}</span></code></pre>
+<p>The allocation-free variant of <code>segment</code> (issue #184). Each returned
+<code>(start, end)</code> pair is a byte range into <code>sentence</code>
+(<code>&amp;sentence[start..end]</code> is the token), in order, tiling the sentence
+exactly. The buffer owns every per-call allocation (context arrays, score
+buffer, tag scratch, output ranges); reusing one buffer across a batch of
+sentences reaches a steady state where segmentation allocates nothing.
+Empty input yields an empty slice.</p>
+<p>At the published throughputs this matters: <code>segment</code> allocates one
+<code>String</code> per token (millions per second in batch workloads) plus per-call
+scratch, which measured as roughly a quarter of the batch profile. The
+buffer holds plain data (no borrows), so it can be reused across
+sentences, models, and languages; for parallel processing use one buffer
+per thread.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::segmenter::{SegmentBuffer, Segmenter};
+
+let mut buf = SegmentBuffer::new();
+for line in lines {
+    for &amp;(start, end) in segmenter.segment_into(line, &amp;mut buf) {
+        let token: &amp;str = &amp;line[start..end];
+        // write/inspect token without allocating
+    }
+}
 <span class="boring">}</span></code></pre>
 <h3 id="char_type"><a class="header" href="#char_type"><code>char_type</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

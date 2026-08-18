@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-93f60752.js";
+            window.path_to_searchindex_js = "../searchindex-0d67541c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -257,6 +257,27 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 （外部ベンチは 101 回のプロセスインターリーブ実行）であり、<code>cargo bench</code> は litsea の
 チューニング済み release プロファイル（thin LTO、codegen-units=1）を継承します
 （外部ベンチのクレートはデフォルトの release プロファイル）。</p>
+<h2 id="api-比較segment_into"><a class="header" href="#api-比較segment_into">API 比較（<code>segment_into</code>）</a></h2>
+<p><code>segment_into</code> グループは、所有出力の <code>segment()</code> API とバッファ再利用の
+<code>segment_into()</code> API（issue #184）を、<code>external_corpus</code> と同じ 3 つの
+分割コーパス（同じ行単位ワークロード、<code>Throughput::Elements</code> による
+chars/sec 表示）でペア比較します:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>ベンチ ID</th><th>API</th></tr>
+</thead>
+<tbody>
+<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code></td><td><code>segment()</code>（トークンごとに <code>String</code> 1 つ、呼び出しごとに新規スクラッチ）</td></tr>
+<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code></td><td>1 つの <code>SegmentBuffer</code> を再利用する <code>segment_into()</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>同一 run 内で同じ言語の 2 つの ID を比較してください: その差が、バッファ
+再利用 API が取り除く呼び出しごとのアロケーションコストです。採点処理は
+同一です（<code>segment()</code> は <code>segment_into()</code> のラッパー）。</p>
+<pre><code class="language-sh">cargo bench -- segment_into
+</code></pre>
 <h3 id="実行間のばらつき"><a class="header" href="#実行間のばらつき">実行間のばらつき</a></h3>
 <p>本ドキュメントに掲載している数値（<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint タグ付け</a>や
 <a href="../pre-trained-models.html">事前学習済みモデル</a>ページの二段構成 vs joint の比較を含む）は、
