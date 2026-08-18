@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0d67541c.js";
+            window.path_to_searchindex_js = "../searchindex-ac3ea525.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -205,6 +205,7 @@
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。joint モデル（<code>train --pos</code>）または<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --two-stage</code>）のいずれも使用でき、ファイルから自動判別されます</td></tr>
+<tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
 </tbody>
 </table>
 </div>
@@ -256,6 +257,18 @@
 <h3 id="ファイルの処理"><a class="header" href="#ファイルの処理">ファイルの処理</a></h3>
 <pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
 </code></pre>
+<h2 id="バッチ分割の並列化--threads"><a class="header" href="#バッチ分割の並列化--threads">バッチ分割の並列化（<code>--threads</code>）</a></h2>
+<p>文どうしは独立なので、エンジンを変更することなくバッチスループットを
+コア数でスケールできます: 入力行をチャンク単位で読み込み、各チャンクを
+ワーカーへ分配し（各ワーカーは自分専用の再利用バッファを保持）、出力は
+厳密に入力順で書き出します。</p>
+<pre><code class="language-sh">litsea segment --threads 8 -l japanese ./models/japanese.model &lt; corpus.txt &gt; segmented.txt
+</code></pre>
+<p><code>--threads 1</code>（既定値）は従来の逐次ループそのものを使います。
+なお <code>cargo bench -- external_corpus</code> はシングルスレッドの<strong>エンジン</strong>
+計測のままです — CLI レベルのスレッドスケーリングとエンジンスループットは
+別の数値であり、直接比較しないでください
+（<a href="../advanced/benchmarking.html">ベンチマーク</a>を参照）。</p>
 <h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
 <ul>
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>

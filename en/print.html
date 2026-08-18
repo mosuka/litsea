@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-546539a9.js";
+            window.path_to_searchindex_js = "searchindex-b51af9a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-4bbd3799.js"></script>
@@ -3810,6 +3810,7 @@ header, so no extra flag is needed to use it.</p>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Accepts a joint model (<code>train --pos</code>) or a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --two-stage</code>), auto-detected from the file</td></tr>
+<tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
 </tbody>
 </table>
 </div>
@@ -3861,6 +3862,18 @@ either — including a model produced by <code>train --two-stage</code>.</p>
 <h3 id="processing-a-file"><a class="header" href="#processing-a-file">Processing a File</a></h3>
 <pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
 </code></pre>
+<h2 id="parallel-batch-segmentation---threads"><a class="header" href="#parallel-batch-segmentation---threads">Parallel Batch Segmentation (<code>--threads</code>)</a></h2>
+<p>Sentences are independent, so batch throughput scales with cores without
+any engine change: lines are read in chunks, each chunk is split across
+the workers (each holding its own reusable segmentation buffer), and the
+outputs are written strictly in input order.</p>
+<pre><code class="language-sh">litsea segment --threads 8 -l japanese ./models/japanese.model &lt; corpus.txt &gt; segmented.txt
+</code></pre>
+<p><code>--threads 1</code> (the default) uses exactly the previous sequential loop.
+Note <code>cargo bench -- external_corpus</code> remains a single-threaded <em>engine</em>
+measurement — CLI-level thread scaling and engine throughput are different
+numbers and should not be compared directly (see
+<a href="#benchmarking">Benchmarking</a>).</p>
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
 <ul>
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
@@ -4897,6 +4910,14 @@ per-call allocation cost the buffer-reusing API removes. The scoring work
 is identical (<code>segment()</code> is a wrapper over <code>segment_into()</code>).</p>
 <pre><code class="language-sh">cargo bench -- segment_into
 </code></pre>
+<h3 id="engine-vs-cli-numbers"><a class="header" href="#engine-vs-cli-numbers">Engine vs. CLI Numbers</a></h3>
+<p>Everything in this chapter measures <strong>single-threaded engine throughput</strong>.
+The CLI’s <code>segment --threads N</code> (issue #185) additionally scales
+wall-clock batch time across cores at the process level; those two kinds
+of numbers are not comparable — a <code>--threads 8</code> wall-clock figure is not
+an engine speedup, and engine chars/sec figures say nothing about CLI
+thread scaling. When reporting CLI-level scaling, state the thread count
+and measure with the same paired discipline described below.</p>
 <h3 id="run-to-run-variance"><a class="header" href="#run-to-run-variance">Run-to-Run Variance</a></h3>
 <p>The published figures in this book (including the two-stage vs. joint
 comparisons on the <a href="#two-stage-vs-joint-tagging">Two-Stage vs. Joint

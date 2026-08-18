@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0d67541c.js";
+            window.path_to_searchindex_js = "searchindex-ac3ea525.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-72f19d1d.js"></script>
@@ -3665,6 +3665,7 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。joint モデル（<code>train --pos</code>）または<a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --two-stage</code>）のいずれも使用でき、ファイルから自動判別されます</td></tr>
+<tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
 </tbody>
 </table>
 </div>
@@ -3716,6 +3717,18 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 <h3 id="ファイルの処理"><a class="header" href="#ファイルの処理">ファイルの処理</a></h3>
 <pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
 </code></pre>
+<h2 id="バッチ分割の並列化--threads"><a class="header" href="#バッチ分割の並列化--threads">バッチ分割の並列化（<code>--threads</code>）</a></h2>
+<p>文どうしは独立なので、エンジンを変更することなくバッチスループットを
+コア数でスケールできます: 入力行をチャンク単位で読み込み、各チャンクを
+ワーカーへ分配し（各ワーカーは自分専用の再利用バッファを保持）、出力は
+厳密に入力順で書き出します。</p>
+<pre><code class="language-sh">litsea segment --threads 8 -l japanese ./models/japanese.model &lt; corpus.txt &gt; segmented.txt
+</code></pre>
+<p><code>--threads 1</code>（既定値）は従来の逐次ループそのものを使います。
+なお <code>cargo bench -- external_corpus</code> はシングルスレッドの<strong>エンジン</strong>
+計測のままです — CLI レベルのスレッドスケーリングとエンジンスループットは
+別の数値であり、直接比較しないでください
+（<a href="#ベンチマーク">ベンチマーク</a>を参照）。</p>
 <h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
 <ul>
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
@@ -4716,6 +4729,14 @@ chars/sec 表示）でペア比較します:</p>
 同一です（<code>segment()</code> は <code>segment_into()</code> のラッパー）。</p>
 <pre><code class="language-sh">cargo bench -- segment_into
 </code></pre>
+<h3 id="エンジンの数値と-cli-の数値"><a class="header" href="#エンジンの数値と-cli-の数値">エンジンの数値と CLI の数値</a></h3>
+<p>本章の計測はすべて<strong>シングルスレッドのエンジンスループット</strong>です。
+CLI の <code>segment --threads N</code>（issue #185）はこれに加えてプロセスレベルで
+バッチの実時間をコア数にスケールさせますが、この 2 種類の数値は比較
+できません — <code>--threads 8</code> の実時間はエンジンの高速化ではなく、エンジンの
+chars/sec は CLI のスレッドスケーリングについて何も語りません。CLI レベルの
+スケーリングを報告する際は、スレッド数を明記し、後述のペア計測の規律で
+測定してください。</p>
 <h3 id="実行間のばらつき"><a class="header" href="#実行間のばらつき">実行間のばらつき</a></h3>
 <p>本ドキュメントに掲載している数値（<a href="#二段構成-vs-joint-タグ付け">二段構成 vs Joint タグ付け</a>や
 <a href="#事前学習済みモデル">事前学習済みモデル</a>ページの二段構成 vs joint の比較を含む）は、

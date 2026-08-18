@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-546539a9.js";
+            window.path_to_searchindex_js = "../searchindex-b51af9a0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-4bbd3799.js"></script>
@@ -280,6 +280,14 @@ per-call allocation cost the buffer-reusing API removes. The scoring work
 is identical (<code>segment()</code> is a wrapper over <code>segment_into()</code>).</p>
 <pre><code class="language-sh">cargo bench -- segment_into
 </code></pre>
+<h3 id="engine-vs-cli-numbers"><a class="header" href="#engine-vs-cli-numbers">Engine vs. CLI Numbers</a></h3>
+<p>Everything in this chapter measures <strong>single-threaded engine throughput</strong>.
+The CLI’s <code>segment --threads N</code> (issue #185) additionally scales
+wall-clock batch time across cores at the process level; those two kinds
+of numbers are not comparable — a <code>--threads 8</code> wall-clock figure is not
+an engine speedup, and engine chars/sec figures say nothing about CLI
+thread scaling. When reporting CLI-level scaling, state the thread count
+and measure with the same paired discipline described below.</p>
 <h3 id="run-to-run-variance"><a class="header" href="#run-to-run-variance">Run-to-Run Variance</a></h3>
 <p>The published figures in this book (including the two-stage vs. joint
 comparisons on the <a href="../algorithm/two-stage-tagging.html">Two-Stage vs. Joint

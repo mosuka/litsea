@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0d67541c.js";
+            window.path_to_searchindex_js = "../searchindex-ac3ea525.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -278,6 +278,14 @@ chars/sec 表示）でペア比較します:</p>
 同一です（<code>segment()</code> は <code>segment_into()</code> のラッパー）。</p>
 <pre><code class="language-sh">cargo bench -- segment_into
 </code></pre>
+<h3 id="エンジンの数値と-cli-の数値"><a class="header" href="#エンジンの数値と-cli-の数値">エンジンの数値と CLI の数値</a></h3>
+<p>本章の計測はすべて<strong>シングルスレッドのエンジンスループット</strong>です。
+CLI の <code>segment --threads N</code>（issue #185）はこれに加えてプロセスレベルで
+バッチの実時間をコア数にスケールさせますが、この 2 種類の数値は比較
+できません — <code>--threads 8</code> の実時間はエンジンの高速化ではなく、エンジンの
+chars/sec は CLI のスレッドスケーリングについて何も語りません。CLI レベルの
+スケーリングを報告する際は、スレッド数を明記し、後述のペア計測の規律で
+測定してください。</p>
 <h3 id="実行間のばらつき"><a class="header" href="#実行間のばらつき">実行間のばらつき</a></h3>
 <p>本ドキュメントに掲載している数値（<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint タグ付け</a>や
 <a href="../pre-trained-models.html">事前学習済みモデル</a>ページの二段構成 vs joint の比較を含む）は、
