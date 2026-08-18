@@ -98,6 +98,16 @@ is identical (`segment()` is a wrapper over `segment_into()`).
 cargo bench -- segment_into
 ```
 
+### Engine vs. CLI Numbers
+
+Everything in this chapter measures **single-threaded engine throughput**.
+The CLI's `segment --threads N` (issue #185) additionally scales
+wall-clock batch time across cores at the process level; those two kinds
+of numbers are not comparable — a `--threads 8` wall-clock figure is not
+an engine speedup, and engine chars/sec figures say nothing about CLI
+thread scaling. When reporting CLI-level scaling, state the thread count
+and measure with the same paired discipline described below.
+
 ### Run-to-Run Variance
 
 The published figures in this book (including the two-stage vs. joint

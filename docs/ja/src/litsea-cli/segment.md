@@ -20,6 +20,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
 | `--pos` | off | 品詞推定付き分割を有効にします。joint モデル（`train --pos`）または[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --two-stage`）のいずれも使用でき、ファイルから自動判別されます |
+| `--threads <N>` | `1` | バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。`N > 1` では入力行を並列に分割しつつ**入力順で**出力するため、出力はどちらでもバイト単位で同一です（`--pos` の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません |
 
 ## 入力 / 出力
 
@@ -100,6 +101,23 @@ echo "今日はいい天気ですね。" \
 ```sh
 cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > output.txt
 ```
+
+## バッチ分割の並列化（`--threads`）
+
+文どうしは独立なので、エンジンを変更することなくバッチスループットを
+コア数でスケールできます: 入力行をチャンク単位で読み込み、各チャンクを
+ワーカーへ分配し（各ワーカーは自分専用の再利用バッファを保持）、出力は
+厳密に入力順で書き出します。
+
+```sh
+litsea segment --threads 8 -l japanese ./models/japanese.model < corpus.txt > segmented.txt
+```
+
+`--threads 1`（既定値）は従来の逐次ループそのものを使います。
+なお `cargo bench -- external_corpus` はシングルスレッドの**エンジン**
+計測のままです — CLI レベルのスレッドスケーリングとエンジンスループットは
+別の数値であり、直接比較しないでください
+（[ベンチマーク](../advanced/benchmarking.md)を参照）。
 
 ## 注意事項
 
