@@ -9,19 +9,25 @@ spaced=false
 # Displays the usage information for the script.
 ###############################################################################
 usage() {
-    echo "Usage: $0 [-h] [-p|-s] <conllu_file> <output_file>"
+    echo "Usage: $0 [-h] [-p] [-s] <conllu_file> <output_file>"
     echo ""
-    echo "Convert a CoNLL-U file to Litsea corpus format."
+    echo "Convert a CoNLL-U file to Litsea corpus format. -p and -s are"
+    echo "independent and may be combined."
     echo ""
     echo "  <conllu_file>   Path to the input CoNLL-U file"
     echo "  <output_file>   Path to the output corpus file"
-    echo "  -p              Output POS-tagged corpus (word/POS format)"
-    echo "                  Without -p, outputs space-separated words"
-    echo "  -s              Output space-preserving TSV corpus: tab-separated"
+    echo "  -p              Output word/POS tokens instead of plain words"
+    echo "  -s              Output a space-preserving TSV corpus: tab-separated"
     echo "                  tokens, with a literal space token wherever the"
     echo "                  original text had a space (from SpaceAfter=No"
     echo "                  annotations). For use with 'litsea extract"
-    echo "                  --format tsv'. Cannot be combined with -p."
+    echo "                  --format tsv'."
+    echo "  -p -s together  Output a space-preserving TSV corpus of word/POS"
+    echo "                  tokens (issue #196), for measuring a two-stage"
+    echo "                  POS model's real-world (spaced) quality with"
+    echo "                  'litsea evaluate --pos --format tsv'. Space"
+    echo "                  tokens carry no /POS suffix (CoNLL-U has no UPOS"
+    echo "                  annotation for whitespace itself)."
     exit 1
 }
 
@@ -39,11 +45,6 @@ if [ $# -ne 2 ]; then
     usage
 fi
 
-if [ "${pos}" = true ] && [ "${spaced}" = true ]; then
-    echo "Error: -p and -s cannot be combined (the POS pipeline has no TSV variant)" >&2
-    exit 1
-fi
-
 conllu_file="$1"
 output_file="$2"
 
@@ -59,36 +60,42 @@ fi
 # Skips:
 #   - Comment lines (starting with '#')
 #   - Multi-word token range lines (ID contains '-', e.g. "1-2"; but see
-#     --spaced below for how their surface spacing is handled)
+#     the spaced argument below for how their surface spacing is handled)
 #   - Empty nodes (ID contains '.', e.g. "1.1")
 #   - Tokens with unannotated UPOS ('_')
 # Blank lines mark sentence boundaries.
 #
-# Usage: convert_conllu <input_file> <output_file> [--pos|--spaced]
-#   --pos:    output "word/POS" format instead of space-separated words
-#   --spaced: output tab-separated tokens, inserting a literal space token
-#             between tokens wherever the original text had a space
-#             (i.e. the previous token's MISC lacks SpaceAfter=No).
-#             Multi-word token (MWT) ranges like "3-4 don't" carry the
-#             surface spacing: member words are emitted with no space
-#             tokens between them (concatenating the member FORMs must
-#             reproduce the range FORM — true for every MWT in UD English
-#             EWT; if a future treebank violates this, fall back to
-#             emitting the range FORM as a single token), and the range
-#             line's own SpaceAfter applies after the last member word.
-#             Known limitation: a rare MISC field, SpacesAfter=<escaped>,
-#             can specify a non-space separator (e.g. a no-break space);
-#             this script always inserts an ordinary U+0020 space token,
-#             so the reconstructed text can differ by that one character.
-#             Whitespace tokens are excluded from evaluation scoring, so
-#             this has no effect on measured quality.
+# Usage: convert_conllu <input_file> <output_file> <pos:true|false> <spaced:true|false>
+#   pos:    when true, emit "word/POS" tokens instead of plain words. A
+#           literal space token (see spaced below) never gets a /POS
+#           suffix, since CoNLL-U has no UPOS annotation for whitespace.
+#   spaced: when true, emit tab-separated tokens, inserting a literal space
+#           token between tokens wherever the original text had a space
+#           (i.e. the previous token's MISC lacks SpaceAfter=No).
+#           Multi-word token (MWT) ranges like "3-4 don't" carry the
+#           surface spacing: member words are emitted with no space
+#           tokens between them (concatenating the member FORMs must
+#           reproduce the range FORM -- true for every MWT in UD English
+#           EWT; if a future treebank violates this, fall back to
+#           emitting the range FORM as a single token), and the range
+#           line's own SpaceAfter applies after the last member word.
+#           Known limitation: a rare MISC field, SpacesAfter=<escaped>,
+#           can specify a non-space separator (e.g. a no-break space);
+#           this script always inserts an ordinary U+0020 space token,
+#           so the reconstructed text can differ by that one character.
+#           Whitespace tokens are excluded from evaluation scoring, so
+#           this has no effect on measured quality.
+#   pos and spaced are independent and may both be true (issue #196), in
+#   which case the output is a space-preserving TSV corpus of "word/POS"
+#   tokens.
 ###############################################################################
 convert_conllu() {
     local input_file="$1"
     local output_file="$2"
-    local mode="${3:-}"
+    local pos_flag="${3:-false}"
+    local spaced_flag="${4:-false}"
 
-    awk -F'\t' -v mode="${mode}" '
+    awk -F'\t' -v pos="${pos_flag}" -v spaced="${spaced_flag}" '
     BEGIN { sentence = ""; count = 0; prev_space = 0; in_mwt = 0; mwt_end = 0; mwt_space = 0 }
     /^[[:space:]]*$/ {
         # Blank line = sentence boundary
@@ -106,7 +113,7 @@ convert_conllu() {
         if (NF < 4) next
         id = $1; form = $2; upos = $4
         if (index(id, "-") > 0) {
-            if (mode == "--spaced") {
+            if (spaced == "true") {
                 # Multi-word token range (e.g. a contraction spanning ids
                 # 3-4): the surface spacing belongs to this line. Member
                 # words join with no space tokens in between; the SpaceAfter
@@ -120,12 +127,8 @@ convert_conllu() {
         }
         if (index(id, ".") > 0) next
         if (upos == "_") next
-        if (mode == "--pos") {
-            token = form "/" upos
-        } else {
-            token = form
-        }
-        if (mode == "--spaced") {
+        token = (pos == "true") ? form "/" upos : form
+        if (spaced == "true") {
             if (sentence == "") {
                 sentence = token
             } else if (prev_space) {
@@ -163,15 +166,15 @@ convert_conllu() {
 ###############################################################################
 # Convert CoNLL-U to Litsea corpus format
 ###############################################################################
-if [ "${pos}" = true ]; then
+if [ "${pos}" = true ] && [ "${spaced}" = true ]; then
+    echo "Converting to space-preserving POS corpus: ${output_file}"
+elif [ "${pos}" = true ]; then
     echo "Converting to POS corpus: ${output_file}"
-    convert_conllu "${conllu_file}" "${output_file}" --pos
 elif [ "${spaced}" = true ]; then
     echo "Converting to space-preserving TSV corpus: ${output_file}"
-    convert_conllu "${conllu_file}" "${output_file}" --spaced
 else
     echo "Converting to word segmentation corpus: ${output_file}"
-    convert_conllu "${conllu_file}" "${output_file}"
 fi
+convert_conllu "${conllu_file}" "${output_file}" "${pos}" "${spaced}"
 
 echo "Done."

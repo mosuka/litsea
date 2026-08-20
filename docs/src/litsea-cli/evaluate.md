@@ -31,8 +31,8 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language of the model and gold corpus. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
-| `--pos` | off | Evaluate segmentation + POS tagging. The gold corpus must then be in `word/POS` format. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`) |
-| `--format <FORMAT>` | `space` | Gold corpus format: `space` (space-separated tokens) or `tsv` (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). Ignored with `--pos` |
+| `--pos` | off | Evaluate segmentation + POS tagging. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`). Combines with `--format` below to select the gold format |
+| `--format <FORMAT>` | `space` | Gold corpus format. Without `--pos`: `space` (space-separated tokens) or `tsv` (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). With `--pos`: `space` selects `"word/POS word/POS ..."` (the two-stage training corpus format, unspaced) and `tsv` selects tab-separated `"word/POS"` tokens where a token may also be a literal space (issue #196; for measuring real-world quality on space-delimited languages, since the two-stage training pipeline itself has no space-preserving variant) |
 
 ## Metrics
 
@@ -77,6 +77,17 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+```
+
+For Korean and English, `--pos` alone reproduces the two-stage training
+corpus's own (unspaced) protocol; `--pos --format tsv` against the
+`*_pos_spaced.tsv` gold instead measures real-world quality on natural,
+spaced input -- the two numbers are not comparable to each other (see
+[Pre-trained Models](../pre-trained-models.md#english_posmodel)):
+
+```sh
+litsea evaluate --pos -l english models/english_pos.model resources/eval/english_ewt_test_pos.txt
+litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 ```
 
 Output:

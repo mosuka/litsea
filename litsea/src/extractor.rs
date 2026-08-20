@@ -247,7 +247,9 @@ impl Extractor {
             }
 
             // Stage 2 + lexicon: one row per word, keyed by its UPOS tag.
-            let tokens = parse_gold_pos_line(line);
+            // The two-stage training corpus is always the space-separated
+            // "word/POS word/POS ..." format (no TSV variant, issue #196).
+            let tokens = parse_gold_pos_line(line, false);
             let sent: Vec<char> = tokens.iter().flat_map(|(w, _)| w.chars()).collect();
             let type_ids: Vec<u8> = sent.iter().map(|&c| language.char_type_id(c)).collect();
             let mut start = 0usize;

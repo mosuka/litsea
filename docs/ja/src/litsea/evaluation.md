@@ -68,14 +68,20 @@ where
 
 ```rust
 pub fn parse_gold_line(line: &str, tsv: bool) -> Vec<String>
-pub fn parse_gold_pos_line(line: &str) -> Vec<(String, Upos)>
+pub fn parse_gold_pos_line(line: &str, tsv: bool) -> Vec<(String, Upos)>
 ```
 
-`parse_gold_line` はスペースで分割します（`tsv = true` の場合はタブで分割し、
-トークンとして空白文字そのもの（`" "`）を含められます）。
-`parse_gold_pos_line` は各トークンを**最後の** `/` で分割し（学習
-パイプラインと同じルール）、タグが欠落しているか解析できない場合は
-`Upos::X` を既定値とします。
+どちらもスペースで分割します（`tsv = true` の場合はタブで分割し、
+トークンとして空白文字そのもの（`" "`）を含められます — スペース区切りで
+書かれる言語で重要になる理由は[英語](../language-support/english.md)を
+参照）。`parse_gold_pos_line` はさらに各トークンを**最後の** `/` で分割し
+（学習パイプラインと同じルール）、タグが欠落しているか解析できない場合は
+`Upos::X` を既定値とします。`tsv = true` の場合、空白リテラルトークンには
+`/POS` サフィックスがなく常に `Upos::X` になりますが、これは無害です --
+空白トークンはタグ付きスコアリングから内容によって除外され、割り当てられた
+タグでは判定しません。これは二段構成 POS モデルの実運用精度を、スペース
+区切りで書かれる言語（学習コーパス自体に空白保持のバリアントがない）で
+測定するための仕組みです（issue #196）。
 
 ## 使用例
 

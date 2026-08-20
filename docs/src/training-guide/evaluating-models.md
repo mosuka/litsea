@@ -92,6 +92,22 @@ so unlike the segmentation rows above they are evaluated on unspaced text
 see [Pre-trained Models](../pre-trained-models.md#english_posmodel) for
 why.
 
+For Korean and English, `--pos --format tsv` against a second,
+space-preserving gold file additionally measures real-world quality on
+natural spaced input (issue #196), instead of the unspaced protocol above:
+
+```sh
+litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
+litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
+```
+
+This does not retrain or otherwise change the model -- it reconstructs the
+model's actual spaced input from gold and scores it normally, the same way
+`evaluate -l korean --format tsv` already does for plain segmentation. The
+two rows shown in each language's [Pre-trained Models](../pre-trained-models.md)
+POS model card ("unspaced protocol" vs. "real-world/spaced") are the same
+model evaluated two different ways, not two different models.
+
 ## Improving Model Quality
 
 If accuracy is unsatisfactory, consider:

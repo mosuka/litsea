@@ -86,6 +86,22 @@ litsea evaluate -l english --format tsv models/english.model resources/eval/engl
 理由は[事前学習済みモデル](../pre-trained-models.md#english_posmodel)を
 参照してください。
 
+韓国語・英語では、`--pos --format tsv` を第 2 の空白保持ゴールドファイルに
+対して実行することで、上記の空白非保持プロトコルではなく、自然なスペース付き
+入力での実運用精度を測定できます（issue #196）:
+
+```sh
+litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
+litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
+```
+
+これはモデルの再学習や変更を一切行いません -- ゴールドからモデルの実際の
+スペース付き入力を復元し、`evaluate -l korean --format tsv` が素の分割評価で
+既に行っているのと同じ方法で通常通り採点します。各言語の
+[事前学習済みモデル](../pre-trained-models.md)の POS モデルカードに記載した
+2 つの行（「空白非保持プロトコル」と「実運用/スペース付き」）は、**同じ
+モデル**を 2 通りの方法で評価したものであり、2 つの異なるモデルではありません。
+
 ## モデル品質の改善
 
 精度が不十分な場合は、以下を検討してください:

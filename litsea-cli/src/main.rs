@@ -148,13 +148,19 @@ struct EvaluateArgs {
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
-    /// Evaluate segmentation + POS tagging (gold format: "word/POS word/POS
-    /// ..."); requires a two-stage model (from `train --pos`)
+    /// Evaluate segmentation + POS tagging; requires a two-stage model
+    /// (from `train --pos`). Gold format is "word/POS word/POS ..." (or,
+    /// with --format tsv, tab-separated "word/POS" tokens where a token
+    /// may also be a literal space -- for measuring real-world quality on
+    /// space-delimited languages like Korean/English, whose two-stage
+    /// training corpus otherwise has no space-preserving variant)
     #[arg(long)]
     pos: bool,
 
     /// Gold corpus format: "space" (space-separated tokens) or "tsv"
-    /// (tab-separated tokens; a token may be a literal space). Ignored with --pos
+    /// (tab-separated tokens; a token may be a literal space). With --pos,
+    /// selects between the "word/POS word/POS ..." and tab-separated
+    /// "word/POS" gold formats (see --pos)
     #[arg(long, default_value = "space", value_parser = ["space", "tsv"])]
     format: String,
 
@@ -621,11 +627,12 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
         learner.load_model(args.model_uri.as_str()).await?;
         let segmenter = Segmenter::with_two_stage_learner(args.language, learner);
 
+        let tsv = args.format == "tsv";
         let gold = reader
             .lines()
             .collect::<Result<Vec<String>, _>>()?
             .into_iter()
-            .map(|line| evaluation::parse_gold_pos_line(&line));
+            .map(move |line| evaluation::parse_gold_pos_line(&line, tsv));
         let metrics = evaluation::evaluate_pos(&segmenter, gold)?;
 
         let seg = &metrics.segmentation;
