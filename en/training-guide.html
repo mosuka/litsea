@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-5b909ab7.js"></script>
@@ -192,8 +192,8 @@
 <h2 id="pos-tagging-two-stage"><a class="header" href="#pos-tagging-two-stage">POS Tagging (Two-Stage)</a></h2>
 <ol>
 <li><a href="training-guide/preparing-corpus.html">Prepare a POS corpus</a> from a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) &amp;&amp; bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
-<li><a href="training-guide/extracting-features.html">Extract two-stage features</a>: <code>litsea extract --two-stage -l japanese pos_corpus.txt features</code></li>
-<li><a href="training-guide/training-models.html">Train a two-stage POS model</a>: <code>litsea train --two-stage --num-epochs 50 features model.model</code></li>
+<li><a href="training-guide/extracting-features.html">Extract two-stage features</a>: <code>litsea extract --pos -l japanese pos_corpus.txt features</code></li>
+<li><a href="training-guide/training-models.html">Train a two-stage POS model</a>: <code>litsea train --pos --num-epochs 50 features model.model</code></li>
 </ol>
 <h2 id="per-language-differences"><a class="header" href="#per-language-differences">Per-Language Differences</a></h2>
 <p>The pipeline (prepare → extract → train) and the scripts are shared by all

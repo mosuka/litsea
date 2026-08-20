@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-5b909ab7.js"></script>
@@ -396,7 +396,7 @@ two-stage models below use 50 epochs, chosen from that sweep. When
 retraining, a one-shot low-epoch run will understate the quality the
 architecture can reach (see the <a href="algorithm/two-stage-tagging.html#a-methodology-note-use-enough-training-epochs">methodology
 note</a>).</p>
-<h3 id="japanese_two_stagemodel"><a class="header" href="#japanese_two_stagemodel">japanese_two_stage.model</a></h3>
+<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -414,7 +414,7 @@ note</a>).</p>
 </tbody>
 </table>
 </div>
-<h3 id="chinese_two_stagemodel"><a class="header" href="#chinese_two_stagemodel">chinese_two_stage.model</a></h3>
+<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -432,7 +432,7 @@ note</a>).</p>
 </tbody>
 </table>
 </div>
-<h3 id="korean_two_stagemodel"><a class="header" href="#korean_two_stagemodel">korean_two_stage.model</a></h3>
+<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -455,7 +455,7 @@ unknown words (surfaces never seen in training), and unknown words always
 take the full stage-2 classifier fallback rather than the cheap
 dominance-skip or candidate-masked paths, so a larger share of Korean’s
 words pay the full stage-2 cost than in Japanese or Chinese.</p>
-<p><strong>Korean protocol note</strong>: <code>korean_two_stage.model</code> is trained on the
+<p><strong>Korean protocol note</strong>: <code>korean_pos.model</code> is trained on the
 unspaced <code>word/POS</code> corpus, <em>not</em> the space-preserving TSV corpus
 <code>korean.model</code> uses (issue #152). The two-stage extractor takes a single
 corpus for both stages, and building a combined space-preserving +
@@ -463,7 +463,7 @@ POS-tagged format is a separate feature not yet implemented; the numbers
 above are therefore not comparable to <code>korean.model</code>’s 99.91% (a different
 corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
 <h4 id="usage"><a class="header" href="#usage">Usage</a></h4>
-<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model
+<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
@@ -474,8 +474,8 @@ corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
 <li>For <strong>Chinese</strong>, use <code>chinese.model</code></li>
 <li>For <strong>Korean</strong>, use <code>korean.model</code></li>
 <li>For <strong>POS tagging</strong>, use the <strong>two-stage</strong> models
-(<code>japanese_two_stage.model</code>, <code>chinese_two_stage.model</code>,
-<code>korean_two_stage.model</code>) with <code>segment --pos</code> / <code>evaluate --pos</code> (see
+(<code>japanese_pos.model</code>, <code>chinese_pos.model</code>,
+<code>korean_pos.model</code>) with <code>segment --pos</code> / <code>evaluate --pos</code> (see
 <a href="algorithm/two-stage-tagging.html">Two-Stage Tagging</a> for the architecture
 and measured figures).</li>
 <li>For <strong>domain-specific</strong> needs, consider <a href="training-guide/preparing-corpus.html">training your own model</a> or <a href="training-guide/retraining-models.html">retraining</a> an existing one</li>

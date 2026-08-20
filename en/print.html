@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-5b909ab7.js"></script>
@@ -297,7 +297,7 @@ feature if you need it:</p>
 <h3 id="pos-tagging-1"><a class="header" href="#pos-tagging-1">POS Tagging</a></h3>
 <p>Litsea can perform word segmentation and POS tagging using a <a href="#two-stage-tagging">two-stage</a> model. Add the <code>--pos</code> flag to the <code>segment</code> command:</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+  | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
@@ -337,7 +337,7 @@ use litsea::two_stage::TwoStageLearner;
 fn main() -&gt; litsea::Result&lt;()&gt; {
     // Load the pre-trained two-stage POS model
     let mut learner = TwoStageLearner::new();
-    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     // Create a segmenter with POS support
     let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
@@ -1251,7 +1251,7 @@ and its cost model.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="two-stage-tagging"><a class="header" href="#two-stage-tagging">Two-Stage Tagging</a></h1>
 <p>Litsea’s <code>segment_with_pos()</code> is backed by the <strong>two-stage</strong> model
-(<code>--two-stage</code>, <code>Segmenter::with_two_stage_learner</code>, issue #147). The model
+(<code>--pos</code>, <code>Segmenter::with_two_stage_learner</code>, issue #147). The model
 file’s <code>litsea-two-stage v1</code> header identifies the format (see <a href="#two-stage-model-format-litsea-two-stage-v1">Model File
 Format</a>),
 and the method returns <code>Vec&lt;(String, Upos)&gt;</code> word/tag pairs.</p>
@@ -1323,7 +1323,7 @@ candidate-masked paths.</li>
 </ul>
 <h2 id="choosing-a-stage-2-feature-set"><a class="header" href="#choosing-a-stage-2-feature-set">Choosing a stage-2 feature set</a></h2>
 <p>Stage 2’s word-level tagger can be extracted with three feature sets
-(<code>--stage2-features</code> on <code>litsea extract --two-stage</code>; see <a href="#extracting-features">Extracting
+(<code>--stage2-features</code> on <code>litsea extract --pos</code>; see <a href="#extracting-features">Extracting
 Features</a>), trading tagging
 quality for throughput. Segmentation quality is unaffected – it is
 decided entirely by stage 1. The figures below are at 50 epochs, matching
@@ -1341,12 +1341,12 @@ the bundled models.</p>
 </table>
 </div>
 <p>For Japanese, <code>fast</code> alone reaches 92.95% tagged F1, so the bundled
-<code>japanese_two_stage.model</code> uses it. For Chinese, <code>balanced</code> gives most of
+<code>japanese_pos.model</code> uses it. For Chinese, <code>balanced</code> gives most of
 <code>full</code>’s gain (82.29% vs. 82.96%) at meaningfully better throughput, so
-<code>chinese_two_stage.model</code> uses <code>balanced</code> rather than <code>full</code>. For Korean,
+<code>chinese_pos.model</code> uses <code>balanced</code> rather than <code>full</code>. For Korean,
 <code>full</code> adds essentially nothing over <code>balanced</code> (78.88% vs. 78.86%), so
-<code>korean_two_stage.model</code> also uses <code>balanced</code>. Retraining with a different
-set is a matter of re-running <code>extract --two-stage --stage2-features &lt;set&gt;</code> + <code>train --two-stage</code>; there is no need to change any other part of
+<code>korean_pos.model</code> also uses <code>balanced</code>. Retraining with a different
+set is a matter of re-running <code>extract --pos --stage2-features &lt;set&gt;</code> + <code>train --pos</code>; there is no need to change any other part of
 the pipeline.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language-support-overview"><a class="header" href="#language-support-overview">Language Support Overview</a></h1>
@@ -1447,11 +1447,11 @@ Procedure</a> for the full recipe</li>
 <li><strong>Word F1 (held-out)</strong>: 96.70%</li>
 <li><strong>Boundary F1 (held-out)</strong>: 98.59%</li>
 </ul>
-<h3 id="japanese_two_stagemodel"><a class="header" href="#japanese_two_stagemodel">japanese_two_stage.model</a></h3>
+<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
 <ul>
 <li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
-<li><strong>Details</strong>: see <a href="#japanese_two_stagemodel-1">Pre-trained Models</a></li>
+<li><strong>Details</strong>: see <a href="#japanese_posmodel-1">Pre-trained Models</a></li>
 </ul>
 <h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
 <ul>
@@ -1522,11 +1522,11 @@ Procedure</a> for the full recipe</li>
 <li><strong>Word F1 (held-out)</strong>: 90.69%</li>
 <li><strong>Boundary F1 (held-out)</strong>: 95.64%</li>
 </ul>
-<h3 id="chinese_two_stagemodel"><a class="header" href="#chinese_two_stagemodel">chinese_two_stage.model</a></h3>
+<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
 <ul>
 <li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
-<li><strong>Details</strong>: see <a href="#chinese_two_stagemodel-1">Pre-trained Models</a></li>
+<li><strong>Details</strong>: see <a href="#chinese_posmodel-1">Pre-trained Models</a></li>
 </ul>
 <h2 id="example-1"><a class="header" href="#example-1">Example</a></h2>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
@@ -1620,14 +1620,14 @@ sequential scoring pass entirely. See <a href="#tag-free-pointwise-models">Tag-F
 Models</a>.</p>
 <p>Held-out metrics are computed on the original spaced text with space tokens
 excluded from scoring.</p>
-<h3 id="korean_two_stagemodel"><a class="header" href="#korean_two_stagemodel">korean_two_stage.model</a></h3>
+<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
 <ul>
 <li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
 <li><strong>Note</strong>: unlike <code>korean.model</code> above, this model is trained on the
 <em>unspaced</em> <code>word/POS</code> corpus,
 not the space-preserving protocol described on this page</li>
-<li><strong>Details</strong>: see <a href="#korean_two_stagemodel-1">Pre-trained Models</a></li>
+<li><strong>Details</strong>: see <a href="#korean_posmodel-1">Pre-trained Models</a></li>
 </ul>
 <h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
@@ -1836,7 +1836,7 @@ use litsea::two_stage::TwoStageLearner;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = TwoStageLearner::new();
-    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
     let tokens = segmenter.segment_with_pos("これはテストです。")?;
@@ -2066,7 +2066,7 @@ use litsea::segmenter::Segmenter;
 use litsea::two_stage::TwoStageLearner;
 
 let mut learner = TwoStageLearner::new();
-learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
 let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
 let tokens = segmenter.segment_with_pos("これはテストです。")?;
@@ -2222,7 +2222,7 @@ use litsea::TwoStageFeatureSet;
 
 extractor.extract_two_stage(
     Path::new("./pos_corpus.txt"),
-    Path::new("./two_stage_features"),
+    Path::new("./pos_features"),
     TwoStageFeatureSet::Fast,
 )?;
 <span class="boring">}</span></code></pre>
@@ -3169,7 +3169,7 @@ is left unmodified on a load error.</p>
 use litsea::two_stage::TwoStageLearner;
 
 let mut learner = TwoStageLearner::new();
-learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 <span class="boring">}</span></code></pre>
 <h3 id="accessors-3"><a class="header" href="#accessors-3">Accessors</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -3235,7 +3235,7 @@ and is not loadable as a POS model); <code>TwoStage</code> is the <code>litsea-t
 container.</p>
 <p>Wrong-kind files get precise errors from <code>TwoStageLearner</code>’s loaders:
 pointing them at a standalone Averaged Perceptron file fails with “joint
-POS models are no longer supported — retrain with <code>litsea train --two-stage</code>”, and any other non-two-stage content fails with a
+POS models are no longer supported — retrain with <code>litsea train --pos</code>”, and any other non-two-stage content fails with a
 missing-magic-line error.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="cli-reference-overview"><a class="header" href="#cli-reference-overview">CLI Reference Overview</a></h1>
@@ -3288,15 +3288,15 @@ missing-magic-line error.</p>
 <h3 id="two-stage-workflow-word-segmentation-with-pos-tagging"><a class="header" href="#two-stage-workflow-word-segmentation-with-pos-tagging">Two-Stage Workflow (Word Segmentation with POS Tagging)</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
-    B --&gt; C["3. litsea extract --two-stage"]
-    C --&gt; D["4. litsea train --two-stage"]
+    B --&gt; C["3. litsea extract --pos"]
+    C --&gt; D["4. litsea train --pos"]
     D --&gt; E["5. litsea segment --pos"]
 </code></pre>
 <ol>
 <li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
 <li>Convert to POS corpus format: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
-<li>Extract two-stage features: <code>litsea extract --two-stage -l japanese pos_corpus.txt features_prefix</code></li>
-<li>Train a two-stage model: <code>litsea train --two-stage --num-epochs 50 features_prefix model.model</code></li>
+<li>Extract two-stage features: <code>litsea extract --pos -l japanese pos_corpus.txt features_prefix</code></li>
+<li>Train a two-stage model: <code>litsea train --pos --num-epochs 50 features_prefix model.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model.model</code></li>
 </ol>
 <p>See <a href="#two-stage-tagging">Two-Stage Tagging</a> for the
@@ -3330,10 +3330,10 @@ reference.</p>
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--two-stage</code></td></tr>
-<tr><td><code>--two-stage</code></td><td>off</td><td>Extract <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> training features. Requires a POS corpus as input</td></tr>
-<tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td>Stage-2 word-feature set for <code>--two-stage</code>: <code>full</code> (best quality), <code>balanced</code>, or <code>fast</code> (best throughput)</td></tr>
-<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code> – see <a href="#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--two-stage</code></td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--pos</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Extract <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> training features. Requires a POS corpus as input</td></tr>
+<tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td>Stage-2 word-feature set for <code>--pos</code>: <code>full</code> (best quality), <code>balanced</code>, or <code>fast</code> (best throughput)</td></tr>
+<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code> – see <a href="#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--pos</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -3375,14 +3375,14 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 <pre><code class="language-text">Feature extraction completed successfully.
 </code></pre>
 <h2 id="two-stage-feature-extraction"><a class="header" href="#two-stage-feature-extraction">Two-Stage Feature Extraction</a></h2>
-<p>When the <code>--two-stage</code> flag is specified, <code>extract</code> expects a <strong>POS
+<p>When the <code>--pos</code> flag is specified, <code>extract</code> expects a <strong>POS
 corpus</strong> instead of a plain word-separated corpus. Each line contains
 words annotated with UPOS tags in the format <code>word/POS</code>:</p>
 <h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
-<p><code>extract --two-stage</code> writes <strong>three</strong> files derived from <code>FEATURES_FILE</code>
+<p><code>extract --pos</code> writes <strong>three</strong> files derived from <code>FEATURES_FILE</code>
 as a prefix, for the <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage segmentation + POS tagging
 architecture</a>:</p>
 <div class="table-wrapper">
@@ -3397,9 +3397,9 @@ architecture</a>:</p>
 </tbody>
 </table>
 </div>
-<p>Pass the same prefix to <code>litsea train --two-stage</code>:</p>
-<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-# writes ./two_stage_features.stage1, .stage2, .lexicon
+<p>Pass the same prefix to <code>litsea train --pos</code>:</p>
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+# writes ./pos_features.stage1, .stage2, .lexicon
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="train-3"><a class="header" href="#train-3">train</a></h1>
@@ -3430,9 +3430,9 @@ architecture</a>:</p>
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
 <tr><td><code>--perceptron</code></td><td>off</td><td>Train a generic Averaged Perceptron over opaque string labels (the training step of the bundled segmentation models’ collapse recipe)</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (<code>--perceptron</code> and <code>--two-stage</code> modes)</td></tr>
-<tr><td><code>--two-stage</code></td><td>off</td><td>Train a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model instead. Reads <code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code> (from <code>extract --two-stage</code>). Cannot be combined with <code>--perceptron</code> or <code>-m</code>/<code>--load-model-uri</code> (incremental training is not supported)</td></tr>
-<tr><td><code>--dominance &lt;DOMINANCE&gt;</code></td><td><code>0.99</code></td><td>Classifier-skip threshold for <code>--two-stage</code>, in <code>(0.5, 1.0]</code>: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (<code>--perceptron</code> and <code>--pos</code> modes)</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Train a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model instead. Reads <code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code> (from <code>extract --pos</code>). Cannot be combined with <code>--perceptron</code> or <code>-m</code>/<code>--load-model-uri</code> (incremental training is not supported)</td></tr>
+<tr><td><code>--dominance &lt;DOMINANCE&gt;</code></td><td><code>0.99</code></td><td>Classifier-skip threshold for <code>--pos</code>, in <code>(0.5, 1.0]</code>: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier</td></tr>
 </tbody>
 </table>
 </div>
@@ -3529,7 +3529,7 @@ litsea train --perceptron --num-epochs 50 ./features.txt ./perceptron.model
 </table>
 </div>
 <h2 id="two-stage-model-training"><a class="header" href="#two-stage-model-training">Two-Stage Model Training</a></h2>
-<p>With <code>--two-stage</code>, <code>train</code> builds a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage
+<p>With <code>--pos</code>, <code>train</code> builds a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage
 model</a>:
 a binary boundary classifier (stage 1) plus a word-level POS tagger
 (stage 2), assembled with the candidate-tag lexicon into a single
@@ -3539,12 +3539,12 @@ existing AdaBoost format (a lossless transformation — see the module docs
 of <code>litsea::trainer</code> for the derivation) so the runtime scores it exactly
 as it scores a plain <code>segment()</code> model.</p>
 <h3 id="usage-2-1"><a class="header" href="#usage-2-1">Usage</a></h3>
-<pre><code class="language-sh">litsea train --two-stage [OPTIONS] &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+<pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
 </code></pre>
-<p><code>FEATURES_PREFIX</code> is the same prefix passed to <code>extract --two-stage</code>.</p>
+<p><code>FEATURES_PREFIX</code> is the same prefix passed to <code>extract --pos</code>.</p>
 <h3 id="example-4"><a class="header" href="#example-4">Example</a></h3>
-<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 </code></pre>
 <h3 id="output-2"><a class="header" href="#output-2">Output</a></h3>
 <pre><code class="language-text">Result Metrics (Two-Stage):
@@ -3582,7 +3582,7 @@ text with <code>litsea evaluate --pos</code> for a realistic quality estimate.</
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --two-stage</code>)</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
 </tbody>
 </table>
@@ -3620,22 +3620,22 @@ text with <code>litsea evaluate --pos</code> for a realistic quality estimate.</
 <p>When the <code>--pos</code> flag is specified, segmentation and POS tagging are
 performed together with a
 <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a>
-model produced by <code>train --two-stage</code>. Pointing <code>--pos</code> at any other model
+model produced by <code>train --pos</code>. Pointing <code>--pos</code> at any other model
 kind fails with a precise error (a standalone Averaged Perceptron file —
 the removed joint POS model format — is rejected with a hint to retrain
-with <code>train --two-stage</code>).</p>
+with <code>train --pos</code>).</p>
 <h3 id="usage-1-2"><a class="header" href="#usage-1-2">Usage</a></h3>
 <pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
 </code></pre>
 <h3 id="output-format-1"><a class="header" href="#output-format-1">Output Format</a></h3>
 <p>Each token is output in <code>word/POS</code> format. POS tags conform to the UPOS tag set.</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+  | litsea segment --pos -l japanese ./models/japanese_pos.model
 </code></pre>
 <pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="processing-a-file"><a class="header" href="#processing-a-file">Processing a File</a></h3>
-<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_two_stage.model &gt; output.txt
+<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
 </code></pre>
 <h2 id="parallel-batch-segmentation---threads"><a class="header" href="#parallel-batch-segmentation---threads">Parallel Batch Segmentation (<code>--threads</code>)</a></h2>
 <p>Sentences are independent, so batch throughput scales with cores without
@@ -3654,7 +3654,7 @@ numbers and should not be compared directly (see
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
 <li>The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (<code>load_model_from_path</code>)</li>
 <li>The model URI is not restricted to file paths – any valid URL is accepted</li>
-<li>When using <code>--pos</code>, the model must be a two-stage model trained with <code>train --two-stage</code></li>
+<li>When using <code>--pos</code>, the model must be a two-stage model trained with <code>train --pos</code></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="evaluate"><a class="header" href="#evaluate">evaluate</a></h1>
@@ -3692,7 +3692,7 @@ train the model — the bundled files in <code>resources/eval/</code> are the UD
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language of the model and gold corpus. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Evaluate segmentation + POS tagging. The gold corpus must then be in <code>word/POS</code> format. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --two-stage</code>)</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Evaluate segmentation + POS tagging. The gold corpus must then be in <code>word/POS</code> format. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean space-preserving corpus). Ignored with <code>--pos</code></td></tr>
 </tbody>
 </table>
@@ -3738,7 +3738,7 @@ single misplaced boundary invalidates the two words on either side of it.
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
-litsea evaluate --pos -l japanese models/japanese_two_stage.model resources/eval/japanese_gsd_test_pos.txt
+litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">Evaluation Metrics:
@@ -3763,8 +3763,8 @@ litsea evaluate --pos -l japanese models/japanese_two_stage.model resources/eval
 <h2 id="pos-tagging-two-stage"><a class="header" href="#pos-tagging-two-stage">POS Tagging (Two-Stage)</a></h2>
 <ol>
 <li><a href="#preparing-a-corpus">Prepare a POS corpus</a> from a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) &amp;&amp; bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
-<li><a href="#extracting-features">Extract two-stage features</a>: <code>litsea extract --two-stage -l japanese pos_corpus.txt features</code></li>
-<li><a href="#training-models">Train a two-stage POS model</a>: <code>litsea train --two-stage --num-epochs 50 features model.model</code></li>
+<li><a href="#extracting-features">Extract two-stage features</a>: <code>litsea extract --pos -l japanese pos_corpus.txt features</code></li>
+<li><a href="#training-models">Train a two-stage POS model</a>: <code>litsea train --pos --num-epochs 50 features model.model</code></li>
 </ol>
 <h2 id="per-language-differences"><a class="header" href="#per-language-differences">Per-Language Differences</a></h2>
 <p>The pipeline (prepare → extract → train) and the scripts are shared by all
@@ -3997,16 +3997,16 @@ space-separated format:</p>
 separated by tabs) in which a token may be a literal space character
 (<code>" "</code>). The output feature file format is identical to the default
 <code>extract</code>; only the corpus parsing differs. <code>--format tsv</code> cannot be
-combined with <code>--two-stage</code>.</p>
+combined with <code>--pos</code>.</p>
 <h2 id="two-stage-feature-extraction-1"><a class="header" href="#two-stage-feature-extraction-1">Two-Stage Feature Extraction</a></h2>
 <p>For <a href="#two-stage-tagging">two-stage POS tagging</a> (issue #147),
-use <code>--two-stage</code>:</p>
-<pre><code class="language-sh">litsea extract --two-stage [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+use <code>--pos</code>:</p>
+<pre><code class="language-sh">litsea extract --pos [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
 </code></pre>
 <h3 id="example-1-1"><a class="header" href="#example-1-1">Example</a></h3>
-<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 </code></pre>
-<p><code>--two-stage</code> reads a POS-tagged corpus
+<p><code>--pos</code> reads a POS-tagged corpus
 (<code>word/POS word/POS ...</code>) and, in a single pass over the corpus, writes
 <strong>three</strong> files from <code>&lt;FEATURES_PREFIX&gt;</code> instead of one:</p>
 <div class="table-wrapper">
@@ -4021,8 +4021,8 @@ use <code>--two-stage</code>:</p>
 </tbody>
 </table>
 </div>
-<p><code>litsea train --two-stage</code> reads all three files back from the same
-prefix. <code>--two-stage</code> cannot be combined with <code>--format tsv</code>.</p>
+<p><code>litsea train --pos</code> reads all three files back from the same
+prefix. <code>--pos</code> cannot be combined with <code>--format tsv</code>.</p>
 <h3 id="choosing---stage2-features"><a class="header" href="#choosing---stage2-features">Choosing <code>--stage2-features</code></a></h3>
 <p><code>--stage2-features</code> selects which stage-2 word-level templates (see
 <a href="#word-level-feature-templates-two-stage">Word-Level Feature Templates</a>)
@@ -4043,7 +4043,7 @@ throughput:</p>
 <p>See <a href="#choosing-a-stage-2-feature-set">Choosing a stage-2 feature
 set</a> for
 the measured quality/throughput comparison behind this default.</p>
-<pre><code class="language-sh">litsea extract --two-stage --stage2-features balanced -l chinese ./pos_corpus.txt ./two_stage_features
+<pre><code class="language-sh">litsea extract --pos --stage2-features balanced -l chinese ./pos_corpus.txt ./pos_features
 </code></pre>
 <h2 id="file-size-expectations"><a class="header" href="#file-size-expectations">File Size Expectations</a></h2>
 <p>The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings. For a 1 MB corpus, expect a features file of roughly 50-100 MB.</p>
@@ -4138,22 +4138,22 @@ opaque string labels from a <code>label\tfeature\t...</code> features file.</p>
 </ul>
 <p>Press <strong>Ctrl+C once</strong> during perceptron training to stop and save the model at its current state. Press <strong>Ctrl+C twice</strong> to exit immediately without saving.</p>
 <h2 id="two-stage-model-training-1"><a class="header" href="#two-stage-model-training-1">Two-Stage Model Training</a></h2>
-<p>For POS tagging, use the <code>--two-stage</code> flag. It
+<p>For POS tagging, use the <code>--pos</code> flag. It
 trains a <a href="#two-stage-tagging">two-stage model</a> (issue #147):
 a binary boundary classifier (stage 1) plus a word-level tagger (stage 2),
 assembled with a candidate-tag lexicon into a single <code>litsea-two-stage v1</code>
 file. See <a href="#two-stage-tagging">Two-Stage Tagging</a>
 for the architecture and the measured quality/speed figures.</p>
 <h3 id="two-stage-training-command"><a class="header" href="#two-stage-training-command">Two-Stage Training Command</a></h3>
-<pre><code class="language-sh">litsea extract --two-stage &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
-litsea train --two-stage --num-epochs 50 &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+<pre><code class="language-sh">litsea extract --pos &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+litsea train --pos --num-epochs 50 &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
 </code></pre>
-<p><code>extract --two-stage</code> reads a <code>word/POS</code> corpus and
-writes three files from <code>FEATURES_PREFIX</code>; <code>train --two-stage</code> reads them
+<p><code>extract --pos</code> reads a <code>word/POS</code> corpus and
+writes three files from <code>FEATURES_PREFIX</code>; <code>train --pos</code> reads them
 back from the same prefix.</p>
 <h3 id="two-stage-training-example"><a class="header" href="#two-stage-training-example">Two-Stage Training Example</a></h3>
-<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 </code></pre>
 <h3 id="two-stage-hyperparameters"><a class="header" href="#two-stage-hyperparameters">Two-Stage Hyperparameters</a></h3>
 <div class="table-wrapper">
@@ -4164,7 +4164,7 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 <tbody>
 <tr><td>Epochs</td><td><code>--num-epochs</code></td><td>10</td><td>An epoch sweep during bundling (see <a href="#a-methodology-note-use-enough-training-epochs">the methodology note</a>) found segmentation quality still improving well past the default and plateauing around <strong>50</strong> – the bundled models use 50, not 10</td></tr>
 <tr><td>Dominance</td><td><code>--dominance</code></td><td>0.99</td><td>Classifier-skip threshold in <code>(0.5, 1.0]</code>: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier. Lower values skip the classifier more often (faster, more reliant on the lexicon); the default matches the bundled models</td></tr>
-<tr><td>Stage-2 feature set</td><td><code>--stage2-features</code> on <code>extract --two-stage</code></td><td><code>fast</code></td><td><code>full</code>, <code>balanced</code>, or <code>fast</code>; see <a href="#extracting-features">Extracting Features</a> and <a href="#choosing-a-stage-2-feature-set">choosing a feature set</a></td></tr>
+<tr><td>Stage-2 feature set</td><td><code>--stage2-features</code> on <code>extract --pos</code></td><td><code>fast</code></td><td><code>full</code>, <code>balanced</code>, or <code>fast</code>; see <a href="#extracting-features">Extracting Features</a> and <a href="#choosing-a-stage-2-feature-set">choosing a feature set</a></td></tr>
 </tbody>
 </table>
 </div>
@@ -4269,7 +4269,7 @@ very small models with much lower held-out accuracy</li>
 <li><strong>Retraining</strong> – Start from an existing model and train with additional data (see <a href="#retraining-models">Retraining Models</a>)</li>
 </ol>
 <p>The threshold/iteration tuning above applies to plain AdaBoost training
-(<code>litsea train</code> without <code>--perceptron</code>/<code>--two-stage</code>). The bundled models’ own
+(<code>litsea train</code> without <code>--perceptron</code>/<code>--pos</code>). The bundled models’ own
 +5-13pt held-out quality gains over plain AdaBoost did not come from
 tuning <code>-t</code>/<code>-i</code> – they came from training a 2-class Averaged Perceptron
 and collapsing it losslessly to AdaBoost weights instead. If you are
@@ -4315,10 +4315,10 @@ litsea train -t 0.0001 -i 20000 \
 <li>The output model can be the same path as the input model (overwrites)</li>
 <li>The <code>-m</code> flag accepts file paths, <code>file://</code>, <code>http://</code>, and <code>https://</code> URIs</li>
 <li>Retraining starts from the existing weights, so fewer iterations may be needed</li>
-<li><code>-m</code> is only available for plain AdaBoost training. <code>train --two-stage</code>
+<li><code>-m</code> is only available for plain AdaBoost training. <code>train --pos</code>
 does <strong>not</strong> support <code>-m</code>/<code>--load-model-uri</code> – incremental training of a
 two-stage model is not supported, so if you need to update one you must
-retrain it from scratch with <code>train --two-stage</code></li>
+retrain it from scratch with <code>train --pos</code></li>
 <li>The bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are not
 produced with this plain <code>-m</code> recipe – they go through the
 perceptron-collapse procedure described in <a href="#training-procedure">Training
@@ -4436,13 +4436,13 @@ above, and the parameter range, and reports errors with the section name
 <tr><td>korean.model</td><td>~86 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
 <tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
-<tr><td>japanese_two_stage.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
-<tr><td>chinese_two_stage.model</td><td>~8.0 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
-<tr><td>korean_two_stage.model</td><td>~5.0 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
+<tr><td>japanese_pos.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
+<tr><td>chinese_pos.model</td><td>~8.0 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
+<tr><td>korean_pos.model</td><td>~5.0 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> (see <a href="#pre-trained-models-3">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (<code>*_two_stage.model</code>) models, which are larger because they carry per-class and per-stage weights.</p>
+<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> (see <a href="#pre-trained-models-3">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (<code>*_pos.model</code>) models, which are larger because they carry per-class and per-stage weights.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
@@ -4564,11 +4564,11 @@ alone:</p>
 <tbody>
 <tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
-<tr><td><code>japanese-two-stage</code></td><td>japanese_two_stage.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
+<tr><td><code>japanese-two-stage</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
-<tr><td><code>korean-two-stage</code></td><td>korean_two_stage.model</td><td>mujeong.txt</td></tr>
+<tr><td><code>korean-two-stage</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
-<tr><td><code>chinese-two-stage</code></td><td>chinese_two_stage.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>chinese-two-stage</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
 </tbody>
 </table>
 </div>
@@ -4882,7 +4882,7 @@ two-stage models below use 50 epochs, chosen from that sweep. When
 retraining, a one-shot low-epoch run will understate the quality the
 architecture can reach (see the <a href="#a-methodology-note-use-enough-training-epochs">methodology
 note</a>).</p>
-<h3 id="japanese_two_stagemodel-1"><a class="header" href="#japanese_two_stagemodel-1">japanese_two_stage.model</a></h3>
+<h3 id="japanese_posmodel-1"><a class="header" href="#japanese_posmodel-1">japanese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4900,7 +4900,7 @@ note</a>).</p>
 </tbody>
 </table>
 </div>
-<h3 id="chinese_two_stagemodel-1"><a class="header" href="#chinese_two_stagemodel-1">chinese_two_stage.model</a></h3>
+<h3 id="chinese_posmodel-1"><a class="header" href="#chinese_posmodel-1">chinese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4918,7 +4918,7 @@ note</a>).</p>
 </tbody>
 </table>
 </div>
-<h3 id="korean_two_stagemodel-1"><a class="header" href="#korean_two_stagemodel-1">korean_two_stage.model</a></h3>
+<h3 id="korean_posmodel-1"><a class="header" href="#korean_posmodel-1">korean_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4941,7 +4941,7 @@ unknown words (surfaces never seen in training), and unknown words always
 take the full stage-2 classifier fallback rather than the cheap
 dominance-skip or candidate-masked paths, so a larger share of Korean’s
 words pay the full stage-2 cost than in Japanese or Chinese.</p>
-<p><strong>Korean protocol note</strong>: <code>korean_two_stage.model</code> is trained on the
+<p><strong>Korean protocol note</strong>: <code>korean_pos.model</code> is trained on the
 unspaced <code>word/POS</code> corpus, <em>not</em> the space-preserving TSV corpus
 <code>korean.model</code> uses (issue #152). The two-stage extractor takes a single
 corpus for both stages, and building a combined space-preserving +
@@ -4949,7 +4949,7 @@ POS-tagged format is a separate feature not yet implemented; the numbers
 above are therefore not comparable to <code>korean.model</code>’s 99.91% (a different
 corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
 <h4 id="usage-6"><a class="header" href="#usage-6">Usage</a></h4>
-<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model
+<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
@@ -4960,8 +4960,8 @@ corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
 <li>For <strong>Chinese</strong>, use <code>chinese.model</code></li>
 <li>For <strong>Korean</strong>, use <code>korean.model</code></li>
 <li>For <strong>POS tagging</strong>, use the <strong>two-stage</strong> models
-(<code>japanese_two_stage.model</code>, <code>chinese_two_stage.model</code>,
-<code>korean_two_stage.model</code>) with <code>segment --pos</code> / <code>evaluate --pos</code> (see
+(<code>japanese_pos.model</code>, <code>chinese_pos.model</code>,
+<code>korean_pos.model</code>) with <code>segment --pos</code> / <code>evaluate --pos</code> (see
 <a href="#two-stage-tagging">Two-Stage Tagging</a> for the architecture
 and measured figures).</li>
 <li>For <strong>domain-specific</strong> needs, consider <a href="#preparing-a-corpus">training your own model</a> or <a href="#retraining-models">retraining</a> an existing one</li>

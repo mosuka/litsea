@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-2cf72791.js"></script>
@@ -247,7 +247,7 @@ learner は変更されません。</p>
 use litsea::two_stage::TwoStageLearner;
 
 let mut learner = TwoStageLearner::new();
-learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 <span class="boring">}</span></code></pre>
 <h3 id="アクセサ"><a class="header" href="#アクセサ">アクセサ</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -313,7 +313,7 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
 読み込めません）、<code>TwoStage</code> は <code>litsea-two-stage</code> コンテナです。</p>
 <p>種類違いのファイルには <code>TwoStageLearner</code> のローダーが正確なエラーを
 返します: スタンドアロンの Averaged Perceptron ファイルを指定すると
-“joint POS models are no longer supported — retrain with <code>litsea train --two-stage</code>” で失敗し、それ以外の非二段構成の内容はマジック行の欠落
+“joint POS models are no longer supported — retrain with <code>litsea train --pos</code>” で失敗し、それ以外の非二段構成の内容はマジック行の欠落
 エラーで失敗します。</p>
 
                     </main>

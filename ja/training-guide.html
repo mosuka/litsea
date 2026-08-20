@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2cf72791.js"></script>
@@ -192,8 +192,8 @@
 <h2 id="品詞推定二段構成"><a class="header" href="#品詞推定二段構成">品詞推定（二段構成）</a></h2>
 <ol>
 <li>UD Treebank をダウンロードして<a href="training-guide/preparing-corpus.html">品詞付きコーパスを準備</a>: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) &amp;&amp; bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
-<li><a href="training-guide/extracting-features.html">二段構成の特徴量を抽出</a>: <code>litsea extract --two-stage -l japanese pos_corpus.txt features</code></li>
-<li><a href="training-guide/training-models.html">二段構成の POS モデルを訓練</a>: <code>litsea train --two-stage --num-epochs 50 features model.model</code></li>
+<li><a href="training-guide/extracting-features.html">二段構成の特徴量を抽出</a>: <code>litsea extract --pos -l japanese pos_corpus.txt features</code></li>
+<li><a href="training-guide/training-models.html">二段構成の POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 50 features model.model</code></li>
 </ol>
 <h2 id="言語ごとの違い"><a class="header" href="#言語ごとの違い">言語ごとの違い</a></h2>
 <p>パイプライン（準備 → 抽出 → 学習）とスクリプトは 3 言語で共通です。

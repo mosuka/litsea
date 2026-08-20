@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-2cf72791.js"></script>
@@ -260,7 +260,7 @@ litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.
 <li><strong>再学習</strong> – 既存のモデルから開始し、追加データで学習する（<a href="retraining-models.html">モデルの再学習</a>を参照）</li>
 </ol>
 <p>上記の閾値・反復回数のチューニングは、通常の AdaBoost 学習
-（<code>--perceptron</code>/<code>--two-stage</code> を付けない <code>litsea train</code>）に適用されるものです。
+（<code>--perceptron</code>/<code>--pos</code> を付けない <code>litsea train</code>）に適用されるものです。
 同梱モデル自身が通常の AdaBoost に対して達成している +5〜13pt の held-out
 品質向上は、<code>-t</code>/<code>-i</code> のチューニングによるものではなく、2 クラスの
 Averaged Perceptron を学習してから無損失に AdaBoost の重みへ畳み込む手順に

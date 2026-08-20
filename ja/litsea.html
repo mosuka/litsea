@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2cf72791.js"></script>
@@ -248,7 +248,7 @@ use litsea::two_stage::TwoStageLearner;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = TwoStageLearner::new();
-    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
     let tokens = segmenter.segment_with_pos("これはテストです。")?;

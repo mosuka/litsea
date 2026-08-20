@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-2cf72791.js"></script>
@@ -224,16 +224,16 @@
 <p>入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
 空白文字そのもの（<code>" "</code>）を含められます。出力される特徴量ファイルの形式は既定の
 <code>extract</code> と同一で、コーパスの解析方法のみが異なります。<code>--format tsv</code> は
-<code>--two-stage</code> と併用できません。</p>
+<code>--pos</code> と併用できません。</p>
 <h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
 <p><a href="../algorithm/two-stage-tagging.html">二段構成の品詞タグ付け</a>（issue #147）用には、
-<code>--two-stage</code> を使用します:</p>
-<pre><code class="language-sh">litsea extract --two-stage [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+<code>--pos</code> を使用します:</p>
+<pre><code class="language-sh">litsea extract --pos [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
 </code></pre>
 <h3 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h3>
-<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 </code></pre>
-<p><code>--two-stage</code> は POS タグ付きコーパス（<code>word/POS word/POS ...</code>）を
+<p><code>--pos</code> は POS タグ付きコーパス（<code>word/POS word/POS ...</code>）を
 読み込み、コーパスを1パスで処理し、<code>&lt;FEATURES_PREFIX&gt;</code> から1ファイルではなく
 <strong>3ファイル</strong>を書き出します:</p>
 <div class="table-wrapper">
@@ -248,8 +248,8 @@
 </tbody>
 </table>
 </div>
-<p><code>litsea train --two-stage</code> は同じプレフィックスから3ファイルすべてを読み込みます。
-<code>--two-stage</code> は <code>--format tsv</code> と併用できません。</p>
+<p><code>litsea train --pos</code> は同じプレフィックスから3ファイルすべてを読み込みます。
+<code>--pos</code> は <code>--format tsv</code> と併用できません。</p>
 <h3 id="--stage2-features-の選び方"><a class="header" href="#--stage2-features-の選び方"><code>--stage2-features</code> の選び方</a></h3>
 <p><code>--stage2-features</code> は <code>&lt;FEATURES_PREFIX&gt;.stage2</code> に書き出す stage-2 の単語単位
 テンプレート（<a href="../algorithm/feature-extraction.html#単語単位の特徴量テンプレート二段構成">単語単位の特徴量テンプレート（二段構成）</a>を参照）を選択し、
@@ -268,7 +268,7 @@
 </div>
 <p>この既定値の背後にある品質・スループットの実測比較については、
 <a href="../algorithm/two-stage-tagging.html#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a>を参照してください。</p>
-<pre><code class="language-sh">litsea extract --two-stage --stage2-features balanced -l chinese ./pos_corpus.txt ./two_stage_features
+<pre><code class="language-sh">litsea extract --pos --stage2-features balanced -l chinese ./pos_corpus.txt ./pos_features
 </code></pre>
 <h2 id="ファイルサイズの目安"><a class="header" href="#ファイルサイズの目安">ファイルサイズの目安</a></h2>
 <p>特徴量ファイルは、各文字位置が38-42個の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。</p>

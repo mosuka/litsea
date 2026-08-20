@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "../searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-5b909ab7.js"></script>
@@ -246,7 +246,7 @@ is left unmodified on a load error.</p>
 use litsea::two_stage::TwoStageLearner;
 
 let mut learner = TwoStageLearner::new();
-learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 <span class="boring">}</span></code></pre>
 <h3 id="accessors"><a class="header" href="#accessors">Accessors</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -312,7 +312,7 @@ and is not loadable as a POS model); <code>TwoStage</code> is the <code>litsea-t
 container.</p>
 <p>Wrong-kind files get precise errors from <code>TwoStageLearner</code>’s loaders:
 pointing them at a standalone Averaged Perceptron file fails with “joint
-POS models are no longer supported — retrain with <code>litsea train --two-stage</code>”, and any other non-two-stage content fails with a
+POS models are no longer supported — retrain with <code>litsea train --pos</code>”, and any other non-two-stage content fails with a
 missing-magic-line error.</p>
 
                     </main>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-2cf72791.js"></script>
@@ -208,9 +208,9 @@
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
 <tr><td><code>--perceptron</code></td><td>off</td><td>不透明な文字列ラベルに対する汎用の Averaged Perceptron を学習する（同梱分割モデルの畳み込みレシピの学習ステップ）</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（<code>--perceptron</code> モードおよび <code>--two-stage</code> モード）</td></tr>
-<tr><td><code>--two-stage</code></td><td>off</td><td>代わりに<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデルを学習する。<code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code>（<code>extract --two-stage</code> の出力）を読み込む。<code>--perceptron</code> および <code>-m</code>/<code>--load-model-uri</code>（増分学習は非対応）とは併用できない</td></tr>
-<tr><td><code>--dominance &lt;DOMINANCE&gt;</code></td><td><code>0.99</code></td><td><code>--two-stage</code> 用の分類器スキップ閾値、範囲は <code>(0.5, 1.0]</code>。既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされる</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（<code>--perceptron</code> モードおよび <code>--pos</code> モード）</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>代わりに<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデルを学習する。<code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code>（<code>extract --pos</code> の出力）を読み込む。<code>--perceptron</code> および <code>-m</code>/<code>--load-model-uri</code>（増分学習は非対応）とは併用できない</td></tr>
+<tr><td><code>--dominance &lt;DOMINANCE&gt;</code></td><td><code>0.99</code></td><td><code>--pos</code> 用の分類器スキップ閾値、範囲は <code>(0.5, 1.0]</code>。既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされる</td></tr>
 </tbody>
 </table>
 </div>
@@ -307,7 +307,7 @@ litsea train --perceptron --num-epochs 50 ./features.txt ./perceptron.model
 </table>
 </div>
 <h2 id="二段構成モデルの学習"><a class="header" href="#二段構成モデルの学習">二段構成モデルの学習</a></h2>
-<p><code>--two-stage</code> を指定すると、
+<p><code>--pos</code> を指定すると、
 <a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成モデル</a>
 を構築します: 二値の境界分類器（stage 1）と単語単位の品詞タガー（stage 2）を、
 候補タグ語彙表とともに単一の <code>litsea-two-stage v1</code> ファイルに組み立てます。
@@ -316,12 +316,12 @@ litsea train --perceptron --num-epochs 50 ./features.txt ./perceptron.model
 （品質を損なわない変換 — 導出は <code>litsea::trainer</code> のモジュールドキュメントを参照）。
 これによりランタイムは通常の <code>segment()</code> モデルと全く同じ方法で採点します。</p>
 <h3 id="使い方-2"><a class="header" href="#使い方-2">使い方</a></h3>
-<pre><code class="language-sh">litsea train --two-stage [OPTIONS] &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+<pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
 </code></pre>
-<p><code>FEATURES_PREFIX</code> は <code>extract --two-stage</code> に渡したものと同じプレフィックスです。</p>
+<p><code>FEATURES_PREFIX</code> は <code>extract --pos</code> に渡したものと同じプレフィックスです。</p>
 <h3 id="例"><a class="header" href="#例">例</a></h3>
-<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 </code></pre>
 <h3 id="出力-2"><a class="header" href="#出力-2">出力</a></h3>
 <pre><code class="language-text">Result Metrics (Two-Stage):

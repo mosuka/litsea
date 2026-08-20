@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "../searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-5b909ab7.js"></script>
@@ -182,7 +182,7 @@
                     <main>
                         <h1 id="two-stage-tagging"><a class="header" href="#two-stage-tagging">Two-Stage Tagging</a></h1>
 <p>Litsea’s <code>segment_with_pos()</code> is backed by the <strong>two-stage</strong> model
-(<code>--two-stage</code>, <code>Segmenter::with_two_stage_learner</code>, issue #147). The model
+(<code>--pos</code>, <code>Segmenter::with_two_stage_learner</code>, issue #147). The model
 file’s <code>litsea-two-stage v1</code> header identifies the format (see <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">Model File
 Format</a>),
 and the method returns <code>Vec&lt;(String, Upos)&gt;</code> word/tag pairs.</p>
@@ -254,7 +254,7 @@ candidate-masked paths.</li>
 </ul>
 <h2 id="choosing-a-stage-2-feature-set"><a class="header" href="#choosing-a-stage-2-feature-set">Choosing a stage-2 feature set</a></h2>
 <p>Stage 2’s word-level tagger can be extracted with three feature sets
-(<code>--stage2-features</code> on <code>litsea extract --two-stage</code>; see <a href="../training-guide/extracting-features.html">Extracting
+(<code>--stage2-features</code> on <code>litsea extract --pos</code>; see <a href="../training-guide/extracting-features.html">Extracting
 Features</a>), trading tagging
 quality for throughput. Segmentation quality is unaffected – it is
 decided entirely by stage 1. The figures below are at 50 epochs, matching
@@ -272,12 +272,12 @@ the bundled models.</p>
 </table>
 </div>
 <p>For Japanese, <code>fast</code> alone reaches 92.95% tagged F1, so the bundled
-<code>japanese_two_stage.model</code> uses it. For Chinese, <code>balanced</code> gives most of
+<code>japanese_pos.model</code> uses it. For Chinese, <code>balanced</code> gives most of
 <code>full</code>’s gain (82.29% vs. 82.96%) at meaningfully better throughput, so
-<code>chinese_two_stage.model</code> uses <code>balanced</code> rather than <code>full</code>. For Korean,
+<code>chinese_pos.model</code> uses <code>balanced</code> rather than <code>full</code>. For Korean,
 <code>full</code> adds essentially nothing over <code>balanced</code> (78.88% vs. 78.86%), so
-<code>korean_two_stage.model</code> also uses <code>balanced</code>. Retraining with a different
-set is a matter of re-running <code>extract --two-stage --stage2-features &lt;set&gt;</code> + <code>train --two-stage</code>; there is no need to change any other part of
+<code>korean_pos.model</code> also uses <code>balanced</code>. Retraining with a different
+set is a matter of re-running <code>extract --pos --stage2-features &lt;set&gt;</code> + <code>train --pos</code>; there is no need to change any other part of
 the pipeline.</p>
 
                     </main>

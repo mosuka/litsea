@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "../searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-5b909ab7.js"></script>
@@ -266,7 +266,7 @@ very small models with much lower held-out accuracy</li>
 <li><strong>Retraining</strong> – Start from an existing model and train with additional data (see <a href="retraining-models.html">Retraining Models</a>)</li>
 </ol>
 <p>The threshold/iteration tuning above applies to plain AdaBoost training
-(<code>litsea train</code> without <code>--perceptron</code>/<code>--two-stage</code>). The bundled models’ own
+(<code>litsea train</code> without <code>--perceptron</code>/<code>--pos</code>). The bundled models’ own
 +5-13pt held-out quality gains over plain AdaBoost did not come from
 tuning <code>-t</code>/<code>-i</code> – they came from training a 2-class Averaged Perceptron
 and collapsing it losslessly to AdaBoost weights instead. If you are

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-2cf72791.js"></script>
@@ -391,7 +391,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 います。再学習の際、一発の低エポック実行ではこのアーキテクチャの到達可能な
 品質を過小評価することになります
 （<a href="algorithm/two-stage-tagging.html#方法論についての注記-十分な学習エポック数を使う">方法論についての注記</a>を参照）。</p>
-<h3 id="japanese_two_stagemodel"><a class="header" href="#japanese_two_stagemodel">japanese_two_stage.model</a></h3>
+<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -409,7 +409,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 </tbody>
 </table>
 </div>
-<h3 id="chinese_two_stagemodel"><a class="header" href="#chinese_two_stagemodel">chinese_two_stage.model</a></h3>
+<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -427,7 +427,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 </tbody>
 </table>
 </div>
-<h3 id="korean_two_stagemodel"><a class="header" href="#korean_two_stagemodel">korean_two_stage.model</a></h3>
+<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -450,7 +450,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 stage 2 の全クラスフォールバックを払うことになり、安価な dominance
 スキップや候補マスクの経路を使えません。そのため日本語・中国語より
 多くの割合の韓国語の単語が stage 2 のフルコストを負担します。</p>
-<p><strong>韓国語のプロトコルについての注記</strong>: <code>korean_two_stage.model</code> は
+<p><strong>韓国語のプロトコルについての注記</strong>: <code>korean_pos.model</code> は
 空白非保持の <code>word/POS</code> コーパスで学習されており、
 <code>korean.model</code> が使う空白保持 TSV コーパス（issue #152）ではありません。
 二段構成の extractor は両ステージに単一のコーパスを使うため、空白保持＋
@@ -459,7 +459,7 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 （全く異なるコーパス・プロトコル）とは比較できません – 二段構成が
 優れている/劣っているという結果ではありません。</p>
 <h4 id="使用方法"><a class="header" href="#使用方法">使用方法</a></h4>
-<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model
+<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
 <p>出力:</p>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
@@ -469,8 +469,8 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 <li><strong>日本語</strong>には、最高精度を求める場合は <code>japanese.model</code> を、オリジナルの TinySegmenter との互換性を重視する場合は <code>RWCP.model</code> を使用</li>
 <li><strong>中国語</strong>には <code>chinese.model</code> を使用</li>
 <li><strong>韓国語</strong>には <code>korean.model</code> を使用</li>
-<li><strong>品詞推定</strong>には<strong>二段構成</strong>モデル（<code>japanese_two_stage.model</code>、
-<code>chinese_two_stage.model</code>、<code>korean_two_stage.model</code>）を <code>segment --pos</code> /
+<li><strong>品詞推定</strong>には<strong>二段構成</strong>モデル（<code>japanese_pos.model</code>、
+<code>chinese_pos.model</code>、<code>korean_pos.model</code>）を <code>segment --pos</code> /
 <code>evaluate --pos</code> とともに使用してください（アーキテクチャと実測値は
 <a href="algorithm/two-stage-tagging.html">二段構成タグ付け</a>を参照）。</li>
 <li><strong>ドメイン固有</strong>の用途には、<a href="training-guide/preparing-corpus.html">独自モデルの学習</a>または既存モデルの<a href="training-guide/retraining-models.html">再学習</a>を検討</li>

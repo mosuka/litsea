@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-2cf72791.js"></script>
@@ -214,7 +214,7 @@ train 分割で学習されているため、この条件を満たします。</
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは <code>word/POS</code> 形式である必要があります。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --two-stage</code>）が必要です</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは <code>word/POS</code> 形式である必要があります。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> 指定時は無視されます</td></tr>
 </tbody>
 </table>
@@ -257,7 +257,7 @@ train 分割で学習されているため、この条件を満たします。</
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
-litsea evaluate --pos -l japanese models/japanese_two_stage.model resources/eval/japanese_gsd_test_pos.txt
+litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 </code></pre>
 <p>出力:</p>
 <pre><code class="language-text">Evaluation Metrics:

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-5b909ab7.js"></script>
@@ -230,15 +230,15 @@
 <h3 id="two-stage-workflow-word-segmentation-with-pos-tagging"><a class="header" href="#two-stage-workflow-word-segmentation-with-pos-tagging">Two-Stage Workflow (Word Segmentation with POS Tagging)</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
-    B --&gt; C["3. litsea extract --two-stage"]
-    C --&gt; D["4. litsea train --two-stage"]
+    B --&gt; C["3. litsea extract --pos"]
+    C --&gt; D["4. litsea train --pos"]
     D --&gt; E["5. litsea segment --pos"]
 </code></pre>
 <ol>
 <li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
 <li>Convert to POS corpus format: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
-<li>Extract two-stage features: <code>litsea extract --two-stage -l japanese pos_corpus.txt features_prefix</code></li>
-<li>Train a two-stage model: <code>litsea train --two-stage --num-epochs 50 features_prefix model.model</code></li>
+<li>Extract two-stage features: <code>litsea extract --pos -l japanese pos_corpus.txt features_prefix</code></li>
+<li>Train a two-stage model: <code>litsea train --pos --num-epochs 50 features_prefix model.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model.model</code></li>
 </ol>
 <p>See <a href="algorithm/two-stage-tagging.html">Two-Stage Tagging</a> for the

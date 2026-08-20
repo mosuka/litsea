@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
+            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-2cf72791.js"></script>
@@ -182,7 +182,7 @@
                     <main>
                         <h1 id="二段構成タグ付け"><a class="header" href="#二段構成タグ付け">二段構成タグ付け</a></h1>
 <p>Litsea の <code>segment_with_pos()</code> は<strong>二段構成（two-stage）モデル</strong>
-（<code>--two-stage</code>、<code>Segmenter::with_two_stage_learner</code>、issue #147）に
+（<code>--pos</code>、<code>Segmenter::with_two_stage_learner</code>、issue #147）に
 支えられています。モデルファイルの <code>litsea-two-stage v1</code> ヘッダがこの形式を
 識別し（<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">モデルファイル形式</a>を参照）、
 メソッドは <code>Vec&lt;(String, Upos)&gt;</code> の単語/タグのペアを返します。</p>
@@ -250,7 +250,7 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 単語の割合が大きくなります。</li>
 </ul>
 <h2 id="stage-2-特徴量セットの選び方"><a class="header" href="#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a></h2>
-<p>stage 2 の単語単位タガーは 3 種類の特徴量セット（<code>litsea extract --two-stage</code> の <code>--stage2-features</code>。<a href="../training-guide/extracting-features.html">特徴量の抽出</a>を参照）で
+<p>stage 2 の単語単位タガーは 3 種類の特徴量セット（<code>litsea extract --pos</code> の <code>--stage2-features</code>。<a href="../training-guide/extracting-features.html">特徴量の抽出</a>を参照）で
 抽出でき、タグ付け品質とスループットをトレードオフできます。分割品質は
 影響を受けません – 分割は stage 1 だけで決まります。以下の数値は
 同梱モデルと同じ 50 エポックでの値です。</p>
@@ -267,14 +267,14 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 </table>
 </div>
 <p>日本語では <code>fast</code> だけで Tagged F1 92.95% に到達するため、同梱の
-<code>japanese_two_stage.model</code> はこれを使用しています。
+<code>japanese_pos.model</code> はこれを使用しています。
 中国語では <code>balanced</code> が <code>full</code> の伸びの大半（82.29% vs 82.96%）を
-明確に良いスループットで得られるため、<code>chinese_two_stage.model</code> は
+明確に良いスループットで得られるため、<code>chinese_pos.model</code> は
 <code>full</code> ではなく <code>balanced</code> を使用しています。韓国語では <code>full</code> は
 <code>balanced</code> に対してほとんど何も加えない（78.88% vs 78.86%）ため、
-<code>korean_two_stage.model</code> も <code>balanced</code> を使用しています。別の特徴量セットで
-再学習するには <code>extract --two-stage --stage2-features &lt;set&gt;</code> +
-<code>train --two-stage</code> を再実行するだけで、パイプラインの他の部分を
+<code>korean_pos.model</code> も <code>balanced</code> を使用しています。別の特徴量セットで
+再学習するには <code>extract --pos --stage2-features &lt;set&gt;</code> +
+<code>train --pos</code> を再実行するだけで、パイプラインの他の部分を
 変更する必要はありません。</p>
 
                     </main>

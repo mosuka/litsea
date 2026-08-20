@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "../searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-5b909ab7.js"></script>
@@ -270,22 +270,22 @@ opaque string labels from a <code>label\tfeature\t...</code> features file.</p>
 </ul>
 <p>Press <strong>Ctrl+C once</strong> during perceptron training to stop and save the model at its current state. Press <strong>Ctrl+C twice</strong> to exit immediately without saving.</p>
 <h2 id="two-stage-model-training"><a class="header" href="#two-stage-model-training">Two-Stage Model Training</a></h2>
-<p>For POS tagging, use the <code>--two-stage</code> flag. It
+<p>For POS tagging, use the <code>--pos</code> flag. It
 trains a <a href="../algorithm/two-stage-tagging.html">two-stage model</a> (issue #147):
 a binary boundary classifier (stage 1) plus a word-level tagger (stage 2),
 assembled with a candidate-tag lexicon into a single <code>litsea-two-stage v1</code>
 file. See <a href="../algorithm/two-stage-tagging.html">Two-Stage Tagging</a>
 for the architecture and the measured quality/speed figures.</p>
 <h3 id="two-stage-training-command"><a class="header" href="#two-stage-training-command">Two-Stage Training Command</a></h3>
-<pre><code class="language-sh">litsea extract --two-stage &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
-litsea train --two-stage --num-epochs 50 &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
+<pre><code class="language-sh">litsea extract --pos &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
+litsea train --pos --num-epochs 50 &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
 </code></pre>
-<p><code>extract --two-stage</code> reads a <code>word/POS</code> corpus and
-writes three files from <code>FEATURES_PREFIX</code>; <code>train --two-stage</code> reads them
+<p><code>extract --pos</code> reads a <code>word/POS</code> corpus and
+writes three files from <code>FEATURES_PREFIX</code>; <code>train --pos</code> reads them
 back from the same prefix.</p>
 <h3 id="two-stage-training-example"><a class="header" href="#two-stage-training-example">Two-Stage Training Example</a></h3>
-<pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 </code></pre>
 <h3 id="two-stage-hyperparameters"><a class="header" href="#two-stage-hyperparameters">Two-Stage Hyperparameters</a></h3>
 <div class="table-wrapper">
@@ -296,7 +296,7 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 <tbody>
 <tr><td>Epochs</td><td><code>--num-epochs</code></td><td>10</td><td>An epoch sweep during bundling (see <a href="../algorithm/two-stage-tagging.html#a-methodology-note-use-enough-training-epochs">the methodology note</a>) found segmentation quality still improving well past the default and plateauing around <strong>50</strong> – the bundled models use 50, not 10</td></tr>
 <tr><td>Dominance</td><td><code>--dominance</code></td><td>0.99</td><td>Classifier-skip threshold in <code>(0.5, 1.0]</code>: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier. Lower values skip the classifier more often (faster, more reliant on the lexicon); the default matches the bundled models</td></tr>
-<tr><td>Stage-2 feature set</td><td><code>--stage2-features</code> on <code>extract --two-stage</code></td><td><code>fast</code></td><td><code>full</code>, <code>balanced</code>, or <code>fast</code>; see <a href="extracting-features.html">Extracting Features</a> and <a href="../algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">choosing a feature set</a></td></tr>
+<tr><td>Stage-2 feature set</td><td><code>--stage2-features</code> on <code>extract --pos</code></td><td><code>fast</code></td><td><code>full</code>, <code>balanced</code>, or <code>fast</code>; see <a href="extracting-features.html">Extracting Features</a> and <a href="../algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">choosing a feature set</a></td></tr>
 </tbody>
 </table>
 </div>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
+            window.path_to_searchindex_js = "../searchindex-45985cea.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-5b909ab7.js"></script>
@@ -288,13 +288,13 @@ above, and the parameter range, and reports errors with the section name
 <tr><td>korean.model</td><td>~86 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
 <tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
-<tr><td>japanese_two_stage.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
-<tr><td>chinese_two_stage.model</td><td>~8.0 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
-<tr><td>korean_two_stage.model</td><td>~5.0 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
+<tr><td>japanese_pos.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
+<tr><td>chinese_pos.model</td><td>~8.0 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
+<tr><td>korean_pos.model</td><td>~5.0 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> (see <a href="../pre-trained-models.html">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (<code>*_two_stage.model</code>) models, which are larger because they carry per-class and per-stage weights.</p>
+<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> (see <a href="../pre-trained-models.html">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (<code>*_pos.model</code>) models, which are larger because they carry per-class and per-stage weights.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
