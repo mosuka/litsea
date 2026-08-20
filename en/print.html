@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b51af9a0.js";
+            window.path_to_searchindex_js = "searchindex-606bda11.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-4bbd3799.js"></script>
@@ -214,7 +214,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>
 <h2 id="current-version"><a class="header" href="#current-version">Current Version</a></h2>
-<p>Litsea v0.11.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
+<p>Litsea v0.12.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
 <h2 id="links"><a class="header" href="#links">Links</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub Repository</a></li>
@@ -254,11 +254,11 @@ cargo build --release
 <h2 id="using-as-a-library"><a class="header" href="#using-as-a-library">Using as a Library</a></h2>
 <p>Add Litsea to your project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.11.0"
+litsea = "0.12.0"
 </code></pre>
 <p>Remote model loading over http(s) is opt-in; enable the <code>remote_model</code>
 feature if you need it:</p>
-<pre><code class="language-toml">litsea = { version = "0.11.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.12.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
 <p><strong>Note:</strong> Loading models from local files (<code>load_model_from_path</code>) is synchronous, so no async runtime is needed. An async runtime such as <code>tokio</code> is only required if you load models over HTTP/HTTPS with the async <code>load_model</code> method (available only when the opt-in <code>remote_model</code> feature is enabled).</p>
@@ -1904,7 +1904,7 @@ fn test_char_type_thai() {
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.11.0"
+litsea = "0.12.0"
 </code></pre>
 <p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method (this includes <code>AnyPosModel::load</code>, which always resolves the model URI through the same async path).</p>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
@@ -4773,7 +4773,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 local loading only, keeping the dependency tree compact). The CLI enables it,
 so <code>litsea segment https://...</code> keeps working out of the box; library users
 need:</p>
-<pre><code class="language-toml">litsea = { version = "0.11.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.12.0", features = ["remote_model"] }
 </code></pre>
 <h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
 <ul>

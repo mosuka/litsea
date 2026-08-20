@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ac3ea525.js";
+            window.path_to_searchindex_js = "../searchindex-a451f517.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-72f19d1d.js"></script>
@@ -202,10 +202,10 @@ cargo build --release
 <h2 id="ライブラリとしての利用"><a class="header" href="#ライブラリとしての利用">ライブラリとしての利用</a></h2>
 <p>プロジェクトの <code>Cargo.toml</code> に Litsea を追加します:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.11.0"
+litsea = "0.12.0"
 </code></pre>
 <p>http(s) 経由のリモートモデル読み込みはオプトイン（opt-in）です。必要な場合は <code>remote_model</code> フィーチャーを有効にしてください:</p>
-<pre><code class="language-toml">litsea = { version = "0.11.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.12.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
 <p><strong>注意:</strong> ローカルファイルからのモデル読み込み（<code>load_model_from_path</code>）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（<code>tokio</code> など）が必要になるのは、非同期の <code>load_model</code> メソッドを使って HTTP/HTTPS 経由でモデルを読み込む場合のみです（オプトインの <code>remote_model</code> フィーチャーを有効にした場合にのみ利用できます）。</p>
