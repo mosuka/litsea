@@ -49,15 +49,15 @@ flowchart LR
 ```mermaid
 flowchart LR
     A["1. scripts/download_udtreebank.sh"] --> B["2. scripts/corpus_udtreebank.sh -p"]
-    B --> C["3. litsea extract --two-stage"]
-    C --> D["4. litsea train --two-stage"]
+    B --> C["3. litsea extract --pos"]
+    C --> D["4. litsea train --pos"]
     D --> E["5. litsea segment --pos"]
 ```
 
 1. UD Treebank をダウンロードする: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)`
 2. 品詞付きコーパスを準備する: `bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt`
-3. 二段構成の特徴量を抽出する: `litsea extract --two-stage -l japanese pos_corpus.txt features_prefix`
-4. 二段構成モデルを学習する: `litsea train --two-stage --num-epochs 50 features_prefix model.model`
+3. 二段構成の特徴量を抽出する: `litsea extract --pos -l japanese pos_corpus.txt features_prefix`
+4. 二段構成モデルを学習する: `litsea train --pos --num-epochs 50 features_prefix model.model`
 5. 品詞推定付き分割: `echo "text" | litsea segment --pos -l japanese model.model`
 
 アーキテクチャについては

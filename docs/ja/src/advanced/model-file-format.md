@@ -120,11 +120,11 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 | korean.model | 約 86 KB | UD Korean-GSD |
 | RWCP.model | 約 22 KB | オリジナルの TinySegmenter |
 | JEITA_Genpaku_ChaSen_IPAdic.model | 約 16 KB | JEITA コーパス |
-| japanese_two_stage.model | 約 5.4 MB | UD Japanese-GSD（二段構成） |
-| chinese_two_stage.model | 約 8.0 MB | UD Chinese-GSD（二段構成） |
-| korean_two_stage.model | 約 5.0 MB | UD Korean-GSD（二段構成） |
+| japanese_pos.model | 約 5.4 MB | UD Japanese-GSD（二段構成） |
+| chinese_pos.model | 約 8.0 MB | UD Chinese-GSD（二段構成） |
+| korean_pos.model | 約 5.0 MB | UD Korean-GSD（二段構成） |
 
-`RWCP.model` と `JEITA_Genpaku_ChaSen_IPAdic.model` は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された `japanese.model`・`chinese.model`・`korean.model`（[事前学習済みモデル](../pre-trained-models.md)を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく約 86 KB〜2.0 MB になりましたが、それでも二段構成モデル（`*_two_stage.model`）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。
+`RWCP.model` と `JEITA_Genpaku_ChaSen_IPAdic.model` は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された `japanese.model`・`chinese.model`・`korean.model`（[事前学習済みモデル](../pre-trained-models.md)を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく約 86 KB〜2.0 MB になりましたが、それでも二段構成モデル（`*_pos.model`）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。
 
 ## 互換性
 

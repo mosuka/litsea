@@ -492,7 +492,7 @@ impl TwoStageLearner {
             if first.trim().parse::<usize>().is_ok() {
                 return Err(LitseaError::InvalidData(
                     "this file is a joint POS (Averaged Perceptron) model; joint POS models \
-                     are no longer supported — retrain with `litsea train --two-stage`"
+                     are no longer supported — retrain with `litsea train --pos`"
                         .to_string(),
                 ));
             }
@@ -736,7 +736,7 @@ pub struct ParseTwoStageFeatureSetError {
 ///
 /// Caveat: this table reflects the original #167 prototype sweep (10
 /// training epochs), not the bundled models (50 epochs) — for example the
-/// bundled `japanese_two_stage.model` uses `Fast` and reaches 92.95%
+/// bundled `japanese_pos.model` uses `Fast` and reaches 92.95%
 /// tagged F1, not the 92.71% above. The rows are still useful for the
 /// *relative* full/balanced/fast comparison; for current, per-model
 /// figures see `docs/src/algorithm/two-stage-tagging.md`.
@@ -1240,7 +1240,7 @@ mod tests {
         assert!(matches!(
             load(STAGE2),
             Err(LitseaError::InvalidData(ref msg))
-                if msg.contains("no longer supported") && msg.contains("train --two-stage")
+                if msg.contains("no longer supported") && msg.contains("train --pos")
         ));
     }
 }

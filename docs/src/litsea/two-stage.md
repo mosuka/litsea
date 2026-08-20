@@ -71,7 +71,7 @@ use std::path::Path;
 use litsea::two_stage::TwoStageLearner;
 
 let mut learner = TwoStageLearner::new();
-learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 ```
 
 ### Accessors
@@ -147,5 +147,5 @@ container.
 Wrong-kind files get precise errors from `TwoStageLearner`'s loaders:
 pointing them at a standalone Averaged Perceptron file fails with "joint
 POS models are no longer supported — retrain with `litsea train
---two-stage`", and any other non-two-stage content fails with a
+--pos`", and any other non-two-stage content fails with a
 missing-magic-line error.

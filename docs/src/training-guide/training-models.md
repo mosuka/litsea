@@ -109,7 +109,7 @@ Press **Ctrl+C once** during perceptron training to stop and save the model at i
 
 ## Two-Stage Model Training
 
-For POS tagging, use the `--two-stage` flag. It
+For POS tagging, use the `--pos` flag. It
 trains a [two-stage model](../algorithm/two-stage-tagging.md) (issue #147):
 a binary boundary classifier (stage 1) plus a word-level tagger (stage 2),
 assembled with a candidate-tag lexicon into a single `litsea-two-stage v1`
@@ -119,19 +119,19 @@ for the architecture and the measured quality/speed figures.
 ### Two-Stage Training Command
 
 ```sh
-litsea extract --two-stage <CORPUS_FILE> <FEATURES_PREFIX>
-litsea train --two-stage --num-epochs 50 <FEATURES_PREFIX> <MODEL_FILE>
+litsea extract --pos <CORPUS_FILE> <FEATURES_PREFIX>
+litsea train --pos --num-epochs 50 <FEATURES_PREFIX> <MODEL_FILE>
 ```
 
-`extract --two-stage` reads a `word/POS` corpus and
-writes three files from `FEATURES_PREFIX`; `train --two-stage` reads them
+`extract --pos` reads a `word/POS` corpus and
+writes three files from `FEATURES_PREFIX`; `train --pos` reads them
 back from the same prefix.
 
 ### Two-Stage Training Example
 
 ```sh
-litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 ```
 
 ### Two-Stage Hyperparameters
@@ -140,7 +140,7 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 |-----------|------|---------|----------|
 | Epochs | `--num-epochs` | 10 | An epoch sweep during bundling (see [the methodology note](../algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epochs)) found segmentation quality still improving well past the default and plateauing around **50** -- the bundled models use 50, not 10 |
 | Dominance | `--dominance` | 0.99 | Classifier-skip threshold in `(0.5, 1.0]`: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier. Lower values skip the classifier more often (faster, more reliant on the lexicon); the default matches the bundled models |
-| Stage-2 feature set | `--stage2-features` on `extract --two-stage` | `fast` | `full`, `balanced`, or `fast`; see [Extracting Features](extracting-features.md) and [choosing a feature set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set) |
+| Stage-2 feature set | `--stage2-features` on `extract --pos` | `fast` | `full`, `balanced`, or `fast`; see [Extracting Features](extracting-features.md) and [choosing a feature set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set) |
 
 ### Two-Stage Training Output
 

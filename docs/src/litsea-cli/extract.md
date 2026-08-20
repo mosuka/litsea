@@ -20,10 +20,10 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--two-stage` |
-| `--two-stage` | off | Extract [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) training features. Requires a POS corpus as input |
-| `--stage2-features <SET>` | `fast` | Stage-2 word-feature set for `--two-stage`: `full` (best quality), `balanced`, or `fast` (best throughput) |
-| `--tag-free` | off | Exclude the 16 tag-dependent feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) so the trained model is pointwise and `segment()` skips its sequential scoring pass (issue #183; used for the bundled `korean.model` -- see [Tag-Free (Pointwise) Models](../pre-trained-models.md#tag-free-pointwise-models) for the per-language quality/speed trade-off). Composable with `--format tsv`; cannot be combined with `--two-stage` |
+| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--pos` |
+| `--pos` | off | Extract [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) training features. Requires a POS corpus as input |
+| `--stage2-features <SET>` | `fast` | Stage-2 word-feature set for `--pos`: `full` (best quality), `balanced`, or `fast` (best throughput) |
+| `--tag-free` | off | Exclude the 16 tag-dependent feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) so the trained model is pointwise and `segment()` skips its sequential scoring pass (issue #183; used for the bundled `korean.model` -- see [Tag-Free (Pointwise) Models](../pre-trained-models.md#tag-free-pointwise-models) for the per-language quality/speed trade-off). Composable with `--format tsv`; cannot be combined with `--pos` |
 
 ## Corpus Format
 
@@ -81,7 +81,7 @@ Feature extraction completed successfully.
 
 ## Two-Stage Feature Extraction
 
-When the `--two-stage` flag is specified, `extract` expects a **POS
+When the `--pos` flag is specified, `extract` expects a **POS
 corpus** instead of a plain word-separated corpus. Each line contains
 words annotated with UPOS tags in the format `word/POS`:
 
@@ -92,7 +92,7 @@ words annotated with UPOS tags in the format `word/POS`:
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
-`extract --two-stage` writes **three** files derived from `FEATURES_FILE`
+`extract --pos` writes **three** files derived from `FEATURES_FILE`
 as a prefix, for the [two-stage segmentation + POS tagging
 architecture](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1):
 
@@ -102,9 +102,9 @@ architecture](../advanced/model-file-format.md#two-stage-model-format-litsea-two
 | `{FEATURES_FILE}.stage2` | Word-level features, one row per word, label a UPOS tag; which templates are written is controlled by `--stage2-features` |
 | `{FEATURES_FILE}.lexicon` | The candidate-tag lexicon: `surface\tTAG:count[,TAG:count...]`, most-frequent-first |
 
-Pass the same prefix to `litsea train --two-stage`:
+Pass the same prefix to `litsea train --pos`:
 
 ```sh
-litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-# writes ./two_stage_features.stage1, .stage2, .lexicon
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+# writes ./pos_features.stage1, .stage2, .lexicon
 ```

@@ -63,24 +63,24 @@ The input is a tab-separated corpus (one sentence per line, tokens
 separated by tabs) in which a token may be a literal space character
 (`" "`). The output feature file format is identical to the default
 `extract`; only the corpus parsing differs. `--format tsv` cannot be
-combined with `--two-stage`.
+combined with `--pos`.
 
 ## Two-Stage Feature Extraction
 
 For [two-stage POS tagging](../algorithm/two-stage-tagging.md) (issue #147),
-use `--two-stage`:
+use `--pos`:
 
 ```sh
-litsea extract --two-stage [--stage2-features full|balanced|fast] <CORPUS_FILE> <FEATURES_PREFIX>
+litsea extract --pos [--stage2-features full|balanced|fast] <CORPUS_FILE> <FEATURES_PREFIX>
 ```
 
 ### Example
 
 ```sh
-litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 ```
 
-`--two-stage` reads a POS-tagged corpus
+`--pos` reads a POS-tagged corpus
 (`word/POS word/POS ...`) and, in a single pass over the corpus, writes
 **three** files from `<FEATURES_PREFIX>` instead of one:
 
@@ -90,8 +90,8 @@ litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
 | `<FEATURES_PREFIX>.stage2` | Word-level features (label a UPOS tag), the templates selected by `--stage2-features` |
 | `<FEATURES_PREFIX>.lexicon` | The candidate-tag lexicon (`surface\tTAG:count[,TAG:count...]`, most-frequent-first) |
 
-`litsea train --two-stage` reads all three files back from the same
-prefix. `--two-stage` cannot be combined with `--format tsv`.
+`litsea train --pos` reads all three files back from the same
+prefix. `--pos` cannot be combined with `--format tsv`.
 
 ### Choosing `--stage2-features`
 
@@ -111,7 +111,7 @@ set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set) for
 the measured quality/throughput comparison behind this default.
 
 ```sh
-litsea extract --two-stage --stage2-features balanced -l chinese ./pos_corpus.txt ./two_stage_features
+litsea extract --pos --stage2-features balanced -l chinese ./pos_corpus.txt ./pos_features
 ```
 
 ## File Size Expectations

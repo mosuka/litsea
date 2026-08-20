@@ -5,7 +5,7 @@ Litsea is an extremely compact word segmentation and POS (Part-of-Speech) taggin
 ## Key Features
 
 - **Word Segmentation** using AdaBoost binary classification on character n-gram features
-- **POS Tagging** with the UPOS (Universal POS) tagset from [Universal Dependencies](https://universaldependencies.org/u/pos/) (17 tags), via a two-stage architecture: a binary boundary classifier plus a word-level tagger with a candidate-tag lexicon (`--two-stage`)
+- **POS Tagging** with the UPOS (Universal POS) tagset from [Universal Dependencies](https://universaldependencies.org/u/pos/) (17 tags), via a two-stage architecture: a binary boundary classifier plus a word-level tagger with a candidate-tag lexicon (`--pos`)
 - **Multilingual Support** for Japanese, Korean, and Chinese
 - **Backward Compatible** — existing segmentation-only workflows continue to work as before
 
@@ -122,12 +122,12 @@ echo "中文分词测试。" | ./target/release/litsea segment -l chinese ./mode
 
 ## How to segment sentences with POS tagging
 
-Litsea supports word segmentation and POS tagging using the `--pos` flag with a two-stage model (`*_two_stage.model`). POS tags follow the [UPOS tagset](https://universaldependencies.org/u/pos/) from Universal Dependencies (17 tags).
+Litsea supports word segmentation and POS tagging using the `--pos` flag with a two-stage model (`*_pos.model`). POS tags follow the [UPOS tagset](https://universaldependencies.org/u/pos/) from Universal Dependencies (17 tags).
 
 Use the pre-trained two-stage model to segment sentences with POS tags:
 
 ```sh
-echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment --pos -l japanese ./models/japanese_two_stage.model
+echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment --pos -l japanese ./models/japanese_pos.model
 ```
 
 The output is:
@@ -159,18 +159,18 @@ Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese).
 
 ### Step 2: Extract two-stage features
 
-Use the `--two-stage` flag with the `extract` command to extract the three feature files (stage-1 boundary features, stage-2 word-level features, and the candidate-tag lexicon) from the POS corpus:
+Use the `--pos` flag with the `extract` command to extract the three feature files (stage-1 boundary features, stage-2 word-level features, and the candidate-tag lexicon) from the POS corpus:
 
 ```sh
-./target/release/litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+./target/release/litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 ```
 
 ### Step 3: Train the two-stage model
 
-Use the `--two-stage` flag with the `train` command to train a binary boundary classifier (stage 1) plus a word-level tagger (stage 2), assembled with the candidate-tag lexicon into a single `litsea-two-stage v1` model file. Use `--num-epochs` to set the number of training epochs (the bundled models use 50):
+Use the `--pos` flag with the `train` command to train a binary boundary classifier (stage 1) plus a word-level tagger (stage 2), assembled with the candidate-tag lexicon into a single `litsea-two-stage v1` model file. Use `--num-epochs` to set the number of training epochs (the bundled models use 50):
 
 ```sh
-./target/release/litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+./target/release/litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 ```
 
 See [Two-Stage Tagging](docs/src/algorithm/two-stage-tagging.md) for the architecture and measured quality/speed figures.
@@ -203,7 +203,7 @@ The output will look like:
 - **chinese.model**
   Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank, same collapsed-perceptron procedure as above. Held-out word F1: 90.69%.
 
-- **japanese_two_stage.model** / **chinese_two_stage.model** / **korean_two_stage.model**
+- **japanese_pos.model** / **chinese_pos.model** / **korean_pos.model**
   Two-stage word segmentation and POS tagging models trained on the UD GSD Treebanks (see [How to train two-stage POS models](#how-to-train-two-stage-pos-models)). Held-out word/tagged-word F1: Japanese 96.78% / 92.95%, Chinese 90.82% / 82.29%, Korean 83.24% / 78.86%.
 
 - **JEITA_Genpaku_ChaSen_IPAdic.model**
@@ -220,7 +220,7 @@ You can further improve performance by resuming training from an existing model 
 ./target/release/litsea train -t 0.0001 -i 20000 -m ./models/my_model.model ./new_features.txt ./models/my_model.model
 ```
 
-(This incremental-retraining path applies to plain AdaBoost models. The bundled `japanese.model`/`chinese.model`/`korean.model` are retrained from scratch via the collapsed-perceptron procedure instead, not incrementally. `train --two-stage` does not support `-m`/incremental training at all.)
+(This incremental-retraining path applies to plain AdaBoost models. The bundled `japanese.model`/`chinese.model`/`korean.model` are retrained from scratch via the collapsed-perceptron procedure instead, not incrementally. `train --pos` does not support `-m`/incremental training at all.)
 
 ## License
 

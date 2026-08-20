@@ -19,7 +19,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | 品詞推定付き分割を有効にします。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --two-stage`）が必要です |
+| `--pos` | off | 品詞推定付き分割を有効にします。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --pos`）が必要です |
 | `--threads <N>` | `1` | バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。`N > 1` では入力行を並列に分割しつつ**入力順で**出力するため、出力はどちらでもバイト単位で同一です（`--pos` の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません |
 
 ## 入力 / 出力
@@ -71,11 +71,11 @@ echo "テスト文です。" \
 
 ## 品詞推定付き分割（`--pos`）
 
-`--pos` フラグを指定すると、`train --two-stage` で作成した
+`--pos` フラグを指定すると、`train --pos` で作成した
 [二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデルを
 使って単語分割と品詞推定を一緒に行います。`--pos` に他の種類のモデルを
 渡すと正確なエラーで失敗します（スタンドアロンの Averaged Perceptron
-ファイル — 削除された joint POS モデル形式 — は、`train --two-stage` での
+ファイル — 削除された joint POS モデル形式 — は、`train --pos` での
 再学習を促すヒント付きで拒否されます）。
 
 ### 使い方
@@ -90,7 +90,7 @@ echo "text" | litsea segment --pos [OPTIONS] <MODEL_URI>
 
 ```sh
 echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+  | litsea segment --pos -l japanese ./models/japanese_pos.model
 ```
 
 ```text
@@ -100,7 +100,7 @@ echo "今日はいい天気ですね。" \
 ### ファイルの処理
 
 ```sh
-cat input.txt | litsea segment --pos -l japanese ./models/japanese_two_stage.model > output.txt
+cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > output.txt
 ```
 
 ## バッチ分割の並列化（`--threads`）
@@ -125,4 +125,4 @@ litsea segment --threads 8 -l japanese ./models/japanese.model < corpus.txt > se
 - `--language` フラグは、モデルが学習された言語と一致する必要があります
 - CLIは非同期のURI APIを通じてモデルを読み込み、TLS（rustls）を使用したHTTP/HTTPSをサポートしています。ライブラリには同期的なローカル読み込み（`load_model_from_path`）も用意されています
 - モデルURIはファイルパスに限定されません -- 有効なURLであれば使用可能です
-- `--pos` を使用する場合、モデルは `train --two-stage` で学習した二段構成モデルである必要があります
+- `--pos` を使用する場合、モデルは `train --pos` で学習した二段構成モデルである必要があります

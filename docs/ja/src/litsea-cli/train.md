@@ -23,9 +23,9 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | ブースティング反復の最大回数 |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | 学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL） |
 | `--perceptron` | off | 不透明な文字列ラベルに対する汎用の Averaged Perceptron を学習する（同梱分割モデルの畳み込みレシピの学習ステップ） |
-| `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（`--perceptron` モードおよび `--two-stage` モード） |
-| `--two-stage` | off | 代わりに[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデルを学習する。`{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon`（`extract --two-stage` の出力）を読み込む。`--perceptron` および `-m`/`--load-model-uri`（増分学習は非対応）とは併用できない |
-| `--dominance <DOMINANCE>` | `0.99` | `--two-stage` 用の分類器スキップ閾値、範囲は `(0.5, 1.0]`。既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされる |
+| `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（`--perceptron` モードおよび `--pos` モード） |
+| `--pos` | off | 代わりに[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデルを学習する。`{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon`（`extract --pos` の出力）を読み込む。`--perceptron` および `-m`/`--load-model-uri`（増分学習は非対応）とは併用できない |
+| `--dominance <DOMINANCE>` | `0.99` | `--pos` 用の分類器スキップ閾値、範囲は `(0.5, 1.0]`。既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされる |
 
 ## 出力
 
@@ -138,7 +138,7 @@ AdaBoost と同様に、パーセプトロンの学習も優雅な中断をサ�
 
 ## 二段構成モデルの学習
 
-`--two-stage` を指定すると、
+`--pos` を指定すると、
 [二段構成モデル](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)
 を構築します: 二値の境界分類器（stage 1）と単語単位の品詞タガー（stage 2）を、
 候補タグ語彙表とともに単一の `litsea-two-stage v1` ファイルに組み立てます。
@@ -150,16 +150,16 @@ AdaBoost と同様に、パーセプトロンの学習も優雅な中断をサ�
 ### 使い方
 
 ```sh
-litsea train --two-stage [OPTIONS] <FEATURES_PREFIX> <MODEL_FILE>
+litsea train --pos [OPTIONS] <FEATURES_PREFIX> <MODEL_FILE>
 ```
 
-`FEATURES_PREFIX` は `extract --two-stage` に渡したものと同じプレフィックスです。
+`FEATURES_PREFIX` は `extract --pos` に渡したものと同じプレフィックスです。
 
 ### 例
 
 ```sh
-litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 ```
 
 ### 出力

@@ -31,7 +31,7 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language of the model and gold corpus. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | Evaluate segmentation + POS tagging. The gold corpus must then be in `word/POS` format. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --two-stage`) |
+| `--pos` | off | Evaluate segmentation + POS tagging. The gold corpus must then be in `word/POS` format. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`) |
 | `--format <FORMAT>` | `space` | Gold corpus format: `space` (space-separated tokens) or `tsv` (tab-separated tokens; a token may be a literal space, as in the Korean space-preserving corpus). Ignored with `--pos` |
 
 ## Metrics
@@ -75,7 +75,7 @@ Reproduce the documented held-out figures with the bundled gold data
 litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
-litsea evaluate --pos -l japanese models/japanese_two_stage.model resources/eval/japanese_gsd_test_pos.txt
+litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 ```
 
 Output:

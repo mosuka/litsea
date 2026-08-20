@@ -33,10 +33,10 @@
 - **単語 F1（held-out）**: 96.70%
 - **境界 F1（held-out）**: 98.59%
 
-### japanese_two_stage.model
+### japanese_pos.model
 
 - **アルゴリズム**: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）
-- **詳細**: [事前学習済みモデル](../pre-trained-models.md#japanese_two_stagemodel)を参照
+- **詳細**: [事前学習済みモデル](../pre-trained-models.md#japanese_posmodel)を参照
 
 ### RWCP.model
 

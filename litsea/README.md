@@ -119,7 +119,7 @@ Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 �
 
 ## How to segment sentences with POS tagging
 
-Use `Segmenter::with_two_stage_learner()` and `segment_with_pos()` for word segmentation and POS tagging with a two-stage model (`litsea-two-stage v1` format, trained with `litsea extract --two-stage` + `litsea train --two-stage`):
+Use `Segmenter::with_two_stage_learner()` and `segment_with_pos()` for word segmentation and POS tagging with a two-stage model (`litsea-two-stage v1` format, trained with `litsea extract --pos` + `litsea train --pos`):
 
 ```rust
 use litsea::language::Language;
@@ -128,7 +128,7 @@ use litsea::two_stage::TwoStageLearner;
 
 // Load a two-stage POS model
 let mut learner = TwoStageLearner::new();
-// learner.load_model("./models/japanese_two_stage.model").await?;
+// learner.load_model("./models/japanese_pos.model").await?;
 
 let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
 

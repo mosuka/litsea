@@ -34,11 +34,11 @@ Patterns are evaluated in order. Notably:
 - **Word F1 (held-out)**: 96.70%
 - **Boundary F1 (held-out)**: 98.59%
 
-### japanese_two_stage.model
+### japanese_pos.model
 
 - **Algorithm**: two-stage segmentation + POS tagging (a binary boundary
   classifier plus a word-level tagger with a candidate-tag lexicon)
-- **Details**: see [Pre-trained Models](../pre-trained-models.md#japanese_two_stagemodel)
+- **Details**: see [Pre-trained Models](../pre-trained-models.md#japanese_posmodel)
 
 ### RWCP.model
 

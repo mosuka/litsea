@@ -1,7 +1,7 @@
 # Two-Stage Tagging
 
 Litsea's `segment_with_pos()` is backed by the **two-stage** model
-(`--two-stage`, `Segmenter::with_two_stage_learner`, issue #147). The model
+(`--pos`, `Segmenter::with_two_stage_learner`, issue #147). The model
 file's `litsea-two-stage v1` header identifies the format (see [Model File
 Format](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)),
 and the method returns `Vec<(String, Upos)>` word/tag pairs.
@@ -72,7 +72,7 @@ Two observations worth keeping in mind:
 ## Choosing a stage-2 feature set
 
 Stage 2's word-level tagger can be extracted with three feature sets
-(`--stage2-features` on `litsea extract --two-stage`; see [Extracting
+(`--stage2-features` on `litsea extract --pos`; see [Extracting
 Features](../training-guide/extracting-features.md)), trading tagging
 quality for throughput. Segmentation quality is unaffected -- it is
 decided entirely by stage 1. The figures below are at 50 epochs, matching
@@ -85,11 +85,11 @@ the bundled models.
 | `full` | 82.96% | 78.88% |
 
 For Japanese, `fast` alone reaches 92.95% tagged F1, so the bundled
-`japanese_two_stage.model` uses it. For Chinese, `balanced` gives most of
+`japanese_pos.model` uses it. For Chinese, `balanced` gives most of
 `full`'s gain (82.29% vs. 82.96%) at meaningfully better throughput, so
-`chinese_two_stage.model` uses `balanced` rather than `full`. For Korean,
+`chinese_pos.model` uses `balanced` rather than `full`. For Korean,
 `full` adds essentially nothing over `balanced` (78.88% vs. 78.86%), so
-`korean_two_stage.model` also uses `balanced`. Retraining with a different
-set is a matter of re-running `extract --two-stage --stage2-features
-<set>` + `train --two-stage`; there is no need to change any other part of
+`korean_pos.model` also uses `balanced`. Retraining with a different
+set is a matter of re-running `extract --pos --stage2-features
+<set>` + `train --pos`; there is no need to change any other part of
 the pipeline.

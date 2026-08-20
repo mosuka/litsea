@@ -13,15 +13,31 @@
   the blobs remain in git history). Migration: load a `litsea-two-stage
   v1` model with `TwoStageLearner::load_model*` and build the segmenter
   with `Segmenter::with_two_stage_learner`; retrain via `litsea extract
-  --two-stage` + `litsea train --two-stage`. The bundled two-stage models
+  --pos` + `litsea train --pos`. The bundled two-stage models
   already beat the removed joint models on both word and tagged-word F1
   in every language (#190).
 - `segment --pos` / `evaluate --pos` keep their flag names but now
   require a two-stage model. An old joint (standalone Averaged
   Perceptron) file fails with "joint POS models are no longer supported —
-  retrain with `litsea train --two-stage`"; the rejection lives in
+  retrain with `litsea train --pos`"; the rejection lives in
   `TwoStageLearner::load_model_from_reader`, so library callers get the
   same message (#190).
+- The training flags `extract --two-stage` / `train --two-stage` are
+  renamed to `extract --pos` / `train --pos` (#192, no alias — the old
+  spelling is rejected at argument parsing). With a single POS
+  architecture, the flags now express intent and match the runtime
+  `segment --pos` / `evaluate --pos`; "two-stage" remains the
+  architecture's name in the docs, the library API, and the
+  `litsea-two-stage v1` model format. The advanced flags
+  `--stage2-features` and `--dominance` are unchanged.
+- The bundled POS models are renamed from
+  `models/{japanese,chinese,korean}_two_stage.model` to
+  `models/{japanese,chinese,korean}_pos.model` (#192, same files — a
+  `git mv`). Note the `*_pos.model` names previously (≤0.12) referred to
+  the removed joint models; both mix-ups fail safe (the current loader
+  rejects old joint-format files with the migration error above, and a
+  0.12 binary auto-detects the `litsea-two-stage` magic in the new
+  files).
 - `PosTrainer` is renamed to `PerceptronTrainer`, and CLI `train --pos`
   to `train --perceptron` (#190). It always was a label-agnostic Averaged
   Perceptron trainer and remains the training step of the bundled
