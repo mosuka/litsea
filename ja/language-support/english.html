@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
+            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -234,13 +234,16 @@ AdaBoost のスカラー重みへ畳み込み、剪定なし（4,794 特徴量�
 <li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）</li>
 <li><strong>stage-2 特徴量セット</strong>: <code>full</code>（dev split での fast/balanced/full の
 スイープにより選定 – full がタグ付き単語の精度で最良だった）、50 エポック</li>
-<li><strong>単語 F1（held-out）</strong>: 70.33%</li>
-<li><strong>タグ付き単語 F1（held-out）</strong>: 65.83%</li>
+<li><strong>単語 F1（held-out、空白非保持プロトコル）</strong>: 70.33%</li>
+<li><strong>タグ付き単語 F1（held-out、空白非保持プロトコル）</strong>: 65.83%</li>
+<li><strong>単語 F1（held-out、実運用/スペース付き）</strong>: 77.55%</li>
+<li><strong>タグ付き単語 F1（held-out、実運用/スペース付き）</strong>: 69.89%</li>
 <li><strong>ファイルサイズ</strong>: 約 3.6 MB</li>
 <li><strong>詳細</strong>: <a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a>を参照</li>
 </ul>
 <blockquote>
-<p><strong>このモデルの分割品質は <code>english.model</code> より大幅に低くなっていますが、これは想定内でありバグではありません。</strong> <code>korean_pos.model</code> と同様に、このモデルは<em>空白なし</em>の <code>word/POS</code> コーパスで学習されています（二段構成 POS パイプラインには空白保持バリアントが存在しません）。<code>evaluate --pos</code> も同じ方法で採点するため、上記の数値は学習と推論の不一致によるものではありません。<code>english.model</code> の 98.31% との差は、2つの言語の間にある実際の違いに起因します: 韓国語は膠着語であるため、助詞や語尾がスペースをすべて取り除いても語境界について強い文字レベルの手がかりを残し、<code>korean_pos.model</code> は同一の空白なしプロトコルの下で Word F1 99.90% に達します。英語の正書法にはそうしたサブワードレベルのシグナルがほとんど存在しません – <code>"thecatsatonthemat"</code> のような文字列はほとんど手がかりを分類器に与えません – そのため、スペースを完全に取り除いた英語テキストを分割するのはかなり難しいタスクであり、70% という Word F1 はアーキテクチャや学習の欠陥ではなく、この本質的な難しさを反映しています。推論時にはモデルは実際の空白付きテキストを受け取り、スペースは独立したトークンとして再出力されます（stage-2 のフォールバックによりタグ付けされます）。<code>litsea/tests/golden.rs</code> の golden テストは、この実際の（完璧ではない）実運用時の挙動を固定しています。空白保持 TSV プロトコルと二段構成 POS 学習を組み合わせるには、二段構成パイプラインが現時点でサポートしていない新しいコーパス形式が必要です – 今後の課題として記録していますが、本ページでは実装していません。</p>
+<p><strong>このモデルの分割品質は <code>english.model</code> より大幅に低くなっていますが、これは想定内でありバグではありません。</strong> <code>korean_pos.model</code> と同様に、このモデルは<em>空白なし</em>の <code>word/POS</code> コーパスで<strong>学習</strong>されています（二段構成 POS パイプラインには空白保持バリアントが存在しません）。上記の「空白非保持プロトコル」の行は学習時と同じ方法でモデルを採点したものなので、学習と推論の不一致ではありません。一方「実運用/スペース付き」の行（issue #196）は、空白保持 POS ゴールド（<code>litsea evaluate --pos --format tsv</code> を <code>resources/eval/english_ewt_test_pos_spaced.tsv</code> に対して実行）からモデルの実際のスペース付き入力を復元し、<code>segment --pos</code> が自然なテキストに対して実際に何を出力するかを、再学習なしで測定したものです。実運用品質（77.55%）は空白非保持プロトコルの数値が示唆するよりも明確に良好ですが、それでも <code>english.model</code> の 98.31% には遠く及びません。</p>
+<p>残る差は実装上の欠陥ではなく、英語と韓国語の実際の違いに起因します: <code>korean_pos.model</code> の実運用単語 F1（94.01%）は <code>korean.model</code> の 99.91% よりわずか 5.9 ポイント低いだけですが、<code>english_pos.model</code> の実運用単語 F1 は <code>english.model</code> の 98.31% より 20.8 ポイント低く、コストは約 3.5 倍です。韓国語は膠着語であるため、助詞や語尾がスペースをすべて取り除いても語境界について強い文字レベルの手がかりを残します。英語の正書法にはそうしたサブワードレベルのシグナルがほとんど存在せず – <code>"thecatsatonthemat"</code> のような文字列はほとんど手がかりを分類器に与えません – そのため空白なしテキストでの学習は、韓国語よりはるかに大きな実運用品質のコストを英語に課します。推論時にはモデルは実際の空白付きテキストを受け取り、スペースは独立したトークンとして再出力されます（stage-2 のフォールバックによりタグ付けされます）。<code>litsea/tests/golden.rs</code> の golden テストは、この実際の（完璧ではない）実運用時の挙動を固定しています。issue #196 が追加したのは実運用の空白付き入力での品質を<strong>測定</strong>する手段であり、それで<strong>学習</strong>できるようになったわけではありません – 空白保持 TSV プロトコルと二段構成 POS 学習を組み合わせるには、パイプラインが現時点でサポートしていない新しいコーパス形式と <code>Extractor</code>/<code>Segmenter</code> 側の変更が依然として必要で、今後の課題として残っています。</p>
 </blockquote>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model

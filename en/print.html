@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c268d644.js";
+            window.path_to_searchindex_js = "searchindex-d193d7c5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-f9e282e4.js"></script>
@@ -1324,7 +1324,7 @@ corpus. <strong>The bundled two-stage models use 50 epochs</strong>; when retrai
 one-shot low-epoch run will understate the quality the architecture can
 reach.</p>
 <h2 id="measured-quality-and-throughput"><a class="header" href="#measured-quality-and-throughput">Measured quality and throughput</a></h2>
-<p>Held-out figures are from <code>litsea evaluate --pos</code> on the UD GSD test
+<p>Held-out figures are from <code>litsea evaluate --pos</code> on the UD GSD/EWT test
 splits (see <a href="#pre-trained-models-4">Pre-trained Models</a>). Throughput is
 <code>cargo bench -- external_corpus</code> on this project’s development machine
 (not dedicated, idle hardware); run-to-run spread is noticeable – see
@@ -1338,8 +1338,10 @@ limits.</p>
 <tbody>
 <tr><td>Japanese</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
 <tr><td>Chinese</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
-<tr><td>Korean</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
-<tr><td>English</td><td>70.33%</td><td>65.83%</td><td>2.05M chars/s</td></tr>
+<tr><td>Korean (unspaced protocol)</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
+<tr><td>Korean (real-world/spaced)</td><td>94.01%</td><td>83.20%</td><td>–</td></tr>
+<tr><td>English (unspaced protocol)</td><td>70.33%</td><td>65.83%</td><td>2.05M chars/s</td></tr>
+<tr><td>English (real-world/spaced)</td><td>77.55%</td><td>69.89%</td><td>–</td></tr>
 </tbody>
 </table>
 </div>
@@ -1354,15 +1356,32 @@ unknown-word rate means a larger share of its words pay stage 2’s
 full-class fallback rather than the cheap dominance-skip or
 candidate-masked paths.</li>
 </ul>
-<p><strong>English’s Word F1 is much lower than the others, and this is not a bug.</strong>
-Unlike the Korean and Japanese/Chinese rows above, <code>english_pos.model</code> is
-trained and evaluated on unspaced text where none of the other languages’
-segmentation task is anywhere near as hard: Korean’s agglutinative
-particles and verb endings leave strong boundary cues even with spaces
-removed (its unspaced two-stage Word F1, 83.24% here, is not far from its
-space-preserving <code>korean.model</code>’s 99.91%), while English orthography
-leaves almost none, so segmenting unspaced English is intrinsically much
-harder. See <a href="#english_posmodel">English</a> and
+<p><strong>Japanese and Chinese have no “unspaced protocol” vs. “real-world” split</strong>
+because their real text has no spaces to begin with – the single row
+above already <em>is</em> their real-world number. Korean and English are
+space-delimited languages evaluated on two different protocols: the
+“unspaced protocol” row measures the model on the same unspaced text it
+was trained on (not a train/inference mismatch – <code>evaluate --pos</code> scores
+it consistently either way); the “real-world/spaced” row (issue #196)
+reconstructs the model’s actual spaced input from a space-preserving POS
+gold and measures what <code>segment --pos</code> really produces, without changing
+training. Both rows are the <em>same model</em> – these two-stage POS models are
+trained on unspaced text regardless of protocol shown, since the two-stage
+training pipeline itself has no space-preserving corpus format yet.</p>
+<p><strong>English’s Word F1 is much lower than Korean’s, and this is not a bug.</strong>
+The clearest apples-to-apples comparison is each language’s real-world
+two-stage number against its own dedicated space-preserving <em>segmentation</em>
+model – the ceiling a model trained directly on spaced text reaches for
+that language: Korean’s real-world POS quality (94.01%) sits only 5.9pt
+below <code>korean.model</code>’s 99.91%, while English’s (77.55%) sits 20.8pt below
+<code>english.model</code>’s 98.31%. Both <code>korean_pos.model</code> and <code>english_pos.model</code>
+are trained on unspaced text (the two-stage pipeline has no
+space-preserving corpus format), so this gap is the cost of that unspaced
+training protocol – and it is roughly 3.5x larger for English than for
+Korean, because Korean’s agglutinative particles and verb endings leave
+much stronger boundary cues even with spaces removed than English
+orthography does. See
+<a href="#english_posmodel">English</a> and
 <a href="#english_posmodel-1">Pre-trained Models</a> for the
 full explanation.</p>
 <h2 id="choosing-a-stage-2-feature-set"><a class="header" href="#choosing-a-stage-2-feature-set">Choosing a stage-2 feature set</a></h2>
@@ -1677,9 +1696,16 @@ excluded from scoring.</p>
 <ul>
 <li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
-<li><strong>Note</strong>: unlike <code>korean.model</code> above, this model is trained on the
-<em>unspaced</em> <code>word/POS</code> corpus,
-not the space-preserving protocol described on this page</li>
+<li><strong>Note</strong>: unlike <code>korean.model</code> above, this model is <em>trained</em> on the
+<em>unspaced</em> <code>word/POS</code> corpus, not the space-preserving protocol
+described on this page. Held-out quality is reported two ways: the
+unspaced-protocol number (83.24% Word F1, matching how the model was
+trained) and a real-world number measured on natural spaced input
+(94.01% Word F1, issue #196) – both score the same model, not two
+different models. The ~11pt gap is the real cost of the unspaced
+training protocol for Korean; see <a href="#english_posmodel">English</a>
+for how much larger this gap is for a language whose orthography
+carries less boundary signal without spaces</li>
 <li><strong>Details</strong>: see <a href="#korean_posmodel-1">Pre-trained Models</a></li>
 </ul>
 <h2 id="example-2"><a class="header" href="#example-2">Example</a></h2>
@@ -1808,33 +1834,46 @@ tokens excluded from scoring.</p>
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
 <li><strong>Stage-2 feature set</strong>: <code>full</code> (chosen by a dev-split sweep over
 fast/balanced/full; full gave the best tagged-word accuracy), 50 epochs</li>
-<li><strong>Word F1 (held-out)</strong>: 70.33%</li>
-<li><strong>Tagged Word F1 (held-out)</strong>: 65.83%</li>
+<li><strong>Word F1 (held-out, unspaced protocol)</strong>: 70.33%</li>
+<li><strong>Tagged Word F1 (held-out, unspaced protocol)</strong>: 65.83%</li>
+<li><strong>Word F1 (held-out, real-world/spaced)</strong>: 77.55%</li>
+<li><strong>Tagged Word F1 (held-out, real-world/spaced)</strong>: 69.89%</li>
 <li><strong>File size</strong>: ~3.6 MB</li>
 <li><strong>Details</strong>: see <a href="#english_posmodel-1">Pre-trained Models</a></li>
 </ul>
 <blockquote>
 <p><strong>This model’s segmentation quality is substantially lower than
 <code>english.model</code>’s, and this is expected, not a bug.</strong> Like
-<code>korean_pos.model</code>, this model is trained on the <em>unspaced</em> <code>word/POS</code>
-corpus (the two-stage POS pipeline has no space-preserving variant), and
-<code>evaluate --pos</code> scores it the same way, so the numbers above are not a
-train/inference mismatch. The gap to <code>english.model</code>’s 98.31% comes from
-a real difference between the two languages: Korean is agglutinative, so
-its particles and verb endings leave strong character-level cues for
-word boundaries even with every space removed, and <code>korean_pos.model</code>
-reaches 99.90% Word F1 under the identical unspaced protocol. English
-orthography carries almost no such sub-word signal – a sequence like
-<code>"thecatsatonthemat"</code> gives a classifier little to work with – so
-segmenting English text with no spaces at all is a substantially harder
-task, and 70% Word F1 reflects that intrinsic difficulty rather than an
-architecture or training defect. At inference the model still receives
-real, spaced text, and spaces are re-emitted as their own tokens (tagged
-by the stage-2 fallback); the golden test in <code>litsea/tests/golden.rs</code>
-pins this actual, imperfect real-world behavior. Combining the
-space-preserving TSV protocol with two-stage POS training would require
-a new corpus format the two-stage pipeline does not currently support –
-tracked as a possible follow-up, not implemented here.</p>
+<code>korean_pos.model</code>, this model is <em>trained</em> on the <em>unspaced</em> <code>word/POS</code>
+corpus (the two-stage POS pipeline has no space-preserving variant). The
+“unspaced protocol” row above scores the model the same way it was
+trained, so it is not a train/inference mismatch; the “real-world/spaced”
+row (issue #196) instead reconstructs the model’s actual spaced input
+from a space-preserving POS gold (<code>litsea evaluate --pos --format tsv</code>
+against <code>resources/eval/english_ewt_test_pos_spaced.tsv</code>) and measures
+what <code>segment --pos</code> really produces on natural text, without retraining.
+Real-world quality (77.55%) is meaningfully better than the
+unspaced-protocol number suggests, but still well short of
+<code>english.model</code>’s 98.31%.</p>
+<p>The remaining gap comes from a real difference between English and
+Korean, not an implementation defect: <code>korean_pos.model</code>’s real-world
+Word F1 (94.01%) sits only 5.9pt below <code>korean.model</code>’s 99.91%, while
+<code>english_pos.model</code>’s real-world Word F1 sits 20.8pt below
+<code>english.model</code>’s 98.31% – roughly 3.5x the cost. Korean is
+agglutinative, so its particles and verb endings leave strong
+character-level cues for word boundaries even with every space removed;
+English orthography carries almost no such sub-word signal – a sequence
+like <code>"thecatsatonthemat"</code> gives a classifier little to work with – so
+training on unspaced text costs English much more real-world quality
+than it costs Korean. At inference the model receives real, spaced text,
+and spaces are re-emitted as their own tokens (tagged by the stage-2
+fallback); the golden test in <code>litsea/tests/golden.rs</code> pins this actual,
+imperfect real-world behavior. What issue #196 added is a way to
+<em>measure</em> quality on real spaced input, not a way to <em>train</em> on it –
+combining the space-preserving TSV protocol with two-stage POS training
+would still need a new corpus format and <code>Extractor</code>/<code>Segmenter</code> changes
+the pipeline does not currently support, and remains a possible
+follow-up.</p>
 </blockquote>
 <h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
 <pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
@@ -3403,12 +3442,19 @@ nor a two-stage learner set.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn parse_gold_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;String&gt;
-pub fn parse_gold_pos_line(line: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+pub fn parse_gold_pos_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;(String, Upos)&gt;
 <span class="boring">}</span></code></pre>
-<p><code>parse_gold_line</code> splits on spaces (or tabs with <code>tsv = true</code>, where a
-token may be a literal space); <code>parse_gold_pos_line</code> splits each token at
-its <strong>last</strong> <code>/</code> (the training pipeline’s rule), defaulting to <code>Upos::X</code>
-for missing or unparsable tags.</p>
+<p>Both split on spaces (or tabs with <code>tsv = true</code>, where a token may be a
+literal space – see <a href="#english">English</a> for why
+that matters for space-delimited languages); <code>parse_gold_pos_line</code>
+additionally splits each token at its <strong>last</strong> <code>/</code> (the training
+pipeline’s rule), defaulting to <code>Upos::X</code> for missing or unparsable tags.
+With <code>tsv = true</code>, a literal space token has no <code>/POS</code> suffix and always
+gets <code>Upos::X</code>, but this is harmless – whitespace tokens are excluded
+from tagged-word scoring by content, not by their assigned tag. This
+supports measuring a two-stage POS model’s real-world quality on
+space-delimited languages (issue #196), whose training corpus itself has
+no space-preserving variant.</p>
 <h2 id="example-4"><a class="header" href="#example-4">Example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -4025,8 +4071,8 @@ train the model — the bundled files in <code>resources/eval/</code> are the UD
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language of the model and gold corpus. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Evaluate segmentation + POS tagging. The gold corpus must then be in <code>word/POS</code> format. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). Ignored with <code>--pos</code></td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Evaluate segmentation + POS tagging. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>). Combines with <code>--format</code> below to select the gold format</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format. Without <code>--pos</code>: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). With <code>--pos</code>: <code>space</code> selects <code>"word/POS word/POS ..."</code> (the two-stage training corpus format, unspaced) and <code>tsv</code> selects tab-separated <code>"word/POS"</code> tokens where a token may also be a literal space (issue #196; for measuring real-world quality on space-delimited languages, since the two-stage training pipeline itself has no space-preserving variant)</td></tr>
 </tbody>
 </table>
 </div>
@@ -4073,6 +4119,14 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+</code></pre>
+<p>For Korean and English, <code>--pos</code> alone reproduces the two-stage training
+corpus’s own (unspaced) protocol; <code>--pos --format tsv</code> against the
+<code>*_pos_spaced.tsv</code> gold instead measures real-world quality on natural,
+spaced input – the two numbers are not comparable to each other (see
+<a href="#english_posmodel-1">Pre-trained Models</a>):</p>
+<pre><code class="language-sh">litsea evaluate --pos -l english models/english_pos.model resources/eval/english_ewt_test_pos.txt
+litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">Evaluation Metrics:
@@ -4614,6 +4668,18 @@ so unlike the segmentation rows above they are evaluated on unspaced text
 – for English this produces a much larger quality gap than for Korean,
 see <a href="#english_posmodel-1">Pre-trained Models</a> for
 why.</p>
+<p>For Korean and English, <code>--pos --format tsv</code> against a second,
+space-preserving gold file additionally measures real-world quality on
+natural spaced input (issue #196), instead of the unspaced protocol above:</p>
+<pre><code class="language-sh">litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
+litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
+</code></pre>
+<p>This does not retrain or otherwise change the model – it reconstructs the
+model’s actual spaced input from gold and scores it normally, the same way
+<code>evaluate -l korean --format tsv</code> already does for plain segmentation. The
+two rows shown in each language’s <a href="#pre-trained-models-4">Pre-trained Models</a>
+POS model card (“unspaced protocol” vs. “real-world/spaced”) are the same
+model evaluated two different ways, not two different models.</p>
 <h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>
@@ -5262,10 +5328,13 @@ absolute numbers, to carry over.</p>
 segments with a binary boundary classifier and tags each resulting word
 through a candidate-tag lexicon plus a word-level tagger, instead of
 scoring every UPOS class at every character position.</p>
-<p>Held-out rows are word / tagged-word F1 measured with <code>litsea evaluate --pos</code> on the UD GSD test splits (see
-<a href="#evaluating-models">Evaluating Models</a>). The Korean POS
-gold follows the POS pipeline’s convention (no space tokens), so it is
-evaluated on unspaced text. “Stage-2 feature set” is the word-level
+<p>Held-out rows are word / tagged-word F1 measured with <code>litsea evaluate --pos</code> on the UD GSD/EWT test splits (see
+<a href="#evaluating-models">Evaluating Models</a>). The Korean and
+English POS gold follow the POS pipeline’s convention (no space tokens),
+so the headline numbers below are evaluated on unspaced text; for these
+two space-delimited languages, a second “real-world/spaced” measurement
+(issue #196) is also given in their model cards, using <code>--format tsv</code>
+against a space-preserving POS gold file. “Stage-2 feature set” is the word-level
 template selection (<code>fast</code>, <code>balanced</code>, or <code>full</code>; see <a href="#extracting-features">Extracting
 Features</a>) chosen for the bundled
 file per language, from the measured tradeoff in <a href="#choosing-a-stage-2-feature-set">Two-Stage
@@ -5328,8 +5397,10 @@ note</a>).</p>
 <tr><td>Training Corpus</td><td>UD Korean-GSD (4,400 sentences, unspaced word/POS protocol – see the note below)</td></tr>
 <tr><td>Epochs</td><td>50</td></tr>
 <tr><td>Stage-2 Feature Set</td><td><code>balanced</code></td></tr>
-<tr><td>Word F1 (held-out)</td><td>83.24%</td></tr>
-<tr><td>Tagged Word F1 (held-out)</td><td>78.86%</td></tr>
+<tr><td>Word F1 (held-out, unspaced protocol)</td><td>83.24%</td></tr>
+<tr><td>Tagged Word F1 (held-out, unspaced protocol)</td><td>78.86%</td></tr>
+<tr><td>Word F1 (held-out, real-world/spaced)</td><td>94.01%</td></tr>
+<tr><td>Tagged Word F1 (held-out, real-world/spaced)</td><td>83.20%</td></tr>
 <tr><td>Throughput</td><td>4.54M chars/s</td></tr>
 <tr><td>File Size</td><td>~5.0 MB</td></tr>
 </tbody>
@@ -5340,13 +5411,23 @@ unknown words (surfaces never seen in training), and unknown words always
 take the full stage-2 classifier fallback rather than the cheap
 dominance-skip or candidate-masked paths, so a larger share of Korean’s
 words pay the full stage-2 cost than in Japanese or Chinese.</p>
-<p><strong>Korean protocol note</strong>: <code>korean_pos.model</code> is trained on the
+<p><strong>Korean protocol note</strong>: <code>korean_pos.model</code> is <em>trained</em> on the
 unspaced <code>word/POS</code> corpus, <em>not</em> the space-preserving TSV corpus
-<code>korean.model</code> uses (issue #152). The two-stage extractor takes a single
+<code>korean.model</code> uses (issue #152) – the two-stage extractor takes a single
 corpus for both stages, and building a combined space-preserving +
-POS-tagged format is a separate feature not yet implemented; the numbers
-above are therefore not comparable to <code>korean.model</code>’s 99.91% (a different
-corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
+POS-tagged format for <em>training</em> is a separate feature not yet
+implemented. The “unspaced protocol” row above measures the model the same
+way it was trained (not a train/inference mismatch), and is not comparable
+to <code>korean.model</code>’s 99.91% (a different corpus and protocol entirely). The
+“real-world/spaced” row is a real, held-out measurement of what users
+actually get from <code>segment --pos</code> on natural, spaced Korean text –
+<code>litsea evaluate --pos --format tsv</code> against
+<code>resources/eval/korean_gsd_test_pos_spaced.tsv</code> (issue #196) reconstructs
+the model’s spaced input from gold and scores it the normal way, without
+changing training at all. The ~11pt gap between the two rows shows the
+unspaced training protocol <em>does</em> cost real-world quality for Korean, even
+though Korean’s agglutinative morphology (particles, verb endings) keeps
+that cost far smaller than English’s (see below).</p>
 <h3 id="english_posmodel-1"><a class="header" href="#english_posmodel-1">english_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -5358,31 +5439,42 @@ corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
 <tr><td>Training Corpus</td><td>UD English-EWT (12,544 sentences, unspaced word/POS protocol – see the note below)</td></tr>
 <tr><td>Epochs</td><td>50</td></tr>
 <tr><td>Stage-2 Feature Set</td><td><code>full</code></td></tr>
-<tr><td>Word F1 (held-out)</td><td>70.33%</td></tr>
-<tr><td>Tagged Word F1 (held-out)</td><td>65.83%</td></tr>
+<tr><td>Word F1 (held-out, unspaced protocol)</td><td>70.33%</td></tr>
+<tr><td>Tagged Word F1 (held-out, unspaced protocol)</td><td>65.83%</td></tr>
+<tr><td>Word F1 (held-out, real-world/spaced)</td><td>77.55%</td></tr>
+<tr><td>Tagged Word F1 (held-out, real-world/spaced)</td><td>69.89%</td></tr>
 <tr><td>Throughput</td><td>2.05M chars/s</td></tr>
 <tr><td>File Size</td><td>~3.6 MB</td></tr>
 </tbody>
 </table>
 </div>
 <p><strong>English protocol note, read before comparing to <code>english.model</code>’s
-98.31%.</strong> <code>english_pos.model</code> is trained (and evaluated) on the same
-unspaced <code>word/POS</code> protocol as <code>korean_pos.model</code> – this is not a
-train/inference mismatch, <code>evaluate --pos</code> scores it the same way it was
-trained. The much larger quality gap for English than for Korean (Korean:
-99.90% unspaced vs. 99.91% spaced – almost no gap; English: 70.33%
-unspaced vs. 98.31% spaced – a large gap) reflects a genuine difference
-between the two languages, not an implementation defect: Korean is
-agglutinative, so particles and verb endings leave strong character-level
-cues for word boundaries even with every space removed, while English
-orthography carries almost none, so segmenting unspaced English text (e.g.
-<code>"thecatsatonthemat"</code>) is intrinsically a much harder task for this
-model’s feature templates. At inference the model still receives real,
+98.31%.</strong> <code>english_pos.model</code> is <em>trained</em> (and, for the “unspaced
+protocol” row, evaluated) on the same unspaced <code>word/POS</code> protocol as
+<code>korean_pos.model</code> – this is not a train/inference mismatch, <code>evaluate --pos</code> scores it the same way it was trained. The “real-world/spaced” row
+is a real, held-out measurement of <code>segment --pos</code> on natural, spaced
+English text (<code>litsea evaluate --pos --format tsv</code> against
+<code>resources/eval/english_ewt_test_pos_spaced.tsv</code>, issue #196) – it
+reconstructs the model’s actual spaced input from gold and scores
+normally, without retraining. English’s real-world quality (77.55%) is
+meaningfully better than the unspaced-protocol number (70.33%) suggests,
+but still far short of <code>english.model</code>‘s 98.31%, and far short of
+Korean’s real-world 94.01% (see the note on <code>korean_pos.model</code> above). The
+gap reflects a genuine difference between the two languages, not an
+implementation defect: Korean is agglutinative, so particles and verb
+endings leave strong character-level cues for word boundaries even with
+every space removed, while English orthography carries almost none, so
+segmenting unspaced English text (e.g. <code>"thecatsatonthemat"</code>) is
+intrinsically a much harder task for the stage-1 classifier that both
+models’ <em>training</em> still relies on. At inference the model receives real,
 spaced input, and spaces are re-emitted as their own tokens; see
 <a href="#english_posmodel">English</a> for the full
-explanation and a pinned example of the real (imperfect) output. Combining
-the space-preserving TSV protocol with two-stage POS training would need a
-new corpus format the pipeline does not currently support.</p>
+explanation and a pinned example of the real (imperfect) output. What
+issue #196 built is a way to <em>measure</em> quality on real spaced input, not a
+way to <em>train</em> on it – combining the space-preserving TSV protocol with
+two-stage POS training would still need a new corpus format and
+<code>Extractor</code>/<code>Segmenter</code> changes the pipeline does not currently support,
+and remains a possible follow-up.</p>
 <h4 id="usage-6"><a class="header" href="#usage-6">Usage</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
+            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -255,6 +255,18 @@ litsea evaluate -l english --format tsv models/english.model resources/eval/engl
 評価します – 英語ではこれが韓国語よりもはるかに大きな品質差を生みます。
 理由は<a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a>を
 参照してください。</p>
+<p>韓国語・英語では、<code>--pos --format tsv</code> を第 2 の空白保持ゴールドファイルに
+対して実行することで、上記の空白非保持プロトコルではなく、自然なスペース付き
+入力での実運用精度を測定できます（issue #196）:</p>
+<pre><code class="language-sh">litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
+litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
+</code></pre>
+<p>これはモデルの再学習や変更を一切行いません – ゴールドからモデルの実際の
+スペース付き入力を復元し、<code>evaluate -l korean --format tsv</code> が素の分割評価で
+既に行っているのと同じ方法で通常通り採点します。各言語の
+<a href="../pre-trained-models.html">事前学習済みモデル</a>の POS モデルカードに記載した
+2 つの行（「空白非保持プロトコル」と「実運用/スペース付き」）は、<strong>同じ
+モデル</strong>を 2 通りの方法で評価したものであり、2 つの異なるモデルではありません。</p>
 <h2 id="モデル品質の改善"><a class="header" href="#モデル品質の改善">モデル品質の改善</a></h2>
 <p>精度が不十分な場合は、以下を検討してください:</p>
 <ol>

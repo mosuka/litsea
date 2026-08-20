@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c268d644.js";
+            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -261,6 +261,18 @@ so unlike the segmentation rows above they are evaluated on unspaced text
 – for English this produces a much larger quality gap than for Korean,
 see <a href="../pre-trained-models.html#english_posmodel">Pre-trained Models</a> for
 why.</p>
+<p>For Korean and English, <code>--pos --format tsv</code> against a second,
+space-preserving gold file additionally measures real-world quality on
+natural spaced input (issue #196), instead of the unspaced protocol above:</p>
+<pre><code class="language-sh">litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
+litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
+</code></pre>
+<p>This does not retrain or otherwise change the model – it reconstructs the
+model’s actual spaced input from gold and scores it normally, the same way
+<code>evaluate -l korean --format tsv</code> already does for plain segmentation. The
+two rows shown in each language’s <a href="../pre-trained-models.html">Pre-trained Models</a>
+POS model card (“unspaced protocol” vs. “real-world/spaced”) are the same
+model evaluated two different ways, not two different models.</p>
 <h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>

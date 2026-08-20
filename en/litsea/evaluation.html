@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c268d644.js";
+            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -241,12 +241,19 @@ nor a two-stage learner set.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn parse_gold_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;String&gt;
-pub fn parse_gold_pos_line(line: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+pub fn parse_gold_pos_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;(String, Upos)&gt;
 <span class="boring">}</span></code></pre>
-<p><code>parse_gold_line</code> splits on spaces (or tabs with <code>tsv = true</code>, where a
-token may be a literal space); <code>parse_gold_pos_line</code> splits each token at
-its <strong>last</strong> <code>/</code> (the training pipeline’s rule), defaulting to <code>Upos::X</code>
-for missing or unparsable tags.</p>
+<p>Both split on spaces (or tabs with <code>tsv = true</code>, where a token may be a
+literal space – see <a href="../language-support/english.html">English</a> for why
+that matters for space-delimited languages); <code>parse_gold_pos_line</code>
+additionally splits each token at its <strong>last</strong> <code>/</code> (the training
+pipeline’s rule), defaulting to <code>Upos::X</code> for missing or unparsable tags.
+With <code>tsv = true</code>, a literal space token has no <code>/POS</code> suffix and always
+gets <code>Upos::X</code>, but this is harmless – whitespace tokens are excluded
+from tagged-word scoring by content, not by their assigned tag. This
+supports measuring a two-stage POS model’s real-world quality on
+space-delimited languages (issue #196), whose training corpus itself has
+no space-preserving variant.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

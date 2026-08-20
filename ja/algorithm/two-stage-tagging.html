@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
+            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -220,7 +220,7 @@
 再学習の際、一発の低エポック実行ではこのアーキテクチャの到達可能な品質を
 過小評価することになります。</p>
 <h2 id="実測の品質とスループット"><a class="header" href="#実測の品質とスループット">実測の品質とスループット</a></h2>
-<p>held-out の数値は UD GSD test split に対する <code>litsea evaluate --pos</code>
+<p>held-out の数値は UD GSD/EWT test split に対する <code>litsea evaluate --pos</code>
 （<a href="../pre-trained-models.html">事前学習済みモデル</a>を参照）です。スループットは
 本プロジェクトの開発機での <code>cargo bench -- external_corpus</code> で、
 専用のアイドルハードウェアではありません。実行間の振れ幅は無視できない
@@ -234,8 +234,10 @@
 <tbody>
 <tr><td>日本語</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
 <tr><td>中国語</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
-<tr><td>韓国語</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
-<tr><td>英語</td><td>70.33%</td><td>65.83%</td><td>2.05M chars/s</td></tr>
+<tr><td>韓国語（空白非保持プロトコル）</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
+<tr><td>韓国語（実運用/スペース付き）</td><td>94.01%</td><td>83.20%</td><td>–</td></tr>
+<tr><td>英語（空白非保持プロトコル）</td><td>70.33%</td><td>65.83%</td><td>2.05M chars/s</td></tr>
+<tr><td>英語（実運用/スペース付き）</td><td>77.55%</td><td>69.89%</td><td>–</td></tr>
 </tbody>
 </table>
 </div>
@@ -250,14 +252,30 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 候補マスクの経路ではなく、stage 2 の全クラスフォールバックを払う
 単語の割合が大きくなります。</li>
 </ul>
-<p><strong>英語の単語 F1 が他言語より大幅に低いのはバグではありません。</strong> 上記の
-韓国語・日本語・中国語の行と異なり、<code>english_pos.model</code> は他のどの言語の
-分割タスクよりもはるかに難しい、空白なしのテキストで学習・評価されています:
-韓国語は膠着語の助詞や語尾変化が空白を除いても強い境界手がかりを残すため、
-ここでの空白なし二段構成の単語 F1（83.24%）は空白保持の <code>korean.model</code> の
-99.91% とそれほど離れていません。一方、英語の正書法にはそうした手がかりが
-ほとんど残らないため、空白のない英語を分割することは本質的にはるかに
-難しくなります。詳しい説明は
+<p><strong>日本語・中国語には「空白非保持プロトコル」対「実運用」という区別が
+ありません</strong>。実際の文章にそもそも空白がないため、上記の単一行が既に
+実運用の数値そのものです。韓国語・英語はスペース区切りで書かれる言語で、
+2 つの異なるプロトコルで評価しています:「空白非保持プロトコル」の行は
+学習時と同じ空白なしテキストでモデルを測定したもの（学習と推論の
+ミスマッチではなく、<code>evaluate --pos</code> はどちらのプロトコルでも一貫して
+採点します）、「実運用/スペース付き」の行（issue #196）は空白保持 POS
+ゴールドからモデルの実際のスペース付き入力を復元し、<code>segment --pos</code> が
+実際に何を出力するかを、学習を変更せずに測定したものです。上記のどちらの
+行も<strong>同じモデル</strong>です – これらの二段構成 POS モデルは、表示している
+プロトコルにかかわらず空白なしテキストで学習されています。二段構成の
+学習パイプライン自体にまだ空白保持のコーパス形式がないためです。</p>
+<p><strong>英語の単語 F1 が韓国語より大幅に低いのはバグではありません。</strong> 最も
+公平な比較は、各言語の実運用二段構成の数値を、その言語専用の空白保持
+<strong>分割</strong>モデル（スペース付きテキストで直接学習したモデルが到達する上限）
+と比較することです: 韓国語の実運用 POS 品質（94.01%）は <code>korean.model</code>
+の 99.91% よりわずか 5.9 ポイント低いだけですが、英語の実運用 POS 品質
+（77.55%）は <code>english.model</code> の 98.31% より 20.8 ポイント低くなります。
+<code>korean_pos.model</code> と <code>english_pos.model</code> はどちらも空白なしテキストで
+学習されている（二段構成パイプラインに空白保持のコーパス形式がない）ため、
+このギャップは空白なし学習プロトコルのコストであり、英語では韓国語の
+約 3.5 倍に達します。これは韓国語の膠着語的な助詞・語尾変化が、空白を
+除いても英語の正書法よりはるかに強い境界手がかりを残すためです。詳しい
+説明は
 <a href="../language-support/english.html#english_posmodel">English</a> と
 <a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a> を
 参照してください。</p>

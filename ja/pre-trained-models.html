@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e08fa082.js";
+            window.path_to_searchindex_js = "searchindex-944a0cec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-b6b82e2c.js"></script>
@@ -405,10 +405,13 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 <p><a href="algorithm/two-stage-tagging.html">二段構成アーキテクチャ</a>（issue #147）は、
 文字位置ごとに全 UPOS クラスを採点する代わりに、二値の境界分類器で分割し、
 確定した各単語を候補タグ語彙表と単語単位のタガーでタグ付けします。</p>
-<p>held-out 行は UD GSD テスト分割に対して <code>litsea evaluate --pos</code> で測定した
+<p>held-out 行は UD GSD/EWT テスト分割に対して <code>litsea evaluate --pos</code> で測定した
 単語 / タグ付き単語 F1 です（<a href="training-guide/evaluating-models.html">モデルの評価</a>を
-参照）。韓国語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
-従うため、空白なしのテキストで評価しています。
+参照）。韓国語・英語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
+従うため、以下の主要な数値は空白なしのテキストで評価しています。この 2 つの
+スペース区切り言語については、モデルカードに「実運用（スペース付き）」の
+第 2 の測定値（issue #196、<code>--format tsv</code> を空白保持 POS ゴールドに対して
+使用）も併記しています。
 「stage-2 特徴量セット」は単語単位テンプレートの選択
 （<code>fast</code>、<code>balanced</code>、<code>full</code>。<a href="training-guide/extracting-features.html">特徴量の抽出</a>を参照）
 で、<a href="algorithm/two-stage-tagging.html#stage-2-特徴量セットの選び方">二段構成タグ付け</a>の
@@ -471,8 +474,10 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 <tr><td>学習コーパス</td><td>UD Korean-GSD（4,400 文、空白非保持の word/POS プロトコル – 下記の注記を参照）</td></tr>
 <tr><td>エポック数</td><td>50</td></tr>
 <tr><td>stage-2 特徴量セット</td><td><code>balanced</code></td></tr>
-<tr><td>単語 F1（held-out）</td><td>83.24%</td></tr>
-<tr><td>タグ付き単語 F1（held-out）</td><td>78.86%</td></tr>
+<tr><td>単語 F1（held-out、空白非保持プロトコル）</td><td>83.24%</td></tr>
+<tr><td>タグ付き単語 F1（held-out、空白非保持プロトコル）</td><td>78.86%</td></tr>
+<tr><td>単語 F1（held-out、実運用/スペース付き）</td><td>94.01%</td></tr>
+<tr><td>タグ付き単語 F1（held-out、実運用/スペース付き）</td><td>83.20%</td></tr>
 <tr><td>スループット</td><td>4.54M chars/s</td></tr>
 <tr><td>ファイルサイズ</td><td>約 5.0 MB</td></tr>
 </tbody>
@@ -484,13 +489,22 @@ stage 2 の全クラスフォールバックを払うことになり、安価な
 スキップや候補マスクの経路を使えません。そのため日本語・中国語より
 多くの割合の韓国語の単語が stage 2 のフルコストを負担します。</p>
 <p><strong>韓国語のプロトコルについての注記</strong>: <code>korean_pos.model</code> は
-空白非保持の <code>word/POS</code> コーパスで学習されており、
-<code>korean.model</code> が使う空白保持 TSV コーパス（issue #152）ではありません。
-二段構成の extractor は両ステージに単一のコーパスを使うため、空白保持＋
-POS 付きを組み合わせた形式の構築は別機能であり未実装です。したがって
-上記の数値は <code>korean.model</code> の 99.91%
-（全く異なるコーパス・プロトコル）とは比較できません – 二段構成が
-優れている/劣っているという結果ではありません。</p>
+空白非保持の <code>word/POS</code> コーパスで<strong>学習</strong>されており、
+<code>korean.model</code> が使う空白保持 TSV コーパス（issue #152）ではありません
+– 二段構成の extractor は両ステージに単一のコーパスを使うため、
+学習用に空白保持＋POS 付きを組み合わせた形式を構築するのは別機能で
+あり未実装のままです。「空白非保持プロトコル」の行は学習時と同じ方法
+でモデルを採点したものです（学習と推論のミスマッチではありません）。
+<code>korean.model</code> の 99.91% とは比較できません（全く異なるコーパス・
+プロトコル）。「実運用/スペース付き」の行は、ユーザーが <code>segment --pos</code>
+で実際に得られる、自然なスペース付き韓国語テキストに対する held-out の
+実測値です – <code>litsea evaluate --pos --format tsv</code> を
+<code>resources/eval/korean_gsd_test_pos_spaced.tsv</code>（issue #196）に対して
+実行し、ゴールドからモデルの実際のスペース付き入力を復元して通常通り
+採点したもので、学習は一切変更していません。2 行の差（約11ポイント）は、
+空白非保持の学習プロトコルが韓国語に対して実際に払っているコストを
+示しています。ただし韓国語は膠着語（助詞・語尾変化）であるため、この
+コストは英語よりはるかに小さく抑えられています（下記参照）。</p>
 <h3 id="english_posmodel"><a class="header" href="#english_posmodel">english_pos.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -502,8 +516,10 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 <tr><td>学習コーパス</td><td>UD English-EWT（12,544 文、空白非保持の word/POS プロトコル – 下記の注記を参照）</td></tr>
 <tr><td>エポック数</td><td>50</td></tr>
 <tr><td>stage-2 特徴量セット</td><td><code>full</code></td></tr>
-<tr><td>単語 F1（held-out）</td><td>70.33%</td></tr>
-<tr><td>タグ付き単語 F1（held-out）</td><td>65.83%</td></tr>
+<tr><td>単語 F1（held-out、空白非保持プロトコル）</td><td>70.33%</td></tr>
+<tr><td>タグ付き単語 F1（held-out、空白非保持プロトコル）</td><td>65.83%</td></tr>
+<tr><td>単語 F1（held-out、実運用/スペース付き）</td><td>77.55%</td></tr>
+<tr><td>タグ付き単語 F1（held-out、実運用/スペース付き）</td><td>69.89%</td></tr>
 <tr><td>スループット</td><td>2.05M chars/s</td></tr>
 <tr><td>ファイルサイズ</td><td>約 3.6 MB</td></tr>
 </tbody>
@@ -511,21 +527,33 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 </div>
 <p><strong>英語のプロトコルについての注記 – <code>english.model</code> の 98.31% と比較する前に
 必ずお読みください。</strong> <code>english_pos.model</code> は <code>korean_pos.model</code> と同じ
-空白非保持の <code>word/POS</code> プロトコルで学習・評価しています – これは学習と
-推論のミスマッチではなく、<code>evaluate --pos</code> は学習時と同じ方法で採点して
-います。英語の品質差が韓国語よりはるかに大きい理由（韓国語: 空白なし
-99.90% vs 空白あり 99.91% – ほぼ差がない／英語: 空白なし 70.33% vs
-空白あり 98.31% – 大きな差がある）は、実装上の欠陥ではなく両言語の本質的な
-違いを反映しています: 韓国語は膠着語であり、助詞や語尾変化が文字レベルの
-強い境界手がかりを残すため、すべての空白を除いても単語境界を判定できます。
-一方、英語の正書法にはそうした手がかりがほとんど残らないため、空白のない
-英語のテキスト（例: <code>"thecatsatonthemat"</code>）を分割することは、このモデルの
-特徴量テンプレートにとって本質的にはるかに難しいタスクになります。推論時
-にはモデルは実際の空白付き入力を受け取り、空白は独立したトークンとして
-再出力されます。詳しい説明と実際の（不完全な）出力例は
+空白非保持の <code>word/POS</code> プロトコルで<strong>学習</strong>（「空白非保持プロトコル」の行は
+評価も）しています – これは学習と推論のミスマッチではなく、<code>evaluate --pos</code> は学習時と同じ方法で採点しています。「実運用/スペース付き」の行は、
+自然なスペース付き英語テキストに対する <code>segment --pos</code> の実測値です
+（<code>litsea evaluate --pos --format tsv</code> を
+<code>resources/eval/english_ewt_test_pos_spaced.tsv</code> に対して実行、
+issue #196）– ゴールドからモデルの実際のスペース付き入力を復元して
+通常通り採点したもので、再学習は行っていません。英語の実運用品質
+（77.55%）は空白非保持プロトコルの数値が示唆するよりも明確に良好ですが、
+それでも <code>english.model</code> の 98.31% には遠く及びません。</p>
+<p>残る差は実装上の欠陥ではなく両言語の本質的な違いを反映しています:
+<code>korean_pos.model</code> の実運用単語 F1（94.01%）は <code>korean.model</code> の 99.91%
+よりわずか5.9ポイント低いだけですが、<code>english_pos.model</code> の実運用単語 F1は
+<code>english.model</code> の 98.31%より20.8ポイント低く、コストは約3.5倍です。
+韓国語は膠着語であり、助詞や語尾変化が文字レベルの強い境界手がかりを
+残すため、すべての空白を除いても単語境界を判定できます。一方、英語の
+正書法にはそうした手がかりがほとんど残らないため、空白のない英語の
+テキスト（例: <code>"thecatsatonthemat"</code>）を分割することは本質的にはるかに
+難しいタスクであり、空白非保持テキストでの学習は韓国語よりはるかに大きな
+実運用品質のコストを英語に課します。推論時にはモデルは実際の空白付き
+入力を受け取り、空白は独立したトークンとして再出力されます。詳しい説明と
+実際の（不完全な）出力例は
 <a href="language-support/english.html#english_posmodel">English</a> を参照してください。
-空白保持 TSV プロトコルと二段構成 POS 学習を組み合わせるには、パイプラインが
-現時点でサポートしていない新しいコーパス形式が必要になります。</p>
+issue #196 が追加したのは実運用の空白付き入力での品質を<strong>測定</strong>する手段
+であり、それで<strong>学習</strong>できるようになったわけではありません – 空白保持
+TSV プロトコルと二段構成 POS 学習を組み合わせるには、パイプラインが
+現時点でサポートしていない新しいコーパス形式と <code>Extractor</code>/<code>Segmenter</code>
+側の変更が依然として必要で、今後の課題として残っています。</p>
 <h4 id="使用方法"><a class="header" href="#使用方法">使用方法</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>

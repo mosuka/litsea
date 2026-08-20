@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
+            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -214,8 +214,8 @@ train 分割で学習されているため、この条件を満たします。</
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは <code>word/POS</code> 形式である必要があります。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> 指定時は無視されます</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です。ゴールド形式は下記の <code>--format</code> と組み合わせて選択します</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式。<code>--pos</code> なしの場合: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> ありの場合: <code>space</code> は <code>"word/POS word/POS ..."</code>（二段構成の学習コーパス形式、無空白）を、<code>tsv</code> はタブ区切りの <code>"word/POS"</code> トークン（トークンは空白文字も可）を選択します（issue #196。韓国語・英語のようにスペース区切りで書かれる言語の実運用精度を測るための形式です。二段構成の学習パイプライン自体には空白保持のバリアントがないため）</td></tr>
 </tbody>
 </table>
 </div>
@@ -259,6 +259,14 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+</code></pre>
+<p>韓国語・英語では、<code>--pos</code> 単体は二段構成の学習コーパス自体のプロトコル
+（無空白）をそのまま再現しますが、<code>--pos --format tsv</code> を <code>*_pos_spaced.tsv</code>
+のゴールドに対して使うと、実際のスペース付き入力での実運用精度を測定
+できます — 2 つの数値は互いに比較できません
+（<a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a> 参照）:</p>
+<pre><code class="language-sh">litsea evaluate --pos -l english models/english_pos.model resources/eval/english_ewt_test_pos.txt
+litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 </code></pre>
 <p>出力:</p>
 <pre><code class="language-text">Evaluation Metrics:

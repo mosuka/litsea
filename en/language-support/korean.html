@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c268d644.js";
+            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -272,9 +272,16 @@ excluded from scoring.</p>
 <ul>
 <li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
-<li><strong>Note</strong>: unlike <code>korean.model</code> above, this model is trained on the
-<em>unspaced</em> <code>word/POS</code> corpus,
-not the space-preserving protocol described on this page</li>
+<li><strong>Note</strong>: unlike <code>korean.model</code> above, this model is <em>trained</em> on the
+<em>unspaced</em> <code>word/POS</code> corpus, not the space-preserving protocol
+described on this page. Held-out quality is reported two ways: the
+unspaced-protocol number (83.24% Word F1, matching how the model was
+trained) and a real-world number measured on natural spaced input
+(94.01% Word F1, issue #196) – both score the same model, not two
+different models. The ~11pt gap is the real cost of the unspaced
+training protocol for Korean; see <a href="english.html#english_posmodel">English</a>
+for how much larger this gap is for a language whose orthography
+carries less boundary signal without spaces</li>
 <li><strong>Details</strong>: see <a href="../pre-trained-models.html#korean_posmodel">Pre-trained Models</a></li>
 </ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>

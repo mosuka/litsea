@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
+            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -241,13 +241,19 @@ where
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn parse_gold_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;String&gt;
-pub fn parse_gold_pos_line(line: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
+pub fn parse_gold_pos_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;(String, Upos)&gt;
 <span class="boring">}</span></code></pre>
-<p><code>parse_gold_line</code> はスペースで分割します（<code>tsv = true</code> の場合はタブで分割し、
-トークンとして空白文字そのもの（<code>" "</code>）を含められます）。
-<code>parse_gold_pos_line</code> は各トークンを<strong>最後の</strong> <code>/</code> で分割し（学習
-パイプラインと同じルール）、タグが欠落しているか解析できない場合は
-<code>Upos::X</code> を既定値とします。</p>
+<p>どちらもスペースで分割します（<code>tsv = true</code> の場合はタブで分割し、
+トークンとして空白文字そのもの（<code>" "</code>）を含められます — スペース区切りで
+書かれる言語で重要になる理由は<a href="../language-support/english.html">英語</a>を
+参照）。<code>parse_gold_pos_line</code> はさらに各トークンを<strong>最後の</strong> <code>/</code> で分割し
+（学習パイプラインと同じルール）、タグが欠落しているか解析できない場合は
+<code>Upos::X</code> を既定値とします。<code>tsv = true</code> の場合、空白リテラルトークンには
+<code>/POS</code> サフィックスがなく常に <code>Upos::X</code> になりますが、これは無害です –
+空白トークンはタグ付きスコアリングから内容によって除外され、割り当てられた
+タグでは判定しません。これは二段構成 POS モデルの実運用精度を、スペース
+区切りで書かれる言語（学習コーパス自体に空白保持のバリアントがない）で
+測定するための仕組みです（issue #196）。</p>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
