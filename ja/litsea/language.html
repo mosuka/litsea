@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -192,13 +192,14 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
 }
 <span class="boring">}</span></code></pre>
 <p>この列挙型に <code>#[non_exhaustive]</code> が付いているのは、新しい言語が破壊的変更なしに追加されることを想定しているためです。したがって、外部クレートで <code>Language</code> に対する <code>match</code> 式を書く場合はワイルドカードアーム（<code>_ =&gt; ...</code>）が必要です。</p>
 <h3 id="トレイト"><a class="header" href="#トレイト">トレイト</a></h3>
 <ul>
 <li><code>Default</code> – <code>Language::Japanese</code> を返す</li>
-<li><code>Display</code> – 小文字の名前を返す（<code>"japanese"</code>、<code>"chinese"</code>、<code>"korean"</code>）</li>
+<li><code>Display</code> – 小文字の名前を返す（<code>"japanese"</code>、<code>"chinese"</code>、<code>"korean"</code>、<code>"english"</code>）</li>
 <li><code>FromStr</code> – 完全名または ISO 639-1 コードから解析（大文字・小文字を区別しない）</li>
 </ul>
 <h3 id="パース"><a class="header" href="#パース">パース</a></h3>
@@ -210,11 +211,13 @@ pub enum Language {
 let ja: Language = "japanese".parse().unwrap();
 let zh: Language = "chinese".parse().unwrap();
 let ko: Language = "korean".parse().unwrap();
+let en: Language = "english".parse().unwrap();
 
 // ISO 639-1 codes
 let ja: Language = "ja".parse().unwrap();
 let zh: Language = "zh".parse().unwrap();
 let ko: Language = "ko".parse().unwrap();
+let en: Language = "en".parse().unwrap();
 
 // Case-insensitive
 let ko: Language = "KOREAN".parse().unwrap();
@@ -238,7 +241,7 @@ assert_eq!(lang.char_type('あ'), "I");
 assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<p>内部的には、<code>char_type</code> は言語ごとの非公開関数（<code>japanese_char_type_id</code>、<code>chinese_char_type_id</code>、<code>korean_char_type_id</code>）が返す数値の type id に対するテーブル参照になっており、文字列コードと数値 id が食い違うことはありません。全言語に共通のクラス – <code>"P"</code>（句読点）、<code>"A"</code>（ラテン文字）、<code>"N"</code>（数字） – は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。</p>
+<p>内部的には、<code>char_type</code> は言語ごとの非公開関数（<code>japanese_char_type_id</code>、<code>chinese_char_type_id</code>、<code>korean_char_type_id</code>、<code>english_char_type_id</code>）が返す数値の type id に対するテーブル参照になっており、文字列コードと数値 id が食い違うことはありません。全言語に共通のクラス – <code>"P"</code>（句読点）、<code>"A"</code>（ラテン文字）、<code>"N"</code>（数字） – は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます（英語では <code>"P"</code> を ASCII の句読点全般まで広げています。詳細は<a href="../language-support/english.html">英語</a>を参照）。</p>
 <h2 id="parselanguageerror"><a class="header" href="#parselanguageerror">ParseLanguageError</a></h2>
 <p>文字列からの <code>Language</code> のパースに失敗すると <code>ParseLanguageError</code> が返されます。この型はクレートルートから再エクスポートされています（<code>litsea::ParseLanguageError</code>）:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -250,7 +253,7 @@ assert_eq!(err.input(), "french");
 <span class="boring">}</span></code></pre>
 <ul>
 <li><code>input()</code> – パースに失敗した文字列を返す</li>
-<li>エラーメッセージにはサポートされている言語が列挙されます: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
+<li>エラーメッセージにはサポートされている言語が列挙されます: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko), english (en)</code></li>
 </ul>
 
                     </main>

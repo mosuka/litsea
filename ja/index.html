@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2cf72791.js"></script>
+        <script src="toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,10 +186,10 @@
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
-<li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
+<li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
 <li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
 <li><strong>二段構成の品詞推定</strong> – 二値境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによる各単語のタグ付けを組み合わせ、通常の単語分割にわずかなコストしか追加しない</li>
-<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
+<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語、英語</li>
 <li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
 <li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL（オプトインの <code>remote_model</code> フィーチャー）またはローカルファイルからモデルを読み込み</li>
 <li><strong>シンプルで拡張性の高い API</strong> – Rust プロジェクトへのライブラリとしての統合が容易</li>

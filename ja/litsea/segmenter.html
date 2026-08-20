@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -321,7 +321,7 @@ pub fn add_corpus_tsv_with_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: 
 where
     F: FnMut(HashSet&lt;String&gt;, i8),
 <span class="boring">}</span></code></pre>
-<p><code>add_corpus</code> / <code>add_corpus_with_writer</code> のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルで使用。issue #152）。</p>
+<p><code>add_corpus</code> / <code>add_corpus_with_writer</code> のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルおよび英語モデルで使用。issue #152）。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut segmenter = Segmenter::new(Language::Korean);
@@ -336,7 +336,7 @@ pub fn learner_mut(&amp;mut self) -&gt; &amp;mut AdaBoost
 <span class="boring">}</span></code></pre>
 <p>Segmenter の言語と内部の学習器（二段構成の Segmenter では stage-1 境界分類器）へのアクセスを提供します。</p>
 <blockquote>
-<p>文字位置ごとの特徴量抽出（韓国語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の <code>get_attributes</code> メソッドは非公開になりました。</p>
+<p>文字位置ごとの特徴量抽出（韓国語/英語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の <code>get_attributes</code> メソッドは非公開になりました。</p>
 </blockquote>
 <h2 id="pos-mode-api"><a class="header" href="#pos-mode-api">POS-Mode API</a></h2>
 <p>Segmenter は、二段構成モデル（issue #147）を使った <strong>単語分割と品詞タグ付け</strong> もサポートしています。</p>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -222,8 +222,8 @@ litsea train -t 0.0001 -i 20000 \
 does <strong>not</strong> support <code>-m</code>/<code>--load-model-uri</code> – incremental training of a
 two-stage model is not supported, so if you need to update one you must
 retrain it from scratch with <code>train --pos</code></li>
-<li>The bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are not
-produced with this plain <code>-m</code> recipe – they go through the
+<li>The bundled <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and
+<code>english.model</code> are not produced with this plain <code>-m</code> recipe – they go through the
 perceptron-collapse procedure described in <a href="../pre-trained-models.html#training-procedure">Training
 Procedure</a>. Running further
 incremental AdaBoost training on top of one of them with <code>-m</code> would mix

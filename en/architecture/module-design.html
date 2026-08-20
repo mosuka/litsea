@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -234,9 +234,9 @@
 <h3 id="languagers--language-definitions"><a class="header" href="#languagers--language-definitions"><code>language.rs</code> – Language Definitions</a></h3>
 <p>Defines the <code>Language</code> enum and character type classification.</p>
 <ul>
-<li><strong><code>Language</code></strong> – Enum with variants <code>Japanese</code>, <code>Chinese</code>, <code>Korean</code>
+<li><strong><code>Language</code></strong> – Enum with variants <code>Japanese</code>, <code>Chinese</code>, <code>Korean</code>, <code>English</code>
 <ul>
-<li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>)</li>
+<li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>, <code>"english"</code>, <code>"en"</code>)</li>
 <li>Implements <code>Display</code> (outputs lowercase name)</li>
 <li><code>char_type(c: char) -&gt; &amp;'static str</code> – Classifies a character as a table lookup over the numeric type id returned by the private <code>char_type_id()</code>, which dispatches to a per-language function (<code>japanese_char_type_id</code>, etc.) implemented as a direct <code>match</code> on character ranges (allocation-free; no regex). The language-specific functions share a <code>punct_latin_digit()</code> helper for the common <code>"P"</code>/<code>"A"</code>/<code>"N"</code> classes.</li>
 </ul>
@@ -254,7 +254,7 @@
 <li><code>segment_into(sentence, buf)</code> – Allocation-free variant (#184): returns token byte ranges borrowed from a reusable <code>SegmentBuffer</code></li>
 <li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> unless a two-stage learner is set)</li>
 <li><code>char_type(ch)</code> – Classify a single character into its type code</li>
-<li><code>add_corpus(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – Add training data (space-separated, or tab-separated/space-preserving; the latter is used for Korean, see issue #152)</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – Add training data (space-separated, or tab-separated/space-preserving; the latter is used for Korean and English, see issue #152)</li>
 <li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_writer(corpus, callback)</code> – Process a corpus with a custom callback (the POS-writer variant feeds two-stage stage-1 feature extraction)</li>
 </ul>
 </li>
@@ -302,7 +302,7 @@
 <ul>
 <li><code>new(language)</code> – Create an extractor for a specific language</li>
 <li><code>extract(corpus_path, features_path)</code> – Read a corpus, write a features file</li>
-<li><code>extract_tsv(corpus_path, features_path)</code> – Same for tab-separated, space-preserving corpora (issue #152, used for Korean)</li>
+<li><code>extract_tsv(corpus_path, features_path)</code> – Same for tab-separated, space-preserving corpora (issue #152, used for Korean and English)</li>
 <li><code>extract_two_stage(corpus_path, output_prefix, feature_set)</code> – Extract two-stage training features (issue #147) from a POS-tagged corpus: writes <code>{output_prefix}.stage1</code> (boundary features), <code>.stage2</code> (word-level features), and <code>.lexicon</code></li>
 </ul>
 </li>

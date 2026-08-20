@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -235,6 +235,7 @@
 <tr><td>日本語</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
 <tr><td>中国語</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
 <tr><td>韓国語</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
+<tr><td>英語</td><td>70.33%</td><td>65.83%</td><td>2.05M chars/s</td></tr>
 </tbody>
 </table>
 </div>
@@ -249,6 +250,17 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 候補マスクの経路ではなく、stage 2 の全クラスフォールバックを払う
 単語の割合が大きくなります。</li>
 </ul>
+<p><strong>英語の単語 F1 が他言語より大幅に低いのはバグではありません。</strong> 上記の
+韓国語・日本語・中国語の行と異なり、<code>english_pos.model</code> は他のどの言語の
+分割タスクよりもはるかに難しい、空白なしのテキストで学習・評価されています:
+韓国語は膠着語の助詞や語尾変化が空白を除いても強い境界手がかりを残すため、
+ここでの空白なし二段構成の単語 F1（83.24%）は空白保持の <code>korean.model</code> の
+99.91% とそれほど離れていません。一方、英語の正書法にはそうした手がかりが
+ほとんど残らないため、空白のない英語を分割することは本質的にはるかに
+難しくなります。詳しい説明は
+<a href="../language-support/english.html#english_posmodel">English</a> と
+<a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a> を
+参照してください。</p>
 <h2 id="stage-2-特徴量セットの選び方"><a class="header" href="#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a></h2>
 <p>stage 2 の単語単位タガーは 3 種類の特徴量セット（<code>litsea extract --pos</code> の <code>--stage2-features</code>。<a href="../training-guide/extracting-features.html">特徴量の抽出</a>を参照）で
 抽出でき、タグ付け品質とスループットをトレードオフできます。分割品質は
@@ -257,12 +269,12 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>特徴量セット</th><th>中国語 Tagged F1</th><th>韓国語 Tagged F1</th></tr>
+<tr><th>特徴量セット</th><th>中国語 Tagged F1</th><th>韓国語 Tagged F1</th><th>英語 Tagged F1</th></tr>
 </thead>
 <tbody>
-<tr><td><code>fast</code>（既定）</td><td>81.33%</td><td>77.42%</td></tr>
-<tr><td><code>balanced</code></td><td>82.29%</td><td>78.86%</td></tr>
-<tr><td><code>full</code></td><td>82.96%</td><td>78.88%</td></tr>
+<tr><td><code>fast</code>（既定）</td><td>81.33%</td><td>77.42%</td><td>64.88%</td></tr>
+<tr><td><code>balanced</code></td><td>82.29%</td><td>78.86%</td><td>64.82%</td></tr>
+<tr><td><code>full</code></td><td>82.96%</td><td>78.88%</td><td>65.70%</td></tr>
 </tbody>
 </table>
 </div>
@@ -272,7 +284,9 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 明確に良いスループットで得られるため、<code>chinese_pos.model</code> は
 <code>full</code> ではなく <code>balanced</code> を使用しています。韓国語では <code>full</code> は
 <code>balanced</code> に対してほとんど何も加えない（78.88% vs 78.86%）ため、
-<code>korean_pos.model</code> も <code>balanced</code> を使用しています。別の特徴量セットで
+<code>korean_pos.model</code> も <code>balanced</code> を使用しています。英語では <code>full</code> が
+他の 2 つを 1 ポイント近く上回る明確な勝者（65.70% vs 約 64.8%）であるため、
+<code>english_pos.model</code> は <code>full</code> を使用しています。別の特徴量セットで
 再学習するには <code>extract --pos --stage2-features &lt;set&gt;</code> +
 <code>train --pos</code> を再実行するだけで、パイプラインの他の部分を
 変更する必要はありません。</p>

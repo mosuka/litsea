@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,7 +189,7 @@
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
 <p>This is a generic example of plain AdaBoost training. The bundled
-<code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are <strong>not</strong> produced
+<code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> are <strong>not</strong> produced
 this way – see <a href="../pre-trained-models.html#training-procedure">Training Procedure</a>
 for the procedure actually used for those files.</p>
 <h2 id="training-process"><a class="header" href="#training-process">Training Process</a></h2>
@@ -221,11 +221,12 @@ for the procedure actually used for those files.</p>
 </table>
 </div>
 <p><strong>Note</strong>: these are generic starting points for training a plain AdaBoost
-model from scratch. The bundled <code>japanese.model</code>, <code>chinese.model</code>, and
-<code>korean.model</code> are produced by a different procedure – a 2-class Averaged
-Perceptron collapsed to AdaBoost weights, with per-language epoch counts
-and pruning – see <a href="../pre-trained-models.html#training-procedure">Training Procedure</a>
-in Pre-trained Models for how those files are actually made.</p>
+model from scratch. The bundled <code>japanese.model</code>, <code>chinese.model</code>,
+<code>korean.model</code>, and <code>english.model</code> are produced by a different procedure
+– a 2-class Averaged Perceptron collapsed to AdaBoost weights, with
+per-language epoch counts and pruning – see <a href="../pre-trained-models.html#training-procedure">Training
+Procedure</a> in Pre-trained
+Models for how those files are actually made.</p>
 <h2 id="interpreting-output"><a class="header" href="#interpreting-output">Interpreting Output</a></h2>
 <p>Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate. The numbers below are a representative example of <code>train</code>’s output format, not the bundled <code>japanese.model</code>’s actual training log.</p>
 <pre><code class="language-text">Result Metrics:

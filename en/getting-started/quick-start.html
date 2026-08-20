@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,6 +196,9 @@
 </code></pre>
 <p><strong>Korean:</strong></p>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
+</code></pre>
+<p><strong>English:</strong></p>
+<pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
 </code></pre>
 <h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
 <p>Litsea can perform word segmentation and POS tagging using a <a href="../algorithm/two-stage-tagging.html">two-stage</a> model. Add the <code>--pos</code> flag to the <code>segment</code> command:</p>

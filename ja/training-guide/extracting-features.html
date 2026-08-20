@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -214,12 +214,16 @@
 <li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
 <h2 id="空白保持tsvコーパス形式"><a class="header" href="#空白保持tsvコーパス形式">空白保持（TSV）コーパス形式</a></h2>
-<p>文の元の空白を保持したコーパス — 韓国語モデルの学習に使用（単語間の空白が
-韓国語における最も強力な境界シグナルであるため。詳細は
-<a href="../language-support/korean.html#空白保持学習space-preserving-training">韓国語</a>を参照）
+<p>文の元の空白を保持したコーパス — 韓国語モデルおよび英語モデルの学習に使用
+（単語間の空白がこれらの言語における最も強力な境界シグナルであるため。詳細は
+<a href="../language-support/korean.html#空白保持学習space-preserving-training">韓国語</a>
+および
+<a href="../language-support/english.html#空白保持学習space-preserving-training">英語</a>
+を参照）
 — から抽出するには、既定のスペース区切り形式の代わりに <code>--format tsv</code> を
 指定します:</p>
 <pre><code class="language-sh">litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.txt
 </code></pre>
 <p>入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
 空白文字そのもの（<code>" "</code>）を含められます。出力される特徴量ファイルの形式は既定の

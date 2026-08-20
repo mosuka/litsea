@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -262,18 +262,44 @@
 <li>それ以外の場合、<strong>終声がある</strong>（SF、「받침」）</li>
 </ul>
 <p>この区別は、終声（パッチム/받침）の有無が韓国語の単語境界パターンと助詞の接続に影響するため重要です。</p>
+<h2 id="英語の文字種"><a class="header" href="#英語の文字種">英語の文字種</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>名称</th><th>パターン / 範囲</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>U</strong></td><td>大文字ラテン文字</td><td><code>[A-ZＡ-Ｚ]</code></td><td>A, Z, Ｔ</td></tr>
+<tr><td><strong>W</strong></td><td>空白</td><td>スペース、タブ、U+00A0</td><td><code> </code>, <code>\t</code></td></tr>
+<tr><td><strong>Q</strong></td><td>アポストロフィ</td><td>U+0027, U+2019</td><td><code>'</code>, <code>’</code></td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>ASCII（アポストロフィを除く）+ 一般句読点 + CJK/全角</td><td><code>.</code>, <code>-</code>, <code>@</code>, <code>。</code></td></tr>
+<tr><td><strong>A</strong></td><td>小文字ラテン文字</td><td><code>[a-zａ-ｚ]</code></td><td>a, z</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>字, é</td></tr>
+</tbody>
+</table>
+</div>
+<p>他の 3 言語と異なり、英語では ASCII の句読点（アポストロフィを除く）を
+<code>"O"</code> のままにせず <code>"P"</code> に分類します – これは英語固有の意図的な違いです
+（<code>char_type('@')</code> は他言語では <code>"O"</code> ですが、英語では <code>"P"</code> になります）。
+アポストロフィは独立した種別（<code>"Q"</code>）として切り出されています。これは
+短縮形（<code>do</code> + <code>n't</code>）や所有格（<code>Google</code> + <code>'s</code>）を示す文字レベルの
+マーカーだからです。また大文字には専用の種別（<code>"U"</code>）が割り当てられて
+います。これは文頭や固有名詞の境界と相関があるためです。ハイフンが
+8 番目の種別を新設せずに <code>"P"</code> のままである理由を含む詳しい根拠は
+<a href="../language-support/english.html">English</a> を参照してください。</p>
 <h2 id="言語間の比較"><a class="header" href="#言語間の比較">言語間の比較</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th><th>English</th></tr>
 </thead>
 <tbody>
-<tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td></tr>
-<tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
-<tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td></tr>
-<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + コードポイント判定</td></tr>
-<tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td></tr>
+<tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td><td>7</td></tr>
+<tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td><td>U, W, Q</td></tr>
+<tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td><td>P, A, N, O（P は ASCII 句読点全体に拡張）</td></tr>
+<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + コードポイント判定</td><td>範囲match</td></tr>
+<tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td><td>なし</td></tr>
 </tbody>
 </table>
 </div>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -246,7 +246,7 @@ scatter-add する</li>
 </code></pre>
 <p><strong>pointwise 高速パス</strong>（issue #183）: モデルにタグ依存特徴が 1 つも
 無い場合（<code>litsea extract --tag-free</code> で学習した場合。同梱の
-<code>korean.model</code> がこれに該当）、コンパイル済みモデルがロード時にこれを
+<code>korean.model</code>/<code>english.model</code> がこれに該当）、コンパイル済みモデルがロード時にこれを
 記録し、逐次パスは丸ごとスキップされます – 判定は `bias + static[i]</p>
 <blockquote>
 <p>= 0<code>に帰着し、タグの簿記も行われません。出力はどちらの経路でも同一 です（スキップされるロードはそれぞれ</code>0.0` を加算するだけのため）。
@@ -277,7 +277,7 @@ scatter-add する</li>
 同様に「文字 → <code>[スロット][文字種 ID]</code>」の行テーブル 1 つに統合されます
 （文字ごとに probe 1 回、文字種次元は直接インデックス）</li>
 <li><strong>タグ/文字種のみのテンプレートの密配列</strong>: 29 個それぞれが mixed-radix 積の
-厳密サイズ（タグスロットは 3、文字種スロットは 8–10。日本語で合計約 74KB）の
+厳密サイズ（タグスロットは 3、文字種スロットは 7–10。日本語で合計約 74KB）の
 直接インデックステーブルを持ちます。<code>UC</code>/<code>BC</code>/<code>TC</code> のテーブルには、静的パス用の
 マージ済み scatter ベクトルビューが追加で導出されます</li>
 </ul>

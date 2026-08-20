@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2cf72791.js"></script>
+        <script src="toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,16 +196,16 @@
 <li><a href="training-guide/training-models.html">二段構成の POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 50 features model.model</code></li>
 </ol>
 <h2 id="言語ごとの違い"><a class="header" href="#言語ごとの違い">言語ごとの違い</a></h2>
-<p>パイプライン（準備 → 抽出 → 学習）とスクリプトは 3 言語で共通です。
+<p>パイプライン（準備 → 抽出 → 学習）とスクリプトは 4 言語で共通です。
 言語固有なのは次の 2 点だけです:</p>
 <ol>
 <li><strong><code>extract</code> の <code>-l</code> フラグ</strong> — 言語別の文字種分類を選択します（日本語 8 種、
-中国語 9 種、韓国語 10 種。韓国語は WC 特徴を使いません —
+中国語 9 種、韓国語 10 種、英語 7 種。韓国語と英語は WC 特徴を使いません —
 <a href="language-support/overview.html">言語サポート概要</a>を参照）。このためモデルは
 言語専用になります</li>
-<li><strong>韓国語は空白保持 TSV コーパス形式を使用</strong> — 韓国語は語節（어절）間に空白を
-持つ表記で、空白が最も強い境界シグナルです。そのため韓国語のコーパスは空白を
-トークンとして保持します（<code>corpus_udtreebank.sh -s</code> +
+<li><strong>韓国語と英語は空白保持 TSV コーパス形式を使用</strong> — どちらも単語間に空白を
+持つ表記で、空白が最も強い境界シグナルです。そのためそれぞれのコーパスは
+空白をトークンとして保持します（<code>corpus_udtreebank.sh -s</code> +
 <code>litsea extract --format tsv</code>）。日本語・中国語は空白を使わない表記のため、
 従来の空白区切り形式を使います</li>
 </ol>
@@ -213,14 +213,14 @@
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 litsea extract -l japanese corpus.txt features.txt
 
-# Korean: space-preserving TSV corpus
+# Korean / English: space-preserving TSV corpus
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l korean --format tsv corpus.tsv features.txt
 </code></pre>
-<p><code>train</code> ステップのコマンドの形は 3 言語とも同一ですが、実際に使う
+<p><code>train</code> ステップのコマンドの形は 4 言語とも同一ですが、実際に使う
 ハイパーパラメータは異なります。<code>litsea train</code> でゼロから通常の AdaBoost
 モデルを学習する場合、<code>-t 0.0001 -i 20000</code>（<a href="training-guide/training-models.html">モデルの学習</a>を参照）は
-良い出発点ですが、これは同梱の <code>japanese</code>/<code>chinese</code>/<code>korean</code> モデルが
+良い出発点ですが、これは同梱の <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english</code> モデルが
 使っている値ではありません。それらのモデルは言語ごとに異なるエポック数と
 剪定を伴う別の手順で学習されています。実際の手順は
 <a href="pre-trained-models.html#学習手順">学習手順</a>を参照してください。</p>

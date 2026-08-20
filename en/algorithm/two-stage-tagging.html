@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -238,6 +238,7 @@ limits.</p>
 <tr><td>Japanese</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
 <tr><td>Chinese</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
 <tr><td>Korean</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
+<tr><td>English</td><td>70.33%</td><td>65.83%</td><td>2.05M chars/s</td></tr>
 </tbody>
 </table>
 </div>
@@ -252,6 +253,17 @@ unknown-word rate means a larger share of its words pay stage 2’s
 full-class fallback rather than the cheap dominance-skip or
 candidate-masked paths.</li>
 </ul>
+<p><strong>English’s Word F1 is much lower than the others, and this is not a bug.</strong>
+Unlike the Korean and Japanese/Chinese rows above, <code>english_pos.model</code> is
+trained and evaluated on unspaced text where none of the other languages’
+segmentation task is anywhere near as hard: Korean’s agglutinative
+particles and verb endings leave strong boundary cues even with spaces
+removed (its unspaced two-stage Word F1, 83.24% here, is not far from its
+space-preserving <code>korean.model</code>’s 99.91%), while English orthography
+leaves almost none, so segmenting unspaced English is intrinsically much
+harder. See <a href="../language-support/english.html#english_posmodel">English</a> and
+<a href="../pre-trained-models.html#english_posmodel">Pre-trained Models</a> for the
+full explanation.</p>
 <h2 id="choosing-a-stage-2-feature-set"><a class="header" href="#choosing-a-stage-2-feature-set">Choosing a stage-2 feature set</a></h2>
 <p>Stage 2’s word-level tagger can be extracted with three feature sets
 (<code>--stage2-features</code> on <code>litsea extract --pos</code>; see <a href="../training-guide/extracting-features.html">Extracting
@@ -262,12 +274,12 @@ the bundled models.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Feature set</th><th>Chinese Tagged F1</th><th>Korean Tagged F1</th></tr>
+<tr><th>Feature set</th><th>Chinese Tagged F1</th><th>Korean Tagged F1</th><th>English Tagged F1</th></tr>
 </thead>
 <tbody>
-<tr><td><code>fast</code> (default)</td><td>81.33%</td><td>77.42%</td></tr>
-<tr><td><code>balanced</code></td><td>82.29%</td><td>78.86%</td></tr>
-<tr><td><code>full</code></td><td>82.96%</td><td>78.88%</td></tr>
+<tr><td><code>fast</code> (default)</td><td>81.33%</td><td>77.42%</td><td>64.88%</td></tr>
+<tr><td><code>balanced</code></td><td>82.29%</td><td>78.86%</td><td>64.82%</td></tr>
+<tr><td><code>full</code></td><td>82.96%</td><td>78.88%</td><td>65.70%</td></tr>
 </tbody>
 </table>
 </div>
@@ -276,7 +288,9 @@ the bundled models.</p>
 <code>full</code>’s gain (82.29% vs. 82.96%) at meaningfully better throughput, so
 <code>chinese_pos.model</code> uses <code>balanced</code> rather than <code>full</code>. For Korean,
 <code>full</code> adds essentially nothing over <code>balanced</code> (78.88% vs. 78.86%), so
-<code>korean_pos.model</code> also uses <code>balanced</code>. Retraining with a different
+<code>korean_pos.model</code> also uses <code>balanced</code>. For English, <code>full</code> is the clear
+winner by a full point over the other two (65.70% vs. ~64.8%), so
+<code>english_pos.model</code> uses <code>full</code>. Retraining with a different
 set is a matter of re-running <code>extract --pos --stage2-features &lt;set&gt;</code> + <code>train --pos</code>; there is no need to change any other part of
 the pipeline.</p>
 

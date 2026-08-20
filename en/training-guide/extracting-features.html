@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -215,11 +215,14 @@
 </ul>
 <h2 id="space-preserving-tsv-corpus-format"><a class="header" href="#space-preserving-tsv-corpus-format">Space-Preserving (TSV) Corpus Format</a></h2>
 <p>For a corpus that preserves the original spacing of the sentence – used to
-train the Korean model, since inter-word spaces are its strongest boundary
-signal (see <a href="../language-support/korean.html#space-preserving-training">Korean</a>)
+train the Korean and English models, since inter-word spaces are their
+strongest boundary signal (see
+<a href="../language-support/korean.html#space-preserving-training">Korean</a> and
+<a href="../language-support/english.html#space-preserving-training">English</a>)
 – pass <code>--format tsv</code> instead of extracting from the default
 space-separated format:</p>
 <pre><code class="language-sh">litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.txt
 </code></pre>
 <p>The input is a tab-separated corpus (one sentence per line, tokens
 separated by tabs) in which a token may be a literal space character

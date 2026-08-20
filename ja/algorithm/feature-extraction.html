@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -222,7 +222,7 @@
 <li><code>WC4</code>: 位置 i の文字 + 位置 i の種別コード</li>
 </ul>
 <blockquote>
-<p><strong>韓国語に WC がない理由:</strong> 韓国語のハングル音節は 2 種類（SN と SF）にのみ分類されるため、WC 特徴量は有用な信号ではなくノイズを追加してしまいます。</p>
+<p><strong>韓国語と英語に WC がない理由:</strong> 韓国語のハングル音節は 2 種類（SN と SF）にのみ分類されるため、WC 特徴量は有用な信号ではなくノイズを追加してしまいます。英語でも同じ結果が直接計測されています: dev split での比較では、38 個のベーステンプレートで単語 F1 98.68%、WC を含む全 42 個で 98.65% でした – 詳細は <a href="../language-support/english.html#wc特徴量なし">English</a> を参照してください。</p>
 </blockquote>
 <h3 id="特徴量の総数"><a class="header" href="#特徴量の総数">特徴量の総数</a></h3>
 <div class="table-wrapper">
@@ -234,6 +234,7 @@
 <tr><td>Japanese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
 <tr><td>Chinese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
 <tr><td>Korean</td><td>38</td><td>0</td><td><strong>38</strong></td></tr>
+<tr><td>English</td><td>38</td><td>0</td><td><strong>38</strong></td></tr>
 </tbody>
 </table>
 </div>

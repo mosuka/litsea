@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -244,7 +244,7 @@ extractor.extract(
     features_path: &amp;Path,
 ) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>タブ区切りのコーパスファイル（トークンをタブで区切り、1行1文。トークンとして空白文字そのもの（<code>" "</code>）を含められます）を読み込み、抽出した特徴量を書き込みます。保持された空白により、モデルは空白文字を境界のコンテキストとして学習できます — 韓国語モデルの学習に使用されています（issue #152）。出力形式は <code>extract</code> と同一です。</p>
+<p>タブ区切りのコーパスファイル（トークンをタブで区切り、1行1文。トークンとして空白文字そのもの（<code>" "</code>）を含められます）を読み込み、抽出した特徴量を書き込みます。保持された空白により、モデルは空白文字を境界のコンテキストとして学習できます — 韓国語モデルおよび英語モデルの学習に使用されています（issue #152）。出力形式は <code>extract</code> と同一です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -273,7 +273,7 @@ pub fn extract_tsv_tag_free(
 同一ですが、16 個のタグ依存テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>。
 直前の境界判定結果を参照する）を全行から除外します。この特徴量で学習した
 モデルは <em>pointwise</em> になり、<code>segment()</code> は逐次スコアリングパスを丸ごと
-スキップします。同梱の <code>korean.model</code> はこの方法で学習されています。
+スキップします。同梱の <code>korean.model</code>/<code>english.model</code> はこの方法で学習されています。
 言語別の品質・速度トレードオフの実測値は
 <a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>
 を参照してください。CLI の <code>extract --tag-free</code> の実体です。</p>

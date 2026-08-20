@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,7 +189,7 @@
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
 <p>これは通常の AdaBoost 学習の一般的な例です。同梱の <code>japanese.model</code>、
-<code>chinese.model</code>、<code>korean.model</code> は<strong>この方法では作られていません</strong> –
+<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code> は<strong>この方法では作られていません</strong> –
 これらのファイルの実際の学習手順は
 <a href="../pre-trained-models.html#学習手順">学習手順</a>を参照してください。</p>
 <h2 id="学習プロセス"><a class="header" href="#学習プロセス">学習プロセス</a></h2>
@@ -221,8 +221,8 @@
 </table>
 </div>
 <p><strong>注</strong>: これらはゼロから通常の AdaBoost モデルを学習する際の一般的な
-出発点です。同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は
-別の手順（2 クラスの Averaged Perceptron を AdaBoost の重みへ畳み込み、
+出発点です。同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>、
+<code>english.model</code> は別の手順（2 クラスの Averaged Perceptron を AdaBoost の重みへ畳み込み、
 言語ごとに異なるエポック数と剪定を適用）で作られています – これらの
 ファイルが実際にどう作られているかは、事前学習済みモデルの
 <a href="../pre-trained-models.html#学習手順">学習手順</a>を参照してください。</p>

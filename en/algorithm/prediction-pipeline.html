@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -249,7 +249,7 @@ is pushed to the tags array and feeds the next positions’ lookups.</p>
 </code></pre>
 <p><strong>Pointwise fast path</strong> (issue #183): if the model has no tag-dependent
 features at all (e.g. it was trained with <code>litsea extract --tag-free</code>,
-like the bundled <code>korean.model</code>), the compiled model records this at
+like the bundled <code>korean.model</code>/<code>english.model</code>), the compiled model records this at
 load time and the sequential pass is skipped entirely – the decision
 reduces to <code>bias + static[i] &gt;= 0</code> with no tag bookkeeping. Output is
 identical either way (the skipped loads would each add <code>0.0</code>); only the
@@ -281,7 +281,7 @@ one <code>char -&gt; [f64; 6]</code> table and <code>BW1..3</code> into one
 (one probe per character, type dimension direct-indexed).</li>
 <li><strong>Dense arrays</strong> for tag/type-only templates: each of the 29 gets a
 direct-indexed table sized by the exact mixed-radix product (3 per tag
-slot, 8–10 per type slot; about 74 KB total for Japanese). The
+slot, 7–10 per type slot; about 74 KB total for Japanese). The
 <code>UC</code>/<code>BC</code>/<code>TC</code> tables additionally get merged scatter-vector views for
 the static pass.</li>
 </ul>

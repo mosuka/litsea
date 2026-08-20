@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -213,9 +213,9 @@ training (see the benchmarks below).</p>
 </table>
 </div>
 <h2 id="pre-trained-model-benchmarks"><a class="header" href="#pre-trained-model-benchmarks">Pre-trained Model Benchmarks</a></h2>
-<p>The bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are
-trained with a binary-perceptron-collapse procedure, not plain AdaBoost
-<code>-t</code>/<code>-i</code> training – see <a href="../pre-trained-models.html#training-procedure">Training
+<p>The bundled <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and
+<code>english.model</code> are trained with a binary-perceptron-collapse procedure,
+not plain AdaBoost <code>-t</code>/<code>-i</code> training – see <a href="../pre-trained-models.html#training-procedure">Training
 Procedure</a> for the exact
 recipe. All are evaluated on the held-out test split of their training
 treebank. <strong>Word F1</strong> scores exact word matches; <strong>Boundary F1</strong> scores
@@ -229,15 +229,19 @@ individual boundary decisions.</p>
 <tr><td>japanese.model</td><td>96.70%</td><td>98.59%</td><td>UD Japanese-GSD</td></tr>
 <tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>90.69%</td><td>95.64%</td><td>UD Chinese-GSD</td></tr>
+<tr><td>english.model</td><td>98.31%</td><td>99.18%</td><td>UD English-EWT</td></tr>
 </tbody>
 </table>
 </div>
-<p>Korean is trained and evaluated on text that preserves the original
-inter-eojeol spaces (space-preserving TSV corpus; space tokens are excluded
-from the F1 computation). Since spaces mark most Korean word boundaries,
-this makes the task far easier than for Japanese and Chinese, which are
-written without spaces — the scores are not directly comparable across
-languages.</p>
+<p>Korean and English are trained and evaluated on text that preserves the
+original spaces (space-preserving TSV corpus; space tokens are excluded
+from the F1 computation). Since spaces mark most word boundaries in these
+two languages, this makes the task easier than for Japanese and Chinese,
+which are written without spaces — the scores are not directly comparable
+across languages. Korean’s near-deterministic 99.91% and English’s lower
+98.31% both come from this same space-preserving protocol; the remaining
+gap is residual ambiguity English keeps even with spaces present
+(contractions, hyphenated compounds, abbreviations).</p>
 <h3 id="reproducing-the-benchmarks"><a class="header" href="#reproducing-the-benchmarks">Reproducing the Benchmarks</a></h3>
 <p>Every figure in the table above is reproducible with one command using the
 bundled gold data (<code>resources/eval/</code>, converted from the UD GSD <strong>test</strong>
@@ -246,13 +250,17 @@ splits):</p>
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 </code></pre>
 <p>See <a href="../litsea-cli/evaluate.html">evaluate</a> for the command reference. POS
-models are evaluated with <code>--pos</code> against the <code>*_gsd_test_pos.txt</code> files;
-their held-out figures are listed in
-<a href="../pre-trained-models.html">Pre-trained Models</a>. Note the Korean POS gold
-follows the POS pipeline’s convention (no space tokens), so unlike the
-segmentation row above it is evaluated on unspaced text.</p>
+models are evaluated with <code>--pos</code> against the <code>*_gsd_test_pos.txt</code> /
+<code>english_ewt_test_pos.txt</code> files; their held-out figures are listed in
+<a href="../pre-trained-models.html">Pre-trained Models</a>. Note the Korean and
+English POS gold follow the POS pipeline’s convention (no space tokens),
+so unlike the segmentation rows above they are evaluated on unspaced text
+– for English this produces a much larger quality gap than for Korean,
+see <a href="../pre-trained-models.html#english_posmodel">Pre-trained Models</a> for
+why.</p>
 <h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>

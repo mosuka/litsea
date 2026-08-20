@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -212,9 +212,9 @@
 </table>
 </div>
 <h2 id="事前学習済みモデルのベンチマーク"><a class="header" href="#事前学習済みモデルのベンチマーク">事前学習済みモデルのベンチマーク</a></h2>
-<p>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は、通常の AdaBoost
-<code>-t</code>/<code>-i</code> 学習ではなく binary-perceptron 畳み込み手順で学習しています –
-正確な手順は<a href="../pre-trained-models.html#学習手順">学習手順</a>を参照してください。
+<p>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code> は、
+通常の AdaBoost <code>-t</code>/<code>-i</code> 学習ではなく binary-perceptron 畳み込み手順で
+学習しています – 正確な手順は<a href="../pre-trained-models.html#学習手順">学習手順</a>を参照してください。
 いずれも学習コーパスの held-out テスト分割で評価しています。<strong>単語 F1</strong> は
 単語の完全一致、<strong>境界 F1</strong> は個々の境界判定のスコアです。</p>
 <div class="table-wrapper">
@@ -226,13 +226,17 @@
 <tr><td>japanese.model</td><td>96.70%</td><td>98.59%</td><td>UD Japanese-GSD</td></tr>
 <tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>90.69%</td><td>95.64%</td><td>UD Chinese-GSD</td></tr>
+<tr><td>english.model</td><td>98.31%</td><td>99.18%</td><td>UD English-EWT</td></tr>
 </tbody>
 </table>
 </div>
-<p>韓国語は、元の語節（어절）間の空白を保持したテキスト（空白保持 TSV コーパス。
-空白トークンは F1 の計算から除外）で学習・評価しています。韓国語では空白が
+<p>韓国語と英語は、元の空白を保持したテキスト（空白保持 TSV コーパス。空白
+トークンは F1 の計算から除外）で学習・評価しています。この 2 言語では空白が
 ほとんどの語境界を示すため、空白を使わずに表記される日本語・中国語に比べて
-タスクが大幅に容易になります — このスコアは言語間で直接比較できません。</p>
+タスクが容易になります — このスコアは言語間で直接比較できません。韓国語の
+ほぼ決定論的な 99.91% と、それより低い英語の 98.31% はどちらもこの同じ
+空白保持プロトコルによるものですが、両者の差は空白があってもなお英語に残る
+曖昧性（短縮形、ハイフン付き複合語、省略語）に由来します。</p>
 <h3 id="ベンチマークの再現"><a class="header" href="#ベンチマークの再現">ベンチマークの再現</a></h3>
 <p>上の表のすべての数値は、同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD の
 <strong>test</strong> 分割から変換。同梱モデルは train 分割で学習しているため held-out に
@@ -240,13 +244,17 @@
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 </code></pre>
 <p>コマンドリファレンスは <a href="../litsea-cli/evaluate.html">evaluate</a> を参照して
-ください。POS モデルは <code>*_gsd_test_pos.txt</code> ファイルに対して <code>--pos</code> で評価し、
-その held-out の数値は<a href="../pre-trained-models.html">事前学習済みモデル</a>に記載して
-います。なお、韓国語の POS ゴールドは POS パイプラインの慣例（空白トークン
-なし）に従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
-評価します。</p>
+ください。POS モデルは <code>*_gsd_test_pos.txt</code> / <code>english_ewt_test_pos.txt</code>
+ファイルに対して <code>--pos</code> で評価し、その held-out の数値は
+<a href="../pre-trained-models.html">事前学習済みモデル</a>に記載しています。なお、
+韓国語と英語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
+従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
+評価します – 英語ではこれが韓国語よりもはるかに大きな品質差を生みます。
+理由は<a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a>を
+参照してください。</p>
 <h2 id="モデル品質の改善"><a class="header" href="#モデル品質の改善">モデル品質の改善</a></h2>
 <p>精度が不十分な場合は、以下を検討してください:</p>
 <ol>

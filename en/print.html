@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45985cea.js";
+            window.path_to_searchindex_js = "searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b909ab7.js"></script>
+        <script src="toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,10 +184,10 @@
 <h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
 <ul>
 <li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
-<li><strong>Compact pre-trained models</strong> – the legacy <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> files are kilobyte-scale; the quality-optimized <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP</li>
+<li><strong>Compact pre-trained models</strong> – the legacy <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> files are kilobyte-scale; the quality-optimized <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP</li>
 <li><strong>No dictionary dependency</strong> – segmentation is driven entirely by a statistical model</li>
 <li><strong>Two-stage POS tagging</strong> – segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, adding little cost over plain segmentation</li>
-<li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), and Korean</li>
+<li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), Korean, and English</li>
 <li><strong>Model training capabilities</strong> – train custom models using AdaBoost or Averaged Perceptron with your own corpora</li>
 <li><strong>Remote model loading</strong> – load models from HTTP/HTTPS URLs (opt-in <code>remote_model</code> feature) or local files</li>
 <li><strong>Simple and extensible API</strong> – easy to integrate into Rust projects as a library</li>
@@ -294,6 +294,9 @@ feature if you need it:</p>
 <p><strong>Korean:</strong></p>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
+<p><strong>English:</strong></p>
+<pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
+</code></pre>
 <h3 id="pos-tagging-1"><a class="header" href="#pos-tagging-1">POS Tagging</a></h3>
 <p>Litsea can perform word segmentation and POS tagging using a <a href="#two-stage-tagging">two-stage</a> model. Add the <code>--pos</code> flag to the <code>segment</code> command:</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
@@ -389,7 +392,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
 <li><strong>No dictionary dependency</strong> – Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns</li>
-<li><strong>Compact models</strong> – Legacy word-segmentation models (<code>RWCP.model</code>, <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>) are ~16-22 KB; the retrained <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> are ~86 KB-2.0 MB, trading file size for the quality gains documented in <a href="#pre-trained-models-3">Pre-trained Models</a>; two-stage POS models are ~5-8 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
+<li><strong>Compact models</strong> – Legacy word-segmentation models (<code>RWCP.model</code>, <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>) are ~16-22 KB; the retrained <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> are ~86 KB-2.0 MB, trading file size for the quality gains documented in <a href="#pre-trained-models-4">Pre-trained Models</a>; two-stage POS models are ~3.6-8 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
 <li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
 </ul>
@@ -448,9 +451,9 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h3 id="languagers--language-definitions"><a class="header" href="#languagers--language-definitions"><code>language.rs</code> – Language Definitions</a></h3>
 <p>Defines the <code>Language</code> enum and character type classification.</p>
 <ul>
-<li><strong><code>Language</code></strong> – Enum with variants <code>Japanese</code>, <code>Chinese</code>, <code>Korean</code>
+<li><strong><code>Language</code></strong> – Enum with variants <code>Japanese</code>, <code>Chinese</code>, <code>Korean</code>, <code>English</code>
 <ul>
-<li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>)</li>
+<li>Implements <code>FromStr</code> (parses <code>"japanese"</code>, <code>"ja"</code>, <code>"chinese"</code>, <code>"zh"</code>, <code>"korean"</code>, <code>"ko"</code>, <code>"english"</code>, <code>"en"</code>)</li>
 <li>Implements <code>Display</code> (outputs lowercase name)</li>
 <li><code>char_type(c: char) -&gt; &amp;'static str</code> – Classifies a character as a table lookup over the numeric type id returned by the private <code>char_type_id()</code>, which dispatches to a per-language function (<code>japanese_char_type_id</code>, etc.) implemented as a direct <code>match</code> on character ranges (allocation-free; no regex). The language-specific functions share a <code>punct_latin_digit()</code> helper for the common <code>"P"</code>/<code>"A"</code>/<code>"N"</code> classes.</li>
 </ul>
@@ -468,7 +471,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <li><code>segment_into(sentence, buf)</code> – Allocation-free variant (#184): returns token byte ranges borrowed from a reusable <code>SegmentBuffer</code></li>
 <li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> unless a two-stage learner is set)</li>
 <li><code>char_type(ch)</code> – Classify a single character into its type code</li>
-<li><code>add_corpus(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – Add training data (space-separated, or tab-separated/space-preserving; the latter is used for Korean, see issue #152)</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – Add training data (space-separated, or tab-separated/space-preserving; the latter is used for Korean and English, see issue #152)</li>
 <li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_writer(corpus, callback)</code> – Process a corpus with a custom callback (the POS-writer variant feeds two-stage stage-1 feature extraction)</li>
 </ul>
 </li>
@@ -516,7 +519,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <ul>
 <li><code>new(language)</code> – Create an extractor for a specific language</li>
 <li><code>extract(corpus_path, features_path)</code> – Read a corpus, write a features file</li>
-<li><code>extract_tsv(corpus_path, features_path)</code> – Same for tab-separated, space-preserving corpora (issue #152, used for Korean)</li>
+<li><code>extract_tsv(corpus_path, features_path)</code> – Same for tab-separated, space-preserving corpora (issue #152, used for Korean and English)</li>
 <li><code>extract_two_stage(corpus_path, output_prefix, feature_set)</code> – Extract two-stage training features (issue #147) from a POS-tagged corpus: writes <code>{output_prefix}.stage1</code> (boundary features), <code>.stage2</code> (word-level features), and <code>.lexicon</code></li>
 </ul>
 </li>
@@ -702,9 +705,10 @@ features, non-finite weights) are rejected at load time. See
 <a href="#model-file-format-2">Model File Format</a> for details.</p>
 <blockquote>
 <p><strong>This page describes the AdaBoost <em>training algorithm</em>.</strong> The file
-format above is also how litsea stores the three bundled segmentation
-models (<code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>) – but as of
-issue #165, those are no longer produced by boosting. They are trained
+format above is also how litsea stores the four bundled segmentation
+models (<code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>,
+<code>english.model</code>) – but as of issue #165, those are no longer produced
+by boosting. They are trained
 as a 2-class Averaged Perceptron and losslessly collapsed into this same
 scalar-weight format (see <a href="#training-procedure">Pre-trained
 Models</a> for the collapse
@@ -734,7 +738,7 @@ boosting loop described above.</p>
 <li><strong>1 non-boundary label</strong>: <code>O</code> (continuation of the current word)</li>
 </ul>
 <p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.</p>
-<p>The Averaged Perceptron in 2-class mode (<code>B</code>/<code>O</code> labels only) is what actually trains the bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> segmentation models before they are losslessly collapsed to the AdaBoost model format for inference – see <a href="#training-procedure">Pre-trained Models: Training Procedure</a> for the full derivation. The same collapse trains the <a href="#two-stage-tagging">two-stage architecture</a>’s stage-1 boundary classifier, and the multiclass form is the algorithm behind its stage-2 word-level tagger.</p>
+<p>The Averaged Perceptron in 2-class mode (<code>B</code>/<code>O</code> labels only) is what actually trains the bundled <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> segmentation models before they are losslessly collapsed to the AdaBoost model format for inference – see <a href="#training-procedure">Pre-trained Models: Training Procedure</a> for the full derivation. The same collapse trains the <a href="#two-stage-tagging">two-stage architecture</a>’s stage-1 boundary classifier, and the multiclass form is the algorithm behind its stage-2 word-level tagger.</p>
 <h2 id="algorithm"><a class="header" href="#algorithm">Algorithm</a></h2>
 <h3 id="weight-representation"><a class="header" href="#weight-representation">Weight Representation</a></h3>
 <p>The perceptron maintains a <strong>per-class weight vector for each feature</strong>, stored in a single sparse map so that scoring and weight updates need one hashed lookup per feature (not one per feature x class):</p>
@@ -826,7 +830,7 @@ always produces byte-identical files; loading does not depend on the order</li>
 <tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
 <tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>
 <tr><td>Training</td><td>Iterative boosting with sample reweighting</td><td>Online learning with weight averaging</td></tr>
-<tr><td>Model size</td><td>~86 KB-2.0 MB (retrained japanese/chinese/korean.model) / ~16-22 KB (legacy RWCP/JEITA)</td><td>~5-8 MB (two-stage models)</td></tr>
+<tr><td>Model size</td><td>~86 KB-2.0 MB (retrained japanese/chinese/korean/english.model) / ~16-22 KB (legacy RWCP/JEITA)</td><td>~3.6-8 MB (two-stage models)</td></tr>
 <tr><td>Hyperparameters</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>
@@ -885,7 +889,7 @@ always produces byte-identical files; loading does not depend on the order</li>
 <li><code>WC4</code>: character at i + type code at i</li>
 </ul>
 <blockquote>
-<p><strong>Why no WC for Korean?</strong> Korean Hangul syllables are classified into only two types (SN and SF), so WC features would add noise rather than useful signal.</p>
+<p><strong>Why no WC for Korean and English?</strong> Korean Hangul syllables are classified into only two types (SN and SF), so WC features would add noise rather than useful signal. English measured the same outcome directly: a dev-split comparison scored 98.68% Word F1 with the 38 base templates versus 98.65% with all 42 (WC included) – see <a href="#no-wc-features-1">English</a>.</p>
 </blockquote>
 <h3 id="total-feature-count"><a class="header" href="#total-feature-count">Total Feature Count</a></h3>
 <div class="table-wrapper">
@@ -897,6 +901,7 @@ always produces byte-identical files; loading does not depend on the order</li>
 <tr><td>Japanese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
 <tr><td>Chinese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
 <tr><td>Korean</td><td>38</td><td>0</td><td><strong>38</strong></td></tr>
+<tr><td>English</td><td>38</td><td>0</td><td><strong>38</strong></td></tr>
 </tbody>
 </table>
 </div>
@@ -1071,18 +1076,45 @@ for the CLI flag and what each variant includes.</p>
 <li>Otherwise, it <strong>has a final consonant</strong> (SF, “받침”)</li>
 </ul>
 <p>This distinction is important because the presence of a final consonant (받침) affects Korean word boundary patterns and particle attachment.</p>
+<h2 id="english-character-types"><a class="header" href="#english-character-types">English Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern / Range</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>U</strong></td><td>Uppercase Latin</td><td><code>[A-ZＡ-Ｚ]</code></td><td>A, Z, Ｔ</td></tr>
+<tr><td><strong>W</strong></td><td>Whitespace</td><td>Space, tab, U+00A0</td><td><code> </code>, <code>\t</code></td></tr>
+<tr><td><strong>Q</strong></td><td>Apostrophe</td><td>U+0027, U+2019</td><td><code>'</code>, <code>’</code></td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>ASCII (minus apostrophe) + General Punctuation + CJK/full-width</td><td><code>.</code>, <code>-</code>, <code>@</code>, <code>。</code></td></tr>
+<tr><td><strong>A</strong></td><td>Lowercase Latin</td><td><code>[a-zａ-ｚ]</code></td><td>a, z</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>字, é</td></tr>
+</tbody>
+</table>
+</div>
+<p>Unlike the other three languages, English classifies ASCII punctuation
+(minus the apostrophe) as <code>"P"</code> rather than leaving it as <code>"O"</code> — a
+deliberate, English-specific difference (<code>char_type('@')</code> is <code>"O"</code>
+elsewhere but <code>"P"</code> for English). The apostrophe is split out into its own
+type (<code>"Q"</code>) because it is the character-level marker of contractions and
+possessives (<code>do</code> + <code>n't</code>, <code>Google</code> + <code>'s</code>), and uppercase gets its own
+type (<code>"U"</code>) because it correlates with sentence-initial and proper-noun
+boundaries. See <a href="#english">English</a> for the full
+rationale, including why the hyphen stays <code>"P"</code> rather than getting an
+eighth type.</p>
 <h2 id="cross-language-comparison"><a class="header" href="#cross-language-comparison">Cross-Language Comparison</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th><th>English</th></tr>
 </thead>
 <tbody>
-<tr><td>Total types</td><td>8</td><td>9</td><td>10</td></tr>
-<tr><td>Unique types</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
-<tr><td>Shared types</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O (H shared with JP)</td></tr>
-<tr><td>Matching method</td><td>Range match</td><td>Range match</td><td>Range match + codepoint test</td></tr>
-<tr><td>WC features used</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+<tr><td>Total types</td><td>8</td><td>9</td><td>10</td><td>7</td></tr>
+<tr><td>Unique types</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td><td>U, W, Q</td></tr>
+<tr><td>Shared types</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O (H shared with JP)</td><td>P, A, N, O (P widened to all ASCII punct)</td></tr>
+<tr><td>Matching method</td><td>Range match</td><td>Range match</td><td>Range match + codepoint test</td><td>Range match</td></tr>
+<tr><td>WC features used</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
 </tbody>
 </table>
 </div>
@@ -1156,7 +1188,7 @@ is pushed to the tags array and feeds the next positions’ lookups.</p>
 </code></pre>
 <p><strong>Pointwise fast path</strong> (issue #183): if the model has no tag-dependent
 features at all (e.g. it was trained with <code>litsea extract --tag-free</code>,
-like the bundled <code>korean.model</code>), the compiled model records this at
+like the bundled <code>korean.model</code>/<code>english.model</code>), the compiled model records this at
 load time and the sequential pass is skipped entirely – the decision
 reduces to <code>bias + static[i] &gt;= 0</code> with no tag bookkeeping. Output is
 identical either way (the skipped loads would each add <code>0.0</code>); only the
@@ -1188,7 +1220,7 @@ one <code>char -&gt; [f64; 6]</code> table and <code>BW1..3</code> into one
 (one probe per character, type dimension direct-indexed).</li>
 <li><strong>Dense arrays</strong> for tag/type-only templates: each of the 29 gets a
 direct-indexed table sized by the exact mixed-radix product (3 per tag
-slot, 8–10 per type slot; about 74 KB total for Japanese). The
+slot, 7–10 per type slot; about 74 KB total for Japanese). The
 <code>UC</code>/<code>BC</code>/<code>TC</code> tables additionally get merged scatter-vector views for
 the static pass.</li>
 </ul>
@@ -1293,7 +1325,7 @@ one-shot low-epoch run will understate the quality the architecture can
 reach.</p>
 <h2 id="measured-quality-and-throughput"><a class="header" href="#measured-quality-and-throughput">Measured quality and throughput</a></h2>
 <p>Held-out figures are from <code>litsea evaluate --pos</code> on the UD GSD test
-splits (see <a href="#pre-trained-models-3">Pre-trained Models</a>). Throughput is
+splits (see <a href="#pre-trained-models-4">Pre-trained Models</a>). Throughput is
 <code>cargo bench -- external_corpus</code> on this project’s development machine
 (not dedicated, idle hardware); run-to-run spread is noticeable – see
 <a href="#benchmarking">Benchmarking</a> for the methodology and its
@@ -1307,6 +1339,7 @@ limits.</p>
 <tr><td>Japanese</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
 <tr><td>Chinese</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
 <tr><td>Korean</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
+<tr><td>English</td><td>70.33%</td><td>65.83%</td><td>2.05M chars/s</td></tr>
 </tbody>
 </table>
 </div>
@@ -1321,6 +1354,17 @@ unknown-word rate means a larger share of its words pay stage 2’s
 full-class fallback rather than the cheap dominance-skip or
 candidate-masked paths.</li>
 </ul>
+<p><strong>English’s Word F1 is much lower than the others, and this is not a bug.</strong>
+Unlike the Korean and Japanese/Chinese rows above, <code>english_pos.model</code> is
+trained and evaluated on unspaced text where none of the other languages’
+segmentation task is anywhere near as hard: Korean’s agglutinative
+particles and verb endings leave strong boundary cues even with spaces
+removed (its unspaced two-stage Word F1, 83.24% here, is not far from its
+space-preserving <code>korean.model</code>’s 99.91%), while English orthography
+leaves almost none, so segmenting unspaced English is intrinsically much
+harder. See <a href="#english_posmodel">English</a> and
+<a href="#english_posmodel-1">Pre-trained Models</a> for the
+full explanation.</p>
 <h2 id="choosing-a-stage-2-feature-set"><a class="header" href="#choosing-a-stage-2-feature-set">Choosing a stage-2 feature set</a></h2>
 <p>Stage 2’s word-level tagger can be extracted with three feature sets
 (<code>--stage2-features</code> on <code>litsea extract --pos</code>; see <a href="#extracting-features">Extracting
@@ -1331,12 +1375,12 @@ the bundled models.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Feature set</th><th>Chinese Tagged F1</th><th>Korean Tagged F1</th></tr>
+<tr><th>Feature set</th><th>Chinese Tagged F1</th><th>Korean Tagged F1</th><th>English Tagged F1</th></tr>
 </thead>
 <tbody>
-<tr><td><code>fast</code> (default)</td><td>81.33%</td><td>77.42%</td></tr>
-<tr><td><code>balanced</code></td><td>82.29%</td><td>78.86%</td></tr>
-<tr><td><code>full</code></td><td>82.96%</td><td>78.88%</td></tr>
+<tr><td><code>fast</code> (default)</td><td>81.33%</td><td>77.42%</td><td>64.88%</td></tr>
+<tr><td><code>balanced</code></td><td>82.29%</td><td>78.86%</td><td>64.82%</td></tr>
+<tr><td><code>full</code></td><td>82.96%</td><td>78.88%</td><td>65.70%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1345,12 +1389,14 @@ the bundled models.</p>
 <code>full</code>’s gain (82.29% vs. 82.96%) at meaningfully better throughput, so
 <code>chinese_pos.model</code> uses <code>balanced</code> rather than <code>full</code>. For Korean,
 <code>full</code> adds essentially nothing over <code>balanced</code> (78.88% vs. 78.86%), so
-<code>korean_pos.model</code> also uses <code>balanced</code>. Retraining with a different
+<code>korean_pos.model</code> also uses <code>balanced</code>. For English, <code>full</code> is the clear
+winner by a full point over the other two (65.70% vs. ~64.8%), so
+<code>english_pos.model</code> uses <code>full</code>. Retraining with a different
 set is a matter of re-running <code>extract --pos --stage2-features &lt;set&gt;</code> + <code>train --pos</code>; there is no need to change any other part of
 the pipeline.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="language-support-overview"><a class="header" href="#language-support-overview">Language Support Overview</a></h1>
-<p>Litsea supports word segmentation for three languages through a unified framework based on the <code>Language</code> enum.</p>
+<p>Litsea supports word segmentation for four languages through a unified framework based on the <code>Language</code> enum.</p>
 <h2 id="supported-languages"><a class="header" href="#supported-languages">Supported Languages</a></h2>
 <div class="table-wrapper">
 <table>
@@ -1361,6 +1407,7 @@ the pipeline.</p>
 <tr><td>Japanese</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>96.70%</td></tr>
 <tr><td>Chinese</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>90.69%</td></tr>
 <tr><td>Korean</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>99.91%</td></tr>
+<tr><td>English</td><td><code>Language::English</code></td><td><code>english</code>, <code>en</code></td><td>38</td><td>98.31%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1374,6 +1421,7 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
 }
 <span class="boring">}</span></code></pre>
 <ul>
@@ -1397,18 +1445,23 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Aspect</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+<tr><th>Aspect</th><th>Japanese</th><th>Chinese</th><th>Korean</th><th>English</th></tr>
 </thead>
 <tbody>
-<tr><td>Character types</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
-<tr><td>WC features</td><td>Yes (4 extra)</td><td>Yes (4 extra)</td><td>No</td></tr>
-<tr><td>Total features</td><td>42</td><td>42</td><td>38</td></tr>
-<tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges + codepoint test</td></tr>
+<tr><td>Character types</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td><td>7 (U, W, Q, P, A, N, O)</td></tr>
+<tr><td>WC features</td><td>Yes (4 extra)</td><td>Yes (4 extra)</td><td>No</td><td>No</td></tr>
+<tr><td>Total features</td><td>42</td><td>42</td><td>38</td><td>38</td></tr>
+<tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges + codepoint test</td><td><code>match</code> on char ranges</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="why-korean-has-fewer-features"><a class="header" href="#why-korean-has-fewer-features">Why Korean Has Fewer Features</a></h3>
+<h3 id="why-korean-and-english-have-fewer-features"><a class="header" href="#why-korean-and-english-have-fewer-features">Why Korean and English Have Fewer Features</a></h3>
 <p>Korean Hangul syllables are classified into only two types: <strong>SN</strong> (without 받침/final consonant) and <strong>SF</strong> (with 받침). This binary distinction means WC features (word + character-type combinations) would produce redundant information with little discriminative power. Excluding them reduces noise and keeps the model compact.</p>
+<p>English shares the same conclusion for a related reason: the dominant
+boundary signal is whitespace, and a dev-split comparison measured the
+38-template (no WC) tag-free model at 98.68% Word F1 versus 98.65% with
+all 42 templates — WC features measured <em>worse</em>, not just unhelpful. See
+<a href="#no-wc-features-1">English</a> for the full comparison.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="japanese"><a class="header" href="#japanese">Japanese</a></h1>
 <p>Japanese is the default language in Litsea.</p>
@@ -1633,8 +1686,163 @@ not the space-preserving protocol described on this page</li>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="english"><a class="header" href="#english">English</a></h1>
+<p>Litsea supports English word segmentation with a character type set tuned
+for Latin-script orthography: case, whitespace, and the apostrophe as
+distinct classes.</p>
+<h2 id="character-types-3"><a class="header" href="#character-types-3">Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>U</strong></td><td>Uppercase Latin</td><td><code>[A-ZＡ-Ｚ]</code></td><td>A, Z, Ｔ</td></tr>
+<tr><td><strong>W</strong></td><td>Whitespace</td><td>Space, tab, no-break space</td><td><code> </code>, <code>\t</code>, U+00A0</td></tr>
+<tr><td><strong>Q</strong></td><td>Apostrophe</td><td><code>[\u{27}\u{2019}]</code></td><td><code>'</code>, <code>’</code></td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>ASCII punctuation (minus apostrophe) + General Punctuation dashes/quotes/ellipsis (minus U+2019) + CJK/full-width</td><td><code>.</code>, <code>-</code>, <code>"</code>, <code>@</code>, <code>。</code></td></tr>
+<tr><td><strong>A</strong></td><td>Lowercase Latin</td><td><code>[a-zａ-ｚ]</code></td><td>a, z</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, 5, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>CJK ideographs, accented Latin outside ASCII</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="uppercase-as-a-distinct-class"><a class="header" href="#uppercase-as-a-distinct-class">Uppercase as a Distinct Class</a></h3>
+<p>Sentence-initial capitals, proper nouns, and acronyms correlate strongly
+with word boundaries in English, so uppercase Latin gets its own type (“U”)
+instead of collapsing into the same class as lowercase (“A”). This mirrors
+how the other languages carve out a linguistically distinctive subset (e.g.
+Korean’s particle characters) from a broader shared class.</p>
+<h3 id="whitespace-as-a-distinct-class"><a class="header" href="#whitespace-as-a-distinct-class">Whitespace as a Distinct Class</a></h3>
+<p>The shared <code>punct_latin_digit()</code> helper used by every language does not
+classify ASCII punctuation or the ASCII space (U+0020) — both fall through
+to <code>"O"</code> for Japanese, Chinese, and Korean, since none of those languages’
+corpora need horizontal whitespace to carry a boundary signal on its own.
+English does: the type table adds “W” for space, tab, and no-break space
+(only the plain space occurs in the training corpus; the other two share
+its id so pasted input inherits the same behavior instead of falling back
+to “O”).</p>
+<h3 id="apostrophe-as-a-distinct-class"><a class="header" href="#apostrophe-as-a-distinct-class">Apostrophe as a Distinct Class</a></h3>
+<p>The apostrophe is the character-level signal that separates a contraction
+or possessive from ordinary punctuation: <code>do</code> + <code>n't</code>, <code>Google</code> + <code>'s</code>. It
+gets its own type (“Q”) covering both the ASCII apostrophe (U+0027) and the
+typographic right single quotation mark (U+2019), which is common in the
+training corpus’s source text. <code>Q</code> is deliberately excluded from <code>P</code> so the
+character-level feature templates can key on it directly.</p>
+<h3 id="punctuation-is-uniform"><a class="header" href="#punctuation-is-uniform">Punctuation Is Uniform</a></h3>
+<p>Unlike the other three languages — where ASCII punctuation such as <code>@</code>
+falls through to <code>"O"</code> and only CJK/full-width punctuation maps to <code>"P"</code> —
+English classifies essentially all ASCII punctuation (minus the apostrophe)
+as <code>"P"</code>, alongside the same General Punctuation range (dashes, curly
+quotes, ellipsis) that covers non-ASCII editions of the training text. This
+is a deliberate, English-specific difference: <code>char_type('@')</code> returns
+<code>"O"</code> for Japanese/Chinese/Korean but <code>"P"</code> for English.</p>
+<p><strong>Hyphen</strong> is classified as <code>"P"</code> rather than given its own type. UD
+English-EWT tokenizes hyphenated compounds as separate tokens (e.g.
+<code>search</code>-<code>engine</code>), so a hyphen behaves like ordinary separator punctuation
+in the gold standard; the raw character is still visible to the
+character-level (<code>UW*</code>/<code>BW*</code>) templates, so hyphen-specific behavior
+remains learnable without an eighth type code, which would grow the
+dense feature tables by a further \((8/7)^3 \approx 1.49\times\).</p>
+<h3 id="no-wc-features-1"><a class="header" href="#no-wc-features-1">No WC Features</a></h3>
+<p>English does <strong>not</strong> use WC (word + character-type) features, the same
+choice as Korean and for a related reason: the dominant boundary signal
+(whitespace) already resolves most positions, so the mixed char/type
+templates add little on top of it. This was verified empirically, not just
+by analogy — on a held-out dev split, the tag-free segmentation model
+scored <strong>98.68%</strong> Word F1 with the 38 base templates versus <strong>98.65%</strong> with
+all 42 templates (<code>WC1</code>–<code>WC4</code> included), i.e. adding WC features made the
+model <em>worse</em>, not better.</p>
+<h3 id="space-preserving-training-1"><a class="header" href="#space-preserving-training-1">Space-Preserving Training</a></h3>
+<p>English is written with spaces between words, and (outside contractions
+and a few punctuation cases) those spaces mark most word boundaries. Like
+<a href="#space-preserving-training">Korean</a>, the model is trained on a
+<strong>space-preserving TSV corpus</strong>: tokens are tab-separated and each space is
+kept as its own token, so the training text contains the space characters
+of the original sentence and the model can use them as boundary context.
+Generate the corpus with <code>corpus_udtreebank.sh -s</code> and extract features
+with <code>litsea extract --format tsv</code>. At inference no special handling is
+needed: <code>segment()</code> receives the spaced text as-is and emits each space as
+its own token.</p>
+<p><strong>Multiword tokens (contractions).</strong> UD English-EWT represents a
+contraction such as <code>don't</code> as a <em>range</em> line (e.g. ids <code>3-4</code>) covering two
+word lines (<code>do</code>, <code>n't</code>) with no space between them. <code>corpus_udtreebank.sh -s</code> treats a range line specially: it emits no token of its own, suppresses
+space insertion <em>between</em> the range’s member words, and applies the
+range’s own <code>SpaceAfter</code> annotation after the last member word. Concretely,
+the sentence “I don’t know.” becomes the token sequence <code>I</code>, <code> </code>, <code>do</code>,
+<code>n't</code>, <code> </code>, <code>know</code>, <code>.</code> – matching <code>english.model</code>’s actual output (see
+the example below). This invariant — concatenating a range’s member word
+forms reproduces the range’s own surface form — holds for every multiword
+token in UD English-EWT.</p>
+<p>Because each space is its own single-character token, the character-level
+labeling marks two separate boundaries around it, exactly as for Korean:
+see <a href="#space-preserving-training">Korean’s explanation</a> of why this
+is a near-trivial rule for the model and does not affect held-out Word F1
+(pure-whitespace tokens are excluded from scoring).</p>
+<h2 id="pre-trained-models-3"><a class="header" href="#pre-trained-models-3">Pre-trained Models</a></h2>
+<h3 id="englishmodel"><a class="header" href="#englishmodel">english.model</a></h3>
+<ul>
+<li><strong>Training corpus</strong>: UD English-EWT (space-preserving TSV corpus)</li>
+<li><strong>Training options</strong>: <code>--format tsv --tag-free</code>, 20 epochs of Averaged
+Perceptron training (chosen by a dev-split epoch sweep over {10, 20, 30,
+50}; quality peaked at epoch 20 and degraded slightly beyond it),
+collapsed to AdaBoost scalar weights, not pruned (4,794 features) —
+see <a href="#training-procedure">Training Procedure</a>
+for the full recipe</li>
+<li><strong>Word F1 (held-out)</strong>: 98.31%</li>
+<li><strong>Boundary F1 (held-out)</strong>: 99.18%</li>
+<li><strong>File size</strong>: ~125 KB</li>
+</ul>
+<p>The model is trained without the 16 tag-dependent feature templates
+(<code>--tag-free</code>, issue #183). A dev-split comparison confirmed tag features
+buy almost nothing for English (tagged 38-template best: 98.71% Word F1 at
+epoch 30, vs. tag-free 38-template best: 98.68% at epoch 20 — a 0.03pt
+difference), so the bundled model ships tag-free and lets <code>segment()</code> skip
+its sequential scoring pass entirely. See <a href="#tag-free-pointwise-models">Tag-Free (Pointwise)
+Models</a>.</p>
+<p>Held-out metrics are computed on the original spaced text with space
+tokens excluded from scoring.</p>
+<h3 id="english_posmodel"><a class="header" href="#english_posmodel">english_pos.model</a></h3>
+<ul>
+<li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
+classifier plus a word-level tagger with a candidate-tag lexicon)</li>
+<li><strong>Stage-2 feature set</strong>: <code>full</code> (chosen by a dev-split sweep over
+fast/balanced/full; full gave the best tagged-word accuracy), 50 epochs</li>
+<li><strong>Word F1 (held-out)</strong>: 70.33%</li>
+<li><strong>Tagged Word F1 (held-out)</strong>: 65.83%</li>
+<li><strong>File size</strong>: ~3.6 MB</li>
+<li><strong>Details</strong>: see <a href="#english_posmodel-1">Pre-trained Models</a></li>
+</ul>
+<blockquote>
+<p><strong>This model’s segmentation quality is substantially lower than
+<code>english.model</code>’s, and this is expected, not a bug.</strong> Like
+<code>korean_pos.model</code>, this model is trained on the <em>unspaced</em> <code>word/POS</code>
+corpus (the two-stage POS pipeline has no space-preserving variant), and
+<code>evaluate --pos</code> scores it the same way, so the numbers above are not a
+train/inference mismatch. The gap to <code>english.model</code>’s 98.31% comes from
+a real difference between the two languages: Korean is agglutinative, so
+its particles and verb endings leave strong character-level cues for
+word boundaries even with every space removed, and <code>korean_pos.model</code>
+reaches 99.90% Word F1 under the identical unspaced protocol. English
+orthography carries almost no such sub-word signal – a sequence like
+<code>"thecatsatonthemat"</code> gives a classifier little to work with – so
+segmenting English text with no spaces at all is a substantially harder
+task, and 70% Word F1 reflects that intrinsic difficulty rather than an
+architecture or training defect. At inference the model still receives
+real, spaced text, and spaces are re-emitted as their own tokens (tagged
+by the stage-2 fallback); the golden test in <code>litsea/tests/golden.rs</code>
+pins this actual, imperfect real-world behavior. Combining the
+space-preserving TSV protocol with two-stage POS training would require
+a new corpus format the two-stage pipeline does not currently support –
+tracked as a possible follow-up, not implemented here.</p>
+</blockquote>
+<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
+<pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
+# I   do n't   know .
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="adding-a-new-language"><a class="header" href="#adding-a-new-language">Adding a New Language</a></h1>
-<p>Litsea’s multilingual framework is designed to be easily extensible. This guide explains how to add support for a new language.</p>
+<p>Litsea’s multilingual framework is designed to be easily extensible. This guide explains how to add support for a new language, using the addition of English (issue #194) as the worked example throughout.</p>
 <h2 id="steps-overview"><a class="header" href="#steps-overview">Steps Overview</a></h2>
 <ol>
 <li>Add a variant to the <code>Language</code> enum</li>
@@ -1642,7 +1850,10 @@ not the space-preserving protocol described on this page</li>
 <li>Create a character classification function</li>
 <li>Register the classification function</li>
 <li>Decide on WC feature inclusion</li>
-<li>Prepare a training corpus and train a model</li>
+<li>Choose a corpus protocol (space-separated or space-preserving TSV)</li>
+<li>Train the bundled segmentation model (binary-perceptron-collapse recipe)</li>
+<li>Optionally train a two-stage POS model</li>
+<li>Add held-out evaluation gold files</li>
 <li>Add tests</li>
 </ol>
 <h2 id="step-1-add-a-variant-to-language"><a class="header" href="#step-1-add-a-variant-to-language">Step 1: Add a Variant to <code>Language</code></a></h2>
@@ -1655,6 +1866,7 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
     Thai,       // ← new language
 }
 <span class="boring">}</span></code></pre>
@@ -1669,7 +1881,7 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
-<p>Also update the <code>ParseLanguageError</code> message in <code>language.rs</code>: it enumerates the supported languages (<code>Supported: japanese (ja), chinese (zh), korean (ko)</code>) and is pinned by a unit test, so both the message and the test must include the new language.</p>
+<p>Also update the <code>ParseLanguageError</code> message in <code>language.rs</code>: it enumerates the supported languages (<code>Supported: japanese (ja), chinese (zh), korean (ko), english (en)</code>) and is pinned by a unit test, so both the message and the test must include the new language.</p>
 <h2 id="step-3-create-a-character-classification-function"><a class="header" href="#step-3-create-a-character-classification-function">Step 3: Create a Character Classification Function</a></h2>
 <p>Define a function that classifies a <code>char</code> into a <strong>type id</strong> for the new language. Ids are indices into the language’s ordered <code>type_codes()</code> table (Step 4): the shared classes occupy fixed indices (“O” = 0, “P” = 1, “A” = 2, “N” = 3) and language-specific classes follow from 4. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1687,14 +1899,16 @@ Language::Thai =&gt; write!(f, "thai"),
     }
 }
 <span class="boring">}</span></code></pre>
+<p>English’s <code>english_char_type_id</code> is a real, in-tree example of the same pattern applied to a Latin-script language: it adds “U” (uppercase), “W” (whitespace), and “Q” (apostrophe) as dedicated classes, and additionally <em>widens</em> the shared “P” class to cover ASCII punctuation (which the other languages leave as “O”) – a language’s classification function is free to layer extra logic in front of <code>punct_latin_digit()</code>, not just append new classes after it.</p>
 <h3 id="design-tips-for-character-types"><a class="header" href="#design-tips-for-character-types">Design Tips for Character Types</a></h3>
 <ul>
 <li><strong>Identify linguistically distinct categories</strong> that correlate with word boundary patterns</li>
 <li><strong>Order matters</strong> – match arms are tried top to bottom, so put more specific classes before general ones</li>
-<li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
+<li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”), or, for a space-delimited language, whatever punctuation/case/diacritic distinctions actually correlate with boundaries (as English does with “U”/“W”/“Q”)</li>
 <li><strong>Use extra logic inside an arm body</strong> when a plain range is not enough (as Korean does with a codepoint test to split syllables with/without 받침)</li>
 <li>Reuse the shared <code>punct_latin_digit()</code> helper for the common “P”/“A”/“N” classes</li>
-<li><strong>Keep the code set prefix-free</strong> – no code may be a prefix of another (Korean’s <code>SN</code>/<code>SF</code> work because <code>S</code> alone is not a code). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous (a unit test pins this per language)</li>
+<li><strong>Keep the code set prefix-free</strong> – no code may be a prefix of another (Korean’s <code>SN</code>/<code>SF</code> work because <code>S</code> alone is not a code; a bare <code>"S"</code> is therefore rejected for <strong>every</strong> language by a unit test, not just Korean). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous</li>
+<li><strong>The type table needs at least 7 codes.</strong> A shared test context (<code>packed_model.rs</code>’s <code>ctx_for</code>) asserts <code>codes.len() &gt;= 7</code>; English’s 7-code table is the current minimum. There is no fixed upper bound, but the dense feature tables (<code>BC</code>/<code>UC</code>/<code>TC</code>/<code>BQ</code>/<code>TQ</code>) scale roughly with <code>type_count^2</code> to <code>type_count^3</code>, so a much larger table trades model size and load time for classification granularity</li>
 </ul>
 <h2 id="step-4-register-the-type-code-table-and-classification-function"><a class="header" href="#step-4-register-the-type-code-table-and-classification-function">Step 4: Register the Type-Code Table and Classification Function</a></h2>
 <p>Add the language’s ordered code table to <code>Language::type_codes()</code> (index = type id; shared codes first) and a dispatch arm in <code>Language::char_type_id()</code>. <code>char_type()</code> itself is derived from these two, so string codes and numeric ids cannot drift apart:</p>
@@ -1721,52 +1935,159 @@ pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
 </span>pub(crate) fn templates_for(language: Language) -&gt; &amp;'static [Template] {
     match language {
         Language::Japanese | Language::Chinese =&gt; &amp;TEMPLATES[..],
-        _ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 base templates
+        Language::Korean | Language::English =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 base templates
     }
 }
 <span class="boring">}</span></code></pre>
-<p>If your language’s character types have enough variety to make WC features informative, add it to the first match arm. If your type system is low-entropy (like Korean’s SN/SF), it is better to exclude WC features.</p>
-<h2 id="step-6-prepare-corpus-and-train-a-model"><a class="header" href="#step-6-prepare-corpus-and-train-a-model">Step 6: Prepare Corpus and Train a Model</a></h2>
-<ol>
-<li>
-<p><strong>Prepare a corpus</strong> with words separated by spaces:</p>
-<pre><code class="language-text">word1 word2 word3 word4
+<p>This match is deliberately <strong>exhaustive, with no wildcard arm</strong> – adding
+<code>Thai</code> without adding it to one of the two arms is a compile error, not a
+silent default. This is intentional: an earlier version of this match had
+a <code>_ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT]</code> fallback, which meant a new
+language got the 38-template (no WC) configuration without anyone
+deciding that on purpose. Make the WC decision explicitly, and back it
+with a measurement rather than an assumption: train a tag-free model both
+with and without WC on a held-out dev split and compare Word F1 (English’s
+comparison, documented in <a href="#no-wc-features-1">English</a>, found WC
+measured <em>worse</em>, not just unhelpful – 98.68% without vs. 98.65% with).
+As a starting heuristic: if your language’s character types have enough
+variety to make WC features informative, include them; if your type
+system is low-entropy (like Korean’s/English’s dominant “SN”/“A” or
+whitespace-dominated distribution), exclude them – but verify with
+numbers before committing bundled models to either choice.</p>
+<h2 id="step-6-choose-a-corpus-protocol"><a class="header" href="#step-6-choose-a-corpus-protocol">Step 6: Choose a Corpus Protocol</a></h2>
+<p>Litsea supports two corpus protocols, and the right choice depends on whether the language is written with spaces:</p>
+<ul>
+<li><strong>Space-separated</strong> (the default): words joined with a single space, one sentence per line. Used for languages written without spaces (Japanese, Chinese) or where spacing carries no boundary signal.</li>
+<li><strong>Space-preserving TSV</strong> (<code>--format tsv</code>, issue #152): tab-separated tokens where a token may itself be a literal space <code>" "</code>, so the original spacing survives into training as a first-class feature. Used for languages where the space itself is the strongest boundary signal (Korean, English).</li>
+</ul>
+<p>If your language is written with spaces between words (like English, unlike Korean’s inter-eojeol convention but the same underlying reasoning), use the space-preserving protocol:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
+litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
 </code></pre>
-</li>
-<li>
-<p><strong>Extract features</strong>:</p>
-<pre><code class="language-sh">litsea extract -l thai ./corpus.txt ./features.txt
+<p><strong>If the source treebank has multiword tokens (contractions, clitics),
+verify <code>corpus_udtreebank.sh -s</code> handles them correctly before trusting
+the corpus.</strong> UD CoNLL-U represents a contraction like English’s <code>don't</code>
+as a <em>range</em> line (e.g. <code>3-4  don't</code>) covering two word lines (<code>do</code>,
+<code>n't</code>) that carry no space between them. <code>corpus_udtreebank.sh -s</code> treats
+a range line specially: it emits no token of its own, suppresses space
+insertion <em>between</em> the range’s member words, and applies the range’s own
+<code>SpaceAfter</code> annotation only after the last member word. The invariant to
+check for a new treebank is: <strong>concatenating a range’s member word forms
+must reproduce the range’s own surface form.</strong> This held for every
+multiword token in UD English-EWT (verified by scripting a comparison
+across the full corpus before training); if it does not hold for your
+treebank, the safe fallback is to emit the range’s own form as a single
+token instead of expanding its members. As a second, independent check,
+reconstruct each sentence by concatenating its TSV tokens (space tokens
+included) and diff the result against the CoNLL-U file’s <code># text =</code>
+metadata line for that sentence – this catches any spacing bug the
+member-concatenation check alone would miss. When you change
+<code>corpus_udtreebank.sh</code> itself, also regenerate an existing space-preserving
+gold file (e.g. <code>resources/eval/korean_gsd_test.tsv</code>) and diff it against
+the committed version – it should come out byte-identical if your change
+is additive.</p>
+<h2 id="step-7-train-the-bundled-segmentation-model"><a class="header" href="#step-7-train-the-bundled-segmentation-model">Step 7: Train the Bundled Segmentation Model</a></h2>
+<p>The bundled segmentation models are <strong>not</strong> trained with plain <code>litsea train -t/-i</code> (AdaBoost boosting). They are trained as a 2-class Averaged
+Perceptron and losslessly collapsed to the AdaBoost model format –
+see <a href="#training-procedure">Pre-trained Models: Training
+Procedure</a> for the full
+derivation and the exact five-step recipe
+(extract → relabel <code>1</code>/<code>-1</code> to <code>B</code>/<code>O</code> → <code>train --perceptron</code> →
+<code>scripts/collapse_binary_perceptron.py</code> → optionally prune). For a
+space-preserving-protocol language:</p>
+<pre><code class="language-sh">litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
+sed -i 's/^1\t/B\t/; s/^-1\t/O\t/' features.txt
+litsea train --perceptron --num-epochs 20 features.txt perceptron.model
+scripts/collapse_binary_perceptron.py perceptron.model models/english.model
 </code></pre>
-</li>
-<li>
-<p><strong>Train a model</strong>:</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/thai.model
+<p>Do not guess the epoch count or the tag-free/WC decisions – run a sweep on
+a held-out <strong>dev</strong> split (never the test split, which should be touched
+only once at the end) across a handful of epoch counts, and compare
+tag-free vs. tagged and (per Step 5) WC vs. no-WC at the best epoch count
+for each. English’s sweep, for example, found quality peaking at 20
+epochs and degrading slightly beyond it – a one-shot low-epoch run would
+have understated the model’s real quality, and a one-shot high-epoch run
+would have looked like overfitting was the ceiling rather than a
+convergence point already passed.</p>
+<h2 id="step-8-optionally-train-a-two-stage-pos-model"><a class="header" href="#step-8-optionally-train-a-two-stage-pos-model">Step 8: Optionally Train a Two-Stage POS Model</a></h2>
+<p>If UPOS-tagged data is available for the language, you can additionally
+train a <a href="#two-stage-tagging">two-stage</a> model:</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
+litsea extract --pos -l english --stage2-features full pos_corpus.txt pos_features
+litsea train --pos --num-epochs 50 pos_features models/english_pos.model
 </code></pre>
-</li>
-</ol>
-<h2 id="step-7-add-tests"><a class="header" href="#step-7-add-tests">Step 7: Add Tests</a></h2>
-<p>Add tests in both <code>language.rs</code> and <code>segmenter.rs</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// In language.rs tests
-#[test]
-fn test_thai_char_types() {
-    let lang = Language::Thai;
-    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
-    assert_eq!(lang.char_type('A'), "A");   // ASCII
-    assert_eq!(lang.char_type('@'), "O");   // Other
-}
-
-// In segmenter.rs tests
-#[test]
-fn test_char_type_thai() {
-    let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type('ก'), "T");
-}
-<span class="boring">}</span></code></pre>
-<p>Run all tests to verify:</p>
-<pre><code class="language-sh">cargo test --workspace
+<p>Sweep <code>--stage2-features</code> (<code>fast</code>/<code>balanced</code>/<code>full</code>) on a dev split the
+same way as the epoch sweep above; the three bundled languages that use
+this path each picked a different winner (see <a href="#choosing-a-stage-2-feature-set">Choosing a stage-2 feature
+set</a>).</p>
+<p><strong>Known limitation for space-preserving-protocol languages</strong>: the
+two-stage extractor’s corpus format has no space-preserving variant (<code>-p</code>
+and <code>-s</code> are mutually exclusive), so <code>english_pos.model</code> is trained (and
+evaluated) on the <em>unspaced</em> <code>word/POS</code> corpus, unlike <code>english.model</code>
+itself. Whether this matters in practice depends on the language: Korean
+stays close to its space-preserving numbers (99.90% unspaced vs. 99.91%
+spaced) because its agglutinative morphology leaves strong boundary cues
+even with spaces removed, while English’s gap is large (70.33% unspaced
+vs. 98.31% spaced) because English orthography carries almost no such
+signal. Measure this gap for your language rather than assuming it will
+be small, and document it prominently if it is not – see
+<a href="#english_posmodel">English</a> for the fully worked example of
+how to explain a large gap like this to users.</p>
+<h2 id="step-9-add-held-out-evaluation-gold-files"><a class="header" href="#step-9-add-held-out-evaluation-gold-files">Step 9: Add Held-out Evaluation Gold Files</a></h2>
+<p>Generate held-out gold data from the treebank’s <strong>test</strong> split (touched
+only after your dev-split sweeps are done) and add it under
+<code>resources/eval/</code>, following the existing naming convention
+(<code>&lt;language&gt;_&lt;treebank&gt;_test.{txt,tsv}</code> for segmentation,
+<code>&lt;language&gt;_&lt;treebank&gt;_test_pos.txt</code> for POS):</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -s "$conllu_file_test" resources/eval/english_ewt_test.tsv
+bash scripts/corpus_udtreebank.sh -p "$conllu_file_test" resources/eval/english_ewt_test_pos.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
+litsea evaluate -l english --pos models/english_pos.model resources/eval/english_ewt_test_pos.txt
 </code></pre>
+<p>Update <code>resources/eval/README.md</code> with the new file(s) and their
+provenance/license (UD treebanks are typically CC BY-SA 4.0, distinct from
+the rest of the repository’s MIT/Apache-2.0 licensing). Record the
+held-out numbers you get from <code>litsea evaluate</code> – not numbers from
+<code>litsea train</code>’s in-sample printout – in the model’s documentation
+(Step 10 lists every doc page that needs the new numbers).</p>
+<h2 id="step-10-add-tests-and-documentation"><a class="header" href="#step-10-add-tests-and-documentation">Step 10: Add Tests and Documentation</a></h2>
+<p>This is the step most likely to be under-scoped: a new language touches
+more test files than just <code>language.rs</code>/<code>segmenter.rs</code>. Work through this
+checklist:</p>
+<p><strong>Code tests:</strong></p>
+<ul>
+<li><code>litsea/src/language.rs</code>: <code>ALL_LANGUAGES</code> (bump the array size), <code>test_language_from_str</code>, <code>test_parse_language_error_message</code> (new full error string), <code>test_language_display</code>, and a new <code>test_&lt;language&gt;_char_types</code> covering every type code plus a couple of shared-class and “O” cases</li>
+<li><code>litsea/src/packed_model.rs</code>: <code>test_templates_for_language_gating</code> (assert the new language’s template count), and the two hard-coded language-enumeration arrays in <code>test_pack_parse_roundtrip_unique_and_injective</code> and <code>test_dense_index_consistent_with_key_decode</code></li>
+<li><code>litsea/src/segmenter.rs</code>: a new <code>test_char_type_&lt;language&gt;</code> (mirroring the existing per-language ones)</li>
+<li><code>litsea/src/word_features.rs</code>: add a case to the round-trip sample list (cheap, catches type-code encoding bugs early)</li>
+<li><code>litsea-cli/src/main.rs</code>: the three <code>--language</code> help strings</li>
+</ul>
+<p><strong>Model-dependent tests (need a trained model first):</strong></p>
+<ul>
+<li><code>litsea/tests/golden.rs</code>: a new <code>golden_segment_&lt;language&gt;</code> (and, if you trained a POS model, <code>golden_segment_with_pos_&lt;language&gt;_two_stage</code>). <strong>Pin the model’s actual output, not an idealized one</strong> – write the test with a <code>println!</code> of the real output first, copy that into the assertion, then delete the debug print. Immediately after, <strong>sabotage-check it</strong>: temporarily change one expected value to something wrong, confirm the test goes RED, then restore the correct value. A golden test that never failed during its own creation has not proven it protects anything</li>
+<li><code>litsea/src/segmenter.rs</code>: a differential test (<code>test_segment_differential_&lt;language&gt;_model</code>) comparing the packed scorer against the string-keyed reference, and, if the model is tag-free, a <code>segment_into</code> tiling/parity case</li>
+<li><code>litsea/benches/bench.rs</code>: add the new language to all four per-language tuple lists (<code>bench_segment_short</code>, <code>bench_external_corpus</code>’s two case lists, <code>bench_segment_into</code>), which requires a corpus file under <code>resources/</code> (a public-domain text of a similar size to the existing per-language corpora)</li>
+<li><code>litsea-cli/tests/cli.rs</code>: at least one segmentation smoke test pinning CLI output end-to-end</li>
+</ul>
+<p><strong>Verification commands</strong> (run all of these before considering the language done):</p>
+<pre><code class="language-sh">cargo fmt --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo bench -- external_corpus   # sanity-check the new bench cases run; decide if pruning is needed
+markdownlint-cli2 "docs/src/**/*.md"
+markdownlint-cli2 "docs/ja/src/**/*.md"
+mdbook build docs
+mdbook build docs/ja
+</code></pre>
+<p><strong>Documentation</strong> (English source first, then the Japanese mirror under <code>docs/ja/src/</code>, per this project’s documentation policy):</p>
+<ul>
+<li>A new <code>language-support/&lt;language&gt;.md</code> page (use <a href="#english">English</a> or <a href="#korean">Korean</a> as the template) plus a <code>docs/src/SUMMARY.md</code> entry (and its <code>docs/ja/src/SUMMARY.md</code> mirror)</li>
+<li><code>language-support/overview.md</code> and <code>algorithm/character-type-classification.md</code> – both have a per-language table/section to extend</li>
+<li><code>pre-trained-models.md</code> – a model card per bundled model, plus the “Tag-Free (Pointwise) Models” and “Two-Stage POS Tagging Models” comparison tables if applicable</li>
+<li>Root <code>README.md</code> and the crate-level docs in <code>litsea/src/lib.rs</code></li>
+<li>Before considering the sweep complete, run <code>grep -rln "&lt;an existing language's name&gt;" docs/src docs/ja/src</code> and check every file it finds – language-enumerating docs are easy to miss (this project’s own experience: issue #165 skipped this check once and left 14 stale mentions for a later PR to clean up)</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="library-api-overview"><a class="header" href="#library-api-overview">Library API Overview</a></h1>
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
@@ -2012,7 +2333,7 @@ where
 are separated by tab characters, and a token may be a literal space <code>" "</code>.
 This preserves the original spacing of the sentence in the training text so
 the model can learn from space characters as boundary context (used for the
-Korean model; issue #152).</p>
+Korean and English models; issue #152).</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut segmenter = Segmenter::new(Language::Korean);
@@ -2028,7 +2349,7 @@ pub fn learner_mut(&amp;mut self) -&gt; &amp;mut AdaBoost
 <p>Provide access to the segmenter’s language and its internal learner (for a
 two-stage segmenter, the stage-1 boundary classifier).</p>
 <blockquote>
-<p>Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former <code>get_attributes</code> method is now private.</p>
+<p>Feature extraction for a character position (38 features for Korean/English, 42 for Japanese/Chinese) is an internal detail; the former <code>get_attributes</code> method is now private.</p>
 </blockquote>
 <h2 id="pos-mode-api"><a class="header" href="#pos-mode-api">POS-Mode API</a></h2>
 <p>The segmenter also supports <strong>word segmentation and POS tagging</strong> with a
@@ -2152,8 +2473,8 @@ extractor.extract(
 <p>Reads a tab-separated corpus file (tokens separated by tabs, one sentence
 per line; a token may be a literal space <code>" "</code>) and writes the extracted
 features. The preserved spaces let the model learn from space characters as
-boundary context — used to train the Korean model (issue #152). Output
-format is identical to <code>extract</code>.</p>
+boundary context — used to train the Korean and English models (issue #152).
+Output format is identical to <code>extract</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -2183,7 +2504,8 @@ input and output formats, but the 16 tag-dependent templates
 (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>, which read the previous boundary
 decisions) are dropped from every row. A model trained on these features
 is <em>pointwise</em>, so <code>segment()</code> skips its sequential scoring pass entirely.
-The bundled <code>korean.model</code> is trained this way; see <a href="#tag-free-pointwise-models">Tag-Free (Pointwise)
+The bundled <code>korean.model</code>/<code>english.model</code> are trained this way; see
+<a href="#tag-free-pointwise-models">Tag-Free (Pointwise)
 Models</a> for the
 measured per-language quality/speed trade-off. These back the CLI’s
 <code>extract --tag-free</code>.</p>
@@ -2956,13 +3278,14 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
 }
 <span class="boring">}</span></code></pre>
 <p>The enum is marked <code>#[non_exhaustive]</code> because new languages are expected to be added without a breaking change; external <code>match</code> expressions over <code>Language</code> therefore need a wildcard arm (<code>_ =&gt; ...</code>).</p>
 <h3 id="traits"><a class="header" href="#traits">Traits</a></h3>
 <ul>
 <li><code>Default</code> – Returns <code>Language::Japanese</code></li>
-<li><code>Display</code> – Returns lowercase name (<code>"japanese"</code>, <code>"chinese"</code>, <code>"korean"</code>)</li>
+<li><code>Display</code> – Returns lowercase name (<code>"japanese"</code>, <code>"chinese"</code>, <code>"korean"</code>, <code>"english"</code>)</li>
 <li><code>FromStr</code> – Parses from full name or ISO 639-1 code (case-insensitive)</li>
 </ul>
 <h3 id="parsing"><a class="header" href="#parsing">Parsing</a></h3>
@@ -2974,11 +3297,13 @@ pub enum Language {
 let ja: Language = "japanese".parse().unwrap();
 let zh: Language = "chinese".parse().unwrap();
 let ko: Language = "korean".parse().unwrap();
+let en: Language = "english".parse().unwrap();
 
 // ISO 639-1 codes
 let ja: Language = "ja".parse().unwrap();
 let zh: Language = "zh".parse().unwrap();
 let ko: Language = "ko".parse().unwrap();
+let en: Language = "en".parse().unwrap();
 
 // Case-insensitive
 let ko: Language = "KOREAN".parse().unwrap();
@@ -3002,7 +3327,7 @@ assert_eq!(lang.char_type('あ'), "I");
 assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<p>Internally, <code>char_type</code> is a table lookup over the numeric type id returned by a private per-language function (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>), so string codes and numeric ids cannot drift apart. The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes.</p>
+<p>Internally, <code>char_type</code> is a table lookup over the numeric type id returned by a private per-language function (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>, <code>english_char_type_id</code>), so string codes and numeric ids cannot drift apart. The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes (English widens <code>"P"</code> to cover ASCII punctuation too; see <a href="#english">English</a>).</p>
 <h2 id="parselanguageerror"><a class="header" href="#parselanguageerror">ParseLanguageError</a></h2>
 <p>Parsing a <code>Language</code> from a string fails with <code>ParseLanguageError</code>, which is re-exported at the crate root (<code>litsea::ParseLanguageError</code>):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -3014,7 +3339,7 @@ assert_eq!(err.input(), "french");
 <span class="boring">}</span></code></pre>
 <ul>
 <li><code>input()</code> – Returns the string that failed to parse</li>
-<li>The error message enumerates the supported languages: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
+<li>The error message enumerates the supported languages: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko), english (en)</code></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="evaluation-2"><a class="header" href="#evaluation-2">Evaluation</a></h1>
@@ -3049,7 +3374,7 @@ pub struct PosMetrics {
 <span class="boring">}</span></code></pre>
 <p>Both are re-exported at the crate root. Tokens are matched by exact
 character-offset spans over the concatenation of the gold tokens;
-pure-whitespace tokens are excluded from scoring (the Korean
+pure-whitespace tokens are excluded from scoring (the Korean/English
 space-preserving protocol; a no-op for languages written without spaces).</p>
 <h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
 <h3 id="evaluate_segmentation"><a class="header" href="#evaluate_segmentation"><code>evaluate_segmentation</code></a></h3>
@@ -3084,7 +3409,7 @@ pub fn parse_gold_pos_line(line: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
 token may be a literal space); <code>parse_gold_pos_line</code> splits each token at
 its <strong>last</strong> <code>/</code> (the training pipeline’s rule), defaulting to <code>Upos::X</code>
 for missing or unparsable tags.</p>
-<h2 id="example-3"><a class="header" href="#example-3">Example</a></h2>
+<h2 id="example-4"><a class="header" href="#example-4">Example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::adaboost::AdaBoost;
@@ -3211,7 +3536,7 @@ is decided entirely by stage 1); only tagging quality and throughput vary.
 The relative ordering of the three sets (not their exact figures, which were
 measured on an early prototype at a different epoch count than the bundled
 models) is documented on this type’s own rustdoc; see
-<a href="#pre-trained-models-3">Pre-trained Models</a> for the bundled models’
+<a href="#pre-trained-models-4">Pre-trained Models</a> for the bundled models’
 current, measured numbers.</p>
 <p>Implements <code>FromStr</code> (case-insensitive: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>) and
 <code>Display</code> (lowercase). Marked <code>#[non_exhaustive]</code> — external <code>match</code>
@@ -3329,11 +3654,11 @@ reference.</p>
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--pos</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Extract <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> training features. Requires a POS corpus as input</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td>Stage-2 word-feature set for <code>--pos</code>: <code>full</code> (best quality), <code>balanced</code>, or <code>fast</code> (best throughput)</td></tr>
-<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code> – see <a href="#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--pos</code></td></tr>
+<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code>/<code>english.model</code> – see <a href="#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--pos</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -3346,10 +3671,12 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 <p>With <code>--format tsv</code>, tokens are separated by tab characters and a token may
 be a literal space <code>" "</code>. This preserves the original spacing of the
 sentence in the training text, which is essential for languages like Korean
-where spaces mark most word boundaries (see
-<a href="#korean">Korean</a>). Generate such a corpus from a UD
+and English where spaces mark most word boundaries (see
+<a href="#korean">Korean</a> and
+<a href="#english">English</a>). Generate such a corpus from a UD
 Treebank with <code>corpus_udtreebank.sh -s</code>:</p>
 <pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
+litsea extract -l english --format tsv --tag-free ./en_corpus.tsv ./en_features.txt
 </code></pre>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
 <p>The features file contains one line per character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>
@@ -3370,6 +3697,9 @@ litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
 
 # Korean
 litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+
+# English
+litsea extract -l en ./corpus_en.txt ./features_en.txt
 </code></pre>
 <p>Output to stderr on success:</p>
 <pre><code class="language-text">Feature extraction completed successfully.
@@ -3461,8 +3791,8 @@ architecture</a>:</p>
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
 <p>This is a generic plain-AdaBoost example. The bundled <code>japanese.model</code>,
-<code>chinese.model</code>, and <code>korean.model</code> use a different procedure – see
-<a href="#training-procedure">Training Procedure</a>.</p>
+<code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> use a different
+procedure – see <a href="#training-procedure">Training Procedure</a>.</p>
 <p>Training with higher precision (lower threshold, more iterations):</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
 </code></pre>
@@ -3542,7 +3872,7 @@ as it scores a plain <code>segment()</code> model.</p>
 <pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_PREFIX&gt; &lt;MODEL_FILE&gt;
 </code></pre>
 <p><code>FEATURES_PREFIX</code> is the same prefix passed to <code>extract --pos</code>.</p>
-<h3 id="example-4"><a class="header" href="#example-4">Example</a></h3>
+<h3 id="example-5"><a class="header" href="#example-5">Example</a></h3>
 <pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 </code></pre>
@@ -3581,7 +3911,7 @@ text with <code>litsea evaluate --pos</code> for a realistic quality estimate.</
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
 </tbody>
@@ -3608,6 +3938,9 @@ text with <code>litsea evaluate --pos</code> for a realistic quality estimate.</
 <p><strong>Korean:</strong></p>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
   | litsea segment -l korean ./models/korean.model
+</code></pre>
+<p><strong>English:</strong></p>
+<pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
 </code></pre>
 <p><strong>Processing a file:</strong></p>
 <pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./models/japanese.model &gt; output.txt
@@ -3691,9 +4024,9 @@ train the model — the bundled files in <code>resources/eval/</code> are the UD
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language of the model and gold corpus. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language of the model and gold corpus. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Evaluate segmentation + POS tagging. The gold corpus must then be in <code>word/POS</code> format. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean space-preserving corpus). Ignored with <code>--pos</code></td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). Ignored with <code>--pos</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -3710,8 +4043,8 @@ user would at inference time.</li>
 </ul>
 <p>Predicted and gold tokens are matched by exact character-offset spans over
 the reconstructed sentence. Pure-whitespace tokens are excluded from
-scoring, so the Korean space-preserving protocol does not inflate the
-numbers.</p>
+scoring, so the Korean/English space-preserving protocol does not inflate
+the numbers.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -3738,6 +4071,7 @@ single misplaced boundary invalidates the two words on either side of it.
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 </code></pre>
 <p>Output:</p>
@@ -3768,16 +4102,16 @@ litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japan
 </ol>
 <h2 id="per-language-differences"><a class="header" href="#per-language-differences">Per-Language Differences</a></h2>
 <p>The pipeline (prepare → extract → train) and the scripts are shared by all
-three languages. Only two things are language-specific:</p>
+four languages. Only two things are language-specific:</p>
 <ol>
 <li><strong>The <code>-l</code> flag on <code>extract</code></strong> selects the language’s character-type
-classification (Japanese 8 types, Chinese 9, Korean 10; Korean uses no
-WC features — see the
+classification (Japanese 8 types, Chinese 9, Korean 10, English 7;
+Korean and English use no WC features — see the
 <a href="#language-support-overview">language support overview</a>). Models are
 therefore language-specific.</li>
-<li><strong>Korean uses the space-preserving TSV corpus format.</strong> Korean is
-written with spaces between eojeol, and those spaces are the strongest
-boundary signal, so the Korean corpus keeps them as tokens
+<li><strong>Korean and English use the space-preserving TSV corpus format.</strong>
+Both are written with spaces between words, and those spaces are the
+strongest boundary signal, so their corpora keep them as tokens
 (<code>corpus_udtreebank.sh -s</code> + <code>litsea extract --format tsv</code>). Japanese
 and Chinese are written without spaces, so they use the plain
 space-separated format.</li>
@@ -3786,18 +4120,18 @@ space-separated format.</li>
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 litsea extract -l japanese corpus.txt features.txt
 
-# Korean: space-preserving TSV corpus
+# Korean / English: space-preserving TSV corpus
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l korean --format tsv corpus.tsv features.txt
 </code></pre>
-<p>The <code>train</code> step’s command shape is the same for all three languages, but
+<p>The <code>train</code> step’s command shape is the same for all four languages, but
 the actual hyperparameters differ. <code>-t 0.0001 -i 20000</code> (see <a href="#training-models">Training
 Models</a>) is a good starting point when
 training a plain AdaBoost model from scratch with <code>litsea train</code>, but it is
-not what the bundled <code>japanese</code>/<code>chinese</code>/<code>korean</code> models use – those go
-through a different procedure with per-language epoch counts and pruning.
-See <a href="#training-procedure">Training Procedure</a> for the
-actual recipe.</p>
+not what the bundled <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english</code> models use –
+those go through a different procedure with per-language epoch counts and
+pruning. See <a href="#training-procedure">Training Procedure</a>
+for the actual recipe.</p>
 <h2 id="additional-topics"><a class="header" href="#additional-topics">Additional Topics</a></h2>
 <ul>
 <li><a href="#evaluating-models">Evaluating Models</a> – assess model quality</li>
@@ -3818,6 +4152,7 @@ actual recipe.</p>
 <tr><td>Japanese</td><td>UD Japanese-GSD</td><td><code>UD_Japanese-GSD</code></td></tr>
 <tr><td>Chinese</td><td>UD Chinese-GSD</td><td><code>UD_Chinese-GSD</code></td></tr>
 <tr><td>Korean</td><td>UD Korean-GSD</td><td><code>UD_Korean-GSD</code></td></tr>
+<tr><td>English</td><td>UD English-EWT</td><td><code>UD_English-EWT</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -3825,7 +4160,7 @@ actual recipe.</p>
 <p>Use <code>scripts/download_udtreebank.sh</code> to download a UD Treebank. It prints the path to the training CoNLL-U file to stdout:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 </code></pre>
-<p>Supported languages: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese). Use <code>-o</code> to specify the output directory (default: current directory).</p>
+<p>Supported languages: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese), <code>en</code> (English). Use <code>-o</code> to specify the output directory (default: current directory).</p>
 <h2 id="corpus-for-word-segmentation"><a class="header" href="#corpus-for-word-segmentation">Corpus for Word Segmentation</a></h2>
 <p>For word segmentation (AdaBoost), the corpus must be a plain text file with:</p>
 <ul>
@@ -3841,16 +4176,27 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
 <p>This converts the CoNLL-U data into space-separated words (one sentence per line).</p>
-<h3 id="space-preserving-tsv-corpus-korean"><a class="header" href="#space-preserving-tsv-corpus-korean">Space-Preserving TSV Corpus (Korean)</a></h3>
+<h3 id="space-preserving-tsv-corpus-korean-english"><a class="header" href="#space-preserving-tsv-corpus-korean-english">Space-Preserving TSV Corpus (Korean, English)</a></h3>
 <p>The space-separated format above discards the original spacing of the
 sentence: the words are later concatenated without spaces for training. For
-Korean this loses the strongest boundary signal (the inter-eojeol space),
-so use the <code>-s</code> flag instead, which emits a <strong>tab-separated corpus</strong> in
-which every original space (reconstructed from the treebank’s <code>SpaceAfter</code>
-annotations) is kept as its own token:</p>
+Korean and English this loses the strongest boundary signal (Korean’s
+inter-eojeol space, English’s inter-word space), so use the <code>-s</code> flag
+instead, which emits a <strong>tab-separated corpus</strong> in which every original
+space (reconstructed from the treebank’s <code>SpaceAfter</code> annotations) is kept
+as its own token:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+
+conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" en_corpus.tsv
 </code></pre>
+<p>For English specifically, <code>-s</code> also handles multiword tokens (contractions
+like <code>don't</code>, represented in CoNLL-U as a range line covering two word
+lines): the range’s member words are joined with no space token between
+them, and the range’s own <code>SpaceAfter</code> annotation is applied after the
+last member word. See
+<a href="#space-preserving-training-1">English</a> for
+the details.</p>
 <p>Extract features from a TSV corpus with <code>litsea extract --format tsv</code>. The
 <code>-s</code> flag cannot be combined with <code>-p</code> (the POS pipeline has no TSV
 variant).</p>
@@ -3883,7 +4229,7 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 # Generate POS corpus
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
-<p>Supported languages for <code>download_udtreebank.sh</code>: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese).</p>
+<p>Supported languages for <code>download_udtreebank.sh</code>: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese), <code>en</code> (English).</p>
 <h2 id="corpus-from-wikipedia-dump"><a class="header" href="#corpus-from-wikipedia-dump">Corpus from Wikipedia Dump</a></h2>
 <p>For larger-scale training, you can build a corpus from a full Wikipedia dump using <code>scripts/corpus_wikidump.sh</code>. This extracts plain text with <a href="https://github.com/mosuka/wicket">wicket</a>, filters for actual sentences, and tokenizes with <a href="https://github.com/lindera/lindera">lindera</a>.</p>
 <h3 id="usage-5"><a class="header" href="#usage-5">Usage</a></h3>
@@ -3957,7 +4303,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <h2 id="command"><a class="header" href="#command">Command</a></h2>
 <pre><code class="language-sh">litsea extract -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
 </code></pre>
-<h2 id="example-5"><a class="header" href="#example-5">Example</a></h2>
+<h2 id="example-6"><a class="header" href="#example-6">Example</a></h2>
 <pre><code class="language-sh">litsea extract -l japanese ./corpus.txt ./features.txt
 </code></pre>
 <p>Output:</p>
@@ -3987,11 +4333,14 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </ul>
 <h2 id="space-preserving-tsv-corpus-format"><a class="header" href="#space-preserving-tsv-corpus-format">Space-Preserving (TSV) Corpus Format</a></h2>
 <p>For a corpus that preserves the original spacing of the sentence – used to
-train the Korean model, since inter-word spaces are its strongest boundary
-signal (see <a href="#space-preserving-training">Korean</a>)
+train the Korean and English models, since inter-word spaces are their
+strongest boundary signal (see
+<a href="#space-preserving-training">Korean</a> and
+<a href="#space-preserving-training-1">English</a>)
 – pass <code>--format tsv</code> instead of extracting from the default
 space-separated format:</p>
 <pre><code class="language-sh">litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.txt
 </code></pre>
 <p>The input is a tab-separated corpus (one sentence per line, tokens
 separated by tabs) in which a token may be a literal space character
@@ -4057,7 +4406,7 @@ the measured quality/throughput comparison behind this default.</p>
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
 <p>This is a generic example of plain AdaBoost training. The bundled
-<code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are <strong>not</strong> produced
+<code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> are <strong>not</strong> produced
 this way – see <a href="#training-procedure">Training Procedure</a>
 for the procedure actually used for those files.</p>
 <h2 id="training-process"><a class="header" href="#training-process">Training Process</a></h2>
@@ -4089,11 +4438,12 @@ for the procedure actually used for those files.</p>
 </table>
 </div>
 <p><strong>Note</strong>: these are generic starting points for training a plain AdaBoost
-model from scratch. The bundled <code>japanese.model</code>, <code>chinese.model</code>, and
-<code>korean.model</code> are produced by a different procedure – a 2-class Averaged
-Perceptron collapsed to AdaBoost weights, with per-language epoch counts
-and pruning – see <a href="#training-procedure">Training Procedure</a>
-in Pre-trained Models for how those files are actually made.</p>
+model from scratch. The bundled <code>japanese.model</code>, <code>chinese.model</code>,
+<code>korean.model</code>, and <code>english.model</code> are produced by a different procedure
+– a 2-class Averaged Perceptron collapsed to AdaBoost weights, with
+per-language epoch counts and pruning – see <a href="#training-procedure">Training
+Procedure</a> in Pre-trained
+Models for how those files are actually made.</p>
 <h2 id="interpreting-output"><a class="header" href="#interpreting-output">Interpreting Output</a></h2>
 <p>Metrics are computed on the training data; with enough iterations the model can fit the training corpus almost perfectly, so evaluate on held-out text for a realistic quality estimate. The numbers below are a representative example of <code>train</code>’s output format, not the bundled <code>japanese.model</code>’s actual training log.</p>
 <pre><code class="language-text">Result Metrics:
@@ -4216,9 +4566,9 @@ training (see the benchmarks below).</p>
 </table>
 </div>
 <h2 id="pre-trained-model-benchmarks"><a class="header" href="#pre-trained-model-benchmarks">Pre-trained Model Benchmarks</a></h2>
-<p>The bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are
-trained with a binary-perceptron-collapse procedure, not plain AdaBoost
-<code>-t</code>/<code>-i</code> training – see <a href="#training-procedure">Training
+<p>The bundled <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and
+<code>english.model</code> are trained with a binary-perceptron-collapse procedure,
+not plain AdaBoost <code>-t</code>/<code>-i</code> training – see <a href="#training-procedure">Training
 Procedure</a> for the exact
 recipe. All are evaluated on the held-out test split of their training
 treebank. <strong>Word F1</strong> scores exact word matches; <strong>Boundary F1</strong> scores
@@ -4232,15 +4582,19 @@ individual boundary decisions.</p>
 <tr><td>japanese.model</td><td>96.70%</td><td>98.59%</td><td>UD Japanese-GSD</td></tr>
 <tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>90.69%</td><td>95.64%</td><td>UD Chinese-GSD</td></tr>
+<tr><td>english.model</td><td>98.31%</td><td>99.18%</td><td>UD English-EWT</td></tr>
 </tbody>
 </table>
 </div>
-<p>Korean is trained and evaluated on text that preserves the original
-inter-eojeol spaces (space-preserving TSV corpus; space tokens are excluded
-from the F1 computation). Since spaces mark most Korean word boundaries,
-this makes the task far easier than for Japanese and Chinese, which are
-written without spaces — the scores are not directly comparable across
-languages.</p>
+<p>Korean and English are trained and evaluated on text that preserves the
+original spaces (space-preserving TSV corpus; space tokens are excluded
+from the F1 computation). Since spaces mark most word boundaries in these
+two languages, this makes the task easier than for Japanese and Chinese,
+which are written without spaces — the scores are not directly comparable
+across languages. Korean’s near-deterministic 99.91% and English’s lower
+98.31% both come from this same space-preserving protocol; the remaining
+gap is residual ambiguity English keeps even with spaces present
+(contractions, hyphenated compounds, abbreviations).</p>
 <h3 id="reproducing-the-benchmarks"><a class="header" href="#reproducing-the-benchmarks">Reproducing the Benchmarks</a></h3>
 <p>Every figure in the table above is reproducible with one command using the
 bundled gold data (<code>resources/eval/</code>, converted from the UD GSD <strong>test</strong>
@@ -4249,13 +4603,17 @@ splits):</p>
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 </code></pre>
 <p>See <a href="#evaluate">evaluate</a> for the command reference. POS
-models are evaluated with <code>--pos</code> against the <code>*_gsd_test_pos.txt</code> files;
-their held-out figures are listed in
-<a href="#pre-trained-models-3">Pre-trained Models</a>. Note the Korean POS gold
-follows the POS pipeline’s convention (no space tokens), so unlike the
-segmentation row above it is evaluated on unspaced text.</p>
+models are evaluated with <code>--pos</code> against the <code>*_gsd_test_pos.txt</code> /
+<code>english_ewt_test_pos.txt</code> files; their held-out figures are listed in
+<a href="#pre-trained-models-4">Pre-trained Models</a>. Note the Korean and
+English POS gold follow the POS pipeline’s convention (no space tokens),
+so unlike the segmentation rows above they are evaluated on unspaced text
+– for English this produces a much larger quality gap than for Korean,
+see <a href="#english_posmodel-1">Pre-trained Models</a> for
+why.</p>
 <h2 id="improving-model-quality"><a class="header" href="#improving-model-quality">Improving Model Quality</a></h2>
 <p>If accuracy is unsatisfactory, consider:</p>
 <ol>
@@ -4282,7 +4640,7 @@ recipe.</p>
 <h2 id="command-2"><a class="header" href="#command-2">Command</a></h2>
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
 </code></pre>
-<h2 id="example-6"><a class="header" href="#example-6">Example</a></h2>
+<h2 id="example-7"><a class="header" href="#example-7">Example</a></h2>
 <pre><code class="language-sh"># Extract features from new corpus
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
@@ -4319,8 +4677,8 @@ litsea train -t 0.0001 -i 20000 \
 does <strong>not</strong> support <code>-m</code>/<code>--load-model-uri</code> – incremental training of a
 two-stage model is not supported, so if you need to update one you must
 retrain it from scratch with <code>train --pos</code></li>
-<li>The bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are not
-produced with this plain <code>-m</code> recipe – they go through the
+<li>The bundled <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and
+<code>english.model</code> are not produced with this plain <code>-m</code> recipe – they go through the
 perceptron-collapse procedure described in <a href="#training-procedure">Training
 Procedure</a>. Running further
 incremental AdaBoost training on top of one of them with <code>-m</code> would mix
@@ -4341,7 +4699,7 @@ scratch with that procedure instead</li>
 <li><strong>Zero-weight features</strong> are omitted to keep the file compact</li>
 <li>The <strong>last line</strong> contains the bias term as a single number</li>
 </ul>
-<h2 id="example-7"><a class="header" href="#example-7">Example</a></h2>
+<h2 id="example-8"><a class="header" href="#example-8">Example</a></h2>
 <pre><code class="language-text">BC1:IK	0.3456
 BC2:KI	-0.1234
 UW4:は	0.5678
@@ -4434,15 +4792,17 @@ above, and the parameter range, and reports errors with the section name
 <tr><td>japanese.model</td><td>~1.1 MB</td><td>UD Japanese-GSD</td></tr>
 <tr><td>chinese.model</td><td>~2.0 MB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>korean.model</td><td>~86 KB</td><td>UD Korean-GSD</td></tr>
+<tr><td>english.model</td><td>~125 KB</td><td>UD English-EWT</td></tr>
 <tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
 <tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
 <tr><td>japanese_pos.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
 <tr><td>chinese_pos.model</td><td>~8.0 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
 <tr><td>korean_pos.model</td><td>~5.0 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
+<tr><td>english_pos.model</td><td>~3.6 MB</td><td>UD English-EWT (two-stage)</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> (see <a href="#pre-trained-models-3">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (<code>*_pos.model</code>) models, which are larger because they carry per-class and per-stage weights.</p>
+<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> (see <a href="#pre-trained-models-4">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (<code>*_pos.model</code>) models, which are larger because they carry per-class and per-stage weights.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
 <li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
@@ -4538,8 +4898,8 @@ file system access is unavailable, so <code>read_file_bytes</code> returns an
 <tr><th>Benchmark</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_short/adaboost/{japanese,chinese,korean}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
-<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean}</code></td><td>Segment + POS tag a short sentence</td></tr>
+<tr><td><code>segment_short/adaboost/{japanese,chinese,korean,english}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean,english}</code></td><td>Segment + POS tag a short sentence</td></tr>
 <tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~300 KB)</td></tr>
 <tr><td><code>external_corpus/*</code></td><td>Corpus throughput, mirroring tokenizer-speed-bench (see below)</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>Character type classification</td></tr>
@@ -4552,8 +4912,9 @@ file system access is unavailable, so <code>read_file_bytes</code> returns an
 <h2 id="corpus-throughput-external_corpus"><a class="header" href="#corpus-throughput-external_corpus">Corpus Throughput (<code>external_corpus</code>)</a></h2>
 <p>The <code>external_corpus</code> group reproduces the seven litsea benches of the
 external <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
-harness in-repo, so throughput regressions can be caught with <code>cargo bench</code>
-alone:</p>
+harness in-repo (the <code>english</code>/<code>english-two-stage</code> cases below have no
+counterpart there yet), so throughput regressions can be caught with
+<code>cargo bench</code> alone:</p>
 <pre><code class="language-sh">cargo bench --bench bench -- external_corpus
 </code></pre>
 <div class="table-wrapper">
@@ -4569,6 +4930,8 @@ alone:</p>
 <tr><td><code>korean-two-stage</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
 <tr><td><code>chinese-two-stage</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>english</code></td><td>english.model</td><td>pride_and_prejudice.txt</td></tr>
+<tr><td><code>english-two-stage</code></td><td>english_pos.model</td><td>pride_and_prejudice.txt</td></tr>
 </tbody>
 </table>
 </div>
@@ -4589,6 +4952,7 @@ read directly as <strong>chars/sec</strong>.</p>
 <tr><td>wagahaiwa_nekodearu.txt</td><td>~1.1 MB</td><td>吾輩は猫である (Natsume Soseki), Aozora Bunko, public domain</td></tr>
 <tr><td>mujeong.txt</td><td>~786 KB</td><td>무정 (Yi Kwang-su, 1917), ko.wikisource, public domain — naturally spaced modern Korean, matching the space-aware korean.model</td></tr>
 <tr><td>rulin_waishi.txt</td><td>~985 KB</td><td>儒林外史 (Wu Jingzi), zh.wikisource, public domain — Traditional Chinese, matching UD Chinese-GSD</td></tr>
+<tr><td>pride_and_prejudice.txt</td><td>~688 KB</td><td>Pride and Prejudice (Jane Austen), Project Gutenberg eBook #1342, public domain — naturally spaced English, matching the space-aware english.model</td></tr>
 </tbody>
 </table>
 </div>
@@ -4600,7 +4964,7 @@ single passes, and <code>cargo bench</code> inherits litsea’s tuned release pr
 the default release profile.</p>
 <h2 id="api-comparison-segment_into"><a class="header" href="#api-comparison-segment_into">API Comparison (<code>segment_into</code>)</a></h2>
 <p>The <code>segment_into</code> group pairs the owned-output <code>segment()</code> API against
-the buffer-reusing <code>segment_into()</code> API (issue #184) on the same three
+the buffer-reusing <code>segment_into()</code> API (issue #184) on the same four
 segmentation corpora as <code>external_corpus</code> (same per-line workload,
 chars/sec via <code>Throughput::Elements</code>):</p>
 <div class="table-wrapper">
@@ -4609,8 +4973,8 @@ chars/sec via <code>Throughput::Elements</code>):</p>
 <tr><th>Bench ID</th><th>API</th></tr>
 </thead>
 <tbody>
-<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code></td><td><code>segment()</code> (one <code>String</code> per token, fresh scratch per call)</td></tr>
-<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code></td><td><code>segment_into()</code> with one reused <code>SegmentBuffer</code></td></tr>
+<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code> / <code>english-strings</code></td><td><code>segment()</code> (one <code>String</code> per token, fresh scratch per call)</td></tr>
+<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code> / <code>english-ranges</code></td><td><code>segment_into()</code> with one reused <code>SegmentBuffer</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -4630,7 +4994,7 @@ and measure with the same paired discipline described below.</p>
 <h3 id="run-to-run-variance"><a class="header" href="#run-to-run-variance">Run-to-Run Variance</a></h3>
 <p>The published figures in this book (including the throughput figures on
 the <a href="#two-stage-tagging">Two-Stage Tagging</a> and
-<a href="#pre-trained-models-3">Pre-trained Models</a> pages) are measured on this
+<a href="#pre-trained-models-4">Pre-trained Models</a> pages) are measured on this
 project’s development machine, not dedicated, idle benchmarking
 hardware. Three
 consecutive <code>external_corpus</code> runs of the same build showed spreads of
@@ -4666,7 +5030,7 @@ representative.</p>
 <li><strong>Model loading</strong> time is proportional to the model file size</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
-<h1 id="pre-trained-models-3"><a class="header" href="#pre-trained-models-3">Pre-trained Models</a></h1>
+<h1 id="pre-trained-models-4"><a class="header" href="#pre-trained-models-4">Pre-trained Models</a></h1>
 <p>Litsea ships with several pre-trained models in the <code>models/</code> directory.</p>
 <h2 id="model-catalog"><a class="header" href="#model-catalog">Model Catalog</a></h2>
 <p>The word segmentation models are evaluated on the held-out test split of
@@ -4675,8 +5039,8 @@ scores exact word matches; <strong>Boundary F1</strong> scores individual bounda
 decisions. Note that the <code>train</code> command prints <em>in-sample</em> metrics
 (measured on the training data itself), which are higher than these
 held-out figures.</p>
-<p><strong>Algorithm note</strong>: <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code>
-are trained as a 2-class (boundary/non-boundary) Averaged Perceptron and
+<p><strong>Algorithm note</strong>: <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and
+<code>english.model</code> are trained as a 2-class (boundary/non-boundary) Averaged Perceptron and
 then collapsed to scalar per-feature weights (issue #165) – the file is
 still the plain AdaBoost text format the engine has always loaded, and
 <code>Segmenter::with_learner</code> / <code>AdaBoost::load_model_from_path</code> work
@@ -4741,6 +5105,33 @@ only on the input text – so <code>segment()</code> skips its sequential scorin
 entirely (issue #183). See <a href="#tag-free-pointwise-models">Tag-Free (Pointwise)
 Models</a> below for the trade-off in the other
 languages.</p>
+<h3 id="englishmodel-1"><a class="header" href="#englishmodel-1">english.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>English</td></tr>
+<tr><td>Training Corpus</td><td>UD English-EWT (space-preserving TSV corpus)</td></tr>
+<tr><td>Epochs</td><td>20</td></tr>
+<tr><td>Feature Templates</td><td>tag-free (pointwise, issue #183), no WC features</td></tr>
+<tr><td>Pruned To</td><td>not pruned (4,794 features)</td></tr>
+<tr><td>Word F1 (held-out)</td><td>98.31%</td></tr>
+<tr><td>Boundary F1 (held-out)</td><td>99.18%</td></tr>
+<tr><td>File Size</td><td>~125 KB</td></tr>
+</tbody>
+</table>
+</div>
+<p>Like <code>korean.model</code>, <code>english.model</code> is trained and evaluated on text that
+preserves the original spaces (each space is its own token, excluded from
+the F1 computation); see <a href="#english">English</a> for the
+space-preserving training protocol, the multiword-token (contraction)
+handling, and the epoch sweep that picked 20 epochs and the tag-free /
+no-WC configuration. English’s residual boundary ambiguity (contractions,
+hyphenated compounds, abbreviations like “U.S.”) is why its held-out Word
+F1 sits below Korean’s near-deterministic 99.91%, even though both share
+the same space-preserving recipe.</p>
 <h3 id="chinesemodel-1"><a class="header" href="#chinesemodel-1">chinese.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -4844,13 +5235,21 @@ from converged epoch sweeps on the UD GSD test splits, issue #183):</p>
 </thead>
 <tbody>
 <tr><td>Korean</td><td>99.90%</td><td><strong>99.91%</strong></td><td>faster (sequential pass skipped)</td></tr>
+<tr><td>English</td><td>98.71%</td><td><strong>98.68%</strong>*</td><td>faster (sequential pass skipped)</td></tr>
 <tr><td>Japanese</td><td><strong>96.70%</strong></td><td>96.33%</td><td>~+45-50% measured end-to-end</td></tr>
 <tr><td>Chinese</td><td><strong>90.69%</strong></td><td>90.18%</td><td>~+12% measured end-to-end</td></tr>
 </tbody>
 </table>
 </div>
+<p>* English’s dev-split comparison (98.71% with tags vs. 98.68% tag-free, a
+0.03pt difference) is close enough that either choice is defensible; the
+bundled model ships tag-free for the same throughput reason as Korean. The
+held-out test-split figure reported for <code>english.model</code> above (98.31%) is
+measured only once, at the end of the sweep, and is not directly comparable
+to this dev-split pair.</p>
 <p>With the inter-eojeol space signal available, Korean’s tag features
 contribute nothing, so <code>korean.model</code> ships tag-free (and ~22% smaller).
+English is close behind for the same reason (dominant whitespace signal).
 For Japanese and Chinese they still buy 0.37-0.51pt of Word F1, so the
 bundled models keep them – quality stays the default. If your workload
 prefers speed, retrain with the same procedure above plus <code>--tag-free</code> on
@@ -4948,6 +5347,42 @@ corpus for both stages, and building a combined space-preserving +
 POS-tagged format is a separate feature not yet implemented; the numbers
 above are therefore not comparable to <code>korean.model</code>’s 99.91% (a different
 corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
+<h3 id="english_posmodel-1"><a class="header" href="#english_posmodel-1">english_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Property</th><th>Value</th></tr>
+</thead>
+<tbody>
+<tr><td>Language</td><td>English</td></tr>
+<tr><td>Training Corpus</td><td>UD English-EWT (12,544 sentences, unspaced word/POS protocol – see the note below)</td></tr>
+<tr><td>Epochs</td><td>50</td></tr>
+<tr><td>Stage-2 Feature Set</td><td><code>full</code></td></tr>
+<tr><td>Word F1 (held-out)</td><td>70.33%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>65.83%</td></tr>
+<tr><td>Throughput</td><td>2.05M chars/s</td></tr>
+<tr><td>File Size</td><td>~3.6 MB</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>English protocol note, read before comparing to <code>english.model</code>’s
+98.31%.</strong> <code>english_pos.model</code> is trained (and evaluated) on the same
+unspaced <code>word/POS</code> protocol as <code>korean_pos.model</code> – this is not a
+train/inference mismatch, <code>evaluate --pos</code> scores it the same way it was
+trained. The much larger quality gap for English than for Korean (Korean:
+99.90% unspaced vs. 99.91% spaced – almost no gap; English: 70.33%
+unspaced vs. 98.31% spaced – a large gap) reflects a genuine difference
+between the two languages, not an implementation defect: Korean is
+agglutinative, so particles and verb endings leave strong character-level
+cues for word boundaries even with every space removed, while English
+orthography carries almost none, so segmenting unspaced English text (e.g.
+<code>"thecatsatonthemat"</code>) is intrinsically a much harder task for this
+model’s feature templates. At inference the model still receives real,
+spaced input, and spaces are re-emitted as their own tokens; see
+<a href="#english_posmodel">English</a> for the full
+explanation and a pinned example of the real (imperfect) output. Combining
+the space-preserving TSV protocol with two-stage POS training would need a
+new corpus format the pipeline does not currently support.</p>
 <h4 id="usage-6"><a class="header" href="#usage-6">Usage</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
@@ -4959,11 +5394,14 @@ corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
 <li>For <strong>Japanese</strong>, use <code>japanese.model</code> for the best accuracy, or <code>RWCP.model</code> for compatibility with the original TinySegmenter</li>
 <li>For <strong>Chinese</strong>, use <code>chinese.model</code></li>
 <li>For <strong>Korean</strong>, use <code>korean.model</code></li>
+<li>For <strong>English</strong>, use <code>english.model</code></li>
 <li>For <strong>POS tagging</strong>, use the <strong>two-stage</strong> models
 (<code>japanese_pos.model</code>, <code>chinese_pos.model</code>,
-<code>korean_pos.model</code>) with <code>segment --pos</code> / <code>evaluate --pos</code> (see
-<a href="#two-stage-tagging">Two-Stage Tagging</a> for the architecture
-and measured figures).</li>
+<code>korean_pos.model</code>, <code>english_pos.model</code>) with <code>segment --pos</code> /
+<code>evaluate --pos</code> (see <a href="#two-stage-tagging">Two-Stage Tagging</a>
+for the architecture and measured figures; for English specifically,
+read the protocol note above before relying on <code>english_pos.model</code>’s
+segmentation quality).</li>
 <li>For <strong>domain-specific</strong> needs, consider <a href="#preparing-a-corpus">training your own model</a> or <a href="#retraining-models">retraining</a> an existing one</li>
 </ul>
 <h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>
@@ -4973,11 +5411,15 @@ and measured figures).</li>
 <li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である (Natsume Soseki), ~1.1 MB, Aozora Bunko.</li>
 <li><strong>mujeong.txt</strong> – 무정 (Yi Kwang-su, 1917), ~786 KB, ko.wikisource.</li>
 <li><strong>rulin_waishi.txt</strong> – 儒林外史 (Wu Jingzi), ~985 KB, zh.wikisource.</li>
+<li><strong>pride_and_prejudice.txt</strong> – Pride and Prejudice (Jane Austen), ~688 KB, Project Gutenberg eBook #1342 (header, footer, and illustration captions stripped; one paragraph per line).</li>
 </ul>
-<p>The last three are byte-identical to the corpora of the external
+<p>The <code>wagahaiwa_nekodearu.txt</code>/<code>mujeong.txt</code>/<code>rulin_waishi.txt</code> trio is
+byte-identical to the corpora of the external
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
-harness and feed the <code>external_corpus</code> benchmark group (see
-<a href="#benchmarking">Benchmarking</a>). All are public domain.</p>
+harness and feeds the <code>external_corpus</code> benchmark group (see
+<a href="#benchmarking">Benchmarking</a>); <code>pride_and_prejudice.txt</code> feeds
+the same benchmark group’s English cases but has no counterpart in that
+external harness yet. All are public domain.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="license"><a class="header" href="#license">License</a></h1>
 <p>Litsea is distributed under a dual license.</p>

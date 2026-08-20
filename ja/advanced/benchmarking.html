@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,8 +196,8 @@
 <tr><th>ベンチマーク</th><th>説明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_short/adaboost/{japanese,chinese,korean}</code></td><td>短い文の分割（AdaBoost）</td></tr>
-<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean}</code></td><td>短い文の分割+品詞付与</td></tr>
+<tr><td><code>segment_short/adaboost/{japanese,chinese,korean,english}</code></td><td>短い文の分割（AdaBoost）</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean,english}</code></td><td>短い文の分割+品詞付与</td></tr>
 <tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>坊っちゃん全文の処理（約 300 KB）</td></tr>
 <tr><td><code>external_corpus/*</code></td><td>tokenizer-speed-bench と同一のコーパススループット計測（後述）</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>文字種分類</td></tr>
@@ -210,7 +210,8 @@
 <h2 id="コーパススループットexternal_corpus"><a class="header" href="#コーパススループットexternal_corpus">コーパススループット（<code>external_corpus</code>）</a></h2>
 <p><code>external_corpus</code> グループは、外部の
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
-にある litsea の 7 ベンチをリポジトリ内で再現します。これにより、
+にある litsea の 7 ベンチをリポジトリ内で再現します（下記の <code>english</code>/<code>english-two-stage</code>
+ケースはこの外部ハーネスにはまだ対応するものがありません）。これにより、
 スループットの回帰を <code>cargo bench</code> だけで検出できます:</p>
 <pre><code class="language-sh">cargo bench --bench bench -- external_corpus
 </code></pre>
@@ -227,6 +228,8 @@
 <tr><td><code>korean-two-stage</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
 <tr><td><code>chinese-two-stage</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>english</code></td><td>english.model</td><td>pride_and_prejudice.txt</td></tr>
+<tr><td><code>english-two-stage</code></td><td>english_pos.model</td><td>pride_and_prejudice.txt</td></tr>
 </tbody>
 </table>
 </div>
@@ -246,6 +249,7 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 <tr><td>wagahaiwa_nekodearu.txt</td><td>約 1.1 MB</td><td>吾輩は猫である（夏目漱石）、青空文庫、パブリックドメイン</td></tr>
 <tr><td>mujeong.txt</td><td>約 786 KB</td><td>무정（李光洙、1917）、ko.wikisource、パブリックドメイン — 分かち書きされた現代表記の韓国語で、空白対応 korean.model の想定入力</td></tr>
 <tr><td>rulin_waishi.txt</td><td>約 985 KB</td><td>儒林外史（呉敬梓）、zh.wikisource、パブリックドメイン — UD Chinese-GSD と同じ繁体字</td></tr>
+<tr><td>pride_and_prejudice.txt</td><td>約 688 KB</td><td>Pride and Prejudice（Jane Austen）、Project Gutenberg eBook #1342、パブリックドメイン — 自然な分かち書きの英語で、空白対応 english.model の想定入力</td></tr>
 </tbody>
 </table>
 </div>
@@ -256,7 +260,7 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 （外部ベンチのクレートはデフォルトの release プロファイル）。</p>
 <h2 id="api-比較segment_into"><a class="header" href="#api-比較segment_into">API 比較（<code>segment_into</code>）</a></h2>
 <p><code>segment_into</code> グループは、所有出力の <code>segment()</code> API とバッファ再利用の
-<code>segment_into()</code> API（issue #184）を、<code>external_corpus</code> と同じ 3 つの
+<code>segment_into()</code> API（issue #184）を、<code>external_corpus</code> と同じ 4 つの
 分割コーパス（同じ行単位ワークロード、<code>Throughput::Elements</code> による
 chars/sec 表示）でペア比較します:</p>
 <div class="table-wrapper">
@@ -265,8 +269,8 @@ chars/sec 表示）でペア比較します:</p>
 <tr><th>ベンチ ID</th><th>API</th></tr>
 </thead>
 <tbody>
-<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code></td><td><code>segment()</code>（トークンごとに <code>String</code> 1 つ、呼び出しごとに新規スクラッチ）</td></tr>
-<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code></td><td>1 つの <code>SegmentBuffer</code> を再利用する <code>segment_into()</code></td></tr>
+<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code> / <code>english-strings</code></td><td><code>segment()</code>（トークンごとに <code>String</code> 1 つ、呼び出しごとに新規スクラッチ）</td></tr>
+<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code> / <code>english-ranges</code></td><td>1 つの <code>SegmentBuffer</code> を再利用する <code>segment_into()</code></td></tr>
 </tbody>
 </table>
 </div>

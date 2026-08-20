@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,6 +194,7 @@
 <tr><td>Japanese</td><td>UD Japanese-GSD</td><td><code>UD_Japanese-GSD</code></td></tr>
 <tr><td>Chinese</td><td>UD Chinese-GSD</td><td><code>UD_Chinese-GSD</code></td></tr>
 <tr><td>Korean</td><td>UD Korean-GSD</td><td><code>UD_Korean-GSD</code></td></tr>
+<tr><td>English</td><td>UD English-EWT</td><td><code>UD_English-EWT</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -201,7 +202,7 @@
 <p>Use <code>scripts/download_udtreebank.sh</code> to download a UD Treebank. It prints the path to the training CoNLL-U file to stdout:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 </code></pre>
-<p>Supported languages: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese). Use <code>-o</code> to specify the output directory (default: current directory).</p>
+<p>Supported languages: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese), <code>en</code> (English). Use <code>-o</code> to specify the output directory (default: current directory).</p>
 <h2 id="corpus-for-word-segmentation"><a class="header" href="#corpus-for-word-segmentation">Corpus for Word Segmentation</a></h2>
 <p>For word segmentation (AdaBoost), the corpus must be a plain text file with:</p>
 <ul>
@@ -217,16 +218,27 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
 <p>This converts the CoNLL-U data into space-separated words (one sentence per line).</p>
-<h3 id="space-preserving-tsv-corpus-korean"><a class="header" href="#space-preserving-tsv-corpus-korean">Space-Preserving TSV Corpus (Korean)</a></h3>
+<h3 id="space-preserving-tsv-corpus-korean-english"><a class="header" href="#space-preserving-tsv-corpus-korean-english">Space-Preserving TSV Corpus (Korean, English)</a></h3>
 <p>The space-separated format above discards the original spacing of the
 sentence: the words are later concatenated without spaces for training. For
-Korean this loses the strongest boundary signal (the inter-eojeol space),
-so use the <code>-s</code> flag instead, which emits a <strong>tab-separated corpus</strong> in
-which every original space (reconstructed from the treebank’s <code>SpaceAfter</code>
-annotations) is kept as its own token:</p>
+Korean and English this loses the strongest boundary signal (Korean’s
+inter-eojeol space, English’s inter-word space), so use the <code>-s</code> flag
+instead, which emits a <strong>tab-separated corpus</strong> in which every original
+space (reconstructed from the treebank’s <code>SpaceAfter</code> annotations) is kept
+as its own token:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+
+conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" en_corpus.tsv
 </code></pre>
+<p>For English specifically, <code>-s</code> also handles multiword tokens (contractions
+like <code>don't</code>, represented in CoNLL-U as a range line covering two word
+lines): the range’s member words are joined with no space token between
+them, and the range’s own <code>SpaceAfter</code> annotation is applied after the
+last member word. See
+<a href="../language-support/english.html#space-preserving-training">English</a> for
+the details.</p>
 <p>Extract features from a TSV corpus with <code>litsea extract --format tsv</code>. The
 <code>-s</code> flag cannot be combined with <code>-p</code> (the POS pipeline has no TSV
 variant).</p>
@@ -259,7 +271,7 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 # Generate POS corpus
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
-<p>Supported languages for <code>download_udtreebank.sh</code>: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese).</p>
+<p>Supported languages for <code>download_udtreebank.sh</code>: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese), <code>en</code> (English).</p>
 <h2 id="corpus-from-wikipedia-dump"><a class="header" href="#corpus-from-wikipedia-dump">Corpus from Wikipedia Dump</a></h2>
 <p>For larger-scale training, you can build a corpus from a full Wikipedia dump using <code>scripts/corpus_wikidump.sh</code>. This extracts plain text with <a href="https://github.com/mosuka/wicket">wicket</a>, filters for actual sentences, and tokenizes with <a href="https://github.com/lindera/lindera">lindera</a>.</p>
 <h3 id="usage"><a class="header" href="#usage">Usage</a></h3>

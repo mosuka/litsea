@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2cf72791.js"></script>
+        <script src="toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,10 +184,10 @@
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
-<li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
+<li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
 <li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
 <li><strong>二段構成の品詞推定</strong> – 二値境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによる各単語のタグ付けを組み合わせ、通常の単語分割にわずかなコストしか追加しない</li>
-<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語</li>
+<li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語、英語</li>
 <li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
 <li><strong>リモートモデル読み込み</strong> – HTTP/HTTPS URL（オプトインの <code>remote_model</code> フィーチャー）またはローカルファイルからモデルを読み込み</li>
 <li><strong>シンプルで拡張性の高い API</strong> – Rust プロジェクトへのライブラリとしての統合が容易</li>
@@ -293,6 +293,9 @@ litsea = "0.12.0"
 <p><strong>韓国語:</strong></p>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
+<p><strong>英語:</strong></p>
+<pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
+</code></pre>
 <h3 id="品詞推定付き分割"><a class="header" href="#品詞推定付き分割">品詞推定付き分割</a></h3>
 <p>Litsea は<a href="#二段構成タグ付け">二段構成</a>モデルを使って、単語分割と品詞推定を行うことができます。<code>segment</code> コマンドに <code>--pos</code> フラグを追加します:</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
@@ -388,7 +391,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
 <ul>
 <li><strong>辞書不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルのみに依存</li>
-<li><strong>コンパクトなモデル</strong> – レガシーな単語分割モデル（<code>RWCP.model</code>、<code>JEITA_Genpaku_ChaSen_IPAdic.model</code>）は約 16-22 KB。再学習された <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> は約 86 KB〜2.0 MB で、<a href="#事前学習済みモデル">事前学習済みモデル</a>に記載の品質向上とのトレードオフ。二段構成の品詞モデルは約 5-8 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
+<li><strong>コンパクトなモデル</strong> – レガシーな単語分割モデル（<code>RWCP.model</code>、<code>JEITA_Genpaku_ChaSen_IPAdic.model</code>）は約 16-22 KB。再学習された <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、<a href="#事前学習済みモデル">事前学習済みモデル</a>に記載の品質向上とのトレードオフ。二段構成の品詞モデルは約 3.6-8 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
 <li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
 <li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
 </ul>
@@ -447,9 +450,9 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h3 id="languagers--言語定義"><a class="header" href="#languagers--言語定義"><code>language.rs</code> – 言語定義</a></h3>
 <p><code>Language</code> enum と文字種分類を定義します。</p>
 <ul>
-<li><strong><code>Language</code></strong> – <code>Japanese</code>・<code>Chinese</code>・<code>Korean</code> のバリアントを持つ enum
+<li><strong><code>Language</code></strong> – <code>Japanese</code>・<code>Chinese</code>・<code>Korean</code>・<code>English</code> のバリアントを持つ enum
 <ul>
-<li><code>FromStr</code> を実装（<code>"japanese"</code>・<code>"ja"</code>・<code>"chinese"</code>・<code>"zh"</code>・<code>"korean"</code>・<code>"ko"</code> をパース）</li>
+<li><code>FromStr</code> を実装（<code>"japanese"</code>・<code>"ja"</code>・<code>"chinese"</code>・<code>"zh"</code>・<code>"korean"</code>・<code>"ko"</code>・<code>"english"</code>・<code>"en"</code> をパース）</li>
 <li><code>Display</code> を実装（小文字名を出力）</li>
 <li><code>char_type(c: char) -&gt; &amp;'static str</code> – 非公開の <code>char_type_id()</code> が返す数値の type id に対するテーブル参照として文字を分類します。<code>char_type_id()</code> は言語別関数（<code>japanese_char_type_id</code> など）にディスパッチし、各関数は文字範囲に対する直接の <code>match</code> として実装されています（アロケーションなし・正規表現不使用）。言語別関数は、共通の <code>"P"</code>/<code>"A"</code>/<code>"N"</code> クラス用の <code>punct_latin_digit()</code> ヘルパーを共有します。</li>
 </ul>
@@ -467,7 +470,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <li><code>segment_into(sentence, buf)</code> – アロケーションフリー版（#184）: 再利用可能な <code>SegmentBuffer</code> から借用したトークンのバイト範囲を返す</li>
 <li><code>segment_with_pos(sentence)</code> – 分割と品詞付与を行い <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> を返す（二段構成学習器が未設定の場合は <code>PosLearnerNotSet</code>）</li>
 <li><code>char_type(ch)</code> – 1文字を種別コードに分類</li>
-<li><code>add_corpus(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – 学習データを追加（それぞれ空白区切り・タブ区切り/空白保持。後者は韓国語で使用、issue #152 を参照）</li>
+<li><code>add_corpus(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – 学習データを追加（それぞれ空白区切り・タブ区切り/空白保持。後者は韓国語と英語で使用、issue #152 を参照）</li>
 <li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_writer(corpus, callback)</code> – カスタムコールバックでコーパスを処理（POS writer 版は二段構成の stage-1 特徴量抽出が使用）</li>
 </ul>
 </li>
@@ -515,7 +518,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <ul>
 <li><code>new(language)</code> – 言語を指定して作成</li>
 <li><code>extract(corpus_path, features_path)</code> – コーパスを読み、特徴量ファイルを書き出す</li>
-<li><code>extract_tsv(corpus_path, features_path)</code> – タブ区切り・空白保持コーパス版（issue #152、韓国語で使用）</li>
+<li><code>extract_tsv(corpus_path, features_path)</code> – タブ区切り・空白保持コーパス版（issue #152、韓国語と英語で使用）</li>
 <li><code>extract_two_stage(corpus_path, output_prefix, feature_set)</code> – 品詞付きコーパスから二段構成の学習特徴量（issue #147）を抽出: <code>{output_prefix}.stage1</code>（境界特徴量）、<code>.stage2</code>（単語レベル特徴量）、<code>.lexicon</code> を書き出す</li>
 </ul>
 </li>
@@ -699,8 +702,8 @@ bias_value
 有限でない重みを含む、など）は読み込み時に拒否されます。詳細は
 <a href="#モデルファイル形式-2">モデルファイル形式</a>を参照してください。</p>
 <blockquote>
-<p><strong>本ページで説明しているのは AdaBoost の学習アルゴリズムです。</strong> 上記のファイル形式は、同梱されている3つの分割モデル
-（<code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>）の保存にも使われていますが、issue #165 以降、これらの
+<p><strong>本ページで説明しているのは AdaBoost の学習アルゴリズムです。</strong> 上記のファイル形式は、同梱されている4つの分割モデル
+（<code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code>）の保存にも使われていますが、issue #165 以降、これらの
 モデルはブースティングでは生成されていません。2 クラスの Averaged Perceptron として学習し、同じスカラー重み形式へ
 無損失で畳み込んだものです（畳み込み手順は<a href="#学習手順">事前学習済みモデル</a>を参照）。
 <code>AdaBoost::load_model</code> が読み込めるファイルはすべてこの形式の正当なインスタンスですが、それは上記のブースティング
@@ -728,7 +731,7 @@ bias_value
 <li><strong>1 個の非境界ラベル</strong>: <code>O</code>（単語の継続）</li>
 </ul>
 <p>これらのラベルは Universal Dependencies プロジェクトの 17 個の <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグに対応し、<code>B-</code> プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。</p>
-<p>Averaged Perceptron を 2 クラスモード（<code>B</code>/<code>O</code> ラベルのみ）で使うと、実際には同梱の <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code> の各分割モデルを学習しています。学習後、推論用に AdaBoost モデル形式へ無損失で畳み込まれます — 完全な導出は<a href="#学習手順">事前学習済みモデル: 学習手順</a>を参照してください。同じ畳み込みが<a href="#二段構成タグ付け">二段構成アーキテクチャ</a>の stage-1 境界分類器の学習にも使われ、多クラス形式は stage-2 単語タガーのアルゴリズムです。</p>
+<p>Averaged Perceptron を 2 クラスモード（<code>B</code>/<code>O</code> ラベルのみ）で使うと、実際には同梱の <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>・<code>english.model</code> の各分割モデルを学習しています。学習後、推論用に AdaBoost モデル形式へ無損失で畳み込まれます — 完全な導出は<a href="#学習手順">事前学習済みモデル: 学習手順</a>を参照してください。同じ畳み込みが<a href="#二段構成タグ付け">二段構成アーキテクチャ</a>の stage-1 境界分類器の学習にも使われ、多クラス形式は stage-2 単語タガーのアルゴリズムです。</p>
 <h2 id="アルゴリズム"><a class="header" href="#アルゴリズム">アルゴリズム</a></h2>
 <h3 id="重み表現"><a class="header" href="#重み表現">重み表現</a></h3>
 <p>パーセプトロンは<strong>特徴量ごとにクラス別の重みベクトル</strong>を保持し、単一の疎なマップに格納します。これにより、スコア計算と重みの更新は
@@ -822,7 +825,7 @@ feature2\tclass2\tweight2
 <tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
 <tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
 <tr><td>学習方式</td><td>サンプル再重み付けによる反復ブースティング</td><td>重み平均化によるオンライン学習</td></tr>
-<tr><td>モデルサイズ</td><td>約 86 KB〜2.0 MB（再学習済み japanese/chinese/korean.model）／約 16〜22 KB（レガシー RWCP/JEITA）</td><td>約 5-8 MB（二段構成モデル）</td></tr>
+<tr><td>モデルサイズ</td><td>約 86 KB〜2.0 MB（再学習済み japanese/chinese/korean/english.model）／約 16〜22 KB（レガシー RWCP/JEITA）</td><td>約 3.6-8 MB（二段構成モデル）</td></tr>
 <tr><td>ハイパーパラメータ</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>
@@ -881,7 +884,7 @@ feature2\tclass2\tweight2
 <li><code>WC4</code>: 位置 i の文字 + 位置 i の種別コード</li>
 </ul>
 <blockquote>
-<p><strong>韓国語に WC がない理由:</strong> 韓国語のハングル音節は 2 種類（SN と SF）にのみ分類されるため、WC 特徴量は有用な信号ではなくノイズを追加してしまいます。</p>
+<p><strong>韓国語と英語に WC がない理由:</strong> 韓国語のハングル音節は 2 種類（SN と SF）にのみ分類されるため、WC 特徴量は有用な信号ではなくノイズを追加してしまいます。英語でも同じ結果が直接計測されています: dev split での比較では、38 個のベーステンプレートで単語 F1 98.68%、WC を含む全 42 個で 98.65% でした – 詳細は <a href="#wc特徴量なし-1">English</a> を参照してください。</p>
 </blockquote>
 <h3 id="特徴量の総数"><a class="header" href="#特徴量の総数">特徴量の総数</a></h3>
 <div class="table-wrapper">
@@ -893,6 +896,7 @@ feature2\tclass2\tweight2
 <tr><td>Japanese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
 <tr><td>Chinese</td><td>38</td><td>4</td><td><strong>42</strong></td></tr>
 <tr><td>Korean</td><td>38</td><td>0</td><td><strong>38</strong></td></tr>
+<tr><td>English</td><td>38</td><td>0</td><td><strong>38</strong></td></tr>
 </tbody>
 </table>
 </div>
@@ -1053,18 +1057,44 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li>それ以外の場合、<strong>終声がある</strong>（SF、「받침」）</li>
 </ul>
 <p>この区別は、終声（パッチム/받침）の有無が韓国語の単語境界パターンと助詞の接続に影響するため重要です。</p>
+<h2 id="英語の文字種"><a class="header" href="#英語の文字種">英語の文字種</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>名称</th><th>パターン / 範囲</th><th>例</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>U</strong></td><td>大文字ラテン文字</td><td><code>[A-ZＡ-Ｚ]</code></td><td>A, Z, Ｔ</td></tr>
+<tr><td><strong>W</strong></td><td>空白</td><td>スペース、タブ、U+00A0</td><td><code> </code>, <code>\t</code></td></tr>
+<tr><td><strong>Q</strong></td><td>アポストロフィ</td><td>U+0027, U+2019</td><td><code>'</code>, <code>’</code></td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>ASCII（アポストロフィを除く）+ 一般句読点 + CJK/全角</td><td><code>.</code>, <code>-</code>, <code>@</code>, <code>。</code></td></tr>
+<tr><td><strong>A</strong></td><td>小文字ラテン文字</td><td><code>[a-zａ-ｚ]</code></td><td>a, z</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>字, é</td></tr>
+</tbody>
+</table>
+</div>
+<p>他の 3 言語と異なり、英語では ASCII の句読点（アポストロフィを除く）を
+<code>"O"</code> のままにせず <code>"P"</code> に分類します – これは英語固有の意図的な違いです
+（<code>char_type('@')</code> は他言語では <code>"O"</code> ですが、英語では <code>"P"</code> になります）。
+アポストロフィは独立した種別（<code>"Q"</code>）として切り出されています。これは
+短縮形（<code>do</code> + <code>n't</code>）や所有格（<code>Google</code> + <code>'s</code>）を示す文字レベルの
+マーカーだからです。また大文字には専用の種別（<code>"U"</code>）が割り当てられて
+います。これは文頭や固有名詞の境界と相関があるためです。ハイフンが
+8 番目の種別を新設せずに <code>"P"</code> のままである理由を含む詳しい根拠は
+<a href="#英語">English</a> を参照してください。</p>
 <h2 id="言語間の比較"><a class="header" href="#言語間の比較">言語間の比較</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th><th>English</th></tr>
 </thead>
 <tbody>
-<tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td></tr>
-<tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
-<tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td></tr>
-<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + コードポイント判定</td></tr>
-<tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td></tr>
+<tr><td>種別の総数</td><td>8</td><td>9</td><td>10</td><td>7</td></tr>
+<tr><td>固有の種別</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td><td>U, W, Q</td></tr>
+<tr><td>共有する種別</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O（H は日本語と共通）</td><td>P, A, N, O（P は ASCII 句読点全体に拡張）</td></tr>
+<tr><td>マッチング方法</td><td>範囲match</td><td>範囲match</td><td>範囲match + コードポイント判定</td><td>範囲match</td></tr>
+<tr><td>WC 特徴量の使用</td><td>あり</td><td>あり</td><td>なし</td><td>なし</td></tr>
 </tbody>
 </table>
 </div>
@@ -1135,7 +1165,7 @@ scatter-add する</li>
 </code></pre>
 <p><strong>pointwise 高速パス</strong>（issue #183）: モデルにタグ依存特徴が 1 つも
 無い場合（<code>litsea extract --tag-free</code> で学習した場合。同梱の
-<code>korean.model</code> がこれに該当）、コンパイル済みモデルがロード時にこれを
+<code>korean.model</code>/<code>english.model</code> がこれに該当）、コンパイル済みモデルがロード時にこれを
 記録し、逐次パスは丸ごとスキップされます – 判定は `bias + static[i]</p>
 <blockquote>
 <p>= 0<code>に帰着し、タグの簿記も行われません。出力はどちらの経路でも同一 です（スキップされるロードはそれぞれ</code>0.0` を加算するだけのため）。
@@ -1166,7 +1196,7 @@ scatter-add する</li>
 同様に「文字 → <code>[スロット][文字種 ID]</code>」の行テーブル 1 つに統合されます
 （文字ごとに probe 1 回、文字種次元は直接インデックス）</li>
 <li><strong>タグ/文字種のみのテンプレートの密配列</strong>: 29 個それぞれが mixed-radix 積の
-厳密サイズ（タグスロットは 3、文字種スロットは 8–10。日本語で合計約 74KB）の
+厳密サイズ（タグスロットは 3、文字種スロットは 7–10。日本語で合計約 74KB）の
 直接インデックステーブルを持ちます。<code>UC</code>/<code>BC</code>/<code>TC</code> のテーブルには、静的パス用の
 マージ済み scatter ベクトルビューが追加で導出されます</li>
 </ul>
@@ -1279,6 +1309,7 @@ stage-2 単語タガーは、これとは別の並行する宣言的テーブル
 <tr><td>日本語</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
 <tr><td>中国語</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
 <tr><td>韓国語</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
+<tr><td>英語</td><td>70.33%</td><td>65.83%</td><td>2.05M chars/s</td></tr>
 </tbody>
 </table>
 </div>
@@ -1293,6 +1324,17 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 候補マスクの経路ではなく、stage 2 の全クラスフォールバックを払う
 単語の割合が大きくなります。</li>
 </ul>
+<p><strong>英語の単語 F1 が他言語より大幅に低いのはバグではありません。</strong> 上記の
+韓国語・日本語・中国語の行と異なり、<code>english_pos.model</code> は他のどの言語の
+分割タスクよりもはるかに難しい、空白なしのテキストで学習・評価されています:
+韓国語は膠着語の助詞や語尾変化が空白を除いても強い境界手がかりを残すため、
+ここでの空白なし二段構成の単語 F1（83.24%）は空白保持の <code>korean.model</code> の
+99.91% とそれほど離れていません。一方、英語の正書法にはそうした手がかりが
+ほとんど残らないため、空白のない英語を分割することは本質的にはるかに
+難しくなります。詳しい説明は
+<a href="#english_posmodel">English</a> と
+<a href="#english_posmodel-1">事前学習済みモデル</a> を
+参照してください。</p>
 <h2 id="stage-2-特徴量セットの選び方"><a class="header" href="#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a></h2>
 <p>stage 2 の単語単位タガーは 3 種類の特徴量セット（<code>litsea extract --pos</code> の <code>--stage2-features</code>。<a href="#特徴量の抽出">特徴量の抽出</a>を参照）で
 抽出でき、タグ付け品質とスループットをトレードオフできます。分割品質は
@@ -1301,12 +1343,12 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>特徴量セット</th><th>中国語 Tagged F1</th><th>韓国語 Tagged F1</th></tr>
+<tr><th>特徴量セット</th><th>中国語 Tagged F1</th><th>韓国語 Tagged F1</th><th>英語 Tagged F1</th></tr>
 </thead>
 <tbody>
-<tr><td><code>fast</code>（既定）</td><td>81.33%</td><td>77.42%</td></tr>
-<tr><td><code>balanced</code></td><td>82.29%</td><td>78.86%</td></tr>
-<tr><td><code>full</code></td><td>82.96%</td><td>78.88%</td></tr>
+<tr><td><code>fast</code>（既定）</td><td>81.33%</td><td>77.42%</td><td>64.88%</td></tr>
+<tr><td><code>balanced</code></td><td>82.29%</td><td>78.86%</td><td>64.82%</td></tr>
+<tr><td><code>full</code></td><td>82.96%</td><td>78.88%</td><td>65.70%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1316,13 +1358,15 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 明確に良いスループットで得られるため、<code>chinese_pos.model</code> は
 <code>full</code> ではなく <code>balanced</code> を使用しています。韓国語では <code>full</code> は
 <code>balanced</code> に対してほとんど何も加えない（78.88% vs 78.86%）ため、
-<code>korean_pos.model</code> も <code>balanced</code> を使用しています。別の特徴量セットで
+<code>korean_pos.model</code> も <code>balanced</code> を使用しています。英語では <code>full</code> が
+他の 2 つを 1 ポイント近く上回る明確な勝者（65.70% vs 約 64.8%）であるため、
+<code>english_pos.model</code> は <code>full</code> を使用しています。別の特徴量セットで
 再学習するには <code>extract --pos --stage2-features &lt;set&gt;</code> +
 <code>train --pos</code> を再実行するだけで、パイプラインの他の部分を
 変更する必要はありません。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="言語サポート概要"><a class="header" href="#言語サポート概要">言語サポート概要</a></h1>
-<p>Litseaは、<code>Language</code> 列挙型に基づく統一的なフレームワークを通じて、3つの言語の単語分割をサポートしています。</p>
+<p>Litseaは、<code>Language</code> 列挙型に基づく統一的なフレームワークを通じて、4つの言語の単語分割をサポートしています。</p>
 <h2 id="サポート言語"><a class="header" href="#サポート言語">サポート言語</a></h2>
 <div class="table-wrapper">
 <table>
@@ -1333,6 +1377,7 @@ held-out 単語の 34.5% が未知語であるため、安価な dominance ス�
 <tr><td>日本語</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>96.70%</td></tr>
 <tr><td>中国語</td><td><code>Language::Chinese</code></td><td><code>chinese</code>, <code>zh</code></td><td>42</td><td>90.69%</td></tr>
 <tr><td>韓国語</td><td><code>Language::Korean</code></td><td><code>korean</code>, <code>ko</code></td><td>38</td><td>99.91%</td></tr>
+<tr><td>英語</td><td><code>Language::English</code></td><td><code>english</code>, <code>en</code></td><td>38</td><td>98.31%</td></tr>
 </tbody>
 </table>
 </div>
@@ -1346,6 +1391,7 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
 }
 <span class="boring">}</span></code></pre>
 <ul>
@@ -1369,18 +1415,23 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Aspect</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+<tr><th>Aspect</th><th>Japanese</th><th>Chinese</th><th>Korean</th><th>English</th></tr>
 </thead>
 <tbody>
-<tr><td>文字タイプ数</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td></tr>
-<tr><td>WC特徴量</td><td>あり（4個追加）</td><td>あり（4個追加）</td><td>なし</td></tr>
-<tr><td>総特徴量数</td><td>42</td><td>42</td><td>38</td></tr>
-<tr><td>マッチング方式</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）+ コードポイント判定</td></tr>
+<tr><td>文字タイプ数</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td><td>7 (U, W, Q, P, A, N, O)</td></tr>
+<tr><td>WC特徴量</td><td>あり（4個追加）</td><td>あり（4個追加）</td><td>なし</td><td>なし</td></tr>
+<tr><td>総特徴量数</td><td>42</td><td>42</td><td>38</td><td>38</td></tr>
+<tr><td>マッチング方式</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）+ コードポイント判定</td><td><code>match</code>（文字範囲）</td></tr>
 </tbody>
 </table>
 </div>
-<h3 id="韓国語の特徴量が少ない理由"><a class="header" href="#韓国語の特徴量が少ない理由">韓国語の特徴量が少ない理由</a></h3>
+<h3 id="韓国語英語の特徴量が少ない理由"><a class="header" href="#韓国語英語の特徴量が少ない理由">韓国語・英語の特徴量が少ない理由</a></h3>
 <p>韓国語のハングル音節は、<strong>SN</strong>（받침/終声なし）と<strong>SF</strong>（받침あり）の2種類にのみ分類されます。この二値的な区別では、WC特徴量（単語＋文字タイプの組み合わせ）は冗長な情報を生成し、識別力がほとんどありません。これらを除外することで、ノイズを低減し、モデルをコンパクトに保ちます。</p>
+<p>英語も関連する理由で同じ結論に至りました。支配的な境界シグナルは空白であり、held-out
+の dev split での比較では、WC を含まない38テンプレートの tag-free モデルが Word F1
+98.68%、WC（<code>WC1</code>〜<code>WC4</code>）を含む42テンプレートでは98.65%という結果になりました
+– WC特徴量は「役に立たない」どころか「悪化させる」ことが実測で確認されています。
+詳細は<a href="#wc特徴量なし-1">英語</a>を参照してください。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="日本語"><a class="header" href="#日本語">日本語</a></h1>
 <p>日本語はLitseaのデフォルト言語です。</p>
@@ -1582,16 +1633,86 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="英語"><a class="header" href="#英語">英語</a></h1>
+<p>Litseaは、ラテン文字の正書法に合わせて調整した文字タイプ集合により、英語の単語分割をサポートしています。大文字と小文字、空白、アポストロフィをそれぞれ独立した種別として区別します。</p>
+<h2 id="文字タイプ-3"><a class="header" href="#文字タイプ-3">文字タイプ</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>U</strong></td><td>大文字ラテン文字</td><td><code>[A-ZＡ-Ｚ]</code></td><td>A, Z, Ｔ</td></tr>
+<tr><td><strong>W</strong></td><td>空白文字</td><td>スペース、タブ、ノーブレークスペース</td><td><code> </code>, <code>\t</code>, U+00A0</td></tr>
+<tr><td><strong>Q</strong></td><td>アポストロフィ</td><td><code>[\u{27}\u{2019}]</code></td><td><code>'</code>, <code>’</code></td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>アポストロフィを除く ASCII 句読点 + 一般句読点のダッシュ/引用符/省略記号（U+2019 を除く）+ CJK/全角</td><td><code>.</code>, <code>-</code>, <code>"</code>, <code>@</code>, <code>。</code></td></tr>
+<tr><td><strong>A</strong></td><td>小文字ラテン文字</td><td><code>[a-zａ-ｚ]</code></td><td>a, z</td></tr>
+<tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, 5, ５</td></tr>
+<tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>CJK表意文字、ASCII外のアクセント付きラテン文字</td></tr>
+</tbody>
+</table>
+</div>
+<h3 id="独立した種別としての大文字"><a class="header" href="#独立した種別としての大文字">独立した種別としての大文字</a></h3>
+<p>文頭の大文字、固有名詞、頭字語は英語の語境界と強く相関するため、大文字のラテン文字は小文字（「A」）と同じクラスに統合せず、独自の種別「U」として扱います。これは、他の言語が言語学的に特徴的な部分集合（例えば韓国語の助詞文字）をより広い共通クラスから切り出しているのと同じ考え方です。</p>
+<h3 id="独立した種別としての空白"><a class="header" href="#独立した種別としての空白">独立した種別としての空白</a></h3>
+<p>すべての言語が共有するヘルパー関数 <code>punct_latin_digit()</code> は、ASCII句読点や ASCII スペース（U+0020）を分類しません – 日本語・中国語・韓国語ではどちらも <code>"O"</code> にフォールスルーします。これらの言語のコーパスでは、水平方向の空白それ自体が境界シグナルを持つ必要がないためです。英語は異なります: タイプテーブルにはスペース・タブ・ノーブレークスペース用の「W」が追加されています（学習コーパスに実際に出現するのはプレーンなスペースのみですが、残り2つも同じIDを共有させることで、貼り付けられた入力が <code>"O"</code> へフォールバックせず同じ挙動を継承します）。</p>
+<h3 id="独立した種別としてのアポストロフィ"><a class="header" href="#独立した種別としてのアポストロフィ">独立した種別としてのアポストロフィ</a></h3>
+<p>アポストロフィは、短縮形や所有格を通常の句読点から区別する文字レベルのシグナルです: <code>do</code> + <code>n't</code>、<code>Google</code> + <code>'s</code>。ASCII アポストロフィ（U+0027）と、学習コーパスの原文によく出現するタイポグラフィ上の右シングルクォーテーションマーク（U+2019）の両方をカバーする独自の種別「Q」を割り当てています。文字レベルの特徴量テンプレートが直接キーにできるよう、<code>Q</code> は意図的に <code>P</code> から除外しています。</p>
+<h3 id="句読点は一律"><a class="header" href="#句読点は一律">句読点は一律</a></h3>
+<p>他の3言語では <code>@</code> のような ASCII 句読点は <code>"O"</code> にフォールスルーし、CJK/全角の句読点だけが <code>"P"</code> にマップされますが、英語ではアポストロフィを除く ASCII 句読点のほぼすべてを <code>"P"</code> として分類します。これに加えて、学習テキストの非 ASCII 版をカバーする同じ一般句読点の範囲（ダッシュ、カーリークォート、省略記号）も含まれます。これは英語固有の意図的な違いです: <code>char_type('@')</code> は日本語/中国語/韓国語では <code>"O"</code> を返しますが、英語では <code>"P"</code> を返します。</p>
+<p><strong>ハイフン</strong>は独自の種別を与えず <code>"P"</code> に分類しています。UD English-EWT はハイフン付きの複合語を別々のトークンとしてトークナイズするため（例: <code>search</code>-<code>engine</code>）、ゴールドスタンダード上ではハイフンは通常の区切り句読点として振る舞います。生の文字自体は文字レベル（<code>UW*</code>/<code>BW*</code>）テンプレートから引き続き参照できるため、8番目の種別コードを追加しなくてもハイフン固有の挙動は学習可能です。追加すると密な特徴量テーブルがさらに \((8/7)^3 \approx 1.49\times\) 増大してしまいます。</p>
+<h3 id="wc特徴量なし-1"><a class="header" href="#wc特徴量なし-1">WC特徴量なし</a></h3>
+<p>英語は韓国語と同じ理由でWC（単語＋文字タイプ）特徴量を<strong>使用しません</strong>: 支配的な境界シグナル（空白）がすでにほとんどの位置を解決しているため、文字/タイプ混合テンプレートを追加してもほとんど寄与しないからです。これは類推だけでなく実測でも確認されています – held-out の dev split では、38 個の基本テンプレートによる tag-free 分割モデルが Word F1 <strong>98.68%</strong> であったのに対し、WC（<code>WC1</code>–<code>WC4</code>）を含む全 42 テンプレートでは <strong>98.65%</strong> でした。つまり WC 特徴量を追加すると、モデルは<em>改善するどころか悪化</em>しました。</p>
+<h3 id="空白保持学習space-preserving-training-1"><a class="header" href="#空白保持学習space-preserving-training-1">空白保持学習（Space-Preserving Training）</a></h3>
+<p>英語は単語の間にスペースを入れて表記され、（短縮形や一部の句読点のケースを除けば）そのスペースがほとんどの語境界を示します。<a href="#空白保持学習space-preserving-training">韓国語</a>と同様に、このモデルは<strong>空白保持 TSV コーパス</strong>で学習しています: トークンをタブで区切り、各スペースを独立したトークンとして保持することで、学習テキストに元の文のスペース文字が含まれ、モデルはそれを境界のコンテキストとして利用できます。コーパスは <code>corpus_udtreebank.sh -s</code> で生成し、特徴量は <code>litsea extract --format tsv</code> で抽出します。推論時に特別な処理は不要です: <code>segment()</code> はスペースを含むテキストをそのまま受け取り、各スペースを独立したトークンとして出力します。</p>
+<p><strong>複数語トークン（短縮形）。</strong> UD English-EWT では <code>don't</code> のような短縮形を、間にスペースを持たない2つの単語行（<code>do</code>、<code>n't</code>）をカバーする<em>範囲</em>行（例えば ID <code>3-4</code>）として表現します。<code>corpus_udtreebank.sh -s</code> は範囲行を特別扱いします: それ自体としてはトークンを出力せず、範囲を構成する単語間へのスペース挿入を抑制し、範囲自身の <code>SpaceAfter</code> アノテーションを最後の構成単語の後にのみ適用します。具体的には、“I don’t know.” という文は <code>I</code>、<code> </code>、<code>do</code>、<code>n't</code>、<code> </code>、<code>know</code>、<code>.</code> というトークン列になります – これは <code>english.model</code> の実際の出力と一致します（下記の例を参照）。この不変条件 – 範囲を構成する単語形を連結すると範囲自身の表層形が再現される – は UD English-EWT のすべての複数語トークンで成立します。</p>
+<p>各スペースは独立した1文字トークンであるため、文字単位のラベル付けはその前後に2つの別々の境界を付与します。これは韓国語の場合と全く同じです: これがモデルにとってほぼ自明な規則であり、held-out の単語 F1 に影響しない理由（純粋な空白トークンはスコアリングから除外されます）については<a href="#空白保持学習space-preserving-training">韓国語の説明</a>を参照してください。</p>
+<h2 id="学習済みモデル-3"><a class="header" href="#学習済みモデル-3">学習済みモデル</a></h2>
+<h3 id="englishmodel"><a class="header" href="#englishmodel">english.model</a></h3>
+<ul>
+<li><strong>学習コーパス</strong>: UD English-EWT（空白保持 TSV コーパス）</li>
+<li><strong>学習オプション</strong>: <code>--format tsv --tag-free</code>、Averaged Perceptron を 20
+エポック学習（dev split での {10, 20, 30, 50} のエポックスイープにより
+選定 – 品質はエポック20でピークに達し、それ以降はわずかに悪化）、
+AdaBoost のスカラー重みへ畳み込み、剪定なし（4,794 特徴量）– 詳しい
+手順は<a href="#学習手順">学習手順</a>を参照</li>
+<li><strong>単語 F1（held-out）</strong>: 98.31%</li>
+<li><strong>境界 F1（held-out）</strong>: 99.18%</li>
+<li><strong>ファイルサイズ</strong>: 約 125 KB</li>
+</ul>
+<p>このモデルは 16 個のタグ依存特徴量テンプレートを使わずに学習しています（<code>--tag-free</code>、issue #183）。dev split での比較により、タグ特徴量が英語にほとんど寄与しないことが確認されています（タグあり 38 テンプレートの最良値: エポック 30 で Word F1 98.71%、タグなし 38 テンプレートの最良値: エポック 20 で 98.68% – 差はわずか 0.03pt）。そのため同梱モデルは tag-free で提供され、<code>segment()</code> は逐次スコアリングパスを丸ごとスキップできます。詳細は<a href="#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を参照してください。</p>
+<p>held-out 指標は、空白トークンをスコアリングから除外した上で、元の空白付きテキストに対して計算しています。</p>
+<h3 id="english_posmodel"><a class="header" href="#english_posmodel">english_pos.model</a></h3>
+<ul>
+<li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）</li>
+<li><strong>stage-2 特徴量セット</strong>: <code>full</code>（dev split での fast/balanced/full の
+スイープにより選定 – full がタグ付き単語の精度で最良だった）、50 エポック</li>
+<li><strong>単語 F1（held-out）</strong>: 70.33%</li>
+<li><strong>タグ付き単語 F1（held-out）</strong>: 65.83%</li>
+<li><strong>ファイルサイズ</strong>: 約 3.6 MB</li>
+<li><strong>詳細</strong>: <a href="#english_posmodel-1">事前学習済みモデル</a>を参照</li>
+</ul>
+<blockquote>
+<p><strong>このモデルの分割品質は <code>english.model</code> より大幅に低くなっていますが、これは想定内でありバグではありません。</strong> <code>korean_pos.model</code> と同様に、このモデルは<em>空白なし</em>の <code>word/POS</code> コーパスで学習されています（二段構成 POS パイプラインには空白保持バリアントが存在しません）。<code>evaluate --pos</code> も同じ方法で採点するため、上記の数値は学習と推論の不一致によるものではありません。<code>english.model</code> の 98.31% との差は、2つの言語の間にある実際の違いに起因します: 韓国語は膠着語であるため、助詞や語尾がスペースをすべて取り除いても語境界について強い文字レベルの手がかりを残し、<code>korean_pos.model</code> は同一の空白なしプロトコルの下で Word F1 99.90% に達します。英語の正書法にはそうしたサブワードレベルのシグナルがほとんど存在しません – <code>"thecatsatonthemat"</code> のような文字列はほとんど手がかりを分類器に与えません – そのため、スペースを完全に取り除いた英語テキストを分割するのはかなり難しいタスクであり、70% という Word F1 はアーキテクチャや学習の欠陥ではなく、この本質的な難しさを反映しています。推論時にはモデルは実際の空白付きテキストを受け取り、スペースは独立したトークンとして再出力されます（stage-2 のフォールバックによりタグ付けされます）。<code>litsea/tests/golden.rs</code> の golden テストは、この実際の（完璧ではない）実運用時の挙動を固定しています。空白保持 TSV プロトコルと二段構成 POS 学習を組み合わせるには、二段構成パイプラインが現時点でサポートしていない新しいコーパス形式が必要です – 今後の課題として記録していますが、本ページでは実装していません。</p>
+</blockquote>
+<h2 id="使用例-3"><a class="header" href="#使用例-3">使用例</a></h2>
+<pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
+# I   do n't   know .
+</code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="新しい言語の追加"><a class="header" href="#新しい言語の追加">新しい言語の追加</a></h1>
-<p>Litseaの多言語フレームワークは、容易に拡張できるよう設計されています。本ガイドでは、新しい言語のサポートを追加する方法を説明します。</p>
+<p>Litseaの多言語フレームワークは、容易に拡張できるよう設計されています。本ガイドでは、新しい言語のサポートを追加する方法を、英語追加（issue #194）を具体例として一貫して用いながら説明します。</p>
 <h2 id="手順の概要"><a class="header" href="#手順の概要">手順の概要</a></h2>
 <ol>
 <li><code>Language</code> 列挙型にバリアントを追加</li>
 <li><code>Display</code> および <code>FromStr</code> のmatchアームを実装</li>
-<li>文字タイプパターン関数を作成</li>
-<li>パターン関数を登録</li>
+<li>文字タイプ判定関数を作成</li>
+<li>分類関数を登録</li>
 <li>WC特徴量の有無を決定</li>
-<li>学習コーパスを用意してモデルを学習</li>
+<li>コーパスプロトコルを選択（スペース区切りまたは空白保持 TSV）</li>
+<li>同梱分割モデルを学習（binary-perceptron 畳み込み手順）</li>
+<li>任意で二段構成 POS モデルを学習</li>
+<li>held-out 評価用ゴールドファイルを追加</li>
 <li>テストを追加</li>
 </ol>
 <h2 id="手順1-language-にバリアントを追加"><a class="header" href="#手順1-language-にバリアントを追加">手順1: <code>Language</code> にバリアントを追加</a></h2>
@@ -1604,6 +1725,7 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
     Thai,       // ← new language
 }
 <span class="boring">}</span></code></pre>
@@ -1618,8 +1740,8 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
-<p>あわせて <code>language.rs</code> の <code>ParseLanguageError</code> のメッセージも更新してください。このメッセージはサポート言語を列挙しており（<code>Supported: japanese (ja), chinese (zh), korean (ko)</code>）、ユニットテストで固定されているため、メッセージとテストの両方に新しい言語を含める必要があります。</p>
-<h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
+<p>あわせて <code>language.rs</code> の <code>ParseLanguageError</code> のメッセージも更新してください。このメッセージはサポート言語を列挙しており（<code>Supported: japanese (ja), chinese (zh), korean (ko), english (en)</code>）、ユニットテストで固定されているため、メッセージとテストの両方に新しい言語を含める必要があります。</p>
+<h2 id="手順3-文字タイプ判定関数を作成"><a class="header" href="#手順3-文字タイプ判定関数を作成">手順3: 文字タイプ判定関数を作成</a></h2>
 <p>新しい言語の文字を<strong>種別 ID</strong>（type id）に分類する関数を定義します。ID は言語の順序付き <code>type_codes()</code> テーブル（手順 4）へのインデックスです: 共通クラスは固定インデックス（“O” = 0、“P” = 1、“A” = 2、“N” = 3）を占め、言語固有クラスは 4 から続きます。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -1636,14 +1758,16 @@ Language::Thai =&gt; write!(f, "thai"),
     }
 }
 <span class="boring">}</span></code></pre>
+<p>英語の <code>english_char_type_id</code> は、同じパターンをラテン文字言語に適用した、リポジトリ内に実在する例です: 「U」（大文字）、「W」（空白）、「Q」（アポストロフィ）を専用クラスとして追加するだけでなく、共通クラス「P」を ASCII 句読点まで<strong>拡張</strong>しています（他の言語では ASCII 句読点は「O」のままです）– 言語の分類関数は、新しいクラスを <code>punct_latin_digit()</code> の後ろに追加するだけでなく、その前段に追加のロジックを自由に重ねることができます。</p>
 <h3 id="文字タイプ設計のヒント"><a class="header" href="#文字タイプ設計のヒント">文字タイプ設計のヒント</a></h3>
 <ul>
 <li>語境界パターンと相関する<strong>言語学的に異なるカテゴリ</strong>を特定する</li>
 <li><strong>順序は重要</strong> – 最初にマッチしたものが優先されるため、より具体的なパターンを汎用的なパターンの前に配置する</li>
-<li>中国語の「F」のように、<strong>高頻度の機能語</strong>を別のタイプとして検討する</li>
+<li><strong>高頻度の機能語</strong>を別のタイプとして検討する（中国語の「F」のように）。あるいは、スペース区切りの言語であれば、実際に境界と相関する句読点・大文字小文字・発音区別符号の違いを検討する（英語の「U」/「W」/「Q」のように）</li>
 <li>単純な範囲だけでは足りない場合は<strong>アーム本体内の追加ロジック</strong>を使用する（韓国語が받침の有無で音節を分割するためにコードポイント判定を使用しているように）</li>
 <li>共通の「P」/「A」/「N」クラスには、共有ヘルパー <code>punct_latin_digit()</code> を再利用する</li>
-<li><strong>コード集合は prefix-free に保つ</strong> – どのコードも他のコードのプレフィックスであってはならない（韓国語の <code>SN</code>/<code>SF</code> が成立するのは <code>S</code> 単独がコードでないため）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証する（言語ごとにユニットテストで固定される）</li>
+<li><strong>コード集合は prefix-free に保つ</strong> – どのコードも他のコードのプレフィックスであってはならない（韓国語の <code>SN</code>/<code>SF</code> が成立するのは <code>S</code> 単独がコードでないためであり、そのため裸の <code>"S"</code> は韓国語に限らず<strong>すべての</strong>言語についてユニットテストで拒否されます）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証します</li>
+<li><strong>種別テーブルは最低 7 個のコードが必要です。</strong> 共有テストコンテキスト（<code>packed_model.rs</code> の <code>ctx_for</code>）が <code>codes.len() &gt;= 7</code> をアサートしており、英語の 7 コードのテーブルが現状の最小値です。上限は固定されていませんが、密な特徴量テーブル（<code>BC</code>/<code>UC</code>/<code>TC</code>/<code>BQ</code>/<code>TQ</code>）はおおよそ <code>type_count^2</code> から <code>type_count^3</code> に比例して大きくなるため、テーブルを大きくしすぎると分類の粒度と引き換えにモデルサイズとロード時間が増加します</li>
 </ul>
 <h2 id="手順4-種別コードテーブルと分類関数を登録"><a class="header" href="#手順4-種別コードテーブルと分類関数を登録">手順4: 種別コードテーブルと分類関数を登録</a></h2>
 <p>言語の順序付きコードテーブルを <code>Language::type_codes()</code> に（インデックス = 種別 ID、共通コードが先頭）、ディスパッチアームを <code>Language::char_type_id()</code> に追加します。<code>char_type()</code> 自体はこの 2 つから導出されるため、文字列コードと数値 ID が乖離することはありません。</p>
@@ -1670,52 +1794,82 @@ pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
 </span>pub(crate) fn templates_for(language: Language) -&gt; &amp;'static [Template] {
     match language {
         Language::Japanese | Language::Chinese =&gt; &amp;TEMPLATES[..],
-        _ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 個の基本テンプレート
+        Language::Korean | Language::English =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 個の基本テンプレート
     }
 }
 <span class="boring">}</span></code></pre>
-<p>対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、最初のmatchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。</p>
-<h2 id="手順6-コーパスを用意してモデルを学習"><a class="header" href="#手順6-コーパスを用意してモデルを学習">手順6: コーパスを用意してモデルを学習</a></h2>
-<ol>
-<li>
-<p><strong>コーパスを用意</strong>します（単語をスペースで区切った形式）。</p>
-<pre><code class="language-text">word1 word2 word3 word4
+<p>この match 式は意図的に<strong>ワイルドカードアームを持たない網羅的（exhaustive）な match</strong>にしてあります – <code>Thai</code> を追加してもどちらのアームにも加えなければコンパイルエラーになり、暗黙のデフォルトにはなりません。これは意図的な設計です: 以前のバージョンのこの match には <code>_ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT]</code> というフォールバックがあり、新しい言語は誰も意図的に決めないまま 38 テンプレート（WCなし）構成になってしまっていました。WC の判断は明示的に行い、推測ではなく計測で裏付けてください: held-out の dev split で tag-free モデルを WC ありとなしの両方で学習し、単語 F1 を比較します（英語での比較は<a href="#wc特徴量なし-1">英語</a>に記載されており、WC は「役に立たない」どころか実測で「悪化させる」ことが確認されました – WCなし 98.68% に対し WCあり 98.65%）。出発点となるヒューリスティックとして: 対象言語の文字タイプに十分な多様性があり WC 特徴量が有益になりそうであれば含める、韓国語や英語の「SN」/「A」や空白が支配的なような低エントロピーなタイプ体系であれば除外する – ただし、どちらを選ぶ場合も同梱モデルにコミットする前に数値で検証してください。</p>
+<h2 id="手順6-コーパスプロトコルを選択"><a class="header" href="#手順6-コーパスプロトコルを選択">手順6: コーパスプロトコルを選択</a></h2>
+<p>Litseaは2種類のコーパスプロトコルをサポートしており、どちらを選ぶかは対象言語がスペース区切りで表記されるかどうかで決まります:</p>
+<ul>
+<li><strong>スペース区切り</strong>（デフォルト）: 単語を1個のスペースでつなぎ、1行1文とする形式。スペースなしで表記される言語（日本語、中国語）や、スペースが境界シグナルを持たない場合に使用します。</li>
+<li><strong>空白保持 TSV</strong>（<code>--format tsv</code>、issue #152）: トークンをタブで区切り、トークン自体がリテラルなスペース <code>" "</code> になり得る形式で、元の空白がそのまま学習用の一級特徴量として残ります。スペース自体が最も強い境界シグナルとなる言語（韓国語、英語）に使用します。</li>
+</ul>
+<p>対象言語が単語間にスペースを入れて表記される場合（英語のように。韓国語の語節間の慣習とは異なりますが、根底にある理由は同じです）は、空白保持プロトコルを使用します:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
+litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
 </code></pre>
-</li>
-<li>
-<p><strong>特徴量を抽出</strong>します。</p>
-<pre><code class="language-sh">litsea extract -l thai ./corpus.txt ./features.txt
+<p><strong>元のツリーバンクに複数語トークン（短縮形、接語）が含まれる場合は、コーパスを信頼する前に <code>corpus_udtreebank.sh -s</code> がそれらを正しく扱えているか確認してください。</strong> UD CoNLL-U では、英語の <code>don't</code> のような短縮形を、間にスペースを持たない2つの単語行（<code>do</code>、<code>n't</code>）をカバーする<em>範囲</em>行（例: <code>3-4  don't</code>）として表現します。<code>corpus_udtreebank.sh -s</code> は範囲行を特別扱いします: それ自体としてはトークンを出力せず、範囲を構成する単語間へのスペース挿入を抑制し、範囲自身の <code>SpaceAfter</code> アノテーションは最後の構成単語の後にのみ適用します。新しいツリーバンクについて確認すべき不変条件は次のとおりです: <strong>範囲を構成する単語形を連結すると、範囲自身の表層形が再現されなければならない。</strong> これは UD English-EWT のすべての複数語トークンで成立していました（学習前にコーパス全体を比較するスクリプトで検証済み）。対象のツリーバンクで成立しない場合、安全なフォールバックは、構成単語を展開する代わりに範囲自身の表層形を単一トークンとして出力することです。もう1つの独立したチェックとして、各文の TSV トークン（スペーストークンを含む）を連結して文を再構成し、その結果を CoNLL-U ファイルのその文に対応する <code># text =</code> メタデータ行と diff してください – これにより、構成単語の連結チェックだけでは見逃すスペースのバグを検出できます。<code>corpus_udtreebank.sh</code> 自体を変更した場合は、既存の空白保持ゴールドファイル（例: <code>resources/eval/korean_gsd_test.tsv</code>）も再生成し、コミット済みのバージョンと diff してください – 変更が加法的であれば、バイト単位で同一になるはずです。</p>
+<h2 id="手順7-同梱分割モデルを学習"><a class="header" href="#手順7-同梱分割モデルを学習">手順7: 同梱分割モデルを学習</a></h2>
+<p>同梱の分割モデルは、プレーンな <code>litsea train -t/-i</code>（AdaBoost ブースティング）では学習して<strong>いません</strong>。2クラスの Averaged Perceptron として学習し、無損失で AdaBoost モデル形式へ畳み込んでいます – 導出の全体と正確な5ステップの手順（抽出 → 境界ラベル <code>1</code>/<code>-1</code> を <code>B</code>/<code>O</code> にリマップ → <code>train --perceptron</code> → <code>scripts/collapse_binary_perceptron.py</code> → 任意で剪定）は<a href="#学習手順">事前学習済みモデル: 学習手順</a>を参照してください。空白保持プロトコルの言語の場合:</p>
+<pre><code class="language-sh">litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
+sed -i 's/^1\t/B\t/; s/^-1\t/O\t/' features.txt
+litsea train --perceptron --num-epochs 20 features.txt perceptron.model
+scripts/collapse_binary_perceptron.py perceptron.model models/english.model
 </code></pre>
-</li>
-<li>
-<p><strong>モデルを学習</strong>します。</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/thai.model
+<p>エポック数や tag-free/WC の判断を推測で決めないでください – held-out の<strong>dev</strong> split（最後に一度だけ触れるべき test split には触れない）でいくつかのエポック数のスイープを行い、それぞれの最良エポック数で tag-free とタグありの比較、および（手順5に従って）WC ありとなしの比較を行ってください。例えば英語のスイープでは、品質は20エポックでピークに達し、それ以降はわずかに悪化することがわかりました – 一発だけの低エポック実行ではモデルの実際の品質を過小評価してしまい、一発だけの高エポック実行では、すでに通り過ぎた収束点ではなく過学習が天井であるかのように見えてしまいます。</p>
+<h2 id="手順8-任意で二段構成-pos-モデルを学習"><a class="header" href="#手順8-任意で二段構成-pos-モデルを学習">手順8: 任意で二段構成 POS モデルを学習</a></h2>
+<p>言語に UPOS タグ付きデータが利用可能な場合は、追加で<a href="#二段構成タグ付け">二段構成</a>モデルを学習できます:</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
+litsea extract --pos -l english --stage2-features full pos_corpus.txt pos_features
+litsea train --pos --num-epochs 50 pos_features models/english_pos.model
 </code></pre>
-</li>
-</ol>
-<h2 id="手順7-テストを追加"><a class="header" href="#手順7-テストを追加">手順7: テストを追加</a></h2>
-<p><code>language.rs</code> と <code>segmenter.rs</code> の両方にテストを追加します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// In language.rs tests
-#[test]
-fn test_thai_char_types() {
-    let lang = Language::Thai;
-    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
-    assert_eq!(lang.char_type('A'), "A");   // ASCII
-    assert_eq!(lang.char_type('@'), "O");   // Other
-}
-
-// In segmenter.rs tests
-#[test]
-fn test_char_type_thai() {
-    let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type('ก'), "T");
-}
-<span class="boring">}</span></code></pre>
-<p>全テストを実行して検証します。</p>
-<pre><code class="language-sh">cargo test --workspace
+<p>上記のエポックスイープと同様に、dev split で <code>--stage2-features</code>（<code>fast</code>/<code>balanced</code>/<code>full</code>）をスイープしてください。このパスを使う同梱3言語は、それぞれ異なる勝者を選んでいます（<a href="#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a>を参照）。</p>
+<p><strong>空白保持プロトコルの言語における既知の制限</strong>: 二段構成 extractor のコーパス形式には空白保持バリアントが存在しないため（<code>-p</code> と <code>-s</code> は互いに排他的）、<code>english_pos.model</code> は <code>english.model</code> 自体とは異なり、<em>空白なし</em>の <code>word/POS</code> コーパスで学習（および評価）されます。これが実際にどの程度問題になるかは言語によって異なります: 韓国語は膠着語形態論によりスペースを取り除いても強い境界の手がかりが残るため、空白保持の数値に近いまま留まります（空白なし 99.90% 対 空白あり 99.91%）。一方、英語の正書法にはそうしたシグナルがほとんど存在しないため、ギャップは大きくなります（空白なし 70.33% 対 空白あり 98.31%）。対象言語について、このギャップが小さいだろうと決め付けずに実測してください。もし小さくない場合は、目立つ形でドキュメント化してください – このような大きなギャップをユーザーにどう説明するかの完全な実例については<a href="#english_posmodel">英語</a>を参照してください。</p>
+<h2 id="手順9-held-out-評価用ゴールドファイルを追加"><a class="header" href="#手順9-held-out-評価用ゴールドファイルを追加">手順9: held-out 評価用ゴールドファイルを追加</a></h2>
+<p>ツリーバンクの<strong>test</strong> split（dev split のスイープが完了した後にのみ触れる）から held-out ゴールドデータを生成し、既存の命名規則（分割用は <code>&lt;language&gt;_&lt;treebank&gt;_test.{txt,tsv}</code>、POS 用は <code>&lt;language&gt;_&lt;treebank&gt;_test_pos.txt</code>）に従って <code>resources/eval/</code> 配下に追加します:</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -s "$conllu_file_test" resources/eval/english_ewt_test.tsv
+bash scripts/corpus_udtreebank.sh -p "$conllu_file_test" resources/eval/english_ewt_test_pos.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
+litsea evaluate -l english --pos models/english_pos.model resources/eval/english_ewt_test_pos.txt
 </code></pre>
+<p><code>resources/eval/README.md</code> を新しいファイルとその出所/ライセンス（UD ツリーバンクは通常 CC BY-SA 4.0 であり、リポジトリの他の部分の MIT/Apache-2.0 ライセンスとは異なります）で更新してください。モデルのドキュメント（新しい数値が必要なドキュメントページの一覧は手順10を参照）には、<code>litsea train</code> の in-sample の出力ではなく、<code>litsea evaluate</code> から得た held-out の数値を記録してください。</p>
+<h2 id="手順10-テストとドキュメントを追加"><a class="header" href="#手順10-テストとドキュメントを追加">手順10: テストとドキュメントを追加</a></h2>
+<p>この手順はスコープを狭く見積もりがちです: 新しい言語は <code>language.rs</code>/<code>segmenter.rs</code> だけでなく、もっと多くのテストファイルに影響します。以下のチェックリストに沿って確認してください。</p>
+<p><strong>コードテスト:</strong></p>
+<ul>
+<li><code>litsea/src/language.rs</code>: <code>ALL_LANGUAGES</code>（配列サイズを増やす）、<code>test_language_from_str</code>、<code>test_parse_language_error_message</code>（新しい完全なエラー文字列）、<code>test_language_display</code>、および全ての種別コードと共通クラス・「O」のケースをいくつかカバーする新しい <code>test_&lt;language&gt;_char_types</code></li>
+<li><code>litsea/src/packed_model.rs</code>: <code>test_templates_for_language_gating</code>（新しい言語のテンプレート数をアサート）、および <code>test_pack_parse_roundtrip_unique_and_injective</code> と <code>test_dense_index_consistent_with_key_decode</code> にあるハードコードされた2つの言語列挙配列</li>
+<li><code>litsea/src/segmenter.rs</code>: 新しい <code>test_char_type_&lt;language&gt;</code>（既存の言語ごとのテストを踏襲）</li>
+<li><code>litsea/src/word_features.rs</code>: ラウンドトリップのサンプルリストにケースを追加（低コストで、型コードのエンコーディングのバグを早期に検出できる）</li>
+<li><code>litsea-cli/src/main.rs</code>: <code>--language</code> のヘルプ文字列3箇所</li>
+</ul>
+<p><strong>モデルに依存するテスト（先に学習済みモデルが必要）:</strong></p>
+<ul>
+<li><code>litsea/tests/golden.rs</code>: 新しい <code>golden_segment_&lt;language&gt;</code>（POS モデルも学習した場合は <code>golden_segment_with_pos_&lt;language&gt;_two_stage</code> も）。<strong>理想化した出力ではなく、モデルの実際の出力を固定してください</strong> – まず実際の出力を <code>println!</code> で出力するテストを書き、その出力をアサーションにコピーしてから、デバッグ出力を削除します。直後に<strong>サボタージュ検証</strong>を行ってください: 期待値の1つを一時的に間違った値に変更し、テストが RED になることを確認してから、正しい値に戻します。作成時に一度も失敗しなかった golden テストは、何かを守っていることを証明していません</li>
+<li><code>litsea/src/segmenter.rs</code>: packed スコアラーと文字列キーの参照実装を比較する差分テスト（<code>test_segment_differential_&lt;language&gt;_model</code>）、およびモデルが tag-free の場合は <code>segment_into</code> のタイリング/パリティのケース</li>
+<li><code>litsea/benches/bench.rs</code>: 4つの言語ごとのタプルリスト（<code>bench_segment_short</code>、<code>bench_external_corpus</code> の2つのケースリスト、<code>bench_segment_into</code>）すべてに新しい言語を追加します。これには <code>resources/</code> 配下にコーパスファイル（既存の言語ごとのコーパスと同程度のサイズのパブリックドメインのテキスト）が必要です</li>
+<li><code>litsea-cli/tests/cli.rs</code>: CLI の出力をエンドツーエンドで固定する分割のスモークテストを最低1つ</li>
+</ul>
+<p><strong>検証コマンド</strong>（言語の対応が完了したとみなす前に、すべて実行してください）:</p>
+<pre><code class="language-sh">cargo fmt --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo bench -- external_corpus   # 新しいベンチケースが実行できることを確認し、剪定が必要か判断する
+markdownlint-cli2 "docs/src/**/*.md"
+markdownlint-cli2 "docs/ja/src/**/*.md"
+mdbook build docs
+mdbook build docs/ja
+</code></pre>
+<p><strong>ドキュメント</strong>（本プロジェクトのドキュメント方針に従い、英語のソースを先に、その後 <code>docs/ja/src/</code> 配下の日本語ミラーを更新します）:</p>
+<ul>
+<li>新しい <code>language-support/&lt;language&gt;.md</code> ページ（<a href="#英語">英語</a>または<a href="#韓国語">韓国語</a>をテンプレートとして使用）と <code>docs/src/SUMMARY.md</code> のエントリ（および <code>docs/ja/src/SUMMARY.md</code> のミラー）</li>
+<li><code>language-support/overview.md</code> と <code>algorithm/character-type-classification.md</code> – どちらも言語ごとのテーブル/セクションを拡張する必要があります</li>
+<li><code>pre-trained-models.md</code> – 同梱モデルごとのモデルカードに加え、該当する場合は「タグなし（pointwise）モデル」と「二段構成の品詞推定モデル」の比較表</li>
+<li>ルートの <code>README.md</code> と <code>litsea/src/lib.rs</code> のクレートレベルドキュメント</li>
+<li>スイープが完了したとみなす前に <code>grep -rln "&lt;既存の言語名&gt;" docs/src docs/ja/src</code> を実行し、見つかった全ファイルを確認してください – 言語を列挙しているドキュメントは見落としやすいです（本プロジェクト自身の経験: issue #165 はこの確認を一度スキップしてしまい、14 箇所の古い記述が後続の PR でのクリーンアップ待ちになりました）</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ライブラリ-api-概要"><a class="header" href="#ライブラリ-api-概要">ライブラリ API 概要</a></h1>
 <p><code>litsea</code> クレートは、単語分割、モデル学習、特徴量抽出のための Rust API を提供します。</p>
@@ -1940,7 +2094,7 @@ pub fn add_corpus_tsv_with_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: 
 where
     F: FnMut(HashSet&lt;String&gt;, i8),
 <span class="boring">}</span></code></pre>
-<p><code>add_corpus</code> / <code>add_corpus_with_writer</code> のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルで使用。issue #152）。</p>
+<p><code>add_corpus</code> / <code>add_corpus_with_writer</code> のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルおよび英語モデルで使用。issue #152）。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut segmenter = Segmenter::new(Language::Korean);
@@ -1955,7 +2109,7 @@ pub fn learner_mut(&amp;mut self) -&gt; &amp;mut AdaBoost
 <span class="boring">}</span></code></pre>
 <p>Segmenter の言語と内部の学習器（二段構成の Segmenter では stage-1 境界分類器）へのアクセスを提供します。</p>
 <blockquote>
-<p>文字位置ごとの特徴量抽出（韓国語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の <code>get_attributes</code> メソッドは非公開になりました。</p>
+<p>文字位置ごとの特徴量抽出（韓国語/英語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の <code>get_attributes</code> メソッドは非公開になりました。</p>
 </blockquote>
 <h2 id="pos-mode-api"><a class="header" href="#pos-mode-api">POS-Mode API</a></h2>
 <p>Segmenter は、二段構成モデル（issue #147）を使った <strong>単語分割と品詞タグ付け</strong> もサポートしています。</p>
@@ -2068,7 +2222,7 @@ extractor.extract(
     features_path: &amp;Path,
 ) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>タブ区切りのコーパスファイル（トークンをタブで区切り、1行1文。トークンとして空白文字そのもの（<code>" "</code>）を含められます）を読み込み、抽出した特徴量を書き込みます。保持された空白により、モデルは空白文字を境界のコンテキストとして学習できます — 韓国語モデルの学習に使用されています（issue #152）。出力形式は <code>extract</code> と同一です。</p>
+<p>タブ区切りのコーパスファイル（トークンをタブで区切り、1行1文。トークンとして空白文字そのもの（<code>" "</code>）を含められます）を読み込み、抽出した特徴量を書き込みます。保持された空白により、モデルは空白文字を境界のコンテキストとして学習できます — 韓国語モデルおよび英語モデルの学習に使用されています（issue #152）。出力形式は <code>extract</code> と同一です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -2097,7 +2251,7 @@ pub fn extract_tsv_tag_free(
 同一ですが、16 個のタグ依存テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>。
 直前の境界判定結果を参照する）を全行から除外します。この特徴量で学習した
 モデルは <em>pointwise</em> になり、<code>segment()</code> は逐次スコアリングパスを丸ごと
-スキップします。同梱の <code>korean.model</code> はこの方法で学習されています。
+スキップします。同梱の <code>korean.model</code>/<code>english.model</code> はこの方法で学習されています。
 言語別の品質・速度トレードオフの実測値は
 <a href="#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>
 を参照してください。CLI の <code>extract --tag-free</code> の実体です。</p>
@@ -2821,13 +2975,14 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
 }
 <span class="boring">}</span></code></pre>
 <p>この列挙型に <code>#[non_exhaustive]</code> が付いているのは、新しい言語が破壊的変更なしに追加されることを想定しているためです。したがって、外部クレートで <code>Language</code> に対する <code>match</code> 式を書く場合はワイルドカードアーム（<code>_ =&gt; ...</code>）が必要です。</p>
 <h3 id="トレイト"><a class="header" href="#トレイト">トレイト</a></h3>
 <ul>
 <li><code>Default</code> – <code>Language::Japanese</code> を返す</li>
-<li><code>Display</code> – 小文字の名前を返す（<code>"japanese"</code>、<code>"chinese"</code>、<code>"korean"</code>）</li>
+<li><code>Display</code> – 小文字の名前を返す（<code>"japanese"</code>、<code>"chinese"</code>、<code>"korean"</code>、<code>"english"</code>）</li>
 <li><code>FromStr</code> – 完全名または ISO 639-1 コードから解析（大文字・小文字を区別しない）</li>
 </ul>
 <h3 id="パース"><a class="header" href="#パース">パース</a></h3>
@@ -2839,11 +2994,13 @@ pub enum Language {
 let ja: Language = "japanese".parse().unwrap();
 let zh: Language = "chinese".parse().unwrap();
 let ko: Language = "korean".parse().unwrap();
+let en: Language = "english".parse().unwrap();
 
 // ISO 639-1 codes
 let ja: Language = "ja".parse().unwrap();
 let zh: Language = "zh".parse().unwrap();
 let ko: Language = "ko".parse().unwrap();
+let en: Language = "en".parse().unwrap();
 
 // Case-insensitive
 let ko: Language = "KOREAN".parse().unwrap();
@@ -2867,7 +3024,7 @@ assert_eq!(lang.char_type('あ'), "I");
 assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<p>内部的には、<code>char_type</code> は言語ごとの非公開関数（<code>japanese_char_type_id</code>、<code>chinese_char_type_id</code>、<code>korean_char_type_id</code>）が返す数値の type id に対するテーブル参照になっており、文字列コードと数値 id が食い違うことはありません。全言語に共通のクラス – <code>"P"</code>（句読点）、<code>"A"</code>（ラテン文字）、<code>"N"</code>（数字） – は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。</p>
+<p>内部的には、<code>char_type</code> は言語ごとの非公開関数（<code>japanese_char_type_id</code>、<code>chinese_char_type_id</code>、<code>korean_char_type_id</code>、<code>english_char_type_id</code>）が返す数値の type id に対するテーブル参照になっており、文字列コードと数値 id が食い違うことはありません。全言語に共通のクラス – <code>"P"</code>（句読点）、<code>"A"</code>（ラテン文字）、<code>"N"</code>（数字） – は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます（英語では <code>"P"</code> を ASCII の句読点全般まで広げています。詳細は<a href="#英語">英語</a>を参照）。</p>
 <h2 id="parselanguageerror"><a class="header" href="#parselanguageerror">ParseLanguageError</a></h2>
 <p>文字列からの <code>Language</code> のパースに失敗すると <code>ParseLanguageError</code> が返されます。この型はクレートルートから再エクスポートされています（<code>litsea::ParseLanguageError</code>）:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2879,7 +3036,7 @@ assert_eq!(err.input(), "french");
 <span class="boring">}</span></code></pre>
 <ul>
 <li><code>input()</code> – パースに失敗した文字列を返す</li>
-<li>エラーメッセージにはサポートされている言語が列挙されます: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
+<li>エラーメッセージにはサポートされている言語が列挙されます: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko), english (en)</code></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="評価-2"><a class="header" href="#評価-2">評価</a></h1>
@@ -2914,7 +3071,7 @@ pub struct PosMetrics {
 <span class="boring">}</span></code></pre>
 <p>いずれの型もクレートルートで再エクスポートされています。トークンは、
 ゴールドトークンを連結した文字列上の文字オフセットスパンの完全一致で
-対応付けます。空白のみのトークンはスコア計算から除外されます（韓国語の
+対応付けます。空白のみのトークンはスコア計算から除外されます（韓国語/英語の
 空白保持プロトコル。空白を使わずに表記される言語では no-op です）。</p>
 <h2 id="関数"><a class="header" href="#関数">関数</a></h2>
 <h3 id="evaluate_segmentation"><a class="header" href="#evaluate_segmentation"><code>evaluate_segmentation</code></a></h3>
@@ -2950,7 +3107,7 @@ pub fn parse_gold_pos_line(line: &amp;str) -&gt; Vec&lt;(String, Upos)&gt;
 <code>parse_gold_pos_line</code> は各トークンを<strong>最後の</strong> <code>/</code> で分割し（学習
 パイプラインと同じルール）、タグが欠落しているか解析できない場合は
 <code>Upos::X</code> を既定値とします。</p>
-<h2 id="使用例-3"><a class="header" href="#使用例-3">使用例</a></h2>
+<h2 id="使用例-4"><a class="header" href="#使用例-4">使用例</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::adaboost::AdaBoost;
@@ -3196,11 +3353,11 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--pos</code> と併用できません</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td><a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td><code>--pos</code> 用の stage-2 単語特徴セット: <code>full</code>（品質最優先）、<code>balanced</code>、<code>fast</code>（速度最優先）</td></tr>
-<tr><td><code>--tag-free</code></td><td>オフ</td><td>16 個のタグ依存特徴量テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>）を除外し、学習されるモデルを pointwise にして <code>segment()</code> の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の <code>korean.model</code> で使用 – 言語別の品質・速度トレードオフは<a href="#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を参照）。<code>--format tsv</code> と併用可。<code>--pos</code> とは併用不可</td></tr>
+<tr><td><code>--tag-free</code></td><td>オフ</td><td>16 個のタグ依存特徴量テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>）を除外し、学習されるモデルを pointwise にして <code>segment()</code> の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の <code>korean.model</code>/<code>english.model</code> で使用 – 言語別の品質・速度トレードオフは<a href="#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を参照）。<code>--format tsv</code> と併用可。<code>--pos</code> とは併用不可</td></tr>
 </tbody>
 </table>
 </div>
@@ -3210,8 +3367,9 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <h3 id="tsv-コーパス形式--format-tsv"><a class="header" href="#tsv-コーパス形式--format-tsv">TSV コーパス形式（<code>--format tsv</code>）</a></h3>
-<p><code>--format tsv</code> を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語のような言語では、これが不可欠です（<a href="#韓国語">韓国語</a>を参照）。このようなコーパスは UD Treebank から <code>corpus_udtreebank.sh -s</code> で生成できます:</p>
+<p><code>--format tsv</code> を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語や英語のような言語では、これが不可欠です（<a href="#韓国語">韓国語</a>および<a href="#英語">英語</a>を参照）。このようなコーパスは UD Treebank から <code>corpus_udtreebank.sh -s</code> で生成できます:</p>
 <pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
+litsea extract -l english --format tsv --tag-free ./en_corpus.tsv ./en_features.txt
 </code></pre>
 <h2 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h2>
 <p>特徴量ファイルには、文字位置ごとに1行が含まれます。コーパス行 <code>これ は テスト です 。</code> に対する最初の2行は次のとおりです。</p>
@@ -3223,7 +3381,7 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 <li><code>-1</code> = 非境界</li>
 <li>特徴量はアルファベット順にソートされてタブ区切りで書き出されます。そのため各行はテンプレート定義順ではなく <code>BC1:</code> 特徴量から始まります</li>
 </ul>
-<h2 id="使用例-4"><a class="header" href="#使用例-4">使用例</a></h2>
+<h2 id="使用例-5"><a class="header" href="#使用例-5">使用例</a></h2>
 <pre><code class="language-sh"># Japanese
 litsea extract -l japanese ./corpus.txt ./features.txt
 
@@ -3232,6 +3390,9 @@ litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
 
 # Korean
 litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+
+# English
+litsea extract -l en ./corpus_en.txt ./features_en.txt
 </code></pre>
 <p>成功時のstderr出力:</p>
 <pre><code class="language-text">Feature extraction completed successfully.
@@ -3316,12 +3477,12 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 <li><strong>2回目のCtrl+C</strong>: 保存せずに即座に終了する</li>
 </ul>
 <p>これにより、長時間の学習セッションを進捗を失うことなく停止できます。</p>
-<h2 id="使用例-5"><a class="header" href="#使用例-5">使用例</a></h2>
+<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
 <p>基本的な学習:</p>
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
 <p>これは通常の AdaBoost 学習の一般的な例です。同梱の <code>japanese.model</code>、
-<code>chinese.model</code>、<code>korean.model</code> は別の手順を使っています –
+<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code> は別の手順を使っています –
 <a href="#学習手順">学習手順</a>を参照してください。</p>
 <p>高精度な学習（低い閾値、多い反復回数）:</p>
 <pre><code class="language-sh">litsea train -t 0.001 -i 5000 ./features.txt ./model.model
@@ -3440,7 +3601,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
 </tbody>
@@ -3454,7 +3615,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <code>litsea segment model | head -1</code>）、コマンドは正常終了します（終了コード0）。
 そのため <code>segment</code> はシェルのパイプライン内で問題なく連携できます。</li>
 </ul>
-<h2 id="使用例-6"><a class="header" href="#使用例-6">使用例</a></h2>
+<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
 <p><strong>日本語:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
   | litsea segment -l japanese ./models/RWCP.model
@@ -3467,6 +3628,9 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <p><strong>韓国語:</strong></p>
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." \
   | litsea segment -l korean ./models/korean.model
+</code></pre>
+<p><strong>英語:</strong></p>
+<pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
 </code></pre>
 <p><strong>ファイルの処理:</strong></p>
 <pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./models/japanese.model &gt; output.txt
@@ -3548,9 +3712,9 @@ train 分割で学習されているため、この条件を満たします。</
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは <code>word/POS</code> 形式である必要があります。<a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> 指定時は無視されます</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> 指定時は無視されます</td></tr>
 </tbody>
 </table>
 </div>
@@ -3566,7 +3730,7 @@ train 分割で学習されているため、この条件を満たします。</
 </ul>
 <p>予測トークンとゴールドトークンは、復元した文上の文字オフセットスパンの
 完全一致で対応付けます。空白のみのトークンはスコア計算から除外されるため、
-韓国語の空白保持プロトコルが数値を押し上げることはありません。</p>
+韓国語/英語の空白保持プロトコルが数値を押し上げることはありません。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -3586,12 +3750,13 @@ train 分割で学習されているため、この条件を満たします。</
 <p>単語は<strong>両端の境界がともに正しい</strong>場合のみ正解と数えるため、単語メトリクスは
 常に境界メトリクスと同等以上に厳しくなります — 境界が 1 つずれるだけで、その
 両側の 2 単語が不正解になります。<code>Sentences</code> は評価対象（非空）のゴールド文数です。</p>
-<h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
+<h2 id="使用例-8"><a class="header" href="#使用例-8">使用例</a></h2>
 <p>同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD テスト分割から変換）を使って、
 ドキュメントに記載の held-out の数値を再現します:</p>
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 </code></pre>
 <p>出力:</p>
@@ -3621,16 +3786,16 @@ litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japan
 <li><a href="#モデルの学習">二段構成の POS モデルを訓練</a>: <code>litsea train --pos --num-epochs 50 features model.model</code></li>
 </ol>
 <h2 id="言語ごとの違い"><a class="header" href="#言語ごとの違い">言語ごとの違い</a></h2>
-<p>パイプライン（準備 → 抽出 → 学習）とスクリプトは 3 言語で共通です。
+<p>パイプライン（準備 → 抽出 → 学習）とスクリプトは 4 言語で共通です。
 言語固有なのは次の 2 点だけです:</p>
 <ol>
 <li><strong><code>extract</code> の <code>-l</code> フラグ</strong> — 言語別の文字種分類を選択します（日本語 8 種、
-中国語 9 種、韓国語 10 種。韓国語は WC 特徴を使いません —
+中国語 9 種、韓国語 10 種、英語 7 種。韓国語と英語は WC 特徴を使いません —
 <a href="#言語サポート概要">言語サポート概要</a>を参照）。このためモデルは
 言語専用になります</li>
-<li><strong>韓国語は空白保持 TSV コーパス形式を使用</strong> — 韓国語は語節（어절）間に空白を
-持つ表記で、空白が最も強い境界シグナルです。そのため韓国語のコーパスは空白を
-トークンとして保持します（<code>corpus_udtreebank.sh -s</code> +
+<li><strong>韓国語と英語は空白保持 TSV コーパス形式を使用</strong> — どちらも単語間に空白を
+持つ表記で、空白が最も強い境界シグナルです。そのためそれぞれのコーパスは
+空白をトークンとして保持します（<code>corpus_udtreebank.sh -s</code> +
 <code>litsea extract --format tsv</code>）。日本語・中国語は空白を使わない表記のため、
 従来の空白区切り形式を使います</li>
 </ol>
@@ -3638,14 +3803,14 @@ litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japan
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 litsea extract -l japanese corpus.txt features.txt
 
-# Korean: space-preserving TSV corpus
+# Korean / English: space-preserving TSV corpus
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l korean --format tsv corpus.tsv features.txt
 </code></pre>
-<p><code>train</code> ステップのコマンドの形は 3 言語とも同一ですが、実際に使う
+<p><code>train</code> ステップのコマンドの形は 4 言語とも同一ですが、実際に使う
 ハイパーパラメータは異なります。<code>litsea train</code> でゼロから通常の AdaBoost
 モデルを学習する場合、<code>-t 0.0001 -i 20000</code>（<a href="#モデルの学習">モデルの学習</a>を参照）は
-良い出発点ですが、これは同梱の <code>japanese</code>/<code>chinese</code>/<code>korean</code> モデルが
+良い出発点ですが、これは同梱の <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english</code> モデルが
 使っている値ではありません。それらのモデルは言語ごとに異なるエポック数と
 剪定を伴う別の手順で学習されています。実際の手順は
 <a href="#学習手順">学習手順</a>を参照してください。</p>
@@ -3669,6 +3834,7 @@ litsea extract -l korean --format tsv corpus.tsv features.txt
 <tr><td>日本語</td><td>UD Japanese-GSD</td><td><code>UD_Japanese-GSD</code></td></tr>
 <tr><td>中国語</td><td>UD Chinese-GSD</td><td><code>UD_Chinese-GSD</code></td></tr>
 <tr><td>韓国語</td><td>UD Korean-GSD</td><td><code>UD_Korean-GSD</code></td></tr>
+<tr><td>英語</td><td>UD English-EWT</td><td><code>UD_English-EWT</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -3676,7 +3842,7 @@ litsea extract -l korean --format tsv corpus.tsv features.txt
 <p><code>scripts/download_udtreebank.sh</code> を使用して UD Treebank をダウンロードします。スクリプトは学習用 CoNLL-U ファイルのパスを標準出力に出力します:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 </code></pre>
-<p>対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。<code>-o</code> で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。</p>
+<p>対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）、<code>en</code>（英語）。<code>-o</code> で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。</p>
 <h2 id="単語分割用コーパス"><a class="header" href="#単語分割用コーパス">単語分割用コーパス</a></h2>
 <p>単語分割（AdaBoost）用のコーパスは以下の条件を満たすプレーンテキストファイルである必要があります:</p>
 <ul>
@@ -3692,11 +3858,15 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
 <p>これにより、CoNLL-U データがスペース区切りの単語（1行1文）に変換されます。</p>
-<h3 id="空白保持-tsv-コーパス韓国語"><a class="header" href="#空白保持-tsv-コーパス韓国語">空白保持 TSV コーパス（韓国語）</a></h3>
-<p>上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語ではこれにより最も強力な境界シグナルである語節間の空白が失われてしまうため、代わりに <code>-s</code> フラグを使用します。このフラグは、（ツリーバンクの <code>SpaceAfter</code> アノテーションから復元した）元の各空白を独立したトークンとして保持する <strong>タブ区切りコーパス</strong> を出力します:</p>
+<h3 id="空白保持-tsv-コーパス韓国語英語"><a class="header" href="#空白保持-tsv-コーパス韓国語英語">空白保持 TSV コーパス（韓国語、英語）</a></h3>
+<p>上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語と英語ではこれにより最も強力な境界シグナル（韓国語の語節間の空白、英語の単語間の空白）が失われてしまうため、代わりに <code>-s</code> フラグを使用します。このフラグは、（ツリーバンクの <code>SpaceAfter</code> アノテーションから復元した）元の各空白を独立したトークンとして保持する <strong>タブ区切りコーパス</strong> を出力します:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+
+conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" en_corpus.tsv
 </code></pre>
+<p>英語に特有の点として、<code>-s</code> は複合語トークン（<code>don't</code> のような短縮形。CoNLL-U では 2 つの単語行にまたがる範囲行として表現されます）も処理します: 範囲に属する単語同士は間に空白トークンを挟まずに連結され、範囲自体の <code>SpaceAfter</code> アノテーションは最後の構成単語の後に適用されます。詳細は<a href="#空白保持学習space-preserving-training-1">英語</a>を参照してください。</p>
 <p>TSV コーパスからの特徴量抽出には <code>litsea extract --format tsv</code> を使用します。<code>-s</code> フラグは <code>-p</code> と併用できません（POS パイプラインには TSV バリアントがありません）。</p>
 <h2 id="品詞推定用コーパス"><a class="header" href="#品詞推定用コーパス">品詞推定用コーパス</a></h2>
 <p>品詞推定（Averaged Perceptron）を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。</p>
@@ -3727,7 +3897,7 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 # 品詞付きコーパスを生成
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
-<p><code>download_udtreebank.sh</code> の対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。</p>
+<p><code>download_udtreebank.sh</code> の対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）、<code>en</code>（英語）。</p>
 <h2 id="wikipedia-ダンプからのコーパス作成"><a class="header" href="#wikipedia-ダンプからのコーパス作成">Wikipedia ダンプからのコーパス作成</a></h2>
 <p>大規模な学習データが必要な場合、Wikipedia の全文ダンプから <code>scripts/corpus_wikidump.sh</code> を使ってコーパスを作成できます。このスクリプトは <a href="https://github.com/mosuka/wicket">wicket</a> でプレーンテキストを抽出し、文章のみをフィルタリングした後、<a href="https://github.com/lindera/lindera">lindera</a> でトークナイズします。</p>
 <h3 id="使い方-5"><a class="header" href="#使い方-5">使い方</a></h3>
@@ -3801,7 +3971,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <h2 id="コマンド"><a class="header" href="#コマンド">コマンド</a></h2>
 <pre><code class="language-sh">litsea extract -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
 </code></pre>
-<h2 id="使用例-8"><a class="header" href="#使用例-8">使用例</a></h2>
+<h2 id="使用例-9"><a class="header" href="#使用例-9">使用例</a></h2>
 <pre><code class="language-sh">litsea extract -l japanese ./corpus.txt ./features.txt
 </code></pre>
 <p>出力:</p>
@@ -3830,12 +4000,16 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
 </ul>
 <h2 id="空白保持tsvコーパス形式"><a class="header" href="#空白保持tsvコーパス形式">空白保持（TSV）コーパス形式</a></h2>
-<p>文の元の空白を保持したコーパス — 韓国語モデルの学習に使用（単語間の空白が
-韓国語における最も強力な境界シグナルであるため。詳細は
-<a href="#空白保持学習space-preserving-training">韓国語</a>を参照）
+<p>文の元の空白を保持したコーパス — 韓国語モデルおよび英語モデルの学習に使用
+（単語間の空白がこれらの言語における最も強力な境界シグナルであるため。詳細は
+<a href="#空白保持学習space-preserving-training">韓国語</a>
+および
+<a href="#空白保持学習space-preserving-training-1">英語</a>
+を参照）
 — から抽出するには、既定のスペース区切り形式の代わりに <code>--format tsv</code> を
 指定します:</p>
 <pre><code class="language-sh">litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.txt
 </code></pre>
 <p>入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
 空白文字そのもの（<code>" "</code>）を含められます。出力される特徴量ファイルの形式は既定の
@@ -3898,7 +4072,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 </code></pre>
 <p>これは通常の AdaBoost 学習の一般的な例です。同梱の <code>japanese.model</code>、
-<code>chinese.model</code>、<code>korean.model</code> は<strong>この方法では作られていません</strong> –
+<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code> は<strong>この方法では作られていません</strong> –
 これらのファイルの実際の学習手順は
 <a href="#学習手順">学習手順</a>を参照してください。</p>
 <h2 id="学習プロセス"><a class="header" href="#学習プロセス">学習プロセス</a></h2>
@@ -3930,8 +4104,8 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </table>
 </div>
 <p><strong>注</strong>: これらはゼロから通常の AdaBoost モデルを学習する際の一般的な
-出発点です。同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は
-別の手順（2 クラスの Averaged Perceptron を AdaBoost の重みへ畳み込み、
+出発点です。同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>、
+<code>english.model</code> は別の手順（2 クラスの Averaged Perceptron を AdaBoost の重みへ畳み込み、
 言語ごとに異なるエポック数と剪定を適用）で作られています – これらの
 ファイルが実際にどう作られているかは、事前学習済みモデルの
 <a href="#学習手順">学習手順</a>を参照してください。</p>
@@ -4056,9 +4230,9 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 </table>
 </div>
 <h2 id="事前学習済みモデルのベンチマーク"><a class="header" href="#事前学習済みモデルのベンチマーク">事前学習済みモデルのベンチマーク</a></h2>
-<p>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は、通常の AdaBoost
-<code>-t</code>/<code>-i</code> 学習ではなく binary-perceptron 畳み込み手順で学習しています –
-正確な手順は<a href="#学習手順">学習手順</a>を参照してください。
+<p>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code> は、
+通常の AdaBoost <code>-t</code>/<code>-i</code> 学習ではなく binary-perceptron 畳み込み手順で
+学習しています – 正確な手順は<a href="#学習手順">学習手順</a>を参照してください。
 いずれも学習コーパスの held-out テスト分割で評価しています。<strong>単語 F1</strong> は
 単語の完全一致、<strong>境界 F1</strong> は個々の境界判定のスコアです。</p>
 <div class="table-wrapper">
@@ -4070,13 +4244,17 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <tr><td>japanese.model</td><td>96.70%</td><td>98.59%</td><td>UD Japanese-GSD</td></tr>
 <tr><td>korean.model</td><td>99.91%</td><td>99.96%</td><td>UD Korean-GSD</td></tr>
 <tr><td>chinese.model</td><td>90.69%</td><td>95.64%</td><td>UD Chinese-GSD</td></tr>
+<tr><td>english.model</td><td>98.31%</td><td>99.18%</td><td>UD English-EWT</td></tr>
 </tbody>
 </table>
 </div>
-<p>韓国語は、元の語節（어절）間の空白を保持したテキスト（空白保持 TSV コーパス。
-空白トークンは F1 の計算から除外）で学習・評価しています。韓国語では空白が
+<p>韓国語と英語は、元の空白を保持したテキスト（空白保持 TSV コーパス。空白
+トークンは F1 の計算から除外）で学習・評価しています。この 2 言語では空白が
 ほとんどの語境界を示すため、空白を使わずに表記される日本語・中国語に比べて
-タスクが大幅に容易になります — このスコアは言語間で直接比較できません。</p>
+タスクが容易になります — このスコアは言語間で直接比較できません。韓国語の
+ほぼ決定論的な 99.91% と、それより低い英語の 98.31% はどちらもこの同じ
+空白保持プロトコルによるものですが、両者の差は空白があってもなお英語に残る
+曖昧性（短縮形、ハイフン付き複合語、省略語）に由来します。</p>
 <h3 id="ベンチマークの再現"><a class="header" href="#ベンチマークの再現">ベンチマークの再現</a></h3>
 <p>上の表のすべての数値は、同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD の
 <strong>test</strong> 分割から変換。同梱モデルは train 分割で学習しているため held-out に
@@ -4084,13 +4262,17 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 </code></pre>
 <p>コマンドリファレンスは <a href="#evaluate">evaluate</a> を参照して
-ください。POS モデルは <code>*_gsd_test_pos.txt</code> ファイルに対して <code>--pos</code> で評価し、
-その held-out の数値は<a href="#事前学習済みモデル">事前学習済みモデル</a>に記載して
-います。なお、韓国語の POS ゴールドは POS パイプラインの慣例（空白トークン
-なし）に従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
-評価します。</p>
+ください。POS モデルは <code>*_gsd_test_pos.txt</code> / <code>english_ewt_test_pos.txt</code>
+ファイルに対して <code>--pos</code> で評価し、その held-out の数値は
+<a href="#事前学習済みモデル">事前学習済みモデル</a>に記載しています。なお、
+韓国語と英語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
+従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
+評価します – 英語ではこれが韓国語よりもはるかに大きな品質差を生みます。
+理由は<a href="#english_posmodel-1">事前学習済みモデル</a>を
+参照してください。</p>
 <h2 id="モデル品質の改善"><a class="header" href="#モデル品質の改善">モデル品質の改善</a></h2>
 <p>精度が不十分な場合は、以下を検討してください:</p>
 <ol>
@@ -4116,7 +4298,7 @@ Averaged Perceptron を学習してから無損失に AdaBoost の重みへ畳�
 <h2 id="コマンド-2"><a class="header" href="#コマンド-2">コマンド</a></h2>
 <pre><code class="language-sh">litsea train -t 0.0001 -i 20000 -m &lt;EXISTING_MODEL&gt; &lt;NEW_FEATURES_FILE&gt; &lt;OUTPUT_MODEL&gt;
 </code></pre>
-<h2 id="使用例-9"><a class="header" href="#使用例-9">使用例</a></h2>
+<h2 id="使用例-10"><a class="header" href="#使用例-10">使用例</a></h2>
 <pre><code class="language-sh"># 新しいコーパスから特徴量を抽出
 litsea extract -l japanese ./new_corpus.txt ./new_features.txt
 
@@ -4153,8 +4335,8 @@ litsea train -t 0.0001 -i 20000 \
 <code>-m</code>/<code>--load-model-uri</code> に<strong>対応していません</strong> – 二段構成モデルの増分学習は
 サポートされていないため、更新したい場合は <code>train --pos</code> で
 ゼロから再学習する必要があります</li>
-<li>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> はこの <code>-m</code> を
-使うレシピでは作られていません – これらは
+<li>同梱の <code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code>
+はこの <code>-m</code> を使うレシピでは作られていません – これらは
 <a href="#学習手順">学習手順</a>で説明している
 perceptron 畳み込み手順で学習されています。これらの上に <code>-m</code> で
 さらに増分 AdaBoost 学習を行うと、2 つの手法が混ざってしまいます。
@@ -4261,15 +4443,17 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 <tr><td>japanese.model</td><td>約 1.1 MB</td><td>UD Japanese-GSD</td></tr>
 <tr><td>chinese.model</td><td>約 2.0 MB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>korean.model</td><td>約 86 KB</td><td>UD Korean-GSD</td></tr>
+<tr><td>english.model</td><td>約 125 KB</td><td>UD English-EWT</td></tr>
 <tr><td>RWCP.model</td><td>約 22 KB</td><td>オリジナルの TinySegmenter</td></tr>
 <tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 16 KB</td><td>JEITA コーパス</td></tr>
 <tr><td>japanese_pos.model</td><td>約 5.4 MB</td><td>UD Japanese-GSD（二段構成）</td></tr>
 <tr><td>chinese_pos.model</td><td>約 8.0 MB</td><td>UD Chinese-GSD（二段構成）</td></tr>
 <tr><td>korean_pos.model</td><td>約 5.0 MB</td><td>UD Korean-GSD（二段構成）</td></tr>
+<tr><td>english_pos.model</td><td>約 3.6 MB</td><td>UD English-EWT（二段構成）</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>RWCP.model</code> と <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく約 86 KB〜2.0 MB になりましたが、それでも二段構成モデル（<code>*_pos.model</code>）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。</p>
+<p><code>RWCP.model</code> と <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>・<code>english.model</code>（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく約 86 KB〜2.0 MB になりましたが、それでも二段構成モデル（<code>*_pos.model</code>）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。</p>
 <h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
 <ul>
 <li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>
@@ -4362,8 +4546,8 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tr><th>ベンチマーク</th><th>説明</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_short/adaboost/{japanese,chinese,korean}</code></td><td>短い文の分割（AdaBoost）</td></tr>
-<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean}</code></td><td>短い文の分割+品詞付与</td></tr>
+<tr><td><code>segment_short/adaboost/{japanese,chinese,korean,english}</code></td><td>短い文の分割（AdaBoost）</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean,english}</code></td><td>短い文の分割+品詞付与</td></tr>
 <tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>坊っちゃん全文の処理（約 300 KB）</td></tr>
 <tr><td><code>external_corpus/*</code></td><td>tokenizer-speed-bench と同一のコーパススループット計測（後述）</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>文字種分類</td></tr>
@@ -4376,7 +4560,8 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <h2 id="コーパススループットexternal_corpus"><a class="header" href="#コーパススループットexternal_corpus">コーパススループット（<code>external_corpus</code>）</a></h2>
 <p><code>external_corpus</code> グループは、外部の
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
-にある litsea の 7 ベンチをリポジトリ内で再現します。これにより、
+にある litsea の 7 ベンチをリポジトリ内で再現します（下記の <code>english</code>/<code>english-two-stage</code>
+ケースはこの外部ハーネスにはまだ対応するものがありません）。これにより、
 スループットの回帰を <code>cargo bench</code> だけで検出できます:</p>
 <pre><code class="language-sh">cargo bench --bench bench -- external_corpus
 </code></pre>
@@ -4393,6 +4578,8 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tr><td><code>korean-two-stage</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
 <tr><td><code>chinese-two-stage</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>english</code></td><td>english.model</td><td>pride_and_prejudice.txt</td></tr>
+<tr><td><code>english-two-stage</code></td><td>english_pos.model</td><td>pride_and_prejudice.txt</td></tr>
 </tbody>
 </table>
 </div>
@@ -4412,6 +4599,7 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 <tr><td>wagahaiwa_nekodearu.txt</td><td>約 1.1 MB</td><td>吾輩は猫である（夏目漱石）、青空文庫、パブリックドメイン</td></tr>
 <tr><td>mujeong.txt</td><td>約 786 KB</td><td>무정（李光洙、1917）、ko.wikisource、パブリックドメイン — 分かち書きされた現代表記の韓国語で、空白対応 korean.model の想定入力</td></tr>
 <tr><td>rulin_waishi.txt</td><td>約 985 KB</td><td>儒林外史（呉敬梓）、zh.wikisource、パブリックドメイン — UD Chinese-GSD と同じ繁体字</td></tr>
+<tr><td>pride_and_prejudice.txt</td><td>約 688 KB</td><td>Pride and Prejudice（Jane Austen）、Project Gutenberg eBook #1342、パブリックドメイン — 自然な分かち書きの英語で、空白対応 english.model の想定入力</td></tr>
 </tbody>
 </table>
 </div>
@@ -4422,7 +4610,7 @@ Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</stron
 （外部ベンチのクレートはデフォルトの release プロファイル）。</p>
 <h2 id="api-比較segment_into"><a class="header" href="#api-比較segment_into">API 比較（<code>segment_into</code>）</a></h2>
 <p><code>segment_into</code> グループは、所有出力の <code>segment()</code> API とバッファ再利用の
-<code>segment_into()</code> API（issue #184）を、<code>external_corpus</code> と同じ 3 つの
+<code>segment_into()</code> API（issue #184）を、<code>external_corpus</code> と同じ 4 つの
 分割コーパス（同じ行単位ワークロード、<code>Throughput::Elements</code> による
 chars/sec 表示）でペア比較します:</p>
 <div class="table-wrapper">
@@ -4431,8 +4619,8 @@ chars/sec 表示）でペア比較します:</p>
 <tr><th>ベンチ ID</th><th>API</th></tr>
 </thead>
 <tbody>
-<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code></td><td><code>segment()</code>（トークンごとに <code>String</code> 1 つ、呼び出しごとに新規スクラッチ）</td></tr>
-<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code></td><td>1 つの <code>SegmentBuffer</code> を再利用する <code>segment_into()</code></td></tr>
+<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code> / <code>english-strings</code></td><td><code>segment()</code>（トークンごとに <code>String</code> 1 つ、呼び出しごとに新規スクラッチ）</td></tr>
+<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code> / <code>english-ranges</code></td><td>1 つの <code>SegmentBuffer</code> を再利用する <code>segment_into()</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -4490,7 +4678,7 @@ chars/sec は CLI のスレッドスケーリングについて何も語りま�
 測った <em>in-sample</em> 指標であり、ここに示す held-out の値より高くなる点に注意して
 ください。</p>
 <p><strong>アルゴリズムについての注記</strong>: <code>japanese.model</code>、<code>chinese.model</code>、
-<code>korean.model</code> は 2 クラス（境界／非境界）の Averaged Perceptron として学習した後、
+<code>korean.model</code>、<code>english.model</code> は 2 クラス（境界／非境界）の Averaged Perceptron として学習した後、
 スカラーの特徴量重みへ畳み込んでいます（issue #165）。ファイル自体は従来どおり
 プレーンな AdaBoost テキスト形式のままで、<code>Segmenter::with_learner</code> /
 <code>AdaBoost::load_model_from_path</code> は無変更で動作します。この畳み込みは
@@ -4551,6 +4739,32 @@ docstring を参照）近似ではありません: この方法で学習した p
 スコアリングパスを丸ごとスキップします（issue #183）。他言語での
 トレードオフは後述の<a href="#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>
 を参照してください。</p>
+<h3 id="englishmodel-1"><a class="header" href="#englishmodel-1">english.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>英語</td></tr>
+<tr><td>学習コーパス</td><td>UD English-EWT（空白保持 TSV コーパス）</td></tr>
+<tr><td>エポック数</td><td>20</td></tr>
+<tr><td>特徴量テンプレート</td><td>タグなし（pointwise、issue #183）、WC 特徴量なし</td></tr>
+<tr><td>剪定後の特徴量数</td><td>剪定なし（4,794 特徴量）</td></tr>
+<tr><td>単語 F1（held-out）</td><td>98.31%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>99.18%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 125 KB</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>korean.model</code> と同様に <code>english.model</code> も、元の空白を保持したテキストで
+学習・評価しています（各空白は独立したトークンとして扱い、F1 の計算からは
+除外します）。空白保持の学習プロトコル、複数語トークン（短縮形）の扱い、
+20 エポックとタグなし／WC 特徴量なしの構成を選んだエポックスイープについては
+<a href="#英語">English</a> を参照してください。英語には短縮形
+（contraction）、ハイフンでつながる複合語、“U.S.” のような略語といった
+境界の曖昧性が残っているため、同じ空白保持レシピを共有していても、
+held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回ります。</p>
 <h3 id="chinesemodel-1"><a class="header" href="#chinesemodel-1">chinese.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -4655,13 +4869,20 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 </thead>
 <tbody>
 <tr><td>韓国語</td><td>99.90%</td><td><strong>99.91%</strong></td><td>高速化（逐次パスをスキップ）</td></tr>
+<tr><td>英語</td><td>98.71%</td><td><strong>98.68%*</strong></td><td>高速化（逐次パスをスキップ）</td></tr>
 <tr><td>日本語</td><td><strong>96.70%</strong></td><td>96.33%</td><td>実測 end-to-end 約 +45〜50%</td></tr>
 <tr><td>中国語</td><td><strong>90.69%</strong></td><td>90.18%</td><td>実測 end-to-end 約 +12%</td></tr>
 </tbody>
 </table>
 </div>
+<p>* 英語の dev split での比較（タグあり 98.71% vs タグなし 98.68%、差は
+0.03pt）はどちらを選んでも大差ない水準であり、同梱モデルは韓国語と同じ
+スループット上の理由からタグなしで出荷しています。上記の <code>english.model</code>
+の held-out テスト分割の数値（98.31%）はスイープの最後に一度だけ計測した
+ものであり、この dev split の対比とは直接比較できません。</p>
 <p>語節間の空白シグナルがある韓国語ではタグ特徴量は何も寄与しないため、
-<code>korean.model</code> はタグなしで同梱しています（サイズも約 22% 減）。
+<code>korean.model</code> はタグなしで同梱しています（サイズも約 22% 減）。英語も
+同じ理由（空白シグナルが支配的であるため）でほぼ同様の状況にあります。
 日本語・中国語ではまだ単語 F1 で 0.37〜0.51pt の価値があるため、
 同梱モデルはタグ特徴量を保持しています – 品質がデフォルトです。
 速度を優先するワークロードでは、上記の手順に extract ステップの
@@ -4759,6 +4980,41 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 上記の数値は <code>korean.model</code> の 99.91%
 （全く異なるコーパス・プロトコル）とは比較できません – 二段構成が
 優れている/劣っているという結果ではありません。</p>
+<h3 id="english_posmodel-1"><a class="header" href="#english_posmodel-1">english_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>英語</td></tr>
+<tr><td>学習コーパス</td><td>UD English-EWT（12,544 文、空白非保持の word/POS プロトコル – 下記の注記を参照）</td></tr>
+<tr><td>エポック数</td><td>50</td></tr>
+<tr><td>stage-2 特徴量セット</td><td><code>full</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>70.33%</td></tr>
+<tr><td>タグ付き単語 F1（held-out）</td><td>65.83%</td></tr>
+<tr><td>スループット</td><td>2.05M chars/s</td></tr>
+<tr><td>ファイルサイズ</td><td>約 3.6 MB</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>英語のプロトコルについての注記 – <code>english.model</code> の 98.31% と比較する前に
+必ずお読みください。</strong> <code>english_pos.model</code> は <code>korean_pos.model</code> と同じ
+空白非保持の <code>word/POS</code> プロトコルで学習・評価しています – これは学習と
+推論のミスマッチではなく、<code>evaluate --pos</code> は学習時と同じ方法で採点して
+います。英語の品質差が韓国語よりはるかに大きい理由（韓国語: 空白なし
+99.90% vs 空白あり 99.91% – ほぼ差がない／英語: 空白なし 70.33% vs
+空白あり 98.31% – 大きな差がある）は、実装上の欠陥ではなく両言語の本質的な
+違いを反映しています: 韓国語は膠着語であり、助詞や語尾変化が文字レベルの
+強い境界手がかりを残すため、すべての空白を除いても単語境界を判定できます。
+一方、英語の正書法にはそうした手がかりがほとんど残らないため、空白のない
+英語のテキスト（例: <code>"thecatsatonthemat"</code>）を分割することは、このモデルの
+特徴量テンプレートにとって本質的にはるかに難しいタスクになります。推論時
+にはモデルは実際の空白付き入力を受け取り、空白は独立したトークンとして
+再出力されます。詳しい説明と実際の（不完全な）出力例は
+<a href="#english_posmodel">English</a> を参照してください。
+空白保持 TSV プロトコルと二段構成 POS 学習を組み合わせるには、パイプラインが
+現時点でサポートしていない新しいコーパス形式が必要になります。</p>
 <h4 id="使用方法"><a class="header" href="#使用方法">使用方法</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
@@ -4770,10 +5026,14 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 <li><strong>日本語</strong>には、最高精度を求める場合は <code>japanese.model</code> を、オリジナルの TinySegmenter との互換性を重視する場合は <code>RWCP.model</code> を使用</li>
 <li><strong>中国語</strong>には <code>chinese.model</code> を使用</li>
 <li><strong>韓国語</strong>には <code>korean.model</code> を使用</li>
+<li><strong>英語</strong>には <code>english.model</code> を使用</li>
 <li><strong>品詞推定</strong>には<strong>二段構成</strong>モデル（<code>japanese_pos.model</code>、
-<code>chinese_pos.model</code>、<code>korean_pos.model</code>）を <code>segment --pos</code> /
-<code>evaluate --pos</code> とともに使用してください（アーキテクチャと実測値は
-<a href="#二段構成タグ付け">二段構成タグ付け</a>を参照）。</li>
+<code>chinese_pos.model</code>、<code>korean_pos.model</code>、<code>english_pos.model</code>）を
+<code>segment --pos</code> / <code>evaluate --pos</code> とともに使用してください
+（アーキテクチャと実測値は
+<a href="#二段構成タグ付け">二段構成タグ付け</a>を参照。英語については
+特に、<code>english_pos.model</code> の分割品質に頼る前に上記のプロトコルについての
+注記を必ず読んでください）。</li>
 <li><strong>ドメイン固有</strong>の用途には、<a href="#コーパスの準備">独自モデルの学習</a>または既存モデルの<a href="#モデルの再学習">再学習</a>を検討</li>
 </ul>
 <h2 id="サンプルデータ"><a class="header" href="#サンプルデータ">サンプルデータ</a></h2>
@@ -4783,11 +5043,14 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 <li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。</li>
 <li><strong>mujeong.txt</strong> – 무정（李光洙、1917）、約 786 KB、ko.wikisource。</li>
 <li><strong>rulin_waishi.txt</strong> – 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。</li>
+<li><strong>pride_and_prejudice.txt</strong> – Pride and Prejudice（Jane Austen）、約 688 KB、Project Gutenberg eBook #1342（ヘッダー・フッター・挿絵キャプションを除去し、1 行 1 段落に整形）。</li>
 </ul>
-<p>後半の 3 つは外部の
+<p><code>wagahaiwa_nekodearu.txt</code>／<code>mujeong.txt</code>／<code>rulin_waishi.txt</code> の 3 つは外部の
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
 のコーパスとバイト同一で、<code>external_corpus</code> ベンチマークグループが使用します
-（<a href="#ベンチマーク">ベンチマーク</a>を参照）。いずれもパブリックドメインです。</p>
+（<a href="#ベンチマーク">ベンチマーク</a>を参照）。<code>pride_and_prejudice.txt</code>
+は同じベンチマークグループの英語のケースに使われますが、この外部ハーネス側
+にはまだ対応するコーパスがありません。いずれもパブリックドメインです。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ライセンス"><a class="header" href="#ライセンス">ライセンス</a></h1>
 <p>Litsea はデュアルライセンスで配布されています。</p>

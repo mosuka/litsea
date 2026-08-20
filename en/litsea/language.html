@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -192,13 +192,14 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
 }
 <span class="boring">}</span></code></pre>
 <p>The enum is marked <code>#[non_exhaustive]</code> because new languages are expected to be added without a breaking change; external <code>match</code> expressions over <code>Language</code> therefore need a wildcard arm (<code>_ =&gt; ...</code>).</p>
 <h3 id="traits"><a class="header" href="#traits">Traits</a></h3>
 <ul>
 <li><code>Default</code> – Returns <code>Language::Japanese</code></li>
-<li><code>Display</code> – Returns lowercase name (<code>"japanese"</code>, <code>"chinese"</code>, <code>"korean"</code>)</li>
+<li><code>Display</code> – Returns lowercase name (<code>"japanese"</code>, <code>"chinese"</code>, <code>"korean"</code>, <code>"english"</code>)</li>
 <li><code>FromStr</code> – Parses from full name or ISO 639-1 code (case-insensitive)</li>
 </ul>
 <h3 id="parsing"><a class="header" href="#parsing">Parsing</a></h3>
@@ -210,11 +211,13 @@ pub enum Language {
 let ja: Language = "japanese".parse().unwrap();
 let zh: Language = "chinese".parse().unwrap();
 let ko: Language = "korean".parse().unwrap();
+let en: Language = "english".parse().unwrap();
 
 // ISO 639-1 codes
 let ja: Language = "ja".parse().unwrap();
 let zh: Language = "zh".parse().unwrap();
 let ko: Language = "ko".parse().unwrap();
+let en: Language = "en".parse().unwrap();
 
 // Case-insensitive
 let ko: Language = "KOREAN".parse().unwrap();
@@ -238,7 +241,7 @@ assert_eq!(lang.char_type('あ'), "I");
 assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 <span class="boring">}</span></code></pre>
-<p>Internally, <code>char_type</code> is a table lookup over the numeric type id returned by a private per-language function (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>), so string codes and numeric ids cannot drift apart. The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes.</p>
+<p>Internally, <code>char_type</code> is a table lookup over the numeric type id returned by a private per-language function (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>, <code>english_char_type_id</code>), so string codes and numeric ids cannot drift apart. The classes common to all languages – <code>"P"</code> (punctuation), <code>"A"</code> (Latin), and <code>"N"</code> (digits) – are handled by a shared helper that is checked after the language-specific classes (English widens <code>"P"</code> to cover ASCII punctuation too; see <a href="../language-support/english.html">English</a>).</p>
 <h2 id="parselanguageerror"><a class="header" href="#parselanguageerror">ParseLanguageError</a></h2>
 <p>Parsing a <code>Language</code> from a string fails with <code>ParseLanguageError</code>, which is re-exported at the crate root (<code>litsea::ParseLanguageError</code>):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -250,7 +253,7 @@ assert_eq!(err.input(), "french");
 <span class="boring">}</span></code></pre>
 <ul>
 <li><code>input()</code> – Returns the string that failed to parse</li>
-<li>The error message enumerates the supported languages: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)</code></li>
+<li>The error message enumerates the supported languages: <code>Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko), english (en)</code></li>
 </ul>
 
                     </main>

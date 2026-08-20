@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-45985cea.js";
+            window.path_to_searchindex_js = "searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-5b909ab7.js"></script>
+        <script src="toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -197,16 +197,16 @@
 </ol>
 <h2 id="per-language-differences"><a class="header" href="#per-language-differences">Per-Language Differences</a></h2>
 <p>The pipeline (prepare → extract → train) and the scripts are shared by all
-three languages. Only two things are language-specific:</p>
+four languages. Only two things are language-specific:</p>
 <ol>
 <li><strong>The <code>-l</code> flag on <code>extract</code></strong> selects the language’s character-type
-classification (Japanese 8 types, Chinese 9, Korean 10; Korean uses no
-WC features — see the
+classification (Japanese 8 types, Chinese 9, Korean 10, English 7;
+Korean and English use no WC features — see the
 <a href="language-support/overview.html">language support overview</a>). Models are
 therefore language-specific.</li>
-<li><strong>Korean uses the space-preserving TSV corpus format.</strong> Korean is
-written with spaces between eojeol, and those spaces are the strongest
-boundary signal, so the Korean corpus keeps them as tokens
+<li><strong>Korean and English use the space-preserving TSV corpus format.</strong>
+Both are written with spaces between words, and those spaces are the
+strongest boundary signal, so their corpora keep them as tokens
 (<code>corpus_udtreebank.sh -s</code> + <code>litsea extract --format tsv</code>). Japanese
 and Chinese are written without spaces, so they use the plain
 space-separated format.</li>
@@ -215,18 +215,18 @@ space-separated format.</li>
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 litsea extract -l japanese corpus.txt features.txt
 
-# Korean: space-preserving TSV corpus
+# Korean / English: space-preserving TSV corpus
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l korean --format tsv corpus.tsv features.txt
 </code></pre>
-<p>The <code>train</code> step’s command shape is the same for all three languages, but
+<p>The <code>train</code> step’s command shape is the same for all four languages, but
 the actual hyperparameters differ. <code>-t 0.0001 -i 20000</code> (see <a href="training-guide/training-models.html">Training
 Models</a>) is a good starting point when
 training a plain AdaBoost model from scratch with <code>litsea train</code>, but it is
-not what the bundled <code>japanese</code>/<code>chinese</code>/<code>korean</code> models use – those go
-through a different procedure with per-language epoch counts and pruning.
-See <a href="pre-trained-models.html#training-procedure">Training Procedure</a> for the
-actual recipe.</p>
+not what the bundled <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english</code> models use –
+those go through a different procedure with per-language epoch counts and
+pruning. See <a href="pre-trained-models.html#training-procedure">Training Procedure</a>
+for the actual recipe.</p>
 <h2 id="additional-topics"><a class="header" href="#additional-topics">Additional Topics</a></h2>
 <ul>
 <li><a href="training-guide/evaluating-models.html">Evaluating Models</a> – assess model quality</li>

@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,11 +204,11 @@
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--pos</code> と併用できません</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td><a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td><code>--pos</code> 用の stage-2 単語特徴セット: <code>full</code>（品質最優先）、<code>balanced</code>、<code>fast</code>（速度最優先）</td></tr>
-<tr><td><code>--tag-free</code></td><td>オフ</td><td>16 個のタグ依存特徴量テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>）を除外し、学習されるモデルを pointwise にして <code>segment()</code> の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の <code>korean.model</code> で使用 – 言語別の品質・速度トレードオフは<a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を参照）。<code>--format tsv</code> と併用可。<code>--pos</code> とは併用不可</td></tr>
+<tr><td><code>--tag-free</code></td><td>オフ</td><td>16 個のタグ依存特徴量テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>）を除外し、学習されるモデルを pointwise にして <code>segment()</code> の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の <code>korean.model</code>/<code>english.model</code> で使用 – 言語別の品質・速度トレードオフは<a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を参照）。<code>--format tsv</code> と併用可。<code>--pos</code> とは併用不可</td></tr>
 </tbody>
 </table>
 </div>
@@ -218,8 +218,9 @@
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <h3 id="tsv-コーパス形式--format-tsv"><a class="header" href="#tsv-コーパス形式--format-tsv">TSV コーパス形式（<code>--format tsv</code>）</a></h3>
-<p><code>--format tsv</code> を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語のような言語では、これが不可欠です（<a href="../language-support/korean.html">韓国語</a>を参照）。このようなコーパスは UD Treebank から <code>corpus_udtreebank.sh -s</code> で生成できます:</p>
+<p><code>--format tsv</code> を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語や英語のような言語では、これが不可欠です（<a href="../language-support/korean.html">韓国語</a>および<a href="../language-support/english.html">英語</a>を参照）。このようなコーパスは UD Treebank から <code>corpus_udtreebank.sh -s</code> で生成できます:</p>
 <pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
+litsea extract -l english --format tsv --tag-free ./en_corpus.tsv ./en_features.txt
 </code></pre>
 <h2 id="出力形式"><a class="header" href="#出力形式">出力形式</a></h2>
 <p>特徴量ファイルには、文字位置ごとに1行が含まれます。コーパス行 <code>これ は テスト です 。</code> に対する最初の2行は次のとおりです。</p>
@@ -240,6 +241,9 @@ litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
 
 # Korean
 litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+
+# English
+litsea extract -l en ./corpus_en.txt ./features_en.txt
 </code></pre>
 <p>成功時のstderr出力:</p>
 <pre><code class="language-text">Feature extraction completed successfully.

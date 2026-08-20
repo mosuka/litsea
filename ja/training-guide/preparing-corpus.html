@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -194,6 +194,7 @@
 <tr><td>日本語</td><td>UD Japanese-GSD</td><td><code>UD_Japanese-GSD</code></td></tr>
 <tr><td>中国語</td><td>UD Chinese-GSD</td><td><code>UD_Chinese-GSD</code></td></tr>
 <tr><td>韓国語</td><td>UD Korean-GSD</td><td><code>UD_Korean-GSD</code></td></tr>
+<tr><td>英語</td><td>UD English-EWT</td><td><code>UD_English-EWT</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -201,7 +202,7 @@
 <p><code>scripts/download_udtreebank.sh</code> を使用して UD Treebank をダウンロードします。スクリプトは学習用 CoNLL-U ファイルのパスを標準出力に出力します:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 </code></pre>
-<p>対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。<code>-o</code> で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。</p>
+<p>対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）、<code>en</code>（英語）。<code>-o</code> で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。</p>
 <h2 id="単語分割用コーパス"><a class="header" href="#単語分割用コーパス">単語分割用コーパス</a></h2>
 <p>単語分割（AdaBoost）用のコーパスは以下の条件を満たすプレーンテキストファイルである必要があります:</p>
 <ul>
@@ -217,11 +218,15 @@ Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 </code></pre>
 <p>これにより、CoNLL-U データがスペース区切りの単語（1行1文）に変換されます。</p>
-<h3 id="空白保持-tsv-コーパス韓国語"><a class="header" href="#空白保持-tsv-コーパス韓国語">空白保持 TSV コーパス（韓国語）</a></h3>
-<p>上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語ではこれにより最も強力な境界シグナルである語節間の空白が失われてしまうため、代わりに <code>-s</code> フラグを使用します。このフラグは、（ツリーバンクの <code>SpaceAfter</code> アノテーションから復元した）元の各空白を独立したトークンとして保持する <strong>タブ区切りコーパス</strong> を出力します:</p>
+<h3 id="空白保持-tsv-コーパス韓国語英語"><a class="header" href="#空白保持-tsv-コーパス韓国語英語">空白保持 TSV コーパス（韓国語、英語）</a></h3>
+<p>上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語と英語ではこれにより最も強力な境界シグナル（韓国語の語節間の空白、英語の単語間の空白）が失われてしまうため、代わりに <code>-s</code> フラグを使用します。このフラグは、（ツリーバンクの <code>SpaceAfter</code> アノテーションから復元した）元の各空白を独立したトークンとして保持する <strong>タブ区切りコーパス</strong> を出力します:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+
+conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" en_corpus.tsv
 </code></pre>
+<p>英語に特有の点として、<code>-s</code> は複合語トークン（<code>don't</code> のような短縮形。CoNLL-U では 2 つの単語行にまたがる範囲行として表現されます）も処理します: 範囲に属する単語同士は間に空白トークンを挟まずに連結され、範囲自体の <code>SpaceAfter</code> アノテーションは最後の構成単語の後に適用されます。詳細は<a href="../language-support/english.html#空白保持学習space-preserving-training">英語</a>を参照してください。</p>
 <p>TSV コーパスからの特徴量抽出には <code>litsea extract --format tsv</code> を使用します。<code>-s</code> フラグは <code>-p</code> と併用できません（POS パイプラインには TSV バリアントがありません）。</p>
 <h2 id="品詞推定用コーパス"><a class="header" href="#品詞推定用コーパス">品詞推定用コーパス</a></h2>
 <p>品詞推定（Averaged Perceptron）を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。</p>
@@ -252,7 +257,7 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 # 品詞付きコーパスを生成
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 </code></pre>
-<p><code>download_udtreebank.sh</code> の対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）。</p>
+<p><code>download_udtreebank.sh</code> の対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）、<code>en</code>（英語）。</p>
 <h2 id="wikipedia-ダンプからのコーパス作成"><a class="header" href="#wikipedia-ダンプからのコーパス作成">Wikipedia ダンプからのコーパス作成</a></h2>
 <p>大規模な学習データが必要な場合、Wikipedia の全文ダンプから <code>scripts/corpus_wikidump.sh</code> を使ってコーパスを作成できます。このスクリプトは <a href="https://github.com/mosuka/wicket">wicket</a> でプレーンテキストを抽出し、文章のみをフィルタリングした後、<a href="https://github.com/lindera/lindera">lindera</a> でトークナイズします。</p>
 <h3 id="使い方"><a class="header" href="#使い方">使い方</a></h3>

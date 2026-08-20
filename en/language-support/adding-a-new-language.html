@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="adding-a-new-language"><a class="header" href="#adding-a-new-language">Adding a New Language</a></h1>
-<p>Litsea’s multilingual framework is designed to be easily extensible. This guide explains how to add support for a new language.</p>
+<p>Litsea’s multilingual framework is designed to be easily extensible. This guide explains how to add support for a new language, using the addition of English (issue #194) as the worked example throughout.</p>
 <h2 id="steps-overview"><a class="header" href="#steps-overview">Steps Overview</a></h2>
 <ol>
 <li>Add a variant to the <code>Language</code> enum</li>
@@ -189,7 +189,10 @@
 <li>Create a character classification function</li>
 <li>Register the classification function</li>
 <li>Decide on WC feature inclusion</li>
-<li>Prepare a training corpus and train a model</li>
+<li>Choose a corpus protocol (space-separated or space-preserving TSV)</li>
+<li>Train the bundled segmentation model (binary-perceptron-collapse recipe)</li>
+<li>Optionally train a two-stage POS model</li>
+<li>Add held-out evaluation gold files</li>
 <li>Add tests</li>
 </ol>
 <h2 id="step-1-add-a-variant-to-language"><a class="header" href="#step-1-add-a-variant-to-language">Step 1: Add a Variant to <code>Language</code></a></h2>
@@ -202,6 +205,7 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
     Thai,       // ← new language
 }
 <span class="boring">}</span></code></pre>
@@ -216,7 +220,7 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
-<p>Also update the <code>ParseLanguageError</code> message in <code>language.rs</code>: it enumerates the supported languages (<code>Supported: japanese (ja), chinese (zh), korean (ko)</code>) and is pinned by a unit test, so both the message and the test must include the new language.</p>
+<p>Also update the <code>ParseLanguageError</code> message in <code>language.rs</code>: it enumerates the supported languages (<code>Supported: japanese (ja), chinese (zh), korean (ko), english (en)</code>) and is pinned by a unit test, so both the message and the test must include the new language.</p>
 <h2 id="step-3-create-a-character-classification-function"><a class="header" href="#step-3-create-a-character-classification-function">Step 3: Create a Character Classification Function</a></h2>
 <p>Define a function that classifies a <code>char</code> into a <strong>type id</strong> for the new language. Ids are indices into the language’s ordered <code>type_codes()</code> table (Step 4): the shared classes occupy fixed indices (“O” = 0, “P” = 1, “A” = 2, “N” = 3) and language-specific classes follow from 4. Classification is a direct <code>match</code> on character ranges (no regex), so each class is an arm; the <strong>first matching arm wins</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -234,14 +238,16 @@ Language::Thai =&gt; write!(f, "thai"),
     }
 }
 <span class="boring">}</span></code></pre>
+<p>English’s <code>english_char_type_id</code> is a real, in-tree example of the same pattern applied to a Latin-script language: it adds “U” (uppercase), “W” (whitespace), and “Q” (apostrophe) as dedicated classes, and additionally <em>widens</em> the shared “P” class to cover ASCII punctuation (which the other languages leave as “O”) – a language’s classification function is free to layer extra logic in front of <code>punct_latin_digit()</code>, not just append new classes after it.</p>
 <h3 id="design-tips-for-character-types"><a class="header" href="#design-tips-for-character-types">Design Tips for Character Types</a></h3>
 <ul>
 <li><strong>Identify linguistically distinct categories</strong> that correlate with word boundary patterns</li>
 <li><strong>Order matters</strong> – match arms are tried top to bottom, so put more specific classes before general ones</li>
-<li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”)</li>
+<li><strong>Consider high-frequency function words</strong> as a separate type (as Chinese does with “F”), or, for a space-delimited language, whatever punctuation/case/diacritic distinctions actually correlate with boundaries (as English does with “U”/“W”/“Q”)</li>
 <li><strong>Use extra logic inside an arm body</strong> when a plain range is not enough (as Korean does with a codepoint test to split syllables with/without 받침)</li>
 <li>Reuse the shared <code>punct_latin_digit()</code> helper for the common “P”/“A”/“N” classes</li>
-<li><strong>Keep the code set prefix-free</strong> – no code may be a prefix of another (Korean’s <code>SN</code>/<code>SF</code> work because <code>S</code> alone is not a code). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous (a unit test pins this per language)</li>
+<li><strong>Keep the code set prefix-free</strong> – no code may be a prefix of another (Korean’s <code>SN</code>/<code>SF</code> work because <code>S</code> alone is not a code; a bare <code>"S"</code> is therefore rejected for <strong>every</strong> language by a unit test, not just Korean). The model loader decodes concatenated codes left to right when compiling packed feature keys, and prefix-freeness is what makes that decoding unambiguous</li>
+<li><strong>The type table needs at least 7 codes.</strong> A shared test context (<code>packed_model.rs</code>’s <code>ctx_for</code>) asserts <code>codes.len() &gt;= 7</code>; English’s 7-code table is the current minimum. There is no fixed upper bound, but the dense feature tables (<code>BC</code>/<code>UC</code>/<code>TC</code>/<code>BQ</code>/<code>TQ</code>) scale roughly with <code>type_count^2</code> to <code>type_count^3</code>, so a much larger table trades model size and load time for classification granularity</li>
 </ul>
 <h2 id="step-4-register-the-type-code-table-and-classification-function"><a class="header" href="#step-4-register-the-type-code-table-and-classification-function">Step 4: Register the Type-Code Table and Classification Function</a></h2>
 <p>Add the language’s ordered code table to <code>Language::type_codes()</code> (index = type id; shared codes first) and a dispatch arm in <code>Language::char_type_id()</code>. <code>char_type()</code> itself is derived from these two, so string codes and numeric ids cannot drift apart:</p>
@@ -268,58 +274,165 @@ pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
 </span>pub(crate) fn templates_for(language: Language) -&gt; &amp;'static [Template] {
     match language {
         Language::Japanese | Language::Chinese =&gt; &amp;TEMPLATES[..],
-        _ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 base templates
+        Language::Korean | Language::English =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 base templates
     }
 }
 <span class="boring">}</span></code></pre>
-<p>If your language’s character types have enough variety to make WC features informative, add it to the first match arm. If your type system is low-entropy (like Korean’s SN/SF), it is better to exclude WC features.</p>
-<h2 id="step-6-prepare-corpus-and-train-a-model"><a class="header" href="#step-6-prepare-corpus-and-train-a-model">Step 6: Prepare Corpus and Train a Model</a></h2>
-<ol>
-<li>
-<p><strong>Prepare a corpus</strong> with words separated by spaces:</p>
-<pre><code class="language-text">word1 word2 word3 word4
+<p>This match is deliberately <strong>exhaustive, with no wildcard arm</strong> – adding
+<code>Thai</code> without adding it to one of the two arms is a compile error, not a
+silent default. This is intentional: an earlier version of this match had
+a <code>_ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT]</code> fallback, which meant a new
+language got the 38-template (no WC) configuration without anyone
+deciding that on purpose. Make the WC decision explicitly, and back it
+with a measurement rather than an assumption: train a tag-free model both
+with and without WC on a held-out dev split and compare Word F1 (English’s
+comparison, documented in <a href="english.html#no-wc-features">English</a>, found WC
+measured <em>worse</em>, not just unhelpful – 98.68% without vs. 98.65% with).
+As a starting heuristic: if your language’s character types have enough
+variety to make WC features informative, include them; if your type
+system is low-entropy (like Korean’s/English’s dominant “SN”/“A” or
+whitespace-dominated distribution), exclude them – but verify with
+numbers before committing bundled models to either choice.</p>
+<h2 id="step-6-choose-a-corpus-protocol"><a class="header" href="#step-6-choose-a-corpus-protocol">Step 6: Choose a Corpus Protocol</a></h2>
+<p>Litsea supports two corpus protocols, and the right choice depends on whether the language is written with spaces:</p>
+<ul>
+<li><strong>Space-separated</strong> (the default): words joined with a single space, one sentence per line. Used for languages written without spaces (Japanese, Chinese) or where spacing carries no boundary signal.</li>
+<li><strong>Space-preserving TSV</strong> (<code>--format tsv</code>, issue #152): tab-separated tokens where a token may itself be a literal space <code>" "</code>, so the original spacing survives into training as a first-class feature. Used for languages where the space itself is the strongest boundary signal (Korean, English).</li>
+</ul>
+<p>If your language is written with spaces between words (like English, unlike Korean’s inter-eojeol convention but the same underlying reasoning), use the space-preserving protocol:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
+litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
 </code></pre>
-</li>
-<li>
-<p><strong>Extract features</strong>:</p>
-<pre><code class="language-sh">litsea extract -l thai ./corpus.txt ./features.txt
+<p><strong>If the source treebank has multiword tokens (contractions, clitics),
+verify <code>corpus_udtreebank.sh -s</code> handles them correctly before trusting
+the corpus.</strong> UD CoNLL-U represents a contraction like English’s <code>don't</code>
+as a <em>range</em> line (e.g. <code>3-4  don't</code>) covering two word lines (<code>do</code>,
+<code>n't</code>) that carry no space between them. <code>corpus_udtreebank.sh -s</code> treats
+a range line specially: it emits no token of its own, suppresses space
+insertion <em>between</em> the range’s member words, and applies the range’s own
+<code>SpaceAfter</code> annotation only after the last member word. The invariant to
+check for a new treebank is: <strong>concatenating a range’s member word forms
+must reproduce the range’s own surface form.</strong> This held for every
+multiword token in UD English-EWT (verified by scripting a comparison
+across the full corpus before training); if it does not hold for your
+treebank, the safe fallback is to emit the range’s own form as a single
+token instead of expanding its members. As a second, independent check,
+reconstruct each sentence by concatenating its TSV tokens (space tokens
+included) and diff the result against the CoNLL-U file’s <code># text =</code>
+metadata line for that sentence – this catches any spacing bug the
+member-concatenation check alone would miss. When you change
+<code>corpus_udtreebank.sh</code> itself, also regenerate an existing space-preserving
+gold file (e.g. <code>resources/eval/korean_gsd_test.tsv</code>) and diff it against
+the committed version – it should come out byte-identical if your change
+is additive.</p>
+<h2 id="step-7-train-the-bundled-segmentation-model"><a class="header" href="#step-7-train-the-bundled-segmentation-model">Step 7: Train the Bundled Segmentation Model</a></h2>
+<p>The bundled segmentation models are <strong>not</strong> trained with plain <code>litsea train -t/-i</code> (AdaBoost boosting). They are trained as a 2-class Averaged
+Perceptron and losslessly collapsed to the AdaBoost model format –
+see <a href="../pre-trained-models.html#training-procedure">Pre-trained Models: Training
+Procedure</a> for the full
+derivation and the exact five-step recipe
+(extract → relabel <code>1</code>/<code>-1</code> to <code>B</code>/<code>O</code> → <code>train --perceptron</code> →
+<code>scripts/collapse_binary_perceptron.py</code> → optionally prune). For a
+space-preserving-protocol language:</p>
+<pre><code class="language-sh">litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
+sed -i 's/^1\t/B\t/; s/^-1\t/O\t/' features.txt
+litsea train --perceptron --num-epochs 20 features.txt perceptron.model
+scripts/collapse_binary_perceptron.py perceptron.model models/english.model
 </code></pre>
-</li>
-<li>
-<p><strong>Train a model</strong>:</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/thai.model
+<p>Do not guess the epoch count or the tag-free/WC decisions – run a sweep on
+a held-out <strong>dev</strong> split (never the test split, which should be touched
+only once at the end) across a handful of epoch counts, and compare
+tag-free vs. tagged and (per Step 5) WC vs. no-WC at the best epoch count
+for each. English’s sweep, for example, found quality peaking at 20
+epochs and degrading slightly beyond it – a one-shot low-epoch run would
+have understated the model’s real quality, and a one-shot high-epoch run
+would have looked like overfitting was the ceiling rather than a
+convergence point already passed.</p>
+<h2 id="step-8-optionally-train-a-two-stage-pos-model"><a class="header" href="#step-8-optionally-train-a-two-stage-pos-model">Step 8: Optionally Train a Two-Stage POS Model</a></h2>
+<p>If UPOS-tagged data is available for the language, you can additionally
+train a <a href="../algorithm/two-stage-tagging.html">two-stage</a> model:</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
+litsea extract --pos -l english --stage2-features full pos_corpus.txt pos_features
+litsea train --pos --num-epochs 50 pos_features models/english_pos.model
 </code></pre>
-</li>
-</ol>
-<h2 id="step-7-add-tests"><a class="header" href="#step-7-add-tests">Step 7: Add Tests</a></h2>
-<p>Add tests in both <code>language.rs</code> and <code>segmenter.rs</code>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// In language.rs tests
-#[test]
-fn test_thai_char_types() {
-    let lang = Language::Thai;
-    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
-    assert_eq!(lang.char_type('A'), "A");   // ASCII
-    assert_eq!(lang.char_type('@'), "O");   // Other
-}
-
-// In segmenter.rs tests
-#[test]
-fn test_char_type_thai() {
-    let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type('ก'), "T");
-}
-<span class="boring">}</span></code></pre>
-<p>Run all tests to verify:</p>
-<pre><code class="language-sh">cargo test --workspace
+<p>Sweep <code>--stage2-features</code> (<code>fast</code>/<code>balanced</code>/<code>full</code>) on a dev split the
+same way as the epoch sweep above; the three bundled languages that use
+this path each picked a different winner (see <a href="../algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">Choosing a stage-2 feature
+set</a>).</p>
+<p><strong>Known limitation for space-preserving-protocol languages</strong>: the
+two-stage extractor’s corpus format has no space-preserving variant (<code>-p</code>
+and <code>-s</code> are mutually exclusive), so <code>english_pos.model</code> is trained (and
+evaluated) on the <em>unspaced</em> <code>word/POS</code> corpus, unlike <code>english.model</code>
+itself. Whether this matters in practice depends on the language: Korean
+stays close to its space-preserving numbers (99.90% unspaced vs. 99.91%
+spaced) because its agglutinative morphology leaves strong boundary cues
+even with spaces removed, while English’s gap is large (70.33% unspaced
+vs. 98.31% spaced) because English orthography carries almost no such
+signal. Measure this gap for your language rather than assuming it will
+be small, and document it prominently if it is not – see
+<a href="english.html#english_posmodel">English</a> for the fully worked example of
+how to explain a large gap like this to users.</p>
+<h2 id="step-9-add-held-out-evaluation-gold-files"><a class="header" href="#step-9-add-held-out-evaluation-gold-files">Step 9: Add Held-out Evaluation Gold Files</a></h2>
+<p>Generate held-out gold data from the treebank’s <strong>test</strong> split (touched
+only after your dev-split sweeps are done) and add it under
+<code>resources/eval/</code>, following the existing naming convention
+(<code>&lt;language&gt;_&lt;treebank&gt;_test.{txt,tsv}</code> for segmentation,
+<code>&lt;language&gt;_&lt;treebank&gt;_test_pos.txt</code> for POS):</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -s "$conllu_file_test" resources/eval/english_ewt_test.tsv
+bash scripts/corpus_udtreebank.sh -p "$conllu_file_test" resources/eval/english_ewt_test_pos.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
+litsea evaluate -l english --pos models/english_pos.model resources/eval/english_ewt_test_pos.txt
 </code></pre>
+<p>Update <code>resources/eval/README.md</code> with the new file(s) and their
+provenance/license (UD treebanks are typically CC BY-SA 4.0, distinct from
+the rest of the repository’s MIT/Apache-2.0 licensing). Record the
+held-out numbers you get from <code>litsea evaluate</code> – not numbers from
+<code>litsea train</code>’s in-sample printout – in the model’s documentation
+(Step 10 lists every doc page that needs the new numbers).</p>
+<h2 id="step-10-add-tests-and-documentation"><a class="header" href="#step-10-add-tests-and-documentation">Step 10: Add Tests and Documentation</a></h2>
+<p>This is the step most likely to be under-scoped: a new language touches
+more test files than just <code>language.rs</code>/<code>segmenter.rs</code>. Work through this
+checklist:</p>
+<p><strong>Code tests:</strong></p>
+<ul>
+<li><code>litsea/src/language.rs</code>: <code>ALL_LANGUAGES</code> (bump the array size), <code>test_language_from_str</code>, <code>test_parse_language_error_message</code> (new full error string), <code>test_language_display</code>, and a new <code>test_&lt;language&gt;_char_types</code> covering every type code plus a couple of shared-class and “O” cases</li>
+<li><code>litsea/src/packed_model.rs</code>: <code>test_templates_for_language_gating</code> (assert the new language’s template count), and the two hard-coded language-enumeration arrays in <code>test_pack_parse_roundtrip_unique_and_injective</code> and <code>test_dense_index_consistent_with_key_decode</code></li>
+<li><code>litsea/src/segmenter.rs</code>: a new <code>test_char_type_&lt;language&gt;</code> (mirroring the existing per-language ones)</li>
+<li><code>litsea/src/word_features.rs</code>: add a case to the round-trip sample list (cheap, catches type-code encoding bugs early)</li>
+<li><code>litsea-cli/src/main.rs</code>: the three <code>--language</code> help strings</li>
+</ul>
+<p><strong>Model-dependent tests (need a trained model first):</strong></p>
+<ul>
+<li><code>litsea/tests/golden.rs</code>: a new <code>golden_segment_&lt;language&gt;</code> (and, if you trained a POS model, <code>golden_segment_with_pos_&lt;language&gt;_two_stage</code>). <strong>Pin the model’s actual output, not an idealized one</strong> – write the test with a <code>println!</code> of the real output first, copy that into the assertion, then delete the debug print. Immediately after, <strong>sabotage-check it</strong>: temporarily change one expected value to something wrong, confirm the test goes RED, then restore the correct value. A golden test that never failed during its own creation has not proven it protects anything</li>
+<li><code>litsea/src/segmenter.rs</code>: a differential test (<code>test_segment_differential_&lt;language&gt;_model</code>) comparing the packed scorer against the string-keyed reference, and, if the model is tag-free, a <code>segment_into</code> tiling/parity case</li>
+<li><code>litsea/benches/bench.rs</code>: add the new language to all four per-language tuple lists (<code>bench_segment_short</code>, <code>bench_external_corpus</code>’s two case lists, <code>bench_segment_into</code>), which requires a corpus file under <code>resources/</code> (a public-domain text of a similar size to the existing per-language corpora)</li>
+<li><code>litsea-cli/tests/cli.rs</code>: at least one segmentation smoke test pinning CLI output end-to-end</li>
+</ul>
+<p><strong>Verification commands</strong> (run all of these before considering the language done):</p>
+<pre><code class="language-sh">cargo fmt --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo bench -- external_corpus   # sanity-check the new bench cases run; decide if pruning is needed
+markdownlint-cli2 "docs/src/**/*.md"
+markdownlint-cli2 "docs/ja/src/**/*.md"
+mdbook build docs
+mdbook build docs/ja
+</code></pre>
+<p><strong>Documentation</strong> (English source first, then the Japanese mirror under <code>docs/ja/src/</code>, per this project’s documentation policy):</p>
+<ul>
+<li>A new <code>language-support/&lt;language&gt;.md</code> page (use <a href="english.html">English</a> or <a href="korean.html">Korean</a> as the template) plus a <code>docs/src/SUMMARY.md</code> entry (and its <code>docs/ja/src/SUMMARY.md</code> mirror)</li>
+<li><code>language-support/overview.md</code> and <code>algorithm/character-type-classification.md</code> – both have a per-language table/section to extend</li>
+<li><code>pre-trained-models.md</code> – a model card per bundled model, plus the “Tag-Free (Pointwise) Models” and “Two-Stage POS Tagging Models” comparison tables if applicable</li>
+<li>Root <code>README.md</code> and the crate-level docs in <code>litsea/src/lib.rs</code></li>
+<li>Before considering the sweep complete, run <code>grep -rln "&lt;an existing language's name&gt;" docs/src docs/ja/src</code> and check every file it finds – language-enumerating docs are easy to miss (this project’s own experience: issue #165 skipped this check once and left 14 stale mentions for a later PR to clean up)</li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../language-support/korean.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../language-support/english.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -333,7 +446,7 @@ fn test_char_type_thai() {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../language-support/korean.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../language-support/english.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

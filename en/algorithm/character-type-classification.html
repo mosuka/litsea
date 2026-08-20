@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -262,18 +262,45 @@
 <li>Otherwise, it <strong>has a final consonant</strong> (SF, “받침”)</li>
 </ul>
 <p>This distinction is important because the presence of a final consonant (받침) affects Korean word boundary patterns and particle attachment.</p>
+<h2 id="english-character-types"><a class="header" href="#english-character-types">English Character Types</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Code</th><th>Name</th><th>Pattern / Range</th><th>Examples</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>U</strong></td><td>Uppercase Latin</td><td><code>[A-ZＡ-Ｚ]</code></td><td>A, Z, Ｔ</td></tr>
+<tr><td><strong>W</strong></td><td>Whitespace</td><td>Space, tab, U+00A0</td><td><code> </code>, <code>\t</code></td></tr>
+<tr><td><strong>Q</strong></td><td>Apostrophe</td><td>U+0027, U+2019</td><td><code>'</code>, <code>’</code></td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>ASCII (minus apostrophe) + General Punctuation + CJK/full-width</td><td><code>.</code>, <code>-</code>, <code>@</code>, <code>。</code></td></tr>
+<tr><td><strong>A</strong></td><td>Lowercase Latin</td><td><code>[a-zａ-ｚ]</code></td><td>a, z</td></tr>
+<tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
+<tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>字, é</td></tr>
+</tbody>
+</table>
+</div>
+<p>Unlike the other three languages, English classifies ASCII punctuation
+(minus the apostrophe) as <code>"P"</code> rather than leaving it as <code>"O"</code> — a
+deliberate, English-specific difference (<code>char_type('@')</code> is <code>"O"</code>
+elsewhere but <code>"P"</code> for English). The apostrophe is split out into its own
+type (<code>"Q"</code>) because it is the character-level marker of contractions and
+possessives (<code>do</code> + <code>n't</code>, <code>Google</code> + <code>'s</code>), and uppercase gets its own
+type (<code>"U"</code>) because it correlates with sentence-initial and proper-noun
+boundaries. See <a href="../language-support/english.html">English</a> for the full
+rationale, including why the hyphen stays <code>"P"</code> rather than getting an
+eighth type.</p>
 <h2 id="cross-language-comparison"><a class="header" href="#cross-language-comparison">Cross-Language Comparison</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th></tr>
+<tr><th>Feature</th><th>Japanese</th><th>Chinese</th><th>Korean</th><th>English</th></tr>
 </thead>
 <tbody>
-<tr><td>Total types</td><td>8</td><td>9</td><td>10</td></tr>
-<tr><td>Unique types</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td></tr>
-<tr><td>Shared types</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O (H shared with JP)</td></tr>
-<tr><td>Matching method</td><td>Range match</td><td>Range match</td><td>Range match + codepoint test</td></tr>
-<tr><td>WC features used</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+<tr><td>Total types</td><td>8</td><td>9</td><td>10</td><td>7</td></tr>
+<tr><td>Unique types</td><td>M, H, I, K</td><td>F, C, X, R, B</td><td>E, SN, SF, J, G</td><td>U, W, Q</td></tr>
+<tr><td>Shared types</td><td>P, A, N, O</td><td>P, A, N, O</td><td>P, A, N, O (H shared with JP)</td><td>P, A, N, O (P widened to all ASCII punct)</td></tr>
+<tr><td>Matching method</td><td>Range match</td><td>Range match</td><td>Range match + codepoint test</td><td>Range match</td></tr>
+<tr><td>WC features used</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
 </tbody>
 </table>
 </div>

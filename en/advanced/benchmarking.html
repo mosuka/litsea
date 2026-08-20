@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -196,8 +196,8 @@
 <tr><th>Benchmark</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>segment_short/adaboost/{japanese,chinese,korean}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
-<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean}</code></td><td>Segment + POS tag a short sentence</td></tr>
+<tr><td><code>segment_short/adaboost/{japanese,chinese,korean,english}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
+<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean,english}</code></td><td>Segment + POS tag a short sentence</td></tr>
 <tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~300 KB)</td></tr>
 <tr><td><code>external_corpus/*</code></td><td>Corpus throughput, mirroring tokenizer-speed-bench (see below)</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>Character type classification</td></tr>
@@ -210,8 +210,9 @@
 <h2 id="corpus-throughput-external_corpus"><a class="header" href="#corpus-throughput-external_corpus">Corpus Throughput (<code>external_corpus</code>)</a></h2>
 <p>The <code>external_corpus</code> group reproduces the seven litsea benches of the
 external <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
-harness in-repo, so throughput regressions can be caught with <code>cargo bench</code>
-alone:</p>
+harness in-repo (the <code>english</code>/<code>english-two-stage</code> cases below have no
+counterpart there yet), so throughput regressions can be caught with
+<code>cargo bench</code> alone:</p>
 <pre><code class="language-sh">cargo bench --bench bench -- external_corpus
 </code></pre>
 <div class="table-wrapper">
@@ -227,6 +228,8 @@ alone:</p>
 <tr><td><code>korean-two-stage</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
 <tr><td><code>chinese-two-stage</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
+<tr><td><code>english</code></td><td>english.model</td><td>pride_and_prejudice.txt</td></tr>
+<tr><td><code>english-two-stage</code></td><td>english_pos.model</td><td>pride_and_prejudice.txt</td></tr>
 </tbody>
 </table>
 </div>
@@ -247,6 +250,7 @@ read directly as <strong>chars/sec</strong>.</p>
 <tr><td>wagahaiwa_nekodearu.txt</td><td>~1.1 MB</td><td>吾輩は猫である (Natsume Soseki), Aozora Bunko, public domain</td></tr>
 <tr><td>mujeong.txt</td><td>~786 KB</td><td>무정 (Yi Kwang-su, 1917), ko.wikisource, public domain — naturally spaced modern Korean, matching the space-aware korean.model</td></tr>
 <tr><td>rulin_waishi.txt</td><td>~985 KB</td><td>儒林外史 (Wu Jingzi), zh.wikisource, public domain — Traditional Chinese, matching UD Chinese-GSD</td></tr>
+<tr><td>pride_and_prejudice.txt</td><td>~688 KB</td><td>Pride and Prejudice (Jane Austen), Project Gutenberg eBook #1342, public domain — naturally spaced English, matching the space-aware english.model</td></tr>
 </tbody>
 </table>
 </div>
@@ -258,7 +262,7 @@ single passes, and <code>cargo bench</code> inherits litsea’s tuned release pr
 the default release profile.</p>
 <h2 id="api-comparison-segment_into"><a class="header" href="#api-comparison-segment_into">API Comparison (<code>segment_into</code>)</a></h2>
 <p>The <code>segment_into</code> group pairs the owned-output <code>segment()</code> API against
-the buffer-reusing <code>segment_into()</code> API (issue #184) on the same three
+the buffer-reusing <code>segment_into()</code> API (issue #184) on the same four
 segmentation corpora as <code>external_corpus</code> (same per-line workload,
 chars/sec via <code>Throughput::Elements</code>):</p>
 <div class="table-wrapper">
@@ -267,8 +271,8 @@ chars/sec via <code>Throughput::Elements</code>):</p>
 <tr><th>Bench ID</th><th>API</th></tr>
 </thead>
 <tbody>
-<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code></td><td><code>segment()</code> (one <code>String</code> per token, fresh scratch per call)</td></tr>
-<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code></td><td><code>segment_into()</code> with one reused <code>SegmentBuffer</code></td></tr>
+<tr><td><code>japanese-strings</code> / <code>korean-strings</code> / <code>chinese-strings</code> / <code>english-strings</code></td><td><code>segment()</code> (one <code>String</code> per token, fresh scratch per call)</td></tr>
+<tr><td><code>japanese-ranges</code> / <code>korean-ranges</code> / <code>chinese-ranges</code> / <code>english-ranges</code></td><td><code>segment_into()</code> with one reused <code>SegmentBuffer</code></td></tr>
 </tbody>
 </table>
 </div>

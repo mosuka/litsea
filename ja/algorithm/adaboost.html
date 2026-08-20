@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -267,8 +267,8 @@ bias_value
 有限でない重みを含む、など）は読み込み時に拒否されます。詳細は
 <a href="../advanced/model-file-format.html">モデルファイル形式</a>を参照してください。</p>
 <blockquote>
-<p><strong>本ページで説明しているのは AdaBoost の学習アルゴリズムです。</strong> 上記のファイル形式は、同梱されている3つの分割モデル
-（<code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>）の保存にも使われていますが、issue #165 以降、これらの
+<p><strong>本ページで説明しているのは AdaBoost の学習アルゴリズムです。</strong> 上記のファイル形式は、同梱されている4つの分割モデル
+（<code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code>）の保存にも使われていますが、issue #165 以降、これらの
 モデルはブースティングでは生成されていません。2 クラスの Averaged Perceptron として学習し、同じスカラー重み形式へ
 無損失で畳み込んだものです（畳み込み手順は<a href="../pre-trained-models.html#学習手順">事前学習済みモデル</a>を参照）。
 <code>AdaBoost::load_model</code> が読み込めるファイルはすべてこの形式の正当なインスタンスですが、それは上記のブースティング

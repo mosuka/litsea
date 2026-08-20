@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -247,8 +247,8 @@ extractor.extract(
 <p>Reads a tab-separated corpus file (tokens separated by tabs, one sentence
 per line; a token may be a literal space <code>" "</code>) and writes the extracted
 features. The preserved spaces let the model learn from space characters as
-boundary context — used to train the Korean model (issue #152). Output
-format is identical to <code>extract</code>.</p>
+boundary context — used to train the Korean and English models (issue #152).
+Output format is identical to <code>extract</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -278,7 +278,8 @@ input and output formats, but the 16 tag-dependent templates
 (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>, which read the previous boundary
 decisions) are dropped from every row. A model trained on these features
 is <em>pointwise</em>, so <code>segment()</code> skips its sequential scoring pass entirely.
-The bundled <code>korean.model</code> is trained this way; see <a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise)
+The bundled <code>korean.model</code>/<code>english.model</code> are trained this way; see
+<a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise)
 Models</a> for the
 measured per-language quality/speed trade-off. These back the CLI’s
 <code>extract --tag-free</code>.</p>

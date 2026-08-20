@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "../searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-2cf72791.js"></script>
+        <script src="../toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,15 +181,18 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="新しい言語の追加"><a class="header" href="#新しい言語の追加">新しい言語の追加</a></h1>
-<p>Litseaの多言語フレームワークは、容易に拡張できるよう設計されています。本ガイドでは、新しい言語のサポートを追加する方法を説明します。</p>
+<p>Litseaの多言語フレームワークは、容易に拡張できるよう設計されています。本ガイドでは、新しい言語のサポートを追加する方法を、英語追加（issue #194）を具体例として一貫して用いながら説明します。</p>
 <h2 id="手順の概要"><a class="header" href="#手順の概要">手順の概要</a></h2>
 <ol>
 <li><code>Language</code> 列挙型にバリアントを追加</li>
 <li><code>Display</code> および <code>FromStr</code> のmatchアームを実装</li>
-<li>文字タイプパターン関数を作成</li>
-<li>パターン関数を登録</li>
+<li>文字タイプ判定関数を作成</li>
+<li>分類関数を登録</li>
 <li>WC特徴量の有無を決定</li>
-<li>学習コーパスを用意してモデルを学習</li>
+<li>コーパスプロトコルを選択（スペース区切りまたは空白保持 TSV）</li>
+<li>同梱分割モデルを学習（binary-perceptron 畳み込み手順）</li>
+<li>任意で二段構成 POS モデルを学習</li>
+<li>held-out 評価用ゴールドファイルを追加</li>
 <li>テストを追加</li>
 </ol>
 <h2 id="手順1-language-にバリアントを追加"><a class="header" href="#手順1-language-にバリアントを追加">手順1: <code>Language</code> にバリアントを追加</a></h2>
@@ -202,6 +205,7 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
     Thai,       // ← new language
 }
 <span class="boring">}</span></code></pre>
@@ -216,8 +220,8 @@ Language::Thai =&gt; write!(f, "thai"),
 // In FromStr impl
 "thai" | "th" =&gt; Ok(Language::Thai),
 <span class="boring">}</span></code></pre>
-<p>あわせて <code>language.rs</code> の <code>ParseLanguageError</code> のメッセージも更新してください。このメッセージはサポート言語を列挙しており（<code>Supported: japanese (ja), chinese (zh), korean (ko)</code>）、ユニットテストで固定されているため、メッセージとテストの両方に新しい言語を含める必要があります。</p>
-<h2 id="手順3-文字タイプパターンを作成"><a class="header" href="#手順3-文字タイプパターンを作成">手順3: 文字タイプパターンを作成</a></h2>
+<p>あわせて <code>language.rs</code> の <code>ParseLanguageError</code> のメッセージも更新してください。このメッセージはサポート言語を列挙しており（<code>Supported: japanese (ja), chinese (zh), korean (ko), english (en)</code>）、ユニットテストで固定されているため、メッセージとテストの両方に新しい言語を含める必要があります。</p>
+<h2 id="手順3-文字タイプ判定関数を作成"><a class="header" href="#手順3-文字タイプ判定関数を作成">手順3: 文字タイプ判定関数を作成</a></h2>
 <p>新しい言語の文字を<strong>種別 ID</strong>（type id）に分類する関数を定義します。ID は言語の順序付き <code>type_codes()</code> テーブル（手順 4）へのインデックスです: 共通クラスは固定インデックス（“O” = 0、“P” = 1、“A” = 2、“N” = 3）を占め、言語固有クラスは 4 から続きます。分類は文字範囲に対する <code>match</code> 式で直接行います（正規表現は使いません）。<strong>最初にマッチしたアーム</strong>が種別を決定します。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -234,14 +238,16 @@ Language::Thai =&gt; write!(f, "thai"),
     }
 }
 <span class="boring">}</span></code></pre>
+<p>英語の <code>english_char_type_id</code> は、同じパターンをラテン文字言語に適用した、リポジトリ内に実在する例です: 「U」（大文字）、「W」（空白）、「Q」（アポストロフィ）を専用クラスとして追加するだけでなく、共通クラス「P」を ASCII 句読点まで<strong>拡張</strong>しています（他の言語では ASCII 句読点は「O」のままです）– 言語の分類関数は、新しいクラスを <code>punct_latin_digit()</code> の後ろに追加するだけでなく、その前段に追加のロジックを自由に重ねることができます。</p>
 <h3 id="文字タイプ設計のヒント"><a class="header" href="#文字タイプ設計のヒント">文字タイプ設計のヒント</a></h3>
 <ul>
 <li>語境界パターンと相関する<strong>言語学的に異なるカテゴリ</strong>を特定する</li>
 <li><strong>順序は重要</strong> – 最初にマッチしたものが優先されるため、より具体的なパターンを汎用的なパターンの前に配置する</li>
-<li>中国語の「F」のように、<strong>高頻度の機能語</strong>を別のタイプとして検討する</li>
+<li><strong>高頻度の機能語</strong>を別のタイプとして検討する（中国語の「F」のように）。あるいは、スペース区切りの言語であれば、実際に境界と相関する句読点・大文字小文字・発音区別符号の違いを検討する（英語の「U」/「W」/「Q」のように）</li>
 <li>単純な範囲だけでは足りない場合は<strong>アーム本体内の追加ロジック</strong>を使用する（韓国語が받침の有無で音節を分割するためにコードポイント判定を使用しているように）</li>
 <li>共通の「P」/「A」/「N」クラスには、共有ヘルパー <code>punct_latin_digit()</code> を再利用する</li>
-<li><strong>コード集合は prefix-free に保つ</strong> – どのコードも他のコードのプレフィックスであってはならない（韓国語の <code>SN</code>/<code>SF</code> が成立するのは <code>S</code> 単独がコードでないため）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証する（言語ごとにユニットテストで固定される）</li>
+<li><strong>コード集合は prefix-free に保つ</strong> – どのコードも他のコードのプレフィックスであってはならない（韓国語の <code>SN</code>/<code>SF</code> が成立するのは <code>S</code> 単独がコードでないためであり、そのため裸の <code>"S"</code> は韓国語に限らず<strong>すべての</strong>言語についてユニットテストで拒否されます）。モデルローダは packed 特徴キーへのコンパイル時に連結された種別コードを左から右へデコードするため、prefix-free 性がデコードの一意性を保証します</li>
+<li><strong>種別テーブルは最低 7 個のコードが必要です。</strong> 共有テストコンテキスト（<code>packed_model.rs</code> の <code>ctx_for</code>）が <code>codes.len() &gt;= 7</code> をアサートしており、英語の 7 コードのテーブルが現状の最小値です。上限は固定されていませんが、密な特徴量テーブル（<code>BC</code>/<code>UC</code>/<code>TC</code>/<code>BQ</code>/<code>TQ</code>）はおおよそ <code>type_count^2</code> から <code>type_count^3</code> に比例して大きくなるため、テーブルを大きくしすぎると分類の粒度と引き換えにモデルサイズとロード時間が増加します</li>
 </ul>
 <h2 id="手順4-種別コードテーブルと分類関数を登録"><a class="header" href="#手順4-種別コードテーブルと分類関数を登録">手順4: 種別コードテーブルと分類関数を登録</a></h2>
 <p>言語の順序付きコードテーブルを <code>Language::type_codes()</code> に（インデックス = 種別 ID、共通コードが先頭）、ディスパッチアームを <code>Language::char_type_id()</code> に追加します。<code>char_type()</code> 自体はこの 2 つから導出されるため、文字列コードと数値 ID が乖離することはありません。</p>
@@ -268,58 +274,88 @@ pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
 </span>pub(crate) fn templates_for(language: Language) -&gt; &amp;'static [Template] {
     match language {
         Language::Japanese | Language::Chinese =&gt; &amp;TEMPLATES[..],
-        _ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 個の基本テンプレート
+        Language::Korean | Language::English =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT], // 38 個の基本テンプレート
     }
 }
 <span class="boring">}</span></code></pre>
-<p>対象言語の文字タイプに十分な多様性があり、WC特徴量が有益である場合は、最初のmatchアームに追加してください。韓国語のSN/SFのようにタイプ体系が低エントロピーの場合は、WC特徴量を除外する方が適切です。</p>
-<h2 id="手順6-コーパスを用意してモデルを学習"><a class="header" href="#手順6-コーパスを用意してモデルを学習">手順6: コーパスを用意してモデルを学習</a></h2>
-<ol>
-<li>
-<p><strong>コーパスを用意</strong>します（単語をスペースで区切った形式）。</p>
-<pre><code class="language-text">word1 word2 word3 word4
+<p>この match 式は意図的に<strong>ワイルドカードアームを持たない網羅的（exhaustive）な match</strong>にしてあります – <code>Thai</code> を追加してもどちらのアームにも加えなければコンパイルエラーになり、暗黙のデフォルトにはなりません。これは意図的な設計です: 以前のバージョンのこの match には <code>_ =&gt; &amp;TEMPLATES[..BASE_TEMPLATE_COUNT]</code> というフォールバックがあり、新しい言語は誰も意図的に決めないまま 38 テンプレート（WCなし）構成になってしまっていました。WC の判断は明示的に行い、推測ではなく計測で裏付けてください: held-out の dev split で tag-free モデルを WC ありとなしの両方で学習し、単語 F1 を比較します（英語での比較は<a href="english.html#wc特徴量なし">英語</a>に記載されており、WC は「役に立たない」どころか実測で「悪化させる」ことが確認されました – WCなし 98.68% に対し WCあり 98.65%）。出発点となるヒューリスティックとして: 対象言語の文字タイプに十分な多様性があり WC 特徴量が有益になりそうであれば含める、韓国語や英語の「SN」/「A」や空白が支配的なような低エントロピーなタイプ体系であれば除外する – ただし、どちらを選ぶ場合も同梱モデルにコミットする前に数値で検証してください。</p>
+<h2 id="手順6-コーパスプロトコルを選択"><a class="header" href="#手順6-コーパスプロトコルを選択">手順6: コーパスプロトコルを選択</a></h2>
+<p>Litseaは2種類のコーパスプロトコルをサポートしており、どちらを選ぶかは対象言語がスペース区切りで表記されるかどうかで決まります:</p>
+<ul>
+<li><strong>スペース区切り</strong>（デフォルト）: 単語を1個のスペースでつなぎ、1行1文とする形式。スペースなしで表記される言語（日本語、中国語）や、スペースが境界シグナルを持たない場合に使用します。</li>
+<li><strong>空白保持 TSV</strong>（<code>--format tsv</code>、issue #152）: トークンをタブで区切り、トークン自体がリテラルなスペース <code>" "</code> になり得る形式で、元の空白がそのまま学習用の一級特徴量として残ります。スペース自体が最も強い境界シグナルとなる言語（韓国語、英語）に使用します。</li>
+</ul>
+<p>対象言語が単語間にスペースを入れて表記される場合（英語のように。韓国語の語節間の慣習とは異なりますが、根底にある理由は同じです）は、空白保持プロトコルを使用します:</p>
+<pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
+litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
 </code></pre>
-</li>
-<li>
-<p><strong>特徴量を抽出</strong>します。</p>
-<pre><code class="language-sh">litsea extract -l thai ./corpus.txt ./features.txt
+<p><strong>元のツリーバンクに複数語トークン（短縮形、接語）が含まれる場合は、コーパスを信頼する前に <code>corpus_udtreebank.sh -s</code> がそれらを正しく扱えているか確認してください。</strong> UD CoNLL-U では、英語の <code>don't</code> のような短縮形を、間にスペースを持たない2つの単語行（<code>do</code>、<code>n't</code>）をカバーする<em>範囲</em>行（例: <code>3-4  don't</code>）として表現します。<code>corpus_udtreebank.sh -s</code> は範囲行を特別扱いします: それ自体としてはトークンを出力せず、範囲を構成する単語間へのスペース挿入を抑制し、範囲自身の <code>SpaceAfter</code> アノテーションは最後の構成単語の後にのみ適用します。新しいツリーバンクについて確認すべき不変条件は次のとおりです: <strong>範囲を構成する単語形を連結すると、範囲自身の表層形が再現されなければならない。</strong> これは UD English-EWT のすべての複数語トークンで成立していました（学習前にコーパス全体を比較するスクリプトで検証済み）。対象のツリーバンクで成立しない場合、安全なフォールバックは、構成単語を展開する代わりに範囲自身の表層形を単一トークンとして出力することです。もう1つの独立したチェックとして、各文の TSV トークン（スペーストークンを含む）を連結して文を再構成し、その結果を CoNLL-U ファイルのその文に対応する <code># text =</code> メタデータ行と diff してください – これにより、構成単語の連結チェックだけでは見逃すスペースのバグを検出できます。<code>corpus_udtreebank.sh</code> 自体を変更した場合は、既存の空白保持ゴールドファイル（例: <code>resources/eval/korean_gsd_test.tsv</code>）も再生成し、コミット済みのバージョンと diff してください – 変更が加法的であれば、バイト単位で同一になるはずです。</p>
+<h2 id="手順7-同梱分割モデルを学習"><a class="header" href="#手順7-同梱分割モデルを学習">手順7: 同梱分割モデルを学習</a></h2>
+<p>同梱の分割モデルは、プレーンな <code>litsea train -t/-i</code>（AdaBoost ブースティング）では学習して<strong>いません</strong>。2クラスの Averaged Perceptron として学習し、無損失で AdaBoost モデル形式へ畳み込んでいます – 導出の全体と正確な5ステップの手順（抽出 → 境界ラベル <code>1</code>/<code>-1</code> を <code>B</code>/<code>O</code> にリマップ → <code>train --perceptron</code> → <code>scripts/collapse_binary_perceptron.py</code> → 任意で剪定）は<a href="../pre-trained-models.html#学習手順">事前学習済みモデル: 学習手順</a>を参照してください。空白保持プロトコルの言語の場合:</p>
+<pre><code class="language-sh">litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
+sed -i 's/^1\t/B\t/; s/^-1\t/O\t/' features.txt
+litsea train --perceptron --num-epochs 20 features.txt perceptron.model
+scripts/collapse_binary_perceptron.py perceptron.model models/english.model
 </code></pre>
-</li>
-<li>
-<p><strong>モデルを学習</strong>します。</p>
-<pre><code class="language-sh">litsea train -t 0.0001 -i 20000 ./features.txt ./models/thai.model
+<p>エポック数や tag-free/WC の判断を推測で決めないでください – held-out の<strong>dev</strong> split（最後に一度だけ触れるべき test split には触れない）でいくつかのエポック数のスイープを行い、それぞれの最良エポック数で tag-free とタグありの比較、および（手順5に従って）WC ありとなしの比較を行ってください。例えば英語のスイープでは、品質は20エポックでピークに達し、それ以降はわずかに悪化することがわかりました – 一発だけの低エポック実行ではモデルの実際の品質を過小評価してしまい、一発だけの高エポック実行では、すでに通り過ぎた収束点ではなく過学習が天井であるかのように見えてしまいます。</p>
+<h2 id="手順8-任意で二段構成-pos-モデルを学習"><a class="header" href="#手順8-任意で二段構成-pos-モデルを学習">手順8: 任意で二段構成 POS モデルを学習</a></h2>
+<p>言語に UPOS タグ付きデータが利用可能な場合は、追加で<a href="../algorithm/two-stage-tagging.html">二段構成</a>モデルを学習できます:</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
+litsea extract --pos -l english --stage2-features full pos_corpus.txt pos_features
+litsea train --pos --num-epochs 50 pos_features models/english_pos.model
 </code></pre>
-</li>
-</ol>
-<h2 id="手順7-テストを追加"><a class="header" href="#手順7-テストを追加">手順7: テストを追加</a></h2>
-<p><code>language.rs</code> と <code>segmenter.rs</code> の両方にテストを追加します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>// In language.rs tests
-#[test]
-fn test_thai_char_types() {
-    let lang = Language::Thai;
-    assert_eq!(lang.char_type('ก'), "T");   // Thai consonant
-    assert_eq!(lang.char_type('A'), "A");   // ASCII
-    assert_eq!(lang.char_type('@'), "O");   // Other
-}
-
-// In segmenter.rs tests
-#[test]
-fn test_char_type_thai() {
-    let segmenter = Segmenter::new(Language::Thai);
-    assert_eq!(segmenter.char_type('ก'), "T");
-}
-<span class="boring">}</span></code></pre>
-<p>全テストを実行して検証します。</p>
-<pre><code class="language-sh">cargo test --workspace
+<p>上記のエポックスイープと同様に、dev split で <code>--stage2-features</code>（<code>fast</code>/<code>balanced</code>/<code>full</code>）をスイープしてください。このパスを使う同梱3言語は、それぞれ異なる勝者を選んでいます（<a href="../algorithm/two-stage-tagging.html#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a>を参照）。</p>
+<p><strong>空白保持プロトコルの言語における既知の制限</strong>: 二段構成 extractor のコーパス形式には空白保持バリアントが存在しないため（<code>-p</code> と <code>-s</code> は互いに排他的）、<code>english_pos.model</code> は <code>english.model</code> 自体とは異なり、<em>空白なし</em>の <code>word/POS</code> コーパスで学習（および評価）されます。これが実際にどの程度問題になるかは言語によって異なります: 韓国語は膠着語形態論によりスペースを取り除いても強い境界の手がかりが残るため、空白保持の数値に近いまま留まります（空白なし 99.90% 対 空白あり 99.91%）。一方、英語の正書法にはそうしたシグナルがほとんど存在しないため、ギャップは大きくなります（空白なし 70.33% 対 空白あり 98.31%）。対象言語について、このギャップが小さいだろうと決め付けずに実測してください。もし小さくない場合は、目立つ形でドキュメント化してください – このような大きなギャップをユーザーにどう説明するかの完全な実例については<a href="english.html#english_posmodel">英語</a>を参照してください。</p>
+<h2 id="手順9-held-out-評価用ゴールドファイルを追加"><a class="header" href="#手順9-held-out-評価用ゴールドファイルを追加">手順9: held-out 評価用ゴールドファイルを追加</a></h2>
+<p>ツリーバンクの<strong>test</strong> split（dev split のスイープが完了した後にのみ触れる）から held-out ゴールドデータを生成し、既存の命名規則（分割用は <code>&lt;language&gt;_&lt;treebank&gt;_test.{txt,tsv}</code>、POS 用は <code>&lt;language&gt;_&lt;treebank&gt;_test_pos.txt</code>）に従って <code>resources/eval/</code> 配下に追加します:</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -s "$conllu_file_test" resources/eval/english_ewt_test.tsv
+bash scripts/corpus_udtreebank.sh -p "$conllu_file_test" resources/eval/english_ewt_test_pos.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
+litsea evaluate -l english --pos models/english_pos.model resources/eval/english_ewt_test_pos.txt
 </code></pre>
+<p><code>resources/eval/README.md</code> を新しいファイルとその出所/ライセンス（UD ツリーバンクは通常 CC BY-SA 4.0 であり、リポジトリの他の部分の MIT/Apache-2.0 ライセンスとは異なります）で更新してください。モデルのドキュメント（新しい数値が必要なドキュメントページの一覧は手順10を参照）には、<code>litsea train</code> の in-sample の出力ではなく、<code>litsea evaluate</code> から得た held-out の数値を記録してください。</p>
+<h2 id="手順10-テストとドキュメントを追加"><a class="header" href="#手順10-テストとドキュメントを追加">手順10: テストとドキュメントを追加</a></h2>
+<p>この手順はスコープを狭く見積もりがちです: 新しい言語は <code>language.rs</code>/<code>segmenter.rs</code> だけでなく、もっと多くのテストファイルに影響します。以下のチェックリストに沿って確認してください。</p>
+<p><strong>コードテスト:</strong></p>
+<ul>
+<li><code>litsea/src/language.rs</code>: <code>ALL_LANGUAGES</code>（配列サイズを増やす）、<code>test_language_from_str</code>、<code>test_parse_language_error_message</code>（新しい完全なエラー文字列）、<code>test_language_display</code>、および全ての種別コードと共通クラス・「O」のケースをいくつかカバーする新しい <code>test_&lt;language&gt;_char_types</code></li>
+<li><code>litsea/src/packed_model.rs</code>: <code>test_templates_for_language_gating</code>（新しい言語のテンプレート数をアサート）、および <code>test_pack_parse_roundtrip_unique_and_injective</code> と <code>test_dense_index_consistent_with_key_decode</code> にあるハードコードされた2つの言語列挙配列</li>
+<li><code>litsea/src/segmenter.rs</code>: 新しい <code>test_char_type_&lt;language&gt;</code>（既存の言語ごとのテストを踏襲）</li>
+<li><code>litsea/src/word_features.rs</code>: ラウンドトリップのサンプルリストにケースを追加（低コストで、型コードのエンコーディングのバグを早期に検出できる）</li>
+<li><code>litsea-cli/src/main.rs</code>: <code>--language</code> のヘルプ文字列3箇所</li>
+</ul>
+<p><strong>モデルに依存するテスト（先に学習済みモデルが必要）:</strong></p>
+<ul>
+<li><code>litsea/tests/golden.rs</code>: 新しい <code>golden_segment_&lt;language&gt;</code>（POS モデルも学習した場合は <code>golden_segment_with_pos_&lt;language&gt;_two_stage</code> も）。<strong>理想化した出力ではなく、モデルの実際の出力を固定してください</strong> – まず実際の出力を <code>println!</code> で出力するテストを書き、その出力をアサーションにコピーしてから、デバッグ出力を削除します。直後に<strong>サボタージュ検証</strong>を行ってください: 期待値の1つを一時的に間違った値に変更し、テストが RED になることを確認してから、正しい値に戻します。作成時に一度も失敗しなかった golden テストは、何かを守っていることを証明していません</li>
+<li><code>litsea/src/segmenter.rs</code>: packed スコアラーと文字列キーの参照実装を比較する差分テスト（<code>test_segment_differential_&lt;language&gt;_model</code>）、およびモデルが tag-free の場合は <code>segment_into</code> のタイリング/パリティのケース</li>
+<li><code>litsea/benches/bench.rs</code>: 4つの言語ごとのタプルリスト（<code>bench_segment_short</code>、<code>bench_external_corpus</code> の2つのケースリスト、<code>bench_segment_into</code>）すべてに新しい言語を追加します。これには <code>resources/</code> 配下にコーパスファイル（既存の言語ごとのコーパスと同程度のサイズのパブリックドメインのテキスト）が必要です</li>
+<li><code>litsea-cli/tests/cli.rs</code>: CLI の出力をエンドツーエンドで固定する分割のスモークテストを最低1つ</li>
+</ul>
+<p><strong>検証コマンド</strong>（言語の対応が完了したとみなす前に、すべて実行してください）:</p>
+<pre><code class="language-sh">cargo fmt --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
+cargo bench -- external_corpus   # 新しいベンチケースが実行できることを確認し、剪定が必要か判断する
+markdownlint-cli2 "docs/src/**/*.md"
+markdownlint-cli2 "docs/ja/src/**/*.md"
+mdbook build docs
+mdbook build docs/ja
+</code></pre>
+<p><strong>ドキュメント</strong>（本プロジェクトのドキュメント方針に従い、英語のソースを先に、その後 <code>docs/ja/src/</code> 配下の日本語ミラーを更新します）:</p>
+<ul>
+<li>新しい <code>language-support/&lt;language&gt;.md</code> ページ（<a href="english.html">英語</a>または<a href="korean.html">韓国語</a>をテンプレートとして使用）と <code>docs/src/SUMMARY.md</code> のエントリ（および <code>docs/ja/src/SUMMARY.md</code> のミラー）</li>
+<li><code>language-support/overview.md</code> と <code>algorithm/character-type-classification.md</code> – どちらも言語ごとのテーブル/セクションを拡張する必要があります</li>
+<li><code>pre-trained-models.md</code> – 同梱モデルごとのモデルカードに加え、該当する場合は「タグなし（pointwise）モデル」と「二段構成の品詞推定モデル」の比較表</li>
+<li>ルートの <code>README.md</code> と <code>litsea/src/lib.rs</code> のクレートレベルドキュメント</li>
+<li>スイープが完了したとみなす前に <code>grep -rln "&lt;既存の言語名&gt;" docs/src docs/ja/src</code> を実行し、見つかった全ファイルを確認してください – 言語を列挙しているドキュメントは見落としやすいです（本プロジェクト自身の経験: issue #165 はこの確認を一度スキップしてしまい、14 箇所の古い記述が後続の PR でのクリーンアップ待ちになりました）</li>
+</ul>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../language-support/korean.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../language-support/english.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
@@ -333,7 +369,7 @@ fn test_char_type_thai() {
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../language-support/korean.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../language-support/english.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 

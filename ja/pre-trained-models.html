@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-23b67d6c.js";
+            window.path_to_searchindex_js = "searchindex-e08fa082.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-2cf72791.js"></script>
+        <script src="toc-b6b82e2c.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,7 +189,7 @@
 測った <em>in-sample</em> 指標であり、ここに示す held-out の値より高くなる点に注意して
 ください。</p>
 <p><strong>アルゴリズムについての注記</strong>: <code>japanese.model</code>、<code>chinese.model</code>、
-<code>korean.model</code> は 2 クラス（境界／非境界）の Averaged Perceptron として学習した後、
+<code>korean.model</code>、<code>english.model</code> は 2 クラス（境界／非境界）の Averaged Perceptron として学習した後、
 スカラーの特徴量重みへ畳み込んでいます（issue #165）。ファイル自体は従来どおり
 プレーンな AdaBoost テキスト形式のままで、<code>Segmenter::with_learner</code> /
 <code>AdaBoost::load_model_from_path</code> は無変更で動作します。この畳み込みは
@@ -250,6 +250,32 @@ docstring を参照）近似ではありません: この方法で学習した p
 スコアリングパスを丸ごとスキップします（issue #183）。他言語での
 トレードオフは後述の<a href="#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>
 を参照してください。</p>
+<h3 id="englishmodel"><a class="header" href="#englishmodel">english.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>英語</td></tr>
+<tr><td>学習コーパス</td><td>UD English-EWT（空白保持 TSV コーパス）</td></tr>
+<tr><td>エポック数</td><td>20</td></tr>
+<tr><td>特徴量テンプレート</td><td>タグなし（pointwise、issue #183）、WC 特徴量なし</td></tr>
+<tr><td>剪定後の特徴量数</td><td>剪定なし（4,794 特徴量）</td></tr>
+<tr><td>単語 F1（held-out）</td><td>98.31%</td></tr>
+<tr><td>境界 F1（held-out）</td><td>99.18%</td></tr>
+<tr><td>ファイルサイズ</td><td>約 125 KB</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>korean.model</code> と同様に <code>english.model</code> も、元の空白を保持したテキストで
+学習・評価しています（各空白は独立したトークンとして扱い、F1 の計算からは
+除外します）。空白保持の学習プロトコル、複数語トークン（短縮形）の扱い、
+20 エポックとタグなし／WC 特徴量なしの構成を選んだエポックスイープについては
+<a href="language-support/english.html">English</a> を参照してください。英語には短縮形
+（contraction）、ハイフンでつながる複合語、“U.S.” のような略語といった
+境界の曖昧性が残っているため、同じ空白保持レシピを共有していても、
+held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回ります。</p>
 <h3 id="chinesemodel"><a class="header" href="#chinesemodel">chinese.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -354,13 +380,20 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 </thead>
 <tbody>
 <tr><td>韓国語</td><td>99.90%</td><td><strong>99.91%</strong></td><td>高速化（逐次パスをスキップ）</td></tr>
+<tr><td>英語</td><td>98.71%</td><td><strong>98.68%*</strong></td><td>高速化（逐次パスをスキップ）</td></tr>
 <tr><td>日本語</td><td><strong>96.70%</strong></td><td>96.33%</td><td>実測 end-to-end 約 +45〜50%</td></tr>
 <tr><td>中国語</td><td><strong>90.69%</strong></td><td>90.18%</td><td>実測 end-to-end 約 +12%</td></tr>
 </tbody>
 </table>
 </div>
+<p>* 英語の dev split での比較（タグあり 98.71% vs タグなし 98.68%、差は
+0.03pt）はどちらを選んでも大差ない水準であり、同梱モデルは韓国語と同じ
+スループット上の理由からタグなしで出荷しています。上記の <code>english.model</code>
+の held-out テスト分割の数値（98.31%）はスイープの最後に一度だけ計測した
+ものであり、この dev split の対比とは直接比較できません。</p>
 <p>語節間の空白シグナルがある韓国語ではタグ特徴量は何も寄与しないため、
-<code>korean.model</code> はタグなしで同梱しています（サイズも約 22% 減）。
+<code>korean.model</code> はタグなしで同梱しています（サイズも約 22% 減）。英語も
+同じ理由（空白シグナルが支配的であるため）でほぼ同様の状況にあります。
 日本語・中国語ではまだ単語 F1 で 0.37〜0.51pt の価値があるため、
 同梱モデルはタグ特徴量を保持しています – 品質がデフォルトです。
 速度を優先するワークロードでは、上記の手順に extract ステップの
@@ -458,6 +491,41 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 上記の数値は <code>korean.model</code> の 99.91%
 （全く異なるコーパス・プロトコル）とは比較できません – 二段構成が
 優れている/劣っているという結果ではありません。</p>
+<h3 id="english_posmodel"><a class="header" href="#english_posmodel">english_pos.model</a></h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>プロパティ</th><th>値</th></tr>
+</thead>
+<tbody>
+<tr><td>言語</td><td>英語</td></tr>
+<tr><td>学習コーパス</td><td>UD English-EWT（12,544 文、空白非保持の word/POS プロトコル – 下記の注記を参照）</td></tr>
+<tr><td>エポック数</td><td>50</td></tr>
+<tr><td>stage-2 特徴量セット</td><td><code>full</code></td></tr>
+<tr><td>単語 F1（held-out）</td><td>70.33%</td></tr>
+<tr><td>タグ付き単語 F1（held-out）</td><td>65.83%</td></tr>
+<tr><td>スループット</td><td>2.05M chars/s</td></tr>
+<tr><td>ファイルサイズ</td><td>約 3.6 MB</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>英語のプロトコルについての注記 – <code>english.model</code> の 98.31% と比較する前に
+必ずお読みください。</strong> <code>english_pos.model</code> は <code>korean_pos.model</code> と同じ
+空白非保持の <code>word/POS</code> プロトコルで学習・評価しています – これは学習と
+推論のミスマッチではなく、<code>evaluate --pos</code> は学習時と同じ方法で採点して
+います。英語の品質差が韓国語よりはるかに大きい理由（韓国語: 空白なし
+99.90% vs 空白あり 99.91% – ほぼ差がない／英語: 空白なし 70.33% vs
+空白あり 98.31% – 大きな差がある）は、実装上の欠陥ではなく両言語の本質的な
+違いを反映しています: 韓国語は膠着語であり、助詞や語尾変化が文字レベルの
+強い境界手がかりを残すため、すべての空白を除いても単語境界を判定できます。
+一方、英語の正書法にはそうした手がかりがほとんど残らないため、空白のない
+英語のテキスト（例: <code>"thecatsatonthemat"</code>）を分割することは、このモデルの
+特徴量テンプレートにとって本質的にはるかに難しいタスクになります。推論時
+にはモデルは実際の空白付き入力を受け取り、空白は独立したトークンとして
+再出力されます。詳しい説明と実際の（不完全な）出力例は
+<a href="language-support/english.html#english_posmodel">English</a> を参照してください。
+空白保持 TSV プロトコルと二段構成 POS 学習を組み合わせるには、パイプラインが
+現時点でサポートしていない新しいコーパス形式が必要になります。</p>
 <h4 id="使用方法"><a class="header" href="#使用方法">使用方法</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 </code></pre>
@@ -469,10 +537,14 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 <li><strong>日本語</strong>には、最高精度を求める場合は <code>japanese.model</code> を、オリジナルの TinySegmenter との互換性を重視する場合は <code>RWCP.model</code> を使用</li>
 <li><strong>中国語</strong>には <code>chinese.model</code> を使用</li>
 <li><strong>韓国語</strong>には <code>korean.model</code> を使用</li>
+<li><strong>英語</strong>には <code>english.model</code> を使用</li>
 <li><strong>品詞推定</strong>には<strong>二段構成</strong>モデル（<code>japanese_pos.model</code>、
-<code>chinese_pos.model</code>、<code>korean_pos.model</code>）を <code>segment --pos</code> /
-<code>evaluate --pos</code> とともに使用してください（アーキテクチャと実測値は
-<a href="algorithm/two-stage-tagging.html">二段構成タグ付け</a>を参照）。</li>
+<code>chinese_pos.model</code>、<code>korean_pos.model</code>、<code>english_pos.model</code>）を
+<code>segment --pos</code> / <code>evaluate --pos</code> とともに使用してください
+（アーキテクチャと実測値は
+<a href="algorithm/two-stage-tagging.html">二段構成タグ付け</a>を参照。英語については
+特に、<code>english_pos.model</code> の分割品質に頼る前に上記のプロトコルについての
+注記を必ず読んでください）。</li>
 <li><strong>ドメイン固有</strong>の用途には、<a href="training-guide/preparing-corpus.html">独自モデルの学習</a>または既存モデルの<a href="training-guide/retraining-models.html">再学習</a>を検討</li>
 </ul>
 <h2 id="サンプルデータ"><a class="header" href="#サンプルデータ">サンプルデータ</a></h2>
@@ -482,11 +554,14 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 <li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。</li>
 <li><strong>mujeong.txt</strong> – 무정（李光洙、1917）、約 786 KB、ko.wikisource。</li>
 <li><strong>rulin_waishi.txt</strong> – 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。</li>
+<li><strong>pride_and_prejudice.txt</strong> – Pride and Prejudice（Jane Austen）、約 688 KB、Project Gutenberg eBook #1342（ヘッダー・フッター・挿絵キャプションを除去し、1 行 1 段落に整形）。</li>
 </ul>
-<p>後半の 3 つは外部の
+<p><code>wagahaiwa_nekodearu.txt</code>／<code>mujeong.txt</code>／<code>rulin_waishi.txt</code> の 3 つは外部の
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
 のコーパスとバイト同一で、<code>external_corpus</code> ベンチマークグループが使用します
-（<a href="advanced/benchmarking.html">ベンチマーク</a>を参照）。いずれもパブリックドメインです。</p>
+（<a href="advanced/benchmarking.html">ベンチマーク</a>を参照）。<code>pride_and_prejudice.txt</code>
+は同じベンチマークグループの英語のケースに使われますが、この外部ハーネス側
+にはまだ対応するコーパスがありません。いずれもパブリックドメインです。</p>
 
                     </main>
 

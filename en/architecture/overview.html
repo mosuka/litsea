@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -211,7 +211,7 @@
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
 <li><strong>No dictionary dependency</strong> – Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns</li>
-<li><strong>Compact models</strong> – Legacy word-segmentation models (<code>RWCP.model</code>, <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>) are ~16-22 KB; the retrained <code>japanese</code>/<code>chinese</code>/<code>korean.model</code> are ~86 KB-2.0 MB, trading file size for the quality gains documented in <a href="../pre-trained-models.html">Pre-trained Models</a>; two-stage POS models are ~5-8 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
+<li><strong>Compact models</strong> – Legacy word-segmentation models (<code>RWCP.model</code>, <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>) are ~16-22 KB; the retrained <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> are ~86 KB-2.0 MB, trading file size for the quality gains documented in <a href="../pre-trained-models.html">Pre-trained Models</a>; two-stage POS models are ~3.6-8 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
 <li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
 </ul>

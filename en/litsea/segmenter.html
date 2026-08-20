@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -342,7 +342,7 @@ where
 are separated by tab characters, and a token may be a literal space <code>" "</code>.
 This preserves the original spacing of the sentence in the training text so
 the model can learn from space characters as boundary context (used for the
-Korean model; issue #152).</p>
+Korean and English models; issue #152).</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut segmenter = Segmenter::new(Language::Korean);
@@ -358,7 +358,7 @@ pub fn learner_mut(&amp;mut self) -&gt; &amp;mut AdaBoost
 <p>Provide access to the segmenter’s language and its internal learner (for a
 two-stage segmenter, the stage-1 boundary classifier).</p>
 <blockquote>
-<p>Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former <code>get_attributes</code> method is now private.</p>
+<p>Feature extraction for a character position (38 features for Korean/English, 42 for Japanese/Chinese) is an internal detail; the former <code>get_attributes</code> method is now private.</p>
 </blockquote>
 <h2 id="pos-mode-api"><a class="header" href="#pos-mode-api">POS-Mode API</a></h2>
 <p>The segmenter also supports <strong>word segmentation and POS tagging</strong> with a

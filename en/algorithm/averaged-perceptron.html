@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -189,7 +189,7 @@
 <li><strong>1 non-boundary label</strong>: <code>O</code> (continuation of the current word)</li>
 </ul>
 <p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.</p>
-<p>The Averaged Perceptron in 2-class mode (<code>B</code>/<code>O</code> labels only) is what actually trains the bundled <code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> segmentation models before they are losslessly collapsed to the AdaBoost model format for inference – see <a href="../pre-trained-models.html#training-procedure">Pre-trained Models: Training Procedure</a> for the full derivation. The same collapse trains the <a href="two-stage-tagging.html">two-stage architecture</a>’s stage-1 boundary classifier, and the multiclass form is the algorithm behind its stage-2 word-level tagger.</p>
+<p>The Averaged Perceptron in 2-class mode (<code>B</code>/<code>O</code> labels only) is what actually trains the bundled <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> segmentation models before they are losslessly collapsed to the AdaBoost model format for inference – see <a href="../pre-trained-models.html#training-procedure">Pre-trained Models: Training Procedure</a> for the full derivation. The same collapse trains the <a href="two-stage-tagging.html">two-stage architecture</a>’s stage-1 boundary classifier, and the multiclass form is the algorithm behind its stage-2 word-level tagger.</p>
 <h2 id="algorithm"><a class="header" href="#algorithm">Algorithm</a></h2>
 <h3 id="weight-representation"><a class="header" href="#weight-representation">Weight Representation</a></h3>
 <p>The perceptron maintains a <strong>per-class weight vector for each feature</strong>, stored in a single sparse map so that scoring and weight updates need one hashed lookup per feature (not one per feature x class):</p>
@@ -281,7 +281,7 @@ always produces byte-identical files; loading does not depend on the order</li>
 <tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
 <tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>
 <tr><td>Training</td><td>Iterative boosting with sample reweighting</td><td>Online learning with weight averaging</td></tr>
-<tr><td>Model size</td><td>~86 KB-2.0 MB (retrained japanese/chinese/korean.model) / ~16-22 KB (legacy RWCP/JEITA)</td><td>~5-8 MB (two-stage models)</td></tr>
+<tr><td>Model size</td><td>~86 KB-2.0 MB (retrained japanese/chinese/korean/english.model) / ~16-22 KB (legacy RWCP/JEITA)</td><td>~3.6-8 MB (two-stage models)</td></tr>
 <tr><td>Hyperparameters</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>

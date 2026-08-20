@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-45985cea.js";
+            window.path_to_searchindex_js = "../searchindex-c268d644.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-5b909ab7.js"></script>
+        <script src="../toc-f9e282e4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,11 +204,11 @@
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
+<tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--pos</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Extract <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> training features. Requires a POS corpus as input</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td>Stage-2 word-feature set for <code>--pos</code>: <code>full</code> (best quality), <code>balanced</code>, or <code>fast</code> (best throughput)</td></tr>
-<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code> – see <a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--pos</code></td></tr>
+<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code>/<code>english.model</code> – see <a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--pos</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -221,10 +221,12 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 <p>With <code>--format tsv</code>, tokens are separated by tab characters and a token may
 be a literal space <code>" "</code>. This preserves the original spacing of the
 sentence in the training text, which is essential for languages like Korean
-where spaces mark most word boundaries (see
-<a href="../language-support/korean.html">Korean</a>). Generate such a corpus from a UD
+and English where spaces mark most word boundaries (see
+<a href="../language-support/korean.html">Korean</a> and
+<a href="../language-support/english.html">English</a>). Generate such a corpus from a UD
 Treebank with <code>corpus_udtreebank.sh -s</code>:</p>
 <pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
+litsea extract -l english --format tsv --tag-free ./en_corpus.tsv ./en_features.txt
 </code></pre>
 <h2 id="output-format"><a class="header" href="#output-format">Output Format</a></h2>
 <p>The features file contains one line per character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>
@@ -245,6 +247,9 @@ litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
 
 # Korean
 litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+
+# English
+litsea extract -l en ./corpus_en.txt ./features_en.txt
 </code></pre>
 <p>Output to stderr on success:</p>
 <pre><code class="language-text">Feature extraction completed successfully.
