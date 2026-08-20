@@ -42,14 +42,10 @@ These characters appear overwhelmingly in grammatical roles and signal word boun
 - **Word F1 (held-out)**: 90.69%
 - **Boundary F1 (held-out)**: 95.64%
 
-### chinese_pos.model
-
-- **Algorithm**: Averaged Perceptron (joint segmentation + POS tagging)
-- **Details**: see [Pre-trained Models](../pre-trained-models.md#chinese_posmodel)
-
 ### chinese_two_stage.model
 
-- **Algorithm**: two-stage segmentation + POS tagging (faster than the joint model, same output shape)
+- **Algorithm**: two-stage segmentation + POS tagging (a binary boundary
+  classifier plus a word-level tagger with a candidate-tag lexicon)
 - **Details**: see [Pre-trained Models](../pre-trained-models.md#chinese_two_stagemodel)
 
 ## Example

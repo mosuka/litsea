@@ -8,24 +8,23 @@ The `Segmenter` struct is the primary interface for word segmentation.
 pub struct Segmenter {
     // private: language: Language,
     // private: learner: AdaBoost,
-    // private: pos_learner: Option<AveragedPerceptron>,
     // private: two_stage: Option<PackedTwoStageModel> (compiled stage-2 model)
-    // internal: packed / packed_pos caches (see below)
+    // internal: packed cache (see below)
 }
 ```
 
-The fields are private; use the accessor methods `language()`, `learner()`, `learner_mut()`, `pos_learner()`, and `pos_learner_mut()` to reach them.
+The fields are private; use the accessor methods `language()`, `learner()`, and `learner_mut()` to reach them.
 
-Besides these, the struct also holds `packed` and `packed_pos`:
-lazily-rebuilt caches of the learners' weights compiled into the
-integer-indexed tables `segment()` / `segment_with_pos()` score against
+Besides these, the struct also holds `packed`: a lazily-rebuilt cache of
+the learner's weights compiled into the integer-indexed tables `segment()`
+scores against
 (see [Prediction Pipeline](../algorithm/prediction-pipeline.md#the-compiled-scoring-tables)).
-They are internal implementation detail with no accessors of their own,
-invalidated automatically whenever the corresponding learner is mutated.
+It is internal implementation detail with no accessor of its own,
+invalidated automatically whenever the learner is mutated.
 `two_stage` holds the compiled stage-2 tagging model set by
 [`with_two_stage_learner`](#with_two_stage_learner) (see below); it is
 `None` unless the segmenter was built from a two-stage model. Unlike the
-caches it is not derived from a retained learner — the raw stage-2 parts
+cache it is not derived from a retained learner — the raw stage-2 parts
 are dropped after compilation and there is no mutation path for it.
 
 ## Constructors
@@ -38,9 +37,10 @@ pub fn new(language: Language) -> Self
 
 Creates a segmenter with a default (untrained) `AdaBoost` learner — suitable
 for training or feature extraction. Until a model is loaded or training data
-is added, `segment` returns one word per character. The POS learner is left
-unset; `segment_with_pos` returns `Err(LitseaError::PosLearnerNotSet)` — use
-[`with_pos_learner`](#pos-mode-api) for joint segmentation + POS tagging.
+is added, `segment` returns one word per character. No two-stage model is
+set; `segment_with_pos` returns `Err(LitseaError::PosLearnerNotSet)` — use
+[`with_two_stage_learner`](#with_two_stage_learner) for segmentation + POS
+tagging.
 
 ### `Segmenter::with_learner`
 
@@ -197,57 +197,17 @@ segmenter.add_corpus_tsv("나는\t \t고양이");
 pub fn language(&self) -> Language
 pub fn learner(&self) -> &AdaBoost
 pub fn learner_mut(&mut self) -> &mut AdaBoost
-pub fn pos_learner(&self) -> Option<&AveragedPerceptron>
-pub fn pos_learner_mut(&mut self) -> Option<&mut AveragedPerceptron>
 ```
 
-Provide access to the segmenter's language and its internal learners.
+Provide access to the segmenter's language and its internal learner (for a
+two-stage segmenter, the stage-1 boundary classifier).
 
 > Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former `get_attributes` method is now private.
 
 ## POS-Mode API
 
-The segmenter also supports **joint word segmentation and POS tagging** with
-an Averaged Perceptron model.
-
-### `with_pos_learner`
-
-```rust
-pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -> Self
-```
-
-Creates a segmenter configured for joint segmentation + POS tagging.
-
-### `segment_with_pos`
-
-```rust
-pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>>
-```
-
-Segments a sentence and jointly predicts each word's UPOS tag. The
-prediction at the first character position determines the first word's POS.
-An empty sentence yields `Ok` with an empty vector.
-
-**Errors** with `LitseaError::PosLearnerNotSet` if neither a POS learner nor
-a two-stage learner is set — build the segmenter with `with_pos_learner()`
-or `with_two_stage_learner()`, or register training data with
-`add_corpus_with_pos()` first.
-
-```rust
-use std::path::Path;
-
-use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
-use litsea::segmenter::Segmenter;
-
-let mut pos_learner = AveragedPerceptron::new();
-pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
-
-let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-let tokens = segmenter.segment_with_pos("これはテストです。")?;
-// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
-//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
-```
+The segmenter also supports **word segmentation and POS tagging** with a
+two-stage model (issue #147).
 
 ### `with_two_stage_learner`
 
@@ -262,19 +222,37 @@ naturally), and `segment_with_pos` tags each segmented word through the
 candidate-tag lexicon — single-candidate and dominant surfaces skip the
 classifier entirely — with the stage-2 word-level tagger deciding ambiguous
 surfaces (candidate-masked argmax) and unknown surfaces (full argmax over
-all classes). The `segment_with_pos` signature and return type are
-identical to the joint mode; only the model type selects the pipeline. See
-[Model File Format](../advanced/model-file-format.md) for the two-stage
-format.
+all classes). See [Model File Format](../advanced/model-file-format.md) for
+the two-stage format.
 
-### `add_corpus_with_pos`
+### `segment_with_pos`
 
 ```rust
-pub fn add_corpus_with_pos(&mut self, corpus: &str)
+pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>>
 ```
 
-Adds a POS-tagged corpus (`word/POS word/POS ...`) as Averaged Perceptron
-training data, creating the POS learner on first use.
+Segments a sentence with the stage-1 boundary classifier (exactly as
+`segment`) and tags each word with its UPOS tag through the two-stage
+tagging path. An empty sentence yields `Ok` with an empty vector.
+
+**Errors** with `LitseaError::PosLearnerNotSet` if no two-stage learner is
+set — build the segmenter with `with_two_stage_learner()` first.
+
+```rust
+use std::path::Path;
+
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
+let tokens = segmenter.segment_with_pos("これはテストです。")?;
+// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
+//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
+```
 
 ### `add_corpus_with_pos_writer`
 
@@ -284,6 +262,7 @@ where
     F: FnMut(HashSet<String>, SegmentLabel)
 ```
 
-Streams the POS training features for each character position (including
-the first one) to a custom writer, without mutating the segmenter. This is
-what `Extractor::extract_with_pos` builds on.
+Streams the character-level training features of a POS-tagged corpus
+(`word/POS word/POS ...`), including the first position, to a custom
+writer, without mutating the segmenter. This is what
+`Extractor::extract_two_stage` builds its stage-1 boundary features on.

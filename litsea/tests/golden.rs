@@ -1,18 +1,17 @@
 //! Golden tests: snapshot the segmentation output of every pre-trained
-//! model in `models/` — the AdaBoost-format segmentation models, the joint
-//! Averaged Perceptron POS models, and the two-stage models — so that
-//! refactoring can be verified to preserve behavior.
+//! model in `models/` — the AdaBoost-format segmentation models and the
+//! two-stage models — so that refactoring can be verified to preserve
+//! behavior.
 //!
 //! These snapshots capture the current behavior of the bundled models. If a
-//! behavior change is intentional (e.g. fixing the first-word POS handling
-//! or retraining a model), update the affected expectations in the same PR
-//! and call the change out explicitly in the PR description.
+//! behavior change is intentional (e.g. retraining a model), update the
+//! affected expectations in the same PR and call the change out explicitly
+//! in the PR description.
 
 use std::path::PathBuf;
 
 use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
 use litsea::two_stage::TwoStageLearner;
 use litsea::upos::Upos;
@@ -27,14 +26,6 @@ fn adaboost_segmenter(language: Language, model: &str) -> Segmenter {
         .load_model_from_path(&model_path(model))
         .unwrap_or_else(|e| panic!("failed to load {}: {}", model, e));
     Segmenter::with_learner(language, learner)
-}
-
-fn pos_segmenter(language: Language, model: &str) -> Segmenter {
-    let mut learner = AveragedPerceptron::new();
-    learner
-        .load_model_from_path(&model_path(model))
-        .unwrap_or_else(|e| panic!("failed to load {}: {}", model, e));
-    Segmenter::with_pos_learner(language, learner)
 }
 
 fn two_stage_segmenter(language: Language, model: &str) -> Segmenter {
@@ -169,209 +160,18 @@ fn golden_segment_korean() {
 }
 
 // ---------------------------------------------------------------------------
-// Joint segmentation + POS tagging (Averaged Perceptron models)
-//
-// Note: until refactoring Phase 2, the first word of every sentence was
-// tagged "X" because segment_with_pos() never used the prediction at the
-// first character position. It now derives the first word's POS from that
-// prediction; these expectations reflect the fixed behavior.
-//
-// The POS models were retrained for #100 so that the training data also
-// covers the first character position (previously never emitted, leaving
-// sentence-initial sentinel features untrained). These expectations are
-// snapshots of the retrained models' outputs.
-// ---------------------------------------------------------------------------
-
-#[test]
-fn golden_segment_with_pos_japanese() {
-    let segmenter = pos_segmenter(Language::Japanese, "japanese_pos.model");
-    assert_segment_with_pos(
-        &segmenter,
-        &[
-            (
-                "これはテストです。",
-                &[
-                    ("これ", "PRON"),
-                    ("は", "ADP"),
-                    ("テスト", "NOUN"),
-                    ("です", "AUX"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-            (
-                "私の猫は可愛い。",
-                &[
-                    ("私", "PRON"),
-                    ("の", "ADP"),
-                    ("猫", "NOUN"),
-                    ("は", "ADP"),
-                    ("可愛い", "ADJ"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-            (
-                "東京都に住んでいます。",
-                &[
-                    ("東京", "PROPN"),
-                    ("都", "NOUN"),
-                    ("に", "ADP"),
-                    ("住ん", "VERB"),
-                    ("で", "SCONJ"),
-                    ("い", "VERB"),
-                    ("ます", "AUX"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-            ("字", &[("字", "NOUN")]),
-            ("こんにちは", &[("こん", "PRON"), ("にち", "ADP"), ("は", "ADP")]),
-            (
-                "価格は1000円です。",
-                &[
-                    ("価格", "NOUN"),
-                    ("は", "ADP"),
-                    ("1000", "NUM"),
-                    ("円", "NOUN"),
-                    ("です", "AUX"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-            (
-                "RustでNLPを実装する。",
-                &[
-                    ("Rust", "NOUN"),
-                    ("で", "ADP"),
-                    ("NLP", "PROPN"),
-                    ("を", "ADP"),
-                    ("実装", "VERB"),
-                    ("する", "AUX"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-        ],
-    );
-    assert!(segmenter.segment_with_pos("").expect("POS learner is set").is_empty());
-}
-
-#[test]
-fn golden_segment_with_pos_chinese() {
-    let segmenter = pos_segmenter(Language::Chinese, "chinese_pos.model");
-    assert_segment_with_pos(
-        &segmenter,
-        &[
-            (
-                "这是一个测试。",
-                &[
-                    ("这", "VERB"),
-                    ("是", "AUX"),
-                    ("一", "NUM"),
-                    ("个", "NOUN"),
-                    ("测试", "NOUN"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-            (
-                "我喜欢吃中国菜。",
-                &[
-                    ("我喜", "PRON"),
-                    ("欢吃", "NOUN"),
-                    ("中国", "ADP"),
-                    ("菜", "PART"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-            (
-                "他在北京工作。",
-                &[
-                    ("他", "PRON"),
-                    ("在", "ADP"),
-                    ("北京", "PROPN"),
-                    ("工作", "NOUN"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-            ("好", &[("好", "PROPN")]),
-            (
-                "2024年的春天。",
-                &[
-                    ("2024", "NUM"),
-                    ("年", "NOUN"),
-                    ("的", "PART"),
-                    ("春天", "NOUN"),
-                    ("。", "PUNCT"),
-                ],
-            ),
-        ],
-    );
-    assert!(segmenter.segment_with_pos("").expect("POS learner is set").is_empty());
-}
-
-#[test]
-fn golden_segment_with_pos_korean() {
-    let segmenter = pos_segmenter(Language::Korean, "korean_pos.model");
-    assert_segment_with_pos(
-        &segmenter,
-        &[
-            (
-                "이것은 테스트입니다.",
-                &[
-                    ("이", "PRON"),
-                    ("것은", "NOUN"),
-                    (" ", "PUNCT"),
-                    ("테스트입니다", "NOUN"),
-                    (".", "PUNCT"),
-                ],
-            ),
-            (
-                "나는 고양이를 좋아한다.",
-                &[
-                    ("나는", "PRON"),
-                    (" ", "PUNCT"),
-                    ("고양이를", "NOUN"),
-                    (" ", "PUNCT"),
-                    ("좋아한다", "ADJ"),
-                    (".", "PUNCT"),
-                ],
-            ),
-            (
-                "한국어 형태소 분석기.",
-                &[
-                    ("한국어", "NOUN"),
-                    (" ", "PUNCT"),
-                    ("형태소", "NOUN"),
-                    (" ", "PUNCT"),
-                    ("분석기", "NOUN"),
-                    (".", "PUNCT"),
-                ],
-            ),
-            ("글", &[("글", "NOUN")]),
-            (
-                "2024년 봄.",
-                &[("2024년", "NOUN"), (" ", "PUNCT"), ("봄", "NOUN"), (".", "PUNCT")],
-            ),
-        ],
-    );
-    assert!(segmenter.segment_with_pos("").expect("POS learner is set").is_empty());
-}
-
-// ---------------------------------------------------------------------------
 // Two-stage segmentation + POS tagging (issue #147)
 //
-// These use the same sentences as the joint tests above so the two
-// architectures' outputs can be compared side by side. They are genuinely
-// different pipelines, not a reimplementation of the same one: stage 1
-// segments with a binary boundary classifier, then stage 2 tags each word
-// through the candidate-tag lexicon (skipping the classifier entirely for
-// single-candidate and dominance-dominant surfaces). Divergences from the
-// joint snapshots above are therefore expected.
+// Stage 1 segments with a binary boundary classifier, then stage 2 tags
+// each word through the candidate-tag lexicon (skipping the classifier
+// entirely for single-candidate and dominance-dominant surfaces).
 //
-// These are snapshots of current behavior, not of correct behavior: both
-// architectures get things wrong, and often in different places. Chinese
+// These are snapshots of current behavior, not of correct behavior. Chinese
 // "我喜欢吃中国菜。" (gold: 我 / 喜欢 / 吃 / 中国 / 菜) is the clearest
-// case — two-stage recovers the first three tokens that joint mangles into
-// "我喜"/"欢吃", but then splits "中国" as "中"/"国菜", where "国菜" is not
-// a word (UD Chinese-GSD tokenizes 中國 as one token throughout). Joint
-// gets that tail right and the head wrong. Neither is a target to converge
-// on; when a model is retrained, re-derive these from its actual output.
+// case — the model recovers the first three tokens but splits "中国" as
+// "中"/"国菜", where "国菜" is not a word (UD Chinese-GSD tokenizes 中國 as
+// one token throughout). The snapshots are not a target to converge on;
+// when a model is retrained, re-derive them from its actual output.
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -504,9 +304,9 @@ fn golden_segment_with_pos_chinese_two_stage() {
 #[test]
 fn golden_segment_with_pos_korean_two_stage() {
     // Note: korean_two_stage.model is trained on the unspaced `word/POS`
-    // corpus (like korean_pos.model), not the space-preserving TSV corpus
-    // korean.model uses. Inference still receives the spaced text as-is, so
-    // spaces surface as their own tokens here.
+    // corpus, not the space-preserving TSV corpus korean.model uses.
+    // Inference still receives the spaced text as-is, so spaces surface as
+    // their own tokens here.
     let segmenter = two_stage_segmenter(Language::Korean, "korean_two_stage.model");
     assert_segment_with_pos(
         &segmenter,
@@ -572,31 +372,6 @@ fn roundtrip_adaboost_model() {
             seg_original.segment(s),
             seg_reloaded.segment(s),
             "round-tripped AdaBoost model diverged on {:?}",
-            s
-        );
-    }
-}
-
-#[test]
-fn roundtrip_perceptron_model() {
-    let sentences = ["これはテストです。", "私の猫は可愛い。", "価格は1000円です。"];
-
-    let mut original = AveragedPerceptron::new();
-    original.load_model_from_path(&model_path("japanese_pos.model")).unwrap();
-
-    let temp = tempfile::NamedTempFile::new().unwrap();
-    original.save_model(temp.path()).unwrap();
-
-    let mut reloaded = AveragedPerceptron::new();
-    reloaded.load_model_from_path(temp.path()).unwrap();
-
-    let seg_original = Segmenter::with_pos_learner(Language::Japanese, original);
-    let seg_reloaded = Segmenter::with_pos_learner(Language::Japanese, reloaded);
-    for s in sentences {
-        assert_eq!(
-            seg_original.segment_with_pos(s).expect("POS learner is set"),
-            seg_reloaded.segment_with_pos(s).expect("POS learner is set"),
-            "round-tripped Perceptron model diverged on {:?}",
             s
         );
     }

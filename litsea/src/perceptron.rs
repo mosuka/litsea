@@ -1,18 +1,16 @@
-//! Multiclass Averaged Perceptron, used for joint segmentation + POS tagging
-//! and, in 2-class mode, as both stages of the two-stage architecture
-//! (issue #147).
+//! Multiclass Averaged Perceptron, the training-side learner behind both
+//! stages of the two-stage architecture (issue #147) and the bundled
+//! segmentation models' collapse recipe.
 //!
 //! Defines [`AveragedPerceptron`]: training with weight averaging,
-//! text-format model I/O, and training-set metrics. In joint mode its
-//! weights back
-//! [`Segmenter::segment_with_pos`](crate::segmenter::Segmenter::segment_with_pos)
-//! through the packed POS tables compiled in `crate::packed_pos_model`. In
-//! the two-stage architecture it also serves as the stage-1 boundary
-//! classifier (`TwoStageTrainer`, trained here but collapsed into an
+//! text-format model I/O, and training-set metrics. In the two-stage
+//! architecture it serves as the stage-1 boundary classifier
+//! (`TwoStageTrainer`, trained here but collapsed into an
 //! [`AdaBoost`](crate::adaboost::AdaBoost) before inference — see
 //! `crate::trainer`'s module docs) and as the stage-2 word tagger (whose
-//! weights back `crate::packed_two_stage::PackedTwoStageModel` directly, the
-//! same way joint mode uses `packed_pos_model`).
+//! weights back `crate::packed_two_stage::PackedTwoStageModel`). The same
+//! collapse (via `PerceptronTrainer` + `scripts/collapse_binary_perceptron.py`)
+//! produces the bundled AdaBoost-format segmentation models (issue #165).
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -21,9 +19,8 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 // Internal weight maps use FxHashMap: keys are internally generated feature
-// strings (no HashDoS exposure). Since the packed POS scorer (issue #143),
-// segment_with_pos() inference performs no per-key string probing (that
-// survives only in the test-only reference path); the map is hashed during
+// strings (no HashDoS exposure). Inference performs no per-key string
+// probing (it goes through compiled packed tables); the map is hashed during
 // training, model I/O, and packed-table compilation, where FxHash beats the
 // default SipHash.
 use rustc_hash::FxHashMap;
@@ -76,15 +73,14 @@ impl FeatureSlot {
 ///
 /// Weights are stored in a feature -> per-class vector layout, so one hashed
 /// lookup yields the weights of every class at once. Production inference
-/// goes through packed tables compiled from these weights: `crate::packed_pos_model`
-/// for joint segmentation + POS tagging, and `crate::packed_two_stage::PackedTwoStageModel`
-/// for the two-stage architecture's stage-2 word tagger. The two-stage
-/// stage-1 boundary classifier is also trained as an `AveragedPerceptron`
-/// (with two classes, `B`/`O`), but its weights are losslessly collapsed
-/// into an [`AdaBoost`](crate::adaboost::AdaBoost) before inference, so
-/// stage 1 does not go through either packed perceptron path. The
-/// string-keyed prediction here serves training and the test-only reference
-/// path.
+/// goes through packed tables compiled from these weights:
+/// `crate::packed_two_stage::PackedTwoStageModel` for the two-stage
+/// architecture's stage-2 word tagger. The two-stage stage-1 boundary
+/// classifier is also trained as an `AveragedPerceptron` (with two classes,
+/// `B`/`O`), but its weights are losslessly collapsed into an
+/// [`AdaBoost`](crate::adaboost::AdaBoost) before inference, so stage 1 does
+/// not go through the packed perceptron path. The string-keyed prediction
+/// here serves training.
 #[derive(Debug)]
 pub struct AveragedPerceptron {
     /// Per-feature training state: slots\[feature\] holds the live weights,
@@ -221,9 +217,8 @@ impl AveragedPerceptron {
     /// Iterates over every known feature and its per-class weight row (row
     /// entries are in class-index order, parallel to
     /// [`class_names`](Self::class_names)). Internal accessor used to compile
-    /// the packed POS scoring tables (`crate::packed_pos_model::PackedPosModel`
-    /// and `crate::packed_two_stage::PackedTwoStageModel`), and by
-    /// `crate::trainer`'s `collapse_boundary_perceptron` to derive the
+    /// the packed tagging tables (`crate::packed_two_stage::PackedTwoStageModel`),
+    /// and by `crate::trainer`'s `collapse_boundary_perceptron` to derive the
     /// two-stage stage-1 boundary model's per-feature AdaBoost weights.
     pub(crate) fn feature_class_weights(&self) -> impl Iterator<Item = (&str, &[f64])> + '_ {
         self.slots.iter().map(|(feat, slot)| (feat.as_str(), slot.w.as_slice()))
@@ -231,11 +226,11 @@ impl AveragedPerceptron {
 
     /// Returns the known class names in sorted order (the class-index order
     /// used by every per-class weight row and by prediction tie-breaking).
-    /// Internal accessor for the packed POS scoring tables
-    /// (`crate::packed_pos_model` and `crate::packed_two_stage`) and, in
-    /// `crate::trainer`, for `collapse_boundary_perceptron`'s `B`/`O` class
-    /// lookup and `TwoStageTrainer::new`'s validation that the stage-1
-    /// features file has only boundary labels.
+    /// Internal accessor for the packed tagging tables
+    /// (`crate::packed_two_stage`) and, in `crate::trainer`, for
+    /// `collapse_boundary_perceptron`'s `B`/`O` class lookup and
+    /// `TwoStageTrainer::new`'s validation that the stage-1 features file
+    /// has only boundary labels.
     pub(crate) fn class_names(&self) -> &[String] {
         &self.classes
     }

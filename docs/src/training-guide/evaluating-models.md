@@ -98,7 +98,7 @@ If accuracy is unsatisfactory, consider:
 5. **Retraining** -- Start from an existing model and train with additional data (see [Retraining Models](retraining-models.md))
 
 The threshold/iteration tuning above applies to plain AdaBoost training
-(`litsea train` without `--pos`/`--two-stage`). The bundled models' own
+(`litsea train` without `--perceptron`/`--two-stage`). The bundled models' own
 +5-13pt held-out quality gains over plain AdaBoost did not come from
 tuning `-t`/`-i` -- they came from training a 2-class Averaged Perceptron
 and collapsing it losslessly to AdaBoost weights instead. If you are

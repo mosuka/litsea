@@ -105,32 +105,37 @@ async fn main() -> litsea::Result<()> {
 }
 ```
 
-## PosTrainer
+## PerceptronTrainer
 
-`PosTrainer` is the POS-model counterpart of `Trainer`: it trains an
-**Averaged Perceptron** for joint word segmentation and POS tagging from a
-POS features file (produced by `litsea extract --pos`).
+`PerceptronTrainer` is the generic Averaged Perceptron counterpart of
+`Trainer`: it trains a multiclass **Averaged Perceptron** over opaque
+string labels from a features file (`litsea train --perceptron`). Its main
+use is training the 2-class (`B`/`O`) boundary perceptron that the collapse
+recipe (see [Pre-trained
+Models](../pre-trained-models.md#training-procedure)) turns into the
+bundled AdaBoost-format segmentation models.
 
-### `PosTrainer::new`
+### `PerceptronTrainer::new`
 
 ```rust
 pub fn new(num_epochs: usize, features_path: &Path) -> litsea::Result<Self>
 ```
 
-Reads the features file (each line is `label\tfeature1\tfeature2\t...`, where
-labels are `SegmentLabel` strings such as `B-NOUN` or `O`) and registers the
-training instances.
+Reads the features file (each line is `label\tfeature1\tfeature2\t...`,
+where labels are opaque strings, e.g. the boundary labels `B`/`O`) and
+registers the training instances.
 
-### `PosTrainer::load_model`
+### `PerceptronTrainer::load_model`
 
 ```rust
 pub async fn load_model(&mut self, model_uri: &str) -> litsea::Result<()>
 ```
 
-Loads an existing POS model for incremental training. Classes already
-registered from the training data are merged with the model's classes.
+Loads an existing perceptron model for incremental training. Classes
+already registered from the training data are merged with the model's
+classes.
 
-### `PosTrainer::train`
+### `PerceptronTrainer::train`
 
 ```rust
 pub fn train(
@@ -148,13 +153,13 @@ flag enables graceful interruption, like `Trainer::train`.
 use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
-use litsea::trainer::PosTrainer;
+use litsea::trainer::PerceptronTrainer;
 
 #[tokio::main]
 async fn main() -> litsea::Result<()> {
-    let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
+    let mut trainer = PerceptronTrainer::new(10, Path::new("./features.txt"))?;
     let running = AtomicBool::new(true);
-    let metrics = trainer.train(&running, Path::new("./japanese_pos.model"))?;
+    let metrics = trainer.train(&running, Path::new("./perceptron.model"))?;
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }
@@ -215,7 +220,7 @@ pub fn train(
 ) -> litsea::Result<TwoStageMetrics>
 ```
 
-Unlike `Trainer::train` and `PosTrainer::train`, this method takes `self`
+Unlike `Trainer::train` and `PerceptronTrainer::train`, this method takes `self`
 by value (it consumes the trainer). It trains both stages as Averaged
 Perceptrons for `num_epochs` epochs each, collapses stage 1 to AdaBoost
 weights, assembles the two stages with the lexicon into a
@@ -253,5 +258,6 @@ pub struct TwoStageMetrics {
 The in-sample metrics of a `TwoStageTrainer::train` run. `stage1` measures
 the boundary classifier over its two classes (`B`/`O`); `stage2` measures
 the word-level tagger over the UPOS tag classes. Both fields are
-`MulticlassMetrics` -- the same type [`PosTrainer::train`](#postrainer)
-returns above, exposing accuracy plus macro-averaged precision and recall.
+`MulticlassMetrics` -- the same type
+[`PerceptronTrainer::train`](#perceptrontrainer) returns above, exposing
+accuracy plus macro-averaged precision and recall.

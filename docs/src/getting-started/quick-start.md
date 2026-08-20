@@ -33,11 +33,11 @@ echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./
 
 ### POS Tagging
 
-Litsea can perform joint word segmentation and POS tagging using a POS model. Add the `--pos` flag to the `segment` command:
+Litsea can perform word segmentation and POS tagging using a [two-stage](../algorithm/two-stage-tagging.md) model. Add the `--pos` flag to the `segment` command:
 
 ```sh
 echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
 ```
 
 Output:
@@ -47,17 +47,6 @@ Output:
 ```
 
 Each token is annotated with a [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tag.
-
-### Two-Stage POS Tagging
-
-Litsea also ships a faster [two-stage](../algorithm/two-stage-tagging.md) POS tagging architecture. The CLI auto-detects the model kind from the file, so the command is identical to the joint example above except for the model filename:
-
-```sh
-echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
-```
-
-Output is the same shape as the joint example. [Pre-trained Models](../pre-trained-models.md#choosing-a-model) recommends the two-stage models for new work.
 
 ## Library Quick Start
 
@@ -95,16 +84,16 @@ Here is a minimal Rust program that loads a POS model and segments text with POS
 use std::path::Path;
 
 use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
 
 fn main() -> litsea::Result<()> {
-    // Load the pre-trained POS model
-    let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+    // Load the pre-trained two-stage POS model
+    let mut learner = TwoStageLearner::new();
+    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
 
     // Create a segmenter with POS support
-    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
 
     // Segment text with POS tags
     let tokens = segmenter.segment_with_pos("今日はいい天気ですね。")?;

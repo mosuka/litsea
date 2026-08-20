@@ -2,9 +2,9 @@
 
 The `two_stage` module defines the `litsea-two-stage v1` model container
 (`TwoStageLearner`), the stage-2 feature-set selector (`TwoStageFeatureSet`),
-and the auto-detecting POS-model loader (`AnyPosModel` / `ModelKind`). See
-[Two-Stage vs. Joint Tagging](../algorithm/two-stage-tagging.md) for the
-architecture and measured quality/speed comparison, and
+and the model-kind detector (`ModelKind`). See
+[Two-Stage Tagging](../algorithm/two-stage-tagging.md) for the
+architecture and measured quality/speed figures, and
 [`TwoStageTrainer`](trainer.md#twostagetrainer) for training a model from
 scratch.
 
@@ -125,7 +125,7 @@ Implements `FromStr` (case-insensitive: `"full"`, `"balanced"`, `"fast"`) and
 `Display` (lowercase). Marked `#[non_exhaustive]` — external `match`
 expressions need a wildcard arm.
 
-## `AnyPosModel` and `ModelKind`
+## `ModelKind`
 
 ```rust
 pub enum ModelKind {
@@ -133,36 +133,19 @@ pub enum ModelKind {
     AveragedPerceptron,
     TwoStage,
 }
-
-pub enum AnyPosModel {
-    Joint(Box<AveragedPerceptron>),
-    TwoStage(Box<TwoStageLearner>),
-}
 ```
 
 `ModelKind::detect(content: &str) -> ModelKind` inspects a model file's
 first line to identify its format — a dispatch heuristic, not full
-validation; the matching loader still validates the content.
+validation. `AdaBoost` is the plain segmentation format (also the format of
+a collapsed two-stage stage 1); `AveragedPerceptron` is a standalone
+perceptron file (the output of `train --perceptron` and the payload format
+of the `[stage2]` section — this was the removed joint POS model format,
+and is not loadable as a POS model); `TwoStage` is the `litsea-two-stage`
+container.
 
-`AnyPosModel::load(uri: &str) -> Result<Self>` is the single-fetch entry
-point for code that accepts either a joint or a two-stage POS model (this is
-what `litsea segment --pos` and `litsea evaluate --pos` use): it fetches the
-model bytes once, detects the kind, and parses with the matching loader.
-Returns `LitseaError::InvalidData` if the file is a plain AdaBoost
-segmentation model (which cannot tag), if the bytes aren't valid UTF-8, or if
-the detected format fails to parse.
-
-`AnyPosModel::into_segmenter(self, language: Language) -> Segmenter` builds
-the matching `Segmenter` — `with_pos_learner` for `Joint`,
-`with_two_stage_learner` for `TwoStage` — so callers don't need to branch on
-the model kind themselves:
-
-```rust
-use litsea::language::Language;
-use litsea::two_stage::AnyPosModel;
-
-let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
-let segmenter = model.into_segmenter(Language::Japanese);
-let tagged = segmenter.segment_with_pos("これはテストです。")?;
-// Works identically whether the file was a joint or two-stage model.
-```
+Wrong-kind files get precise errors from `TwoStageLearner`'s loaders:
+pointing them at a standalone Averaged Perceptron file fails with "joint
+POS models are no longer supported — retrain with `litsea train
+--two-stage`", and any other non-two-stage content fails with a
+missing-magic-line error.

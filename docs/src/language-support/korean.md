@@ -90,16 +90,12 @@ Models](../pre-trained-models.md#tag-free-pointwise-models).
 Held-out metrics are computed on the original spaced text with space tokens
 excluded from scoring.
 
-### korean_pos.model
-
-- **Algorithm**: Averaged Perceptron (joint segmentation + POS tagging)
-- **Details**: see [Pre-trained Models](../pre-trained-models.md#korean_posmodel)
-
 ### korean_two_stage.model
 
-- **Algorithm**: two-stage segmentation + POS tagging (faster than the joint model, same output shape)
+- **Algorithm**: two-stage segmentation + POS tagging (a binary boundary
+  classifier plus a word-level tagger with a candidate-tag lexicon)
 - **Note**: unlike `korean.model` above, this model is trained on the
-  *unspaced* `word/POS` corpus (the same protocol as `korean_pos.model`),
+  *unspaced* `word/POS` corpus,
   not the space-preserving protocol described on this page
 - **Details**: see [Pre-trained Models](../pre-trained-models.md#korean_two_stagemodel)
 

@@ -72,16 +72,11 @@ held-out 指標は、空白トークンをスコアリングから除外した�
 [タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)
 を参照してください。
 
-### korean_pos.model
-
-- **アルゴリズム**: Averaged Perceptron（単語分割と品詞推定の同時学習）
-- **詳細**: [事前学習済みモデル](../pre-trained-models.md#korean_posmodel)を参照
-
 ### korean_two_stage.model
 
-- **アルゴリズム**: 二段構成の単語分割＋品詞推定（joint モデルより高速で出力形式は同じ）
+- **アルゴリズム**: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）
 - **注記**: 上記の `korean.model` とは異なり、このモデルは空白非保持の
-  `word/POS` コーパス（`korean_pos.model` と同じプロトコル）で学習されており、
+  `word/POS` コーパスで学習されており、
   このページで説明している空白保持プロトコルは使用していません
 - **詳細**: [事前学習済みモデル](../pre-trained-models.md#korean_two_stagemodel)を参照
 

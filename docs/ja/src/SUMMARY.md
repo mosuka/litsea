@@ -17,7 +17,7 @@
 - [特徴量抽出](algorithm/feature-extraction.md)
 - [文字種分類](algorithm/character-type-classification.md)
 - [予測パイプライン](algorithm/prediction-pipeline.md)
-- [二段構成 vs Joint タグ付け](algorithm/two-stage-tagging.md)
+- [二段構成タグ付け](algorithm/two-stage-tagging.md)
 
 # 言語サポート
 

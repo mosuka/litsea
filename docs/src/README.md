@@ -2,15 +2,14 @@
 
 **Litsea** is an extremely compact word segmentation library implemented in Rust, inspired by [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) and [TinySegmenterMaker](https://github.com/shogo82148/TinySegmenterMaker).
 
-Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the **AdaBoost binary classification** algorithm. Litsea also supports **joint word segmentation and POS (Part-of-Speech) tagging** using the **Averaged Perceptron** multiclass classifier with the [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tagset.
+Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the **AdaBoost binary classification** algorithm. Litsea also supports **word segmentation and POS (Part-of-Speech) tagging** with the [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tagset via a two-stage architecture.
 
 ## Key Features
 
 - **Fast and safe Rust implementation** -- built with Rust's safety guarantees and performance
 - **Compact pre-trained models** -- the legacy `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` files are kilobyte-scale; the quality-optimized `japanese`/`chinese`/`korean.model` files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP
 - **No dictionary dependency** -- segmentation is driven entirely by a statistical model
-- **POS tagging** -- joint segmentation and Part-of-Speech tagging with UPOS tags via Averaged Perceptron
-- **Two-stage POS tagging** -- a faster architecture that segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, at 1.8-2.8x the throughput of joint tagging
+- **Two-stage POS tagging** -- segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, adding little cost over plain segmentation
 - **Multilingual support** -- Japanese, Chinese (Simplified/Traditional), and Korean
 - **Model training capabilities** -- train custom models using AdaBoost or Averaged Perceptron with your own corpora
 - **Remote model loading** -- load models from HTTP/HTTPS URLs (opt-in `remote_model` feature) or local files
@@ -29,7 +28,7 @@ Output: ["これ", "は", "テスト", "です", "。"]
 
 ### POS Tagging
 
-Litsea also supports **POS (Part-of-Speech) tagging** in addition to word segmentation. Using the **Averaged Perceptron** multiclass classifier, it performs joint segmentation and POS tagging simultaneously.
+Litsea also supports **POS (Part-of-Speech) tagging** in addition to word segmentation, through the two-stage architecture: the sentence is segmented by a binary boundary classifier, then each word is tagged through a candidate-tag lexicon plus a word-level tagger.
 
 For each character position, the model predicts one of 18 **SegmentLabel** classes:
 

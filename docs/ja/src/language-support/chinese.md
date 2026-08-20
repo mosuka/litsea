@@ -41,14 +41,9 @@ Litseaは簡体字・繁体字の両方を対象とした中国語の単語分�
 - **単語 F1（held-out）**: 90.69%
 - **境界 F1（held-out）**: 95.64%
 
-### chinese_pos.model
-
-- **アルゴリズム**: Averaged Perceptron（単語分割と品詞推定の同時学習）
-- **詳細**: [事前学習済みモデル](../pre-trained-models.md#chinese_posmodel)を参照
-
 ### chinese_two_stage.model
 
-- **アルゴリズム**: 二段構成の単語分割＋品詞推定（joint モデルより高速で出力形式は同じ）
+- **アルゴリズム**: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）
 - **詳細**: [事前学習済みモデル](../pre-trained-models.md#chinese_two_stagemodel)を参照
 
 ## 使用例

@@ -2,7 +2,7 @@
 //! model.
 //!
 //! This module is the single source of truth for the segmentation feature
-//! template (issues #136/#138/#139). Four consumers derive from the
+//! template (issues #136/#138/#139). Three consumers derive from the
 //! [`TEMPLATES`] table:
 //!
 //! 1. The string writer ([`crate::segmenter::Segmenter`]'s `write_attributes`),
@@ -15,10 +15,6 @@
 //!    a static pass scatter-adds every tag-free feature (merged `UW`/`BW`
 //!    probes, `WC` probes, `UC`/`BC`/`TC` dense loads) into a per-position
 //!    buffer, and a sequential pass adds the 16 tag-dependent dense loads.
-//! 4. The multiclass twin of 2 and 3 for the POS path
-//!    ([`crate::packed_pos_model::PackedPosModel`], issue #143), which
-//!    compiles the Averaged Perceptron's per-class weight rows into the
-//!    same two-pass table structure for `segment_with_pos()`.
 //!
 //! The table order still defines the string writer's emission sequence
 //! (model files and training data depend on it). Scoring accumulates in
@@ -322,14 +318,6 @@ pub(crate) const TAG_TAIL_IDS: std::ops::Range<usize> = 27..38;
 /// `WC*`: sparse (char/type keyed), tag-free — scored in the static pass;
 /// emitted only for languages using all templates (see [`templates_for`]).
 pub(crate) const WC_IDS: std::ops::Range<usize> = 38..42;
-
-/// Builds the slot-order-normalized key of a `WC*` weight in
-/// [`PackedModel::wc`]: the template's index within the `WC` family plus
-/// its (char code, type id) pair, independent of which slot renders first.
-#[inline]
-pub(crate) fn wc_key(wc_index: usize, chr: u32, typ: u8) -> u64 {
-    ((wc_index as u64) << 32) | (u64::from(chr) << 8) | u64::from(typ)
-}
 
 /// Returns true when `feature` (a rendered attribute string such as
 /// `"UP1:U"`, or a model-file line starting with one) belongs to one of the

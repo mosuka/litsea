@@ -5,11 +5,10 @@
 //! TinySegmenterMaker; the bundled segmentation models are trained via a
 //! lossless Averaged Perceptron collapse rather than AdaBoost boosting (see
 //! the `litsea::trainer` module docs), but the format and inference path are
-//! unchanged. It also supports joint word segmentation and POS
-//! (Part-of-Speech) tagging using an Averaged Perceptron with Universal POS
-//! (UPOS) tags, as well as a faster two-stage POS architecture (a binary
-//! boundary classifier plus a word-level tagger, see the [`two_stage`]
-//! module).
+//! unchanged. It also supports word segmentation and POS (Part-of-Speech)
+//! tagging with Universal POS (UPOS) tags through a two-stage architecture:
+//! a binary boundary classifier plus a word-level tagger (see the
+//! [`two_stage`] module).
 //!
 //! # Supported Languages
 //! - Japanese
@@ -24,7 +23,6 @@ pub mod language;
 pub mod metrics;
 mod model_io;
 mod packed_model;
-mod packed_pos_model;
 mod packed_two_stage;
 pub mod perceptron;
 pub mod segmenter;
@@ -41,10 +39,8 @@ pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::{SegmentBuffer, Segmenter};
-pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
-pub use two_stage::{
-    AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
-};
+pub use trainer::{PerceptronTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
+pub use two_stage::{ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner};
 pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

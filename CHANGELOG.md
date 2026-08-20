@@ -1,5 +1,47 @@
 # Changelog
 
+## Unreleased
+
+### Changed (breaking)
+
+- The joint POS tagging architecture is removed; two-stage (#147) is now
+  the only segmentation + POS pipeline (#190). Removed:
+  `Segmenter::with_pos_learner` / `pos_learner` / `pos_learner_mut` /
+  `add_corpus_with_pos`, `Extractor::extract_with_pos`, `AnyPosModel`,
+  CLI `extract --pos`, the private `packed_pos_model` scoring module, and
+  the bundled `models/{japanese,chinese,korean}_pos.model` files (~39 MB;
+  the blobs remain in git history). Migration: load a `litsea-two-stage
+  v1` model with `TwoStageLearner::load_model*` and build the segmenter
+  with `Segmenter::with_two_stage_learner`; retrain via `litsea extract
+  --two-stage` + `litsea train --two-stage`. The bundled two-stage models
+  already beat the removed joint models on both word and tagged-word F1
+  in every language (#190).
+- `segment --pos` / `evaluate --pos` keep their flag names but now
+  require a two-stage model. An old joint (standalone Averaged
+  Perceptron) file fails with "joint POS models are no longer supported —
+  retrain with `litsea train --two-stage`"; the rejection lives in
+  `TwoStageLearner::load_model_from_reader`, so library callers get the
+  same message (#190).
+- `PosTrainer` is renamed to `PerceptronTrainer`, and CLI `train --pos`
+  to `train --perceptron` (#190). It always was a label-agnostic Averaged
+  Perceptron trainer and remains the training step of the bundled
+  segmentation models' collapse recipe (extract → relabel `1`/`-1` →
+  `B`/`O` → `train --perceptron` →
+  `scripts/collapse_binary_perceptron.py`); `-m`/`--load-model-uri` is
+  still supported. Migration: `PosTrainer::new(...)` →
+  `PerceptronTrainer::new(...)` (same signature and behavior).
+- `LitseaError::PosLearnerNotSet` is kept, but its message now points to
+  `with_two_stage_learner()` only (#190).
+
+### Documentation
+
+- Docs, READMEs, and mdBook pages (English and Japanese) are consolidated
+  on the two-stage architecture (#190): "Two-Stage vs. Joint Tagging"
+  becomes a standalone "Two-Stage Tagging" page (same URL), the joint
+  model catalog / training walkthroughs are removed, and the two-stage
+  model tables now report absolute throughput instead of joint-relative
+  ratios.
+
 ## 0.12.0
 
 ### Added

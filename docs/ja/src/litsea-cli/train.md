@@ -22,9 +22,9 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-t`, `--threshold <THRESHOLD>` | `0.01` | 早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる |
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | ブースティング反復の最大回数 |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | 学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL） |
-| `--pos` | off | 品詞（POS）学習モードを有効にする（Averaged Perceptron を使用） |
-| `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（POS モードおよび `--two-stage` モード） |
-| `--two-stage` | off | 代わりに[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデルを学習する。`{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon`（`extract --two-stage` の出力）を読み込む。`--pos` および `-m`/`--load-model-uri`（増分学習は非対応）とは併用できない |
+| `--perceptron` | off | 不透明な文字列ラベルに対する汎用の Averaged Perceptron を学習する（同梱分割モデルの畳み込みレシピの学習ステップ） |
+| `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（`--perceptron` モードおよび `--two-stage` モード） |
+| `--two-stage` | off | 代わりに[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデルを学習する。`{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon`（`extract --two-stage` の出力）を読み込む。`--perceptron` および `-m`/`--load-model-uri`（増分学習は非対応）とは併用できない |
 | `--dominance <DOMINANCE>` | `0.99` | `--two-stage` 用の分類器スキップ閾値、範囲は `(0.5, 1.0]`。既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされる |
 
 ## 出力
@@ -86,28 +86,33 @@ litsea train -t 0.0001 -i 20000 -m ./models/my_model.model \
 | `threshold` | 反復回数が増加、精度が向上する可能性あり、学習時間が長くなる | 反復回数が減少、学習が高速化、アンダーフィットの可能性あり |
 | `num_iterations` | ブースティングラウンドが減少、モデルが小さくなる、アンダーフィットの可能性あり | ラウンドが増加、モデルが大きくなる、精度が向上する可能性あり |
 
-## 品詞モデルの学習（`--pos`）
+## 汎用パーセプトロンの学習（`--perceptron`）
 
-`--pos` フラグを指定すると、AdaBoost の代わりに **Averaged Perceptron** アルゴリズムを使用します。単語分割と品詞タグ付けを同時に行うマルチクラス分類器を学習します。
+`--perceptron` フラグを指定すると、AdaBoost の代わりに **Averaged
+Perceptron** アルゴリズムを使用します。ラベルは不透明な文字列として
+扱われるため、このモードは `label\tfeature\t...` 形式の特徴量ファイルから
+任意の多クラス分類器を学習できます。主な用途は、同梱分割モデルの
+畳み込みレシピにおける 2 クラス（`B`/`O`）境界パーセプトロンの学習です
+（[学習手順](../pre-trained-models.md#学習手順)を参照）。
 
 ### 使い方
 
 ```sh
-litsea train --pos [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
+litsea train --perceptron [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 ```
 
-### POS 学習固有のオプション
+### パーセプトロン学習固有のオプション
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `--pos` | off | 品詞推定モデル（Averaged Perceptron）を学習する |
+| `--perceptron` | off | 汎用パーセプトロン学習モードを有効にする |
 | `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数 |
 
 ### 使用例
 
 ```sh
-# 品詞特徴量から品詞モデルを学習
-litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.model
+# 2 クラスの境界パーセプトロンを学習（畳み込みレシピのステップ 3）
+litsea train --perceptron --num-epochs 50 ./features.txt ./perceptron.model
 ```
 
 ### 出力
@@ -115,7 +120,7 @@ litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.mode
 学習メトリクスはstderrに出力されます（マクロ平均の適合率・再現率）。
 
 ```text
-Result Metrics (POS):
+Result Metrics (Perceptron):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%
@@ -123,9 +128,9 @@ Result Metrics (POS):
 
 ### Ctrl+C のハンドリング
 
-AdaBoost と同様に、品詞モデルの学習も優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。
+AdaBoost と同様に、パーセプトロンの学習も優雅な中断をサポートしています。1回目の Ctrl+C で学習を停止し、現在の状態でモデルを保存します。
 
-### POS ハイパーパラメータ
+### パーセプトロンのハイパーパラメータ
 
 | Parameter | 値を小さくした場合の効果 | 値を大きくした場合の効果 |
 |-----------|---------------------|---------------------|
@@ -171,5 +176,3 @@ Result Metrics (Two-Stage):
 
 他のモードと同様、これらは in-sample のメトリクスです。現実的な品質を見積もるには
 `litsea evaluate --pos` でホールドアウトされたテキストを評価してください。
-`segment --pos` と `evaluate --pos` はファイルヘッダから二段構成モデルを自動判別するため、
-利用に追加のフラグは不要です。

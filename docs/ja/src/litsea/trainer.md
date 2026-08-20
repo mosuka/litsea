@@ -105,27 +105,27 @@ async fn main() -> litsea::Result<()> {
 }
 ```
 
-## PosTrainer
+## PerceptronTrainer
 
-`PosTrainer` は `Trainer` の POS モデル版です。POS 特徴量ファイル（`litsea extract --pos` で生成）から、単語分割と品詞タグ付けを同時に行うための **Averaged Perceptron** を学習します。
+`PerceptronTrainer` は `Trainer` の汎用 Averaged Perceptron 版です。特徴量ファイルから、不透明な文字列ラベルに対する多クラスの **Averaged Perceptron** を学習します（`litsea train --perceptron`）。主な用途は、畳み込みレシピ（[事前学習済みモデル](../pre-trained-models.md#学習手順)を参照）が同梱の AdaBoost 形式分割モデルへ変換する、2 クラス（`B`/`O`）境界パーセプトロンの学習です。
 
-### `PosTrainer::new`
+### `PerceptronTrainer::new`
 
 ```rust
 pub fn new(num_epochs: usize, features_path: &Path) -> litsea::Result<Self>
 ```
 
-特徴量ファイル（各行が `label\tfeature1\tfeature2\t...` の形式で、ラベルは `B-NOUN` や `O` のような `SegmentLabel` 文字列）を読み込み、学習インスタンスを登録します。
+特徴量ファイル（各行が `label\tfeature1\tfeature2\t...` の形式で、ラベルは不透明な文字列。例: 境界ラベル `B`/`O`）を読み込み、学習インスタンスを登録します。
 
-### `PosTrainer::load_model`
+### `PerceptronTrainer::load_model`
 
 ```rust
 pub async fn load_model(&mut self, model_uri: &str) -> litsea::Result<()>
 ```
 
-既存の POS モデルを読み込み、増分学習を行います。学習データからすでに登録済みのクラスは、モデルのクラスとマージされます。
+既存のパーセプトロンモデルを読み込み、増分学習を行います。学習データからすでに登録済みのクラスは、モデルのクラスとマージされます。
 
-### `PosTrainer::train`
+### `PerceptronTrainer::train`
 
 ```rust
 pub fn train(
@@ -141,13 +141,13 @@ pub fn train(
 use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
-use litsea::trainer::PosTrainer;
+use litsea::trainer::PerceptronTrainer;
 
 #[tokio::main]
 async fn main() -> litsea::Result<()> {
-    let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
+    let mut trainer = PerceptronTrainer::new(10, Path::new("./features.txt"))?;
     let running = AtomicBool::new(true);
-    let metrics = trainer.train(&running, Path::new("./japanese_pos.model"))?;
+    let metrics = trainer.train(&running, Path::new("./perceptron.model"))?;
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }
@@ -207,7 +207,7 @@ pub fn train(
 ) -> litsea::Result<TwoStageMetrics>
 ```
 
-`Trainer::train` や `PosTrainer::train` と異なり、このメソッドは `self` を
+`Trainer::train` や `PerceptronTrainer::train` と異なり、このメソッドは `self` を
 値として受け取ります（Trainer を消費します）。両ステージを Averaged
 Perceptron として `num_epochs` エポック分学習し、stage 1 を AdaBoost の
 重みへ畳み込み、語彙表とともに 2 つのステージを `litsea-two-stage v1`
@@ -245,5 +245,5 @@ pub struct TwoStageMetrics {
 `TwoStageTrainer::train` の実行結果である in-sample メトリクスです。
 `stage1` は境界分類器の 2 クラス（`B`/`O`）に対するメトリクス、`stage2` は
 単語単位のタガーの UPOS タグクラスに対するメトリクスです。どちらのフィールドも
-`MulticlassMetrics` 型で、[`PosTrainer::train`](#postrainer)（上記）が返すものと
+`MulticlassMetrics` 型で、[`PerceptronTrainer::train`](#perceptrontrainer)（上記）が返すものと
 同じ型であり、正解率とマクロ平均の適合率・再現率を保持します。

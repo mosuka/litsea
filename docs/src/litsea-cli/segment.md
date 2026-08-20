@@ -19,7 +19,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | Enable POS-tagged segmentation output. Accepts a joint model (`train --pos`) or a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --two-stage`), auto-detected from the file |
+| `--pos` | off | Enable POS-tagged segmentation output. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --two-stage`) |
 | `--threads <N>` | `1` | Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with `N > 1`, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without `--pos`). Wall-clock time for large inputs drops with core count; single-line latency is unchanged |
 
 ## Input / Output
@@ -72,10 +72,12 @@ echo "テスト文です。" \
 ## POS-Tagged Segmentation (`--pos`)
 
 When the `--pos` flag is specified, segmentation and POS tagging are
-performed simultaneously. The model kind (joint Averaged Perceptron or
-[two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1))
-is auto-detected from the file header, so the same command works for
-either — including a model produced by `train --two-stage`.
+performed together with a
+[two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)
+model produced by `train --two-stage`. Pointing `--pos` at any other model
+kind fails with a precise error (a standalone Averaged Perceptron file —
+the removed joint POS model format — is rejected with a hint to retrain
+with `train --two-stage`).
 
 ### Usage
 
@@ -89,7 +91,7 @@ Each token is output in `word/POS` format. POS tags conform to the UPOS tag set.
 
 ```sh
 echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
 ```
 
 ```text
@@ -99,7 +101,7 @@ echo "今日はいい天気ですね。" \
 ### Processing a File
 
 ```sh
-cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model > output.txt
+cat input.txt | litsea segment --pos -l japanese ./models/japanese_two_stage.model > output.txt
 ```
 
 ## Parallel Batch Segmentation (`--threads`)
@@ -124,4 +126,4 @@ numbers and should not be compared directly (see
 - The `--language` flag must match the language the model was trained for
 - The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (`load_model_from_path`)
 - The model URI is not restricted to file paths -- any valid URL is accepted
-- When using `--pos`, the model must be a POS-capable model trained with `train --pos` or `train --two-stage`
+- When using `--pos`, the model must be a two-stage model trained with `train --two-stage`

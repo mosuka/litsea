@@ -1,6 +1,6 @@
 # Averaged Perceptron
 
-The `AveragedPerceptron` struct implements multiclass classification for joint word segmentation and POS tagging.
+The `AveragedPerceptron` struct implements multiclass classification over opaque string labels. It is the training-side learner behind both stages of the two-stage POS architecture and the bundled segmentation models' collapse recipe (`litsea train --perceptron`).
 
 ## Definition
 
@@ -136,7 +136,7 @@ Loads model weights from a local file, synchronously. This is the preferred meth
 ```rust
 use std::path::Path;
 
-learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+learner.load_model_from_path(Path::new("./perceptron.model"))?;
 ```
 
 ### `load_model_from_reader`
@@ -155,13 +155,13 @@ pub async fn load_model(&mut self, uri: &str) -> litsea::Result<()>
 
 Loads model weights from a URI. Supports the following URI schemes:
 
-- Local file path: `./models/japanese_pos.model`
+- Local file path: `./perceptron.model`
 - File URI: `file:///path/to/model`
 - HTTP: `http://example.com/model` (requires the `remote_model` feature)
 - HTTPS: `https://example.com/model` (requires the `remote_model` feature)
 
 ```rust
-learner.load_model("https://example.com/models/japanese_pos.model").await?;
+learner.load_model("https://example.com/models/perceptron.model").await?;
 ```
 
 ## Evaluation

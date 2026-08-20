@@ -1,11 +1,13 @@
 //! High-level training front-ends.
 //!
-//! Defines [`Trainer`] (AdaBoost word-boundary model), [`PosTrainer`]
-//! (Averaged Perceptron joint POS model), and [`TwoStageTrainer`] (the
-//! two-stage boundary + word-tagger model of issue #147). `Trainer` and
-//! `PosTrainer` each read a single features file produced by
-//! [`Extractor`](crate::extractor::Extractor); `TwoStageTrainer` reads the
-//! three files [`Extractor::extract_two_stage`](crate::extractor::Extractor::extract_two_stage)
+//! Defines [`Trainer`] (AdaBoost word-boundary model), [`PerceptronTrainer`]
+//! (a generic label-agnostic Averaged Perceptron trainer, used as the
+//! training step of the boundary-collapse recipe below), and
+//! [`TwoStageTrainer`] (the two-stage boundary + word-tagger model of issue
+//! #147). `Trainer` and `PerceptronTrainer` each read a single features file
+//! produced by [`Extractor`](crate::extractor::Extractor); `TwoStageTrainer`
+//! reads the three files
+//! [`Extractor::extract_two_stage`](crate::extractor::Extractor::extract_two_stage)
 //! writes from a common prefix. All three optionally load an existing
 //! model, train, save the result, and report training metrics.
 //!
@@ -61,10 +63,14 @@ pub struct Trainer {
     learner: AdaBoost,
 }
 
-/// Trainer for the POS tagging model.
-/// Manages multiclass classification training with the Averaged Perceptron.
+/// Generic Averaged Perceptron trainer.
+/// Manages multiclass classification training with the Averaged Perceptron;
+/// labels are treated as opaque strings, so it works for any label space.
+/// Its main use is training the 2-class (`B`/`O`) boundary perceptron that
+/// the collapse recipe (see the module docs) turns into the bundled
+/// AdaBoost-format segmentation models.
 #[derive(Debug)]
-pub struct PosTrainer {
+pub struct PerceptronTrainer {
     /// The underlying Averaged Perceptron learner.
     learner: AveragedPerceptron,
     /// The number of training epochs to run.
@@ -130,25 +136,26 @@ impl Trainer {
     }
 }
 
-impl PosTrainer {
-    /// Creates a PosTrainer from a POS-tagged features file.
+impl PerceptronTrainer {
+    /// Creates a PerceptronTrainer from a features file.
     ///
     /// Features file format: each line is "label\tfeature1\tfeature2\t...".
-    /// Labels are SegmentLabel strings such as "B-NOUN" or "O".
+    /// Labels are opaque strings (e.g. the boundary labels "B"/"O" of the
+    /// collapse recipe).
     ///
     /// # Arguments
     /// * `num_epochs` - The number of training epochs
     /// * `features_path` - The path to the features file
     ///
     /// # Returns
-    /// Returns a new instance of `PosTrainer` with the training instances
-    /// loaded from the features file.
+    /// Returns a new instance of `PerceptronTrainer` with the training
+    /// instances loaded from the features file.
     ///
     /// # Errors
     /// Returns an error if the features file cannot be opened or read, or
     /// if a feature line is missing its label.
     pub fn new(num_epochs: usize, features_path: &Path) -> Result<Self> {
-        Ok(PosTrainer {
+        Ok(PerceptronTrainer {
             learner: load_perceptron_instances(features_path)?,
             num_epochs,
         })
@@ -185,10 +192,10 @@ impl PosTrainer {
 }
 
 /// Loads training instances from a features file (`label\tfeature\t...`
-/// rows) into a fresh [`AveragedPerceptron`]. Shared by [`PosTrainer::new`]
-/// and [`TwoStageTrainer::new`], which read the same row format for
-/// different label spaces (`SegmentLabel` strings vs. boundary `B`/`O` vs.
-/// UPOS tags — the perceptron treats labels as opaque strings either way).
+/// rows) into a fresh [`AveragedPerceptron`]. Shared by
+/// [`PerceptronTrainer::new`] and [`TwoStageTrainer::new`], which read the
+/// same row format for different label spaces (boundary `B`/`O` vs. UPOS
+/// tags — the perceptron treats labels as opaque strings either way).
 fn load_perceptron_instances(features_path: &Path) -> Result<AveragedPerceptron> {
     let mut learner = AveragedPerceptron::new();
 
@@ -347,7 +354,7 @@ impl TwoStageTrainer {
     /// Trains both stages and assembles + saves a `litsea-two-stage v1`
     /// model.
     ///
-    /// Note: unlike [`Trainer::train`]/[`PosTrainer::train`], this consumes
+    /// Note: unlike [`Trainer::train`]/[`PerceptronTrainer::train`], this consumes
     /// `self` rather than taking `&mut self`, since the stage-1 perceptron is
     /// collapsed away into an [`AdaBoost`] and cannot be trained again in
     /// place afterward.
@@ -476,11 +483,12 @@ mod tests {
         Ok(())
     }
 
-    // --- PosTrainer tests ---
+    // --- PerceptronTrainer tests ---
 
     fn create_dummy_pos_features_file() -> NamedTempFile {
         let mut file = NamedTempFile::new().expect("Failed to create temp file");
-        // POS-tagged features file (SegmentLabel-style labels)
+        // Multiclass features file (labels are opaque strings; these happen
+        // to be SegmentLabel-style, which the perceptron does not interpret)
         writeln!(file, "B-NOUN\tUW4:猫\tUC4:H").expect("write");
         writeln!(file, "O\tUW4:は\tUC4:I").expect("write");
         writeln!(file, "B-VERB\tUW4:食\tUC4:H").expect("write");
@@ -489,17 +497,17 @@ mod tests {
     }
 
     #[test]
-    fn test_pos_trainer_new() -> Result<()> {
+    fn test_perceptron_trainer_new() -> Result<()> {
         let features_file = create_dummy_pos_features_file();
-        let trainer = PosTrainer::new(5, features_file.path())?;
+        let trainer = PerceptronTrainer::new(5, features_file.path())?;
         assert_eq!(trainer.num_epochs, 5);
         Ok(())
     }
 
     #[test]
-    fn test_pos_trainer_train() -> Result<()> {
+    fn test_perceptron_trainer_train() -> Result<()> {
         let features_file = create_dummy_pos_features_file();
-        let mut trainer = PosTrainer::new(5, features_file.path())?;
+        let mut trainer = PerceptronTrainer::new(5, features_file.path())?;
 
         let model_out = NamedTempFile::new()?;
         let running = AtomicBool::new(true);
@@ -511,9 +519,9 @@ mod tests {
     }
 
     #[test]
-    fn test_pos_trainer_train_immediate_stop() -> Result<()> {
+    fn test_perceptron_trainer_train_immediate_stop() -> Result<()> {
         let features_file = create_dummy_pos_features_file();
-        let mut trainer = PosTrainer::new(5, features_file.path())?;
+        let mut trainer = PerceptronTrainer::new(5, features_file.path())?;
 
         let model_out = NamedTempFile::new()?;
         let running = AtomicBool::new(false);
@@ -530,8 +538,8 @@ mod tests {
         let trainer = Trainer::new(0.01, 10, features_file.path())?;
         assert!(!format!("{:?}", trainer).is_empty());
         let pos_features = create_dummy_pos_features_file();
-        let pos_trainer = PosTrainer::new(3, pos_features.path())?;
-        assert!(!format!("{:?}", pos_trainer).is_empty());
+        let perceptron_trainer = PerceptronTrainer::new(3, pos_features.path())?;
+        assert!(!format!("{:?}", perceptron_trainer).is_empty());
         Ok(())
     }
 
@@ -569,7 +577,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pos_trainer_preserves_trailing_unicode_whitespace() -> Result<()> {
+    fn test_perceptron_trainer_preserves_trailing_unicode_whitespace() -> Result<()> {
         // Regression test for #99: a feature that ends its line with an
         // ideographic space (U+3000) must not be trimmed away while reading
         // the features file, or its trained weight becomes unreachable.
@@ -582,7 +590,7 @@ mod tests {
         writeln!(file, "O\tUW4:\u{3000}").expect("write");
         writeln!(file, "B-NOUN\tUW4:x").expect("write");
 
-        let mut trainer = PosTrainer::new(5, file.path())?;
+        let mut trainer = PerceptronTrainer::new(5, file.path())?;
         let model_out = NamedTempFile::new()?;
         let running = AtomicBool::new(true);
         trainer.train(&running, model_out.path())?;

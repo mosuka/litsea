@@ -45,13 +45,10 @@ cargo bench --bench bench -- external_corpus
 |----------|-------|--------|
 | `japanese` | japanese.model | wagahaiwa_nekodearu.txt |
 | `japanese-rwcp` | RWCP.model | wagahaiwa_nekodearu.txt |
-| `japanese-pos` | japanese_pos.model | wagahaiwa_nekodearu.txt |
 | `japanese-two-stage` | japanese_two_stage.model | wagahaiwa_nekodearu.txt |
 | `korean` | korean.model | mujeong.txt |
-| `korean-pos` | korean_pos.model | mujeong.txt |
 | `korean-two-stage` | korean_two_stage.model | mujeong.txt |
 | `chinese` | chinese.model | rulin_waishi.txt |
-| `chinese-pos` | chinese_pos.model | rulin_waishi.txt |
 | `chinese-two-stage` | chinese_two_stage.model | rulin_waishi.txt |
 
 `*-two-stage` ベンチは[二段構成アーキテクチャ](../algorithm/two-stage-tagging.md)
@@ -108,8 +105,8 @@ chars/sec は CLI のスレッドスケーリングについて何も語りま�
 
 ### 実行間のばらつき
 
-本ドキュメントに掲載している数値（[二段構成 vs Joint タグ付け](../algorithm/two-stage-tagging.md)や
-[事前学習済みモデル](../pre-trained-models.md)ページの二段構成 vs joint の比較を含む）は、
+本ドキュメントに掲載している数値（[二段構成タグ付け](../algorithm/two-stage-tagging.md)や
+[事前学習済みモデル](../pre-trained-models.md)ページのスループット数値を含む）は、
 専用のアイドルなベンチマーク用ハードウェアではなく、本プロジェクトの開発機で
 計測しています。同一ビルドで `external_corpus` を 3 回連続実行したところ、
 個々のベンチ ID で 10〜20% の振れ幅が見られました -- 1 回の実行を精密な数値と

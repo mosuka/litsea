@@ -1,9 +1,8 @@
 //! Criterion benchmarks for the segmentation and POS-tagging hot paths.
 //!
-//! Covers short- and long-text `segment()`/`segment_with_pos()` micro-benches
-//! (AdaBoost vs. Averaged Perceptron, [`bench_segment_short`]/
-//! [`bench_segment_long`]), the `external_corpus` throughput group that
-//! mirrors the external tokenizer-speed-bench harness
+//! Covers short- and long-text `segment()` micro-benches
+//! ([`bench_segment_short`]/[`bench_segment_long`]), the `external_corpus`
+//! throughput group that mirrors the external tokenizer-speed-bench harness
 //! ([`bench_external_corpus`]; see `docs/src/advanced/benchmarking.md`), and
 //! a handful of internal component benchmarks (character-type
 //! classification, corpus ingestion, single-instance AdaBoost prediction).
@@ -16,7 +15,6 @@ use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_m
 
 use litsea::adaboost::AdaBoost;
 use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::{SegmentBuffer, Segmenter};
 use litsea::two_stage::TwoStageLearner;
 
@@ -24,16 +22,6 @@ use litsea::two_stage::TwoStageLearner;
 fn load_adaboost_model(model_name: &str) -> AdaBoost {
     let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
     let mut learner = AdaBoost::new(0.01, 100);
-    learner
-        .load_model_from_path(&model_path)
-        .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
-    learner
-}
-
-/// Load an AveragedPerceptron model file from the models directory.
-fn load_perceptron_model(model_name: &str) -> AveragedPerceptron {
-    let model_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model_name);
-    let mut learner = AveragedPerceptron::new();
     learner
         .load_model_from_path(&model_path)
         .unwrap_or_else(|e| panic!("Failed to load model {}: {}", model_path.display(), e));
@@ -51,16 +39,16 @@ fn load_two_stage_model(model_name: &str) -> TwoStageLearner {
 }
 
 // ---------------------------------------------------------------------------
-// AdaBoost vs Averaged Perceptron comparison benchmarks
+// Segmentation micro-benchmarks
 // ---------------------------------------------------------------------------
 
-/// Compares AdaBoost `segment()` and Averaged Perceptron `segment_with_pos()`
-/// on a short sentence for each language.
+/// Benchmarks AdaBoost-format `segment()` on a short sentence for each
+/// language.
 fn bench_segment_short(c: &mut Criterion) {
-    let cases: &[(&str, Language, &str, &str)] = &[
-        ("japanese", Language::Japanese, "japanese.model", "japanese_pos.model"),
-        ("chinese", Language::Chinese, "chinese.model", "chinese_pos.model"),
-        ("korean", Language::Korean, "korean.model", "korean_pos.model"),
+    let cases: &[(&str, Language, &str)] = &[
+        ("japanese", Language::Japanese, "japanese.model"),
+        ("chinese", Language::Chinese, "chinese.model"),
+        ("korean", Language::Korean, "korean.model"),
     ];
 
     let inputs: &[(&str, &str)] = &[
@@ -71,33 +59,21 @@ fn bench_segment_short(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("segment_short");
 
-    for (lang, language, ada_model, pos_model) in cases {
+    for (lang, language, ada_model) in cases {
         let input = inputs.iter().find(|(l, _)| l == lang).unwrap().1;
 
-        // AdaBoost-format model (word segmentation only)
         let ada_learner = load_adaboost_model(ada_model);
         let ada_segmenter = Segmenter::with_learner(*language, ada_learner);
         group.bench_with_input(BenchmarkId::new("adaboost", lang), &input, |b, &text| {
             b.iter(|| black_box(ada_segmenter.segment(black_box(text))));
         });
-
-        // Averaged Perceptron (segmentation + POS)
-        let pos_learner = load_perceptron_model(pos_model);
-        let pos_segmenter = Segmenter::with_pos_learner(*language, pos_learner);
-        group.bench_with_input(
-            BenchmarkId::new("averaged_perceptron", lang),
-            &input,
-            |b, &text| {
-                b.iter(|| black_box(pos_segmenter.segment_with_pos(black_box(text)).unwrap()));
-            },
-        );
     }
 
     group.finish();
 }
 
-/// Compares AdaBoost `segment()` and Averaged Perceptron `segment_with_pos()`
-/// on a long text (bocchan.txt) for Japanese.
+/// Benchmarks AdaBoost-format `segment()` on a long text (bocchan.txt) for
+/// Japanese.
 fn bench_segment_long(c: &mut Criterion) {
     let text_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../resources")
@@ -108,24 +84,12 @@ fn bench_segment_long(c: &mut Criterion) {
 
     let mut group = c.benchmark_group("segment_long_japanese");
 
-    // AdaBoost
     let ada_learner = load_adaboost_model("japanese.model");
     let ada_segmenter = Segmenter::with_learner(Language::Japanese, ada_learner);
     group.bench_function("adaboost", |b| {
         b.iter(|| {
             for line in &lines {
                 black_box(ada_segmenter.segment(black_box(line)));
-            }
-        });
-    });
-
-    // Averaged Perceptron
-    let pos_learner = load_perceptron_model("japanese_pos.model");
-    let pos_segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-    group.bench_function("averaged_perceptron", |b| {
-        b.iter(|| {
-            for line in &lines {
-                black_box(pos_segmenter.segment_with_pos(black_box(line)).unwrap());
             }
         });
     });
@@ -150,10 +114,9 @@ fn load_corpus_lines(corpus_name: &str) -> (Vec<String>, u64) {
     (lines, chars)
 }
 
-/// Runs ten benches: the seven litsea benches of the external
-/// tokenizer-speed-bench harness, reproduced in-repo (4 segmentation cases +
-/// 3 joint POS cases), plus three `*-two-stage` cases added later (issue
-/// #169) that are not part of the original external-harness-mirroring set.
+/// Runs seven benches: the four segmentation cases of the external
+/// tokenizer-speed-bench harness, reproduced in-repo, plus three
+/// `*-two-stage` POS cases (issue #169).
 /// One iteration segments every line of the corpus, and criterion's
 /// `Throughput::Elements` makes the report read as chars/sec. Methodology
 /// differences from the external harness (criterion sampling instead of
@@ -178,30 +141,6 @@ fn bench_external_corpus(c: &mut Criterion) {
             b.iter(|| {
                 for line in &lines {
                     black_box(segmenter.segment(black_box(line)));
-                }
-            });
-        });
-    }
-
-    // (bench id, language, Averaged Perceptron model, corpus)
-    let pos_cases: &[(&str, Language, &str, &str)] = &[
-        (
-            "japanese-pos",
-            Language::Japanese,
-            "japanese_pos.model",
-            "wagahaiwa_nekodearu.txt",
-        ),
-        ("korean-pos", Language::Korean, "korean_pos.model", "mujeong.txt"),
-        ("chinese-pos", Language::Chinese, "chinese_pos.model", "rulin_waishi.txt"),
-    ];
-    for (id, language, model, corpus) in pos_cases {
-        let (lines, chars) = load_corpus_lines(corpus);
-        let segmenter = Segmenter::with_pos_learner(*language, load_perceptron_model(model));
-        group.throughput(Throughput::Elements(chars));
-        group.bench_function(*id, |b| {
-            b.iter(|| {
-                for line in &lines {
-                    black_box(segmenter.segment_with_pos(black_box(line)).unwrap());
                 }
             });
         });

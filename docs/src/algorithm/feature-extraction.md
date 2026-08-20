@@ -1,6 +1,6 @@
 # Feature Extraction
 
-Litsea uses character n-gram features to capture the local context around each potential word boundary. This chapter catalogs all feature types: the character-level boundary templates shared by the AdaBoost, joint, and two-stage stage-1 pipelines, and the word-level templates used by two-stage's stage-2 tagger.
+Litsea uses character n-gram features to capture the local context around each potential word boundary. This chapter catalogs all feature types: the character-level boundary templates shared by the AdaBoost and two-stage stage-1 pipelines, and the word-level templates used by two-stage's stage-2 tagger.
 
 ## Feature Categories
 

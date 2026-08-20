@@ -22,9 +22,9 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-t`, `--threshold <THRESHOLD>` | `0.01` | Weak classifier accuracy threshold for early stopping. Lower values allow more iterations |
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | Maximum number of boosting iterations |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | URI of an existing model to resume training from (file path or HTTP/HTTPS URL) |
-| `--pos` | off | Enable POS (Part-of-Speech) training mode using Averaged Perceptron |
-| `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (POS and `--two-stage` modes) |
-| `--two-stage` | off | Train a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model instead. Reads `{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon` (from `extract --two-stage`). Cannot be combined with `--pos` or `-m`/`--load-model-uri` (incremental training is not supported) |
+| `--perceptron` | off | Train a generic Averaged Perceptron over opaque string labels (the training step of the bundled segmentation models' collapse recipe) |
+| `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (`--perceptron` and `--two-stage` modes) |
+| `--two-stage` | off | Train a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model instead. Reads `{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon` (from `extract --two-stage`). Cannot be combined with `--perceptron` or `-m`/`--load-model-uri` (incremental training is not supported) |
 | `--dominance <DOMINANCE>` | `0.99` | Classifier-skip threshold for `--two-stage`, in `(0.5, 1.0]`: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier |
 
 ## Output
@@ -86,36 +86,41 @@ litsea train -t 0.0001 -i 20000 -m ./models/my_model.model \
 | `threshold` | More iterations, potentially higher accuracy, longer training time | Fewer iterations, faster training, may underfit |
 | `num_iterations` | Fewer boosting rounds, smaller model, may underfit | More rounds, larger model, potentially higher accuracy |
 
-## POS Model Training
+## Generic Perceptron Training
 
-When the `--pos` flag is specified, `train` uses the **Averaged Perceptron** algorithm instead of AdaBoost. This trains a multiclass classifier for joint word segmentation and POS tagging.
+When the `--perceptron` flag is specified, `train` uses the **Averaged
+Perceptron** algorithm instead of AdaBoost. Labels are opaque strings, so
+this mode trains any multiclass classifier from a `label\tfeature\t...`
+features file. Its main use is training the 2-class (`B`/`O`) boundary
+perceptron of the bundled segmentation models' collapse recipe (see
+[Training Procedure](../pre-trained-models.md#training-procedure)).
 
 ### Usage
 
 ```sh
-litsea train --pos [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
+litsea train --perceptron [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 ```
 
-### POS Training Options
+### Perceptron Training Options
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `--pos` | off | Enable POS training mode |
+| `--perceptron` | off | Enable generic perceptron training mode |
 | `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs |
 
 ### Examples
 
 ```sh
-# Train a POS model from POS features
-litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.model
+# Train a 2-class boundary perceptron (collapse recipe, step 3)
+litsea train --perceptron --num-epochs 50 ./features.txt ./perceptron.model
 ```
 
 ### Output
 
-POS training metrics are printed to stderr (macro-averaged precision and recall):
+Perceptron training metrics are printed to stderr (macro-averaged precision and recall):
 
 ```text
-Result Metrics (POS):
+Result Metrics (Perceptron):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%
@@ -123,9 +128,9 @@ Result Metrics (POS):
 
 ### Ctrl+C Handling
 
-Same as AdaBoost training, POS training supports graceful interruption. The first Ctrl+C stops training and saves the model at its current state.
+Same as AdaBoost training, perceptron training supports graceful interruption. The first Ctrl+C stops training and saves the model at its current state.
 
-### POS Hyperparameters
+### Perceptron Hyperparameters
 
 | Parameter | Effect of Decreasing | Effect of Increasing |
 |-----------|---------------------|---------------------|
@@ -171,6 +176,4 @@ Result Metrics (Two-Stage):
 ```
 
 As with the other modes, these are in-sample metrics; evaluate on held-out
-text with `litsea evaluate --pos` for a realistic quality estimate. `segment
---pos` and `evaluate --pos` auto-detect a two-stage model from its file
-header, so no extra flag is needed to use it.
+text with `litsea evaluate --pos` for a realistic quality estimate.

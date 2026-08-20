@@ -109,8 +109,8 @@ fn test_segment_threads_rejects_zero() {
     assert!(stderr.contains("--threads"), "unexpected stderr: {stderr}");
 }
 
-/// Pins segment's `--pos` routing: the Averaged Perceptron model must be
-/// selected and word/POS pairs printed (same expectation as the golden suite).
+/// Pins segment's `--pos` routing: the two-stage model must be loaded and
+/// word/POS pairs printed (same expectation as the golden suite).
 #[test]
 fn test_segment_pos_golden_output() {
     let output = run_litsea(
@@ -119,7 +119,7 @@ fn test_segment_pos_golden_output() {
             "--pos",
             "-l",
             "japanese",
-            model_path("japanese_pos.model").to_str().unwrap(),
+            model_path("japanese_two_stage.model").to_str().unwrap(),
         ],
         Some("これはテストです。\n"),
     );
@@ -127,6 +127,27 @@ fn test_segment_pos_golden_output() {
     assert_eq!(
         String::from_utf8_lossy(&output.stdout),
         "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT\n"
+    );
+}
+
+/// Pins segment's `--pos` rejection of the removed joint model format: a
+/// bare Averaged Perceptron file (class-count first line) must exit
+/// non-zero with a migration hint, not be tagged with.
+#[test]
+fn test_segment_pos_rejects_joint_model() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let model = dir.path().join("joint.model");
+    std::fs::write(&model, "2\nNOUN\nVERB\nUW4:x\tNOUN\t0.5\n").expect("write model");
+
+    let output = run_litsea(
+        &["segment", "--pos", "-l", "japanese", model.to_str().unwrap()],
+        Some("テスト\n"),
+    );
+    assert!(!output.status.success(), "expected a joint-format model to be rejected");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("no longer supported") && stderr.contains("train --two-stage"),
+        "unexpected stderr: {stderr}"
     );
 }
 
@@ -204,28 +225,29 @@ fn test_extract_tag_free_format() {
 }
 
 /// Pins the `--tag-free` conflict rule: it is a boundary-pipeline flag and
-/// must be rejected together with --pos or --two-stage.
+/// must be rejected together with --two-stage.
 #[test]
-fn test_extract_tag_free_rejects_pos_and_two_stage() {
+fn test_extract_tag_free_rejects_two_stage() {
     let dir = tempfile::tempdir().expect("tempdir");
     let corpus = dir.path().join("corpus.txt");
     std::fs::write(&corpus, "これ/PRON は/ADP\n").expect("write corpus");
     let features = dir.path().join("features.txt");
 
-    for extra in [&["--pos"][..], &["--two-stage"][..]] {
-        let mut args = vec!["extract", "--tag-free"];
-        args.extend_from_slice(extra);
-        args.extend_from_slice(&[
+    let output = run_litsea(
+        &[
+            "extract",
+            "--tag-free",
+            "--two-stage",
             "-l",
             "japanese",
             corpus.to_str().unwrap(),
             features.to_str().unwrap(),
-        ]);
-        let output = run_litsea(&args, None);
-        assert!(!output.status.success(), "expected --tag-free {extra:?} to fail");
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        assert!(stderr.contains("cannot be combined"), "unexpected stderr: {stderr}");
-    }
+        ],
+        None,
+    );
+    assert!(!output.status.success(), "expected --tag-free --two-stage to fail");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("cannot be combined"), "unexpected stderr: {stderr}");
 }
 
 /// Pins extract's `--format tsv` routing: tab-separated tokens with a
@@ -260,33 +282,6 @@ fn test_extract_tsv_format() {
         .flat_map(|l| l.split('\t').skip(1))
         .any(|f| f.starts_with("UW") && f.ends_with(' '));
     assert!(has_space_feature, "expected a UW feature containing the space character");
-}
-
-/// Pins the `--pos --format tsv` combination as an explicit error: the POS
-/// pipeline has no TSV variant.
-#[test]
-fn test_extract_pos_rejects_tsv_format() {
-    let dir = tempfile::tempdir().expect("tempdir");
-    let corpus = dir.path().join("corpus.tsv");
-    std::fs::write(&corpus, "나는\t \t봄\t.\n").expect("write corpus");
-    let features = dir.path().join("features.txt");
-
-    let output = run_litsea(
-        &[
-            "extract",
-            "--pos",
-            "-l",
-            "korean",
-            "--format",
-            "tsv",
-            corpus.to_str().unwrap(),
-            features.to_str().unwrap(),
-        ],
-        None,
-    );
-    assert!(!output.status.success(), "expected --pos --format tsv to fail");
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("not supported"), "unexpected stderr: {stderr}");
 }
 
 /// Pins the evaluate subcommand: known model + tiny gold corpus must print
@@ -342,7 +337,7 @@ fn test_evaluate_tsv_format() {
     assert!(stderr.contains("Word F1: 100.00%"), "unexpected output: {stderr}");
 }
 
-/// Pins evaluate's `--pos` routing: POS gold + perceptron model prints the
+/// Pins evaluate's `--pos` routing: POS gold + two-stage model prints the
 /// tagged-word metrics block.
 #[test]
 fn test_evaluate_pos_output() {
@@ -356,7 +351,7 @@ fn test_evaluate_pos_output() {
             "--pos",
             "-l",
             "japanese",
-            model_path("japanese_pos.model").to_str().unwrap(),
+            model_path("japanese_two_stage.model").to_str().unwrap(),
             gold.to_str().unwrap(),
         ],
         None,
@@ -364,47 +359,8 @@ fn test_evaluate_pos_output() {
     assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("Evaluation Metrics (POS):"), "unexpected output: {stderr}");
-    // japanese_pos.model reproduces this tagging exactly (golden test).
+    // japanese_two_stage.model reproduces this tagging exactly (golden test).
     assert!(stderr.contains("Tagged Word F1: 100.00%"), "unexpected output: {stderr}");
-}
-
-/// Pins extract's `--pos` routing: labels become SegmentLabel strings
-/// (O / B-<UPOS>) instead of boundary labels.
-#[test]
-fn test_extract_pos_features_format() {
-    let dir = tempfile::tempdir().expect("tempdir");
-    let corpus = dir.path().join("corpus.txt");
-    std::fs::write(&corpus, "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT\n")
-        .expect("write corpus");
-    let features = dir.path().join("features.txt");
-
-    let output = run_litsea(
-        &[
-            "extract",
-            "--pos",
-            "-l",
-            "japanese",
-            corpus.to_str().unwrap(),
-            features.to_str().unwrap(),
-        ],
-        None,
-    );
-    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
-
-    let content = std::fs::read_to_string(&features).expect("read features");
-    assert!(!content.is_empty());
-    let mut boundary_labels = 0;
-    for line in content.lines() {
-        let label = line.split('\t').next().expect("label");
-        assert!(
-            label == "O" || label.starts_with("B-"),
-            "unexpected POS label {label:?} in {line:?}"
-        );
-        if label.starts_with("B-") {
-            boundary_labels += 1;
-        }
-    }
-    assert!(boundary_labels > 0, "expected at least one B-<POS> label");
 }
 
 /// Smoke-tests both train modes end to end: metrics are reported on stderr
@@ -423,25 +379,26 @@ fn test_train_smoke() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("Result Metrics"));
     assert!(model.exists() && std::fs::metadata(&model).unwrap().len() > 0);
 
-    // POS (Averaged Perceptron) training routes to the other learner.
-    let pos_features = dir.path().join("pos_features.txt");
-    std::fs::write(&pos_features, "B-NOUN\tf1\nO\tf2\nB-VERB\tf3\nO\tf4\n")
-        .expect("write pos features");
-    let pos_model = dir.path().join("out_pos.model");
+    // Generic Averaged Perceptron training routes to the other learner
+    // (labels are opaque strings; B/O mirrors the collapse recipe).
+    let perceptron_features = dir.path().join("perceptron_features.txt");
+    std::fs::write(&perceptron_features, "B\tf1\nO\tf2\nB\tf3\nO\tf4\n")
+        .expect("write perceptron features");
+    let perceptron_model = dir.path().join("out_perceptron.model");
     let output = run_litsea(
         &[
             "train",
-            "--pos",
+            "--perceptron",
             "--num-epochs",
             "3",
-            pos_features.to_str().unwrap(),
-            pos_model.to_str().unwrap(),
+            perceptron_features.to_str().unwrap(),
+            perceptron_model.to_str().unwrap(),
         ],
         None,
     );
     assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
-    assert!(String::from_utf8_lossy(&output.stderr).contains("Result Metrics (POS)"));
-    assert!(pos_model.exists() && std::fs::metadata(&pos_model).unwrap().len() > 0);
+    assert!(String::from_utf8_lossy(&output.stderr).contains("Result Metrics (Perceptron)"));
+    assert!(perceptron_model.exists() && std::fs::metadata(&perceptron_model).unwrap().len() > 0);
 }
 
 /// A missing model path must exit non-zero with an `Error:` line on stderr.
