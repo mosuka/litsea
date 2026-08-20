@@ -109,43 +109,34 @@ Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 �
 
 ## How to segment sentences with POS tagging
 
-Use the `--pos` flag with the `segment` command to perform joint word segmentation and POS tagging:
+Use the `--pos` flag with the `segment` command and a two-stage model to perform word segmentation and POS tagging:
 
 ```sh
-echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment --pos -l japanese ./resources/japanese_pos.model
+echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment --pos -l japanese ./models/japanese_two_stage.model
 ```
 
 The output will look like:
 
 ```text
-Litsea/PROPN は/ADP TinySegmenter/PROPN を/ADP 参考/NOUN に/ADP 開発/VERB さ/AUX れ/AUX た/AUX 、/PUNCT Rust/PROPN で/ADP 実装/VERB さ/AUX れ/AUX た/AUX 極めて/ADV コンパクト/ADJ な/AUX 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
+Litsea/PROPN は/ADP Tiny/PROPN Segmenter/NOUN を/ADP 参考/NOUN に/ADP 開発/VERB さ/AUX れ/AUX た/AUX 、/PUNCT Rust/NOUN で/ADP 実装/VERB さ/AUX れ/AUX た/AUX 極めて/ADV コンパクト/ADJ な/AUX 単語/NOUN 分割/NOUN ソフトウェア/NOUN です/AUX 。/PUNCT
 ```
 
 ## How to train POS models
 
-### Step 1: Extract POS features
+### Step 1: Extract two-stage features
 
-Use the `--pos` flag with the `extract` command:
-
-```sh
-./target/release/litsea extract --pos -l japanese ./corpus_pos.txt ./features_pos.txt
-```
-
-### Step 2: Train the POS model
-
-Use the `--pos` flag with the `train` command. Use `--num-epochs` to set the number of training epochs:
+Use the `--two-stage` flag with the `extract` command; it writes three files (`.stage1`, `.stage2`, `.lexicon`) from the given prefix:
 
 ```sh
-./target/release/litsea train --pos --num-epochs 10 ./features_pos.txt ./resources/japanese_pos.model
+./target/release/litsea extract --two-stage -l japanese ./corpus_pos.txt ./two_stage_features
 ```
 
-The output from the `train` command is similar to:
+### Step 2: Train the two-stage POS model
 
-```text
-Result Metrics (POS):
-  Accuracy: 98.34% ( 12486 )
-  Macro Precision: 93.21%
-  Macro Recall: 89.45%
+Use the `--two-stage` flag with the `train` command. Use `--num-epochs` to set the number of training epochs:
+
+```sh
+./target/release/litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
 ```
 
 ## Pre-trained models

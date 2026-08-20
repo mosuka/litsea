@@ -16,7 +16,6 @@ graph TD
     two_stage["two_stage.rs<br/>Two-stage model container"]
     word_features["word_features.rs (private)<br/>Stage-2 word feature templates"]
     packed_model["packed_model.rs (private)<br/>Feature templates + packed AdaBoost tables"]
-    packed_pos_model["packed_pos_model.rs (private)<br/>Packed perceptron tables (POS)"]
     packed_two_stage["packed_two_stage.rs (private)<br/>Packed two-stage tagging tables"]
     model_io["model_io.rs (private)<br/>Model URI loading"]
     error["error.rs<br/>LitseaError / Result"]
@@ -28,10 +27,8 @@ graph TD
     adaboost --> segmenter
     perceptron --> segmenter
     packed_model --> segmenter
-    packed_pos_model --> segmenter
     packed_two_stage --> segmenter
     two_stage --> segmenter
-    packed_model --> packed_pos_model
     segmenter --> extractor
     two_stage --> extractor
     word_features --> extractor
@@ -71,17 +68,16 @@ Defines the `Language` enum and character type classification.
 
 The main user-facing module.
 
-- **`Segmenter`** -- Holds a `Language`, an `AdaBoost` learner, and an optional `AveragedPerceptron` POS learner (fields are private; use `language()`, `learner()`, `learner_mut()`, `pos_learner()`, `pos_learner_mut()`), plus internal caches for the compiled scoring tables (`packed`, `packed_pos`) that back `segment()` / `segment_with_pos()`, and an optional compiled two-stage tagging model (set by `with_two_stage_learner`; unlike the caches it is the stage-2 model itself -- the raw learner parts are dropped after compilation)
+- **`Segmenter`** -- Holds a `Language` and an `AdaBoost` learner (fields are private; use `language()`, `learner()`, `learner_mut()`), plus an internal cache for the compiled scoring tables (`packed`) that back `segment()`, and an optional compiled two-stage tagging model (set by `with_two_stage_learner`, backing `segment_with_pos()`; unlike the cache it is the stage-2 model itself -- the raw learner parts are dropped after compilation)
   - `new(language)` -- Create a segmenter with a default (empty) AdaBoost learner
   - `with_learner(language, learner)` -- Create a segmenter with a pre-configured AdaBoost learner (e.g. one that has loaded a pre-trained model)
-  - `with_pos_learner(language, pos_learner)` -- Create a segmenter for joint segmentation + POS tagging
   - `with_two_stage_learner(language, learner)` -- Create a segmenter for two-stage segmentation + POS tagging from a `TwoStageLearner`
   - `segment(sentence)` -- Segment text into words, returns `Vec<String>`
   - `segment_into(sentence, buf)` -- Allocation-free variant (#184): returns token byte ranges borrowed from a reusable `SegmentBuffer`
-  - `segment_with_pos(sentence)` -- Segment and tag, returns `Result<Vec<(String, Upos)>>` (`PosLearnerNotSet` unless a POS learner or a two-stage learner is set)
+  - `segment_with_pos(sentence)` -- Segment and tag, returns `Result<Vec<(String, Upos)>>` (`PosLearnerNotSet` unless a two-stage learner is set)
   - `char_type(ch)` -- Classify a single character into its type code
-  - `add_corpus(corpus)` / `add_corpus_with_pos(corpus)` / `add_corpus_tsv(corpus)` -- Add training data (space-separated, POS-tagged, or tab-separated/space-preserving respectively; the latter is used for Korean, see issue #152)
-  - `add_corpus_with_writer(corpus, callback)` / `add_corpus_with_pos_writer(corpus, callback)` / `add_corpus_tsv_with_writer(corpus, callback)` -- Process a corpus with a custom callback
+  - `add_corpus(corpus)` / `add_corpus_tsv(corpus)` -- Add training data (space-separated, or tab-separated/space-preserving; the latter is used for Korean, see issue #152)
+  - `add_corpus_with_writer(corpus, callback)` / `add_corpus_with_pos_writer(corpus, callback)` / `add_corpus_tsv_with_writer(corpus, callback)` -- Process a corpus with a custom callback (the POS-writer variant feeds two-stage stage-1 feature extraction)
 
 ### `adaboost.rs` -- AdaBoost Algorithm
 
@@ -99,7 +95,7 @@ The binary classifier used for word boundary decisions.
 
 ### `perceptron.rs` -- Averaged Perceptron
 
-The multiclass classifier used for joint segmentation + POS tagging.
+The multiclass classifier behind two-stage training (both stages) and the bundled segmentation models' collapse recipe.
 
 - **`AveragedPerceptron`**
   - `add_instance(features, label)` -- Add a training instance
@@ -123,7 +119,6 @@ Extracts features from a corpus for model training.
   - `new(language)` -- Create an extractor for a specific language
   - `extract(corpus_path, features_path)` -- Read a corpus, write a features file
   - `extract_tsv(corpus_path, features_path)` -- Same for tab-separated, space-preserving corpora (issue #152, used for Korean)
-  - `extract_with_pos(corpus_path, features_path)` -- Same for POS-tagged corpora
   - `extract_two_stage(corpus_path, output_prefix, feature_set)` -- Extract two-stage training features (issue #147) from a POS-tagged corpus: writes `{output_prefix}.stage1` (boundary features), `.stage2` (word-level features), and `.lexicon`
 
 ### `trainer.rs` -- Training Orchestration
@@ -134,7 +129,7 @@ High-level training workflows.
   - `new(threshold, num_iterations, features_path)` -- Initialize from a features file
   - `load_model(uri)` -- Optionally load an existing model for incremental training (async)
   - `train(running, model_path)` -- Train and save, returns `BinaryMetrics`
-- **`PosTrainer`** -- POS model training (Averaged Perceptron)
+- **`PerceptronTrainer`** -- Generic Averaged Perceptron training over opaque string labels (the training step of the bundled segmentation models' collapse recipe)
   - `new(num_epochs, features_path)` / `load_model(uri)` / `train(running, model_path)` returning `MulticlassMetrics`
 - **`TwoStageTrainer`** -- Two-stage model training (issue #147): trains a stage-1 boundary `AveragedPerceptron` and a stage-2 word tagger from the files `Extractor::extract_two_stage` writes, then collapses stage 1 to AdaBoost format and assembles a `TwoStageLearner`
   - `new(num_epochs, dominance, features_prefix)` / `train(running, model_path)` returning `TwoStageMetrics` (see [Trainer](../litsea/trainer.md) for the full API)
@@ -146,7 +141,7 @@ Defines the `litsea-two-stage v1` file format (see [Model File Format](../advanc
 
 - **`TwoStageLearner`** -- Bundles a stage-1 boundary `AdaBoost` model, a stage-2 `AveragedPerceptron` word tagger, and a candidate-tag lexicon; `new()` / `from_parts(...)` / `load_model_from_path(path)` / `save_model(path)` mirror the single-learner types' API
 - **`TwoStageFeatureSet`** -- Enum selecting the stage-2 word-level template subset (`Fast`, `Balanced`, `Full`)
-- **`AnyPosModel`** / **`ModelKind`** -- Auto-detect whether a model file is a joint (`AveragedPerceptron`) or two-stage model and dispatch accordingly; `AnyPosModel::load(uri)` (async) loads either kind, and `into_segmenter(language)` builds the matching `Segmenter` (via `with_pos_learner` or `with_two_stage_learner`)
+- **`ModelKind`** -- Detect a model file's format from its first line (`AdaBoost`, standalone `AveragedPerceptron`, or `TwoStage`); used to give wrong-kind files precise loader errors
 
 ### `error.rs` -- Error Handling
 
@@ -171,13 +166,9 @@ While `metrics.rs` reports in-sample quality (measured on the training data itse
 
 Internal module holding the declarative feature-template table (`TEMPLATES`, the single source of truth for all feature consumers), the load-time parser that converts model feature strings into packed integer keys, and `PackedModel` -- the AdaBoost weights compiled into the merged/dense tables read by `segment()`'s two-pass scorer. Not part of the public API.
 
-### `packed_pos_model.rs` -- Packed Perceptron Tables (private)
-
-Internal multiclass twin of `PackedModel` (issue #143): compiles the Averaged Perceptron's per-class weight rows into the same two-pass table structure (sparse `(class, weight)` rows for the char-bearing families, dense rows plus a presence bitset for the tag/type-only templates, pre-parsed `SegmentLabel`s) read by `segment_with_pos()`. Not part of the public API.
-
 ### `packed_two_stage.rs` -- Packed Two-Stage Tagging Tables (private)
 
-Internal module that compiles a `TwoStageLearner`'s stage-2 tagger and lexicon into the dense/sparse scoring tables `segment_with_pos()`'s two-stage path reads, mirroring what `packed_model.rs` / `packed_pos_model.rs` do for the AdaBoost and joint-perceptron learners: a surface map covering the lexicon and dominance-skip tags, sparse per-class rows for the char-valued word-feature templates (from `word_features.rs`), and dense tables for the type-valued and word-length templates. Not part of the public API.
+Internal module that compiles a `TwoStageLearner`'s stage-2 tagger and lexicon into the dense/sparse scoring tables `segment_with_pos()` reads, mirroring what `packed_model.rs` does for the AdaBoost learner: a surface map covering the lexicon and dominance-skip tags, sparse per-class rows for the char-valued word-feature templates (from `word_features.rs`), and dense tables for the type-valued and word-length templates. Not part of the public API.
 
 ### `word_features.rs` -- Stage-2 Word Feature Templates (private)
 
@@ -200,7 +191,6 @@ pub mod language;
 pub mod metrics;
 mod model_io;
 mod packed_model;
-mod packed_pos_model;
 mod packed_two_stage;
 pub mod perceptron;
 pub mod segmenter;
@@ -217,9 +207,9 @@ pub use language::{Language, ParseLanguageError};
 pub use metrics::{BinaryMetrics, MulticlassMetrics};
 pub use perceptron::AveragedPerceptron;
 pub use segmenter::{SegmentBuffer, Segmenter};
-pub use trainer::{PosTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
+pub use trainer::{PerceptronTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{
-    AnyPosModel, ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
+    ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
 };
 pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
 

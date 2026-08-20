@@ -112,27 +112,6 @@ pub fn extract_tsv_tag_free(
 [タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)
 を参照してください。CLI の `extract --tag-free` の実体です。
 
-### `extract_with_pos`
-
-```rust
-pub fn extract_with_pos(
-    &self,
-    corpus_path: &Path,
-    features_path: &Path,
-) -> litsea::Result<()>
-```
-
-POS タグ付きコーパス（`word/POS word/POS ...`、1行1文、POS タグは UPOS タグセット）を読み込み、POS 学習用の特徴量を書き込みます。各出力行は `label\tfeature1\tfeature2\t...` の形式で、ラベルは `SegmentLabel` 文字列です（単語先頭文字には `B-<POS>`、継続文字には `O`）。境界検出用パイプラインとは異なり、各文の最初の文字位置も出力されます。これは、`segment_with_pos` がその位置で予測を行い、最初の単語の品詞を求めるためです。
-
-```rust
-use std::path::Path;
-
-extractor.extract_with_pos(
-    Path::new("./pos_corpus.txt"),
-    Path::new("./features_pos.txt"),
-)?;
-```
-
 ### `extract_two_stage`
 
 ```rust
@@ -144,9 +123,9 @@ pub fn extract_two_stage(
 ) -> litsea::Result<()>
 ```
 
-POS タグ付きコーパス（`word/POS word/POS ...`、`extract_with_pos` と同じ形式）を1パスで読み込み、[二段構成モデル](../algorithm/two-stage-tagging.md)の学習に使う [`TwoStageTrainer`](trainer.md#twostagetrainer) 用の3ファイルを `output_prefix` から書き出します。
+POS タグ付きコーパス（`word/POS word/POS ...`、1行1文、POS タグは UPOS タグセット）を1パスで読み込み、[二段構成モデル](../algorithm/two-stage-tagging.md)の学習に使う [`TwoStageTrainer`](trainer.md#twostagetrainer) 用の3ファイルを `output_prefix` から書き出します。
 
-- `{output_prefix}.stage1` -- 境界特徴量（`label\tfeature1\t...`、ラベルは `B` または `O`）。`extract_with_pos` と同じ特徴量テンプレートを使用
+- `{output_prefix}.stage1` -- 境界特徴量（`label\tfeature1\t...`、ラベルは `B` または `O`）。通常の抽出と同じ文字レベルの特徴量テンプレートを使用し、先頭位置を含む全位置で出力
 - `{output_prefix}.stage2` -- 単語単位の特徴量（`label\tfeature1\t...`、ラベルは UPOS タグ）。`feature_set` で選択したテンプレートを使用（詳細は下記の [`TwoStageFeatureSet`](#twostagefeatureset)）
 - `{output_prefix}.lexicon` -- 候補タグ語彙表（`surface\tTAG:count[,TAG:count...]`、出現頻度の高い順）
 

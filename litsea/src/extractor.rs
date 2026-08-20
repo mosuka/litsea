@@ -3,7 +3,7 @@
 //! Defines [`Extractor`], which converts a pre-segmented corpus file (or,
 //! for POS tagging, a "word/POS"-tagged corpus) into the tab-separated
 //! label + feature rows consumed by the trainers
-//! ([`Trainer`](crate::trainer::Trainer) / [`PosTrainer`](crate::trainer::PosTrainer)).
+//! ([`Trainer`](crate::trainer::Trainer) / [`PerceptronTrainer`](crate::trainer::PerceptronTrainer)).
 //! [`Extractor::extract_two_stage`] extracts the same kind of rows for the
 //! two-stage architecture instead, splitting them across the three files
 //! read by [`TwoStageTrainer`](crate::trainer::TwoStageTrainer).
@@ -28,11 +28,10 @@ use crate::word_features::write_word_features;
 /// It reads pre-segmented sentences from a corpus file (the word boundaries
 /// are given by the corpus itself) and writes the extracted training
 /// features to one or more output files (a single features file for
-/// [`extract`](Self::extract)/[`extract_tsv`](Self::extract_tsv)/
-/// [`extract_with_pos`](Self::extract_with_pos), or three files for
-/// [`extract_two_stage`](Self::extract_two_stage)). The internal `Segmenter`
-/// is used only as the feature generator; its model is never used to
-/// segment.
+/// [`extract`](Self::extract)/[`extract_tsv`](Self::extract_tsv), or three
+/// files for [`extract_two_stage`](Self::extract_two_stage)). The internal
+/// `Segmenter` is used only as the feature generator; its model is never
+/// used to segment.
 #[derive(Debug)]
 pub struct Extractor {
     segmenter: Segmenter,
@@ -178,42 +177,15 @@ impl Extractor {
         })
     }
 
-    /// Extracts features from a POS-tagged corpus and writes them to a file.
-    ///
-    /// Corpus format: each line is "word/POS word/POS ...".
-    /// Output format: each line is "label\tfeature1\tfeature2\t...".
-    /// Labels are SegmentLabel strings: "B-NOUN", "B-VERB", ..., "O".
-    ///
-    /// # Arguments
-    /// * `corpus_path` - The path to the POS-tagged corpus file
-    /// * `features_path` - The path to the features output file
-    ///
-    /// # Returns
-    /// Returns a Result indicating success or failure.
-    ///
-    /// # Errors
-    /// Returns an I/O error if the corpus file cannot be opened or read, or
-    /// if the features file cannot be created or written.
-    pub fn extract_with_pos(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
-        let segmenter = &self.segmenter;
-        Self::write_features(corpus_path, features_path, |line, rows| {
-            segmenter.add_corpus_with_pos_writer(line, |attrs, label| {
-                rows.push(Self::format_row(attrs, label));
-            });
-        })
-    }
-
     /// Extracts two-stage training features (issue #147) from a POS-tagged
     /// corpus in a single pass: stage-1 boundary features (2-class labels
-    /// `B`/`O`, using the same feature templates as
-    /// [`extract_with_pos`](Self::extract_with_pos)), stage-2 word-level
-    /// features (UPOS labels, using the templates selected by
-    /// `feature_set`), and the candidate-tag lexicon.
+    /// `B`/`O`, using the same character-level feature templates as
+    /// segmentation), stage-2 word-level features (UPOS labels, using the
+    /// templates selected by `feature_set`), and the candidate-tag lexicon.
     ///
     /// Corpus format: `"word/POS word/POS ..."`, parsed with
     /// [`crate::evaluation::parse_gold_pos_line`] (last-`/`-wins, a
-    /// slash-less token gets [`Upos::X`]) — the same rule the joint
-    /// pipeline uses.
+    /// slash-less token gets [`Upos::X`]).
     ///
     /// # Arguments
     /// * `corpus_path` - The path to the POS-tagged corpus file.
@@ -260,9 +232,9 @@ impl Extractor {
                 continue;
             }
 
-            // Stage 1: the same attribute generation as the joint pipeline
-            // (segment_with_pos's training data), with the label collapsed
-            // to the boundary class.
+            // Stage 1: character-level attribute generation over the
+            // POS-tagged corpus, with the label collapsed to the boundary
+            // class.
             segmenter.add_corpus_with_pos_writer(line, |attrs, label| {
                 let boundary = match label {
                     SegmentLabel::B(_) => "B",
@@ -540,46 +512,6 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_with_pos() -> Result<()> {
-        // Create a POS-tagged corpus
-        let mut corpus_file = NamedTempFile::new()?;
-        writeln!(corpus_file, "これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT")?;
-        writeln!(corpus_file, "私/PRON の/PART 猫/NOUN 。/PUNCT")?;
-        corpus_file.as_file().sync_all()?;
-
-        let features_file = NamedTempFile::new()?;
-
-        let extractor = Extractor::default();
-        extractor.extract_with_pos(corpus_file.path(), features_file.path())?;
-
-        let mut output = String::new();
-        File::open(features_file.path())?.read_to_string(&mut output)?;
-
-        assert!(!output.is_empty(), "Extracted features should not be empty");
-
-        // Verify the labels follow the SegmentLabel format
-        for line in output.lines() {
-            let fields: Vec<&str> = line.split('\t').collect();
-            assert!(fields.len() >= 2, "Line should have label + features: {line}");
-            let label = fields[0];
-            // The label is either "O" or "B-<POS>"
-            assert!(
-                label == "O" || label.starts_with("B-"),
-                "Label should be 'O' or 'B-<POS>', got: {label}"
-            );
-            // For B-<POS>, verify the POS is a valid UPOS tag
-            if let Some(pos) = label.strip_prefix("B-") {
-                assert!(
-                    pos.parse::<crate::upos::Upos>().is_ok(),
-                    "Invalid UPOS tag in label: {label}"
-                );
-            }
-        }
-
-        Ok(())
-    }
-
-    #[test]
     fn test_extract_two_stage() -> Result<()> {
         use std::collections::HashMap;
 
@@ -603,8 +535,9 @@ mod tests {
         let mut lexicon = String::new();
         File::open(dir.path().join("out.lexicon"))?.read_to_string(&mut lexicon)?;
 
-        // Stage 1: one row per character (the joint pipeline predicts at
-        // the first position too), label collapsed to the boundary class.
+        // Stage 1: one row per character (the POS corpus pipeline emits a
+        // row at the first position too), label collapsed to the boundary
+        // class.
         // Line 1 has 9 chars ("これはテストです。"), line 2 has 7
         // ("これもテスト。").
         let stage1_lines: Vec<&str> = stage1.lines().collect();

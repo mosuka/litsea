@@ -2,7 +2,7 @@
 
 Litsea へようこそ！ このセクションでは、すぐに使い始められるようガイドします。
 
-Litsea は、**単語分割**（AdaBoost）、**品詞推定付き単語分割**（Averaged Perceptron）、そしてより高速な[二段構成の品詞推定](algorithm/two-stage-tagging.md)アーキテクチャという 3 つのモードをサポートする Rust 製コンパクト単語分割ライブラリです。速度と精度のトレードオフに応じて使い分けられます。
+Litsea は、**単語分割**（AdaBoost）と[二段構成の品詞推定](algorithm/two-stage-tagging.md)（二値境界分類器 + 単語単位タガー）をサポートする Rust 製コンパクト単語分割ライブラリです。
 
 ## 次のステップ
 

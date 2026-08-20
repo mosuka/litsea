@@ -79,70 +79,42 @@ Result Metrics:
 
 Press **Ctrl+C once** during training to stop and save the model at its current state. Press **Ctrl+C twice** to exit immediately without saving.
 
-## POS Model Training
+## Generic Perceptron Training
 
-For training POS tagging models, use the `--pos` flag. POS models use the **Averaged Perceptron** algorithm (multiclass classifier) instead of AdaBoost (binary classifier).
+For the bundled segmentation models' collapse recipe (see [Training
+Procedure](../pre-trained-models.md#training-procedure)), use the
+`--perceptron` flag. It trains a multiclass **Averaged Perceptron** over
+opaque string labels from a `label\tfeature\t...` features file.
 
-### POS Training Command
-
-```sh
-litsea train --pos --num-epochs 10 <FEATURES_FILE> <MODEL_FILE>
-```
-
-### POS Training Example
+### Perceptron Training Command
 
 ```sh
-litsea train --pos --num-epochs 10 ./features.txt ./models/japanese_pos.model
+litsea train --perceptron --num-epochs 50 <FEATURES_FILE> <MODEL_FILE>
 ```
 
-### Averaged Perceptron vs AdaBoost
-
-| Aspect | AdaBoost (Segmentation) | Averaged Perceptron (POS) |
-|--------|------------------------|---------------------------|
-| Classification | Binary (boundary / non-boundary) | Multiclass (18 segment labels) |
-| Labels | `1`, `-1` | `B-NOUN`, `B-VERB`, ..., `O` |
-| Hyperparameters | Threshold, Iterations | Number of epochs |
-| Model size | ~86 KB - 2.0 MB (bundled models) | ~9-19 MB |
-
-The AdaBoost model-size range above reflects the bundled `japanese.model`
-(~1.1 MB), `chinese.model` (~2.0 MB), and `korean.model` (~86 KB); a model
-trained with modest `-i` values (as in the basic example above) can be much
-smaller. The legacy `RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model`
-are smaller still (~16-22 KB). See [Pre-trained
-Models](../pre-trained-models.md) for exact per-model sizes.
-
-### POS Hyperparameters
-
-| Parameter | Flag | Default | Guidance |
-|-----------|------|---------|----------|
-| Epochs | `--num-epochs` | 10 | Number of passes over the training data. Start with 10 and adjust based on metrics |
-
-### POS Training Output
+### Perceptron Training Output
 
 ```text
-Result Metrics (POS):
+Result Metrics (Perceptron):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%
 ```
 
 - **Accuracy** -- Percentage of correct predictions across all classes
-- **Macro Precision** -- Average precision across all POS classes
-- **Macro Recall** -- Average recall across all POS classes
+- **Macro Precision** -- Average precision across all classes
+- **Macro Recall** -- Average recall across all classes
 
-### POS Graceful Interruption
-
-Press **Ctrl+C once** during POS training to stop and save the model at its current state. Press **Ctrl+C twice** to exit immediately without saving.
+Press **Ctrl+C once** during perceptron training to stop and save the model at its current state. Press **Ctrl+C twice** to exit immediately without saving.
 
 ## Two-Stage Model Training
 
-For faster POS tagging, use the `--two-stage` flag instead of `--pos`. It
+For POS tagging, use the `--two-stage` flag. It
 trains a [two-stage model](../algorithm/two-stage-tagging.md) (issue #147):
 a binary boundary classifier (stage 1) plus a word-level tagger (stage 2),
 assembled with a candidate-tag lexicon into a single `litsea-two-stage v1`
-file. See [Two-Stage vs. Joint Tagging](../algorithm/two-stage-tagging.md)
-for the architecture, the measured quality/speed comparison, and why to
-prefer it for new work.
+file. See [Two-Stage Tagging](../algorithm/two-stage-tagging.md)
+for the architecture and the measured quality/speed figures.
 
 ### Two-Stage Training Command
 
@@ -151,7 +123,7 @@ litsea extract --two-stage <CORPUS_FILE> <FEATURES_PREFIX>
 litsea train --two-stage --num-epochs 50 <FEATURES_PREFIX> <MODEL_FILE>
 ```
 
-`extract --two-stage` reads the same `word/POS` corpus as `--pos` and
+`extract --two-stage` reads a `word/POS` corpus and
 writes three files from `FEATURES_PREFIX`; `train --two-stage` reads them
 back from the same prefix.
 
@@ -166,7 +138,7 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 
 | Parameter | Flag | Default | Guidance |
 |-----------|------|---------|----------|
-| Epochs | `--num-epochs` | 10 | An epoch sweep during bundling (see [Two-Stage vs. Joint Tagging](../algorithm/two-stage-tagging.md#a-methodology-note-training-epochs-matter-more-than-architecture)) found segmentation quality still improving well past the default and plateauing around **50** -- the bundled models use 50, not 10 |
+| Epochs | `--num-epochs` | 10 | An epoch sweep during bundling (see [the methodology note](../algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epochs)) found segmentation quality still improving well past the default and plateauing around **50** -- the bundled models use 50, not 10 |
 | Dominance | `--dominance` | 0.99 | Classifier-skip threshold in `(0.5, 1.0]`: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier. Lower values skip the classifier more often (faster, more reliant on the lexicon); the default matches the bundled models |
 | Stage-2 feature set | `--stage2-features` on `extract --two-stage` | `fast` | `full`, `balanced`, or `fast`; see [Extracting Features](extracting-features.md) and [choosing a feature set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set) |
 
@@ -182,11 +154,9 @@ Result Metrics (Two-Stage):
   Stage 2 Macro Recall: 98.77%
 ```
 
-As with AdaBoost and joint POS training, these are in-sample metrics;
+As with the other modes, these are in-sample metrics;
 evaluate on held-out text with `litsea evaluate --pos` for a realistic
-quality estimate. `segment --pos` and `evaluate --pos` auto-detect a
-two-stage model from its file header, so no extra flag is needed to use
-one once trained.
+quality estimate.
 
 ### Two-Stage Graceful Interruption
 

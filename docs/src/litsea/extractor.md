@@ -117,33 +117,6 @@ Models](../pre-trained-models.md#tag-free-pointwise-models) for the
 measured per-language quality/speed trade-off. These back the CLI's
 `extract --tag-free`.
 
-### `extract_with_pos`
-
-```rust
-pub fn extract_with_pos(
-    &self,
-    corpus_path: &Path,
-    features_path: &Path,
-) -> litsea::Result<()>
-```
-
-Reads a POS-tagged corpus (`word/POS word/POS ...`, one sentence per line,
-POS tags from the UPOS tagset) and writes POS training features. Each output
-line is `label\tfeature1\tfeature2\t...` where the label is a `SegmentLabel`
-string (`B-<POS>` for a word-initial character, `O` for a continuation).
-Unlike the boundary pipeline, the first character position of each sentence
-is also emitted, because `segment_with_pos` predicts there to derive the
-first word's POS.
-
-```rust
-use std::path::Path;
-
-extractor.extract_with_pos(
-    Path::new("./pos_corpus.txt"),
-    Path::new("./features_pos.txt"),
-)?;
-```
-
 ### `extract_two_stage`
 
 ```rust
@@ -155,13 +128,15 @@ pub fn extract_two_stage(
 ) -> litsea::Result<()>
 ```
 
-Reads a POS-tagged corpus (`word/POS word/POS ...`, the same format as
-`extract_with_pos`) in a single pass and writes the three files consumed by
+Reads a POS-tagged corpus (`word/POS word/POS ...`, one sentence per
+line, POS tags from the UPOS tagset) in a single pass and writes the three
+files consumed by
 [`TwoStageTrainer`](trainer.md#twostagetrainer), used to train a [two-stage
 model](../algorithm/two-stage-tagging.md), from `output_prefix`:
 
 - `{output_prefix}.stage1` -- boundary features (`label\tfeature1\t...`,
-  label `B` or `O`), using the same feature templates as `extract_with_pos`
+  label `B` or `O`), using the same character-level feature templates as
+  plain extraction, emitted at every position including the first
 - `{output_prefix}.stage2` -- word-level features (`label\tfeature1\t...`,
   label a UPOS tag), using the templates selected by `feature_set` (see
   [`TwoStageFeatureSet`](#twostagefeatureset) below)

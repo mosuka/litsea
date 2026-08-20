@@ -4,10 +4,11 @@ Litsea is an extremely compact word segmentation and POS (Part-of-Speech) taggin
 
 The library provides the following key modules:
 
-- `segmenter` — Word segmentation (AdaBoost) and joint segmentation + POS tagging (Averaged Perceptron)
+- `segmenter` — Word segmentation (AdaBoost) and two-stage segmentation + POS tagging
 - `extractor` — Feature extraction from corpora (with or without POS annotations)
 - `adaboost` — AdaBoost binary classifier for word boundary detection
-- `perceptron` — Averaged Perceptron for POS tagging
+- `two_stage` — Two-stage POS model: boundary classifier + candidate-tag lexicon + word-level tagger
+- `perceptron` — Averaged Perceptron, the training-side learner behind both two-stage stages
 - `upos` — UPOS (Universal POS) tagset enum (17 tags from [Universal Dependencies](https://universaldependencies.org/u/pos/))
 - `language` — Language enum (Japanese, Korean, Chinese)
 
@@ -118,20 +119,20 @@ Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 �
 
 ## How to segment sentences with POS tagging
 
-Use `Segmenter::with_pos_learner()` and `segment_with_pos()` for joint word segmentation and POS tagging:
+Use `Segmenter::with_two_stage_learner()` and `segment_with_pos()` for word segmentation and POS tagging with a two-stage model (`litsea-two-stage v1` format, trained with `litsea extract --two-stage` + `litsea train --two-stage`):
 
 ```rust
 use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
 
-// Load an Averaged Perceptron POS model
-let mut pos_learner = AveragedPerceptron::new();
-// pos_learner.load_model("./resources/japanese_pos.model").await?;
+// Load a two-stage POS model
+let mut learner = TwoStageLearner::new();
+// learner.load_model("./models/japanese_two_stage.model").await?;
 
-let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
 
-let tokens = segmenter.segment_with_pos("これはテストです。");
+let tokens = segmenter.segment_with_pos("これはテストです。")?;
 for (word, pos) in &tokens {
     println!("{}/{}", word, pos);
 }

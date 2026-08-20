@@ -1,10 +1,9 @@
 //! Text segmentation engine.
 //!
-//! Defines [`Segmenter`], which performs word segmentation (AdaBoost),
-//! joint segmentation + POS tagging (Averaged Perceptron), and two-stage
-//! segmentation + POS tagging (boundary classifier + lexicon + word-level
-//! tagger, issue #147), scoring through the packed tables of
-//! `crate::packed_model` / `crate::packed_pos_model` / `crate::packed_two_stage`.
+//! Defines [`Segmenter`], which performs word segmentation (AdaBoost) and
+//! two-stage segmentation + POS tagging (boundary classifier + lexicon +
+//! word-level tagger, issue #147), scoring through the packed tables of
+//! `crate::packed_model` / `crate::packed_two_stage`.
 //! Also hosts the corpus-processing pipeline used to build training features.
 
 use std::collections::HashSet;
@@ -14,11 +13,9 @@ use crate::adaboost::AdaBoost;
 use crate::error::{LitseaError, Result};
 use crate::language::{Language, OTHER_TYPE_ID};
 use crate::packed_model::{
-    PackedModel, SENTINEL_BASE, Slot, TAG_B, TAG_O, TAG_U, TEMPLATES, templates_for, wc_key,
+    PackedModel, SENTINEL_BASE, Slot, TAG_B, TAG_O, TAG_U, TEMPLATES, templates_for,
 };
-use crate::packed_pos_model::PackedPosModel;
 use crate::packed_two_stage::PackedTwoStageModel;
-use crate::perceptron::AveragedPerceptron;
 use crate::two_stage::TwoStageLearner;
 use crate::upos::{SegmentLabel, Upos};
 
@@ -68,10 +65,9 @@ impl SegmentBuffer {
     }
 }
 
-/// Text segmenter supporting three modes: word segmentation via AdaBoost
-/// binary classification; joint word segmentation + POS tagging via an
-/// Averaged Perceptron; and two-stage word segmentation + POS tagging via a
-/// boundary classifier, lexicon, and word-level tagger (see
+/// Text segmenter supporting two modes: word segmentation via AdaBoost
+/// binary classification, and two-stage word segmentation + POS tagging via
+/// a boundary classifier, lexicon, and word-level tagger (see
 /// [`with_two_stage_learner`](Self::with_two_stage_learner)). Word
 /// segmentation and POS tagging are dispatched through
 /// [`segment`](Self::segment) and
@@ -87,32 +83,23 @@ pub struct Segmenter {
     /// [`learner_mut`](Self::learner_mut) (as [`add_corpus`](Self::add_corpus)
     /// does) so that `packed` is invalidated alongside.
     learner: AdaBoost,
-    /// Optional Averaged Perceptron for POS tagging
-    pos_learner: Option<AveragedPerceptron>,
     /// The learner's weights compiled to packed integer keys for
     /// [`segment`](Self::segment)'s hot loop. `None` after a learner
     /// mutation; lazily rebuilt on the next `segment` call.
     packed: RwLock<Option<PackedModel>>,
-    /// The POS learner's weights compiled to packed integer keys for
-    /// [`segment_with_pos`](Self::segment_with_pos)'s hot loop. `None` when
-    /// no POS learner is set or after a POS-learner mutation (all mutation
-    /// must flow through [`pos_learner_mut`](Self::pos_learner_mut) or
-    /// [`add_corpus_with_pos`](Self::add_corpus_with_pos), which invalidate
-    /// it); lazily rebuilt on the next `segment_with_pos` call.
-    packed_pos: RwLock<Option<PackedPosModel>>,
     /// The stage-2 half of a two-stage model, compiled into packed tagging
     /// tables by [`with_two_stage_learner`](Self::with_two_stage_learner)
     /// (the stage-1 half lives in `learner`). When present,
-    /// [`segment_with_pos`](Self::segment_with_pos) takes the two-stage
-    /// path instead of the joint POS path.
+    /// [`segment_with_pos`](Self::segment_with_pos) runs the two-stage
+    /// tagging path.
     ///
-    /// Unlike `packed` and `packed_pos` this is not a lazily-rebuilt cache
-    /// of some other field — it *is* the stage-2 model; the raw
-    /// [`TwoStageLearner`] parts are dropped after compilation, and there is
-    /// no mutable accessor for it. If in-place two-stage mutation is ever
-    /// added, follow the [`pos_learner_mut`](Self::pos_learner_mut) shape
-    /// (keep the learner, cache the compilation, invalidate on mutation)
-    /// rather than mutating this field directly.
+    /// Unlike `packed` this is not a lazily-rebuilt cache of some other
+    /// field — it *is* the stage-2 model; the raw [`TwoStageLearner`] parts
+    /// are dropped after compilation, and there is no mutable accessor for
+    /// it. If in-place two-stage mutation is ever added, follow the
+    /// [`learner_mut`](Self::learner_mut) shape (keep the learner, cache the
+    /// compilation, invalidate on mutation) rather than mutating this field
+    /// directly.
     two_stage: Option<PackedTwoStageModel>,
 }
 
@@ -170,40 +157,7 @@ impl Segmenter {
         Segmenter {
             language,
             learner,
-            pos_learner: None,
             packed,
-            packed_pos: RwLock::new(None),
-            two_stage: None,
-        }
-    }
-
-    /// Creates a new instance of [`Segmenter`] with a POS learner.
-    ///
-    /// The AdaBoost learner is the untrained default: use
-    /// [`segment_with_pos`](Self::segment_with_pos) with this constructor;
-    /// [`segment`](Self::segment) would return one word per character.
-    ///
-    /// # Arguments
-    /// * `language` - The language to use for character type classification.
-    /// * `pos_learner` - An AveragedPerceptron instance for POS tagging.
-    ///
-    /// # Returns
-    /// A new Segmenter instance configured for joint segmentation + POS tagging.
-    pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -> Self {
-        let learner = AdaBoost::default();
-        // The default learner has no features; compiling it yields all-zero
-        // tables (correctly sized for the language), so segment() stays
-        // well-defined even though this constructor targets the POS path.
-        let packed = RwLock::new(Some(PackedModel::build(language, &learner)));
-        // Compile the packed POS scoring table eagerly so the common
-        // load-then-segment path never rebuilds mid-stream.
-        let packed_pos = RwLock::new(Some(PackedPosModel::build(language, &pos_learner)));
-        Segmenter {
-            language,
-            learner,
-            pos_learner: Some(pos_learner),
-            packed,
-            packed_pos,
             two_stage: None,
         }
     }
@@ -235,9 +189,7 @@ impl Segmenter {
         Segmenter {
             language,
             learner: stage1,
-            pos_learner: None,
             packed,
-            packed_pos: RwLock::new(None),
             two_stage: Some(two_stage),
         }
     }
@@ -266,25 +218,6 @@ impl Segmenter {
     pub fn learner_mut(&mut self) -> &mut AdaBoost {
         *self.packed.get_mut().unwrap_or_else(PoisonError::into_inner) = None;
         &mut self.learner
-    }
-
-    /// Returns a reference to the POS learner, if one is set (always `None`
-    /// for a two-stage segmenter, even though it does perform POS tagging —
-    /// see [`with_two_stage_learner`](Self::with_two_stage_learner)).
-    #[must_use]
-    pub fn pos_learner(&self) -> Option<&AveragedPerceptron> {
-        self.pos_learner.as_ref()
-    }
-
-    /// Returns a mutable reference to the POS learner, if one is set.
-    ///
-    /// The caller may mutate the POS learner (load a model, add instances,
-    /// train), so the compiled packed POS scoring table is dropped here; the
-    /// next [`segment_with_pos`](Self::segment_with_pos) call rebuilds it
-    /// from the learner's then-current weights.
-    pub fn pos_learner_mut(&mut self) -> Option<&mut AveragedPerceptron> {
-        *self.packed_pos.get_mut().unwrap_or_else(PoisonError::into_inner) = None;
-        self.pos_learner.as_mut()
     }
 
     /// Gets the type of a character based on language-specific rules
@@ -332,37 +265,6 @@ impl Segmenter {
         (chars, types)
     }
 
-    /// Packed variant of [`sentence_context`](Self::sentence_context) for
-    /// [`segment_with_pos`](Self::segment_with_pos)'s joint hot loop
-    /// (the boundary pipeline uses the slice-free
-    /// [`packed_context_into`](Self::packed_context_into) instead, #184).
-    ///
-    /// Returns `(chars, char_codes, type_ids)` with the same layout (three
-    /// head sentinels, real characters, three tail sentinels): `chars` holds
-    /// string slices for word assembly, `char_codes` holds the numeric char
-    /// codes used in packed keys (code points; sentinels map to
-    /// `SENTINEL_BASE + k` in B3/B2/B1/E1/E2/E3 order), and `type_ids` holds
-    /// [`Language::char_type_id`] values (padding uses the "O" id, conflated
-    /// with a real Other-class character exactly as in the string
-    /// representation).
-    fn packed_context<'a>(&self, text: &'a str) -> (Vec<&'a str>, Vec<u32>, Vec<u8>) {
-        let mut chars: Vec<&str> = Vec::with_capacity(text.len() + 6);
-        let mut char_codes: Vec<u32> = Vec::with_capacity(text.len() + 6);
-        let mut type_ids: Vec<u8> = Vec::with_capacity(text.len() + 6);
-        chars.extend_from_slice(&["B3", "B2", "B1"]);
-        char_codes.extend_from_slice(&[SENTINEL_BASE, SENTINEL_BASE + 1, SENTINEL_BASE + 2]);
-        type_ids.extend_from_slice(&[OTHER_TYPE_ID; 3]);
-        for (i, ch) in text.char_indices() {
-            chars.push(&text[i..i + ch.len_utf8()]);
-            char_codes.push(u32::from(ch));
-            type_ids.push(self.language.char_type_id(ch));
-        }
-        chars.extend_from_slice(&["E1", "E2", "E3"]);
-        char_codes.extend_from_slice(&[SENTINEL_BASE + 3, SENTINEL_BASE + 4, SENTINEL_BASE + 5]);
-        type_ids.extend_from_slice(&[OTHER_TYPE_ID; 3]);
-        (chars, char_codes, type_ids)
-    }
-
     /// Fills `buf`'s context arrays for [`segment_into`](Self::segment_into):
     /// the same sentinel layout as [`packed_context`](Self::packed_context)
     /// for `char_codes` / `type_ids`, plus `char_starts` holding the byte
@@ -405,29 +307,6 @@ impl Segmenter {
         // get_or_insert_with covers the race where another thread rebuilt
         // the table between the two lock acquisitions.
         let packed = guard.get_or_insert_with(|| PackedModel::build(self.language, &self.learner));
-        f(packed)
-    }
-
-    /// Runs `f` with the packed POS scoring table, rebuilding it first if a
-    /// POS-learner mutation invalidated it. The fast path takes only an
-    /// uncontended read lock (one per sentence). The caller passes the POS
-    /// learner it already borrowed (presence is checked by
-    /// [`segment_with_pos`](Self::segment_with_pos)).
-    fn with_packed_pos<R>(
-        &self,
-        pos_learner: &AveragedPerceptron,
-        f: impl FnOnce(&PackedPosModel) -> R,
-    ) -> R {
-        {
-            let guard = self.packed_pos.read().unwrap_or_else(PoisonError::into_inner);
-            if let Some(packed) = guard.as_ref() {
-                return f(packed);
-            }
-        }
-        let mut guard = self.packed_pos.write().unwrap_or_else(PoisonError::into_inner);
-        // get_or_insert_with covers the race where another thread rebuilt
-        // the table between the two lock acquisitions.
-        let packed = guard.get_or_insert_with(|| PackedPosModel::build(self.language, pos_learner));
         f(packed)
     }
 
@@ -667,33 +546,6 @@ impl Segmenter {
         let learner = self.learner_mut();
         for (attrs, label) in instances {
             learner.add_instance(attrs, label);
-        }
-    }
-
-    /// Adds a POS-tagged corpus as Averaged Perceptron training data.
-    ///
-    /// # Arguments
-    /// * `corpus` - A POS-tagged corpus ("word/POS word/POS ..." format)
-    ///
-    /// # Example
-    /// ```
-    /// use litsea::language::Language;
-    /// use litsea::segmenter::Segmenter;
-    ///
-    /// let mut segmenter = Segmenter::new(Language::Japanese);
-    /// segmenter.add_corpus_with_pos("これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT");
-    /// ```
-    pub fn add_corpus_with_pos(&mut self, corpus: &str) {
-        let mut instances = Vec::new();
-        self.process_corpus_with_pos(corpus, |attrs, label| {
-            instances.push((attrs, label));
-        });
-        // Invalidate the packed POS scoring table alongside the learner
-        // mutation (mirrors learner_mut() on the AdaBoost side).
-        *self.packed_pos.get_mut().unwrap_or_else(PoisonError::into_inner) = None;
-        let pos_learner = self.pos_learner.get_or_insert_with(AveragedPerceptron::new);
-        for (attrs, label) in instances {
-            pos_learner.add_instance(attrs, label.to_string());
         }
     }
 
@@ -1021,25 +873,13 @@ impl Segmenter {
         result
     }
 
-    /// Segments the sentence and tags each word with its POS, using either
-    /// the joint per-character Averaged Perceptron path or, if a two-stage
-    /// learner is set, the two-stage boundary+lexicon path — see the
-    /// `# Two-stage mode` section below.
-    ///
-    /// In the joint path, the Averaged Perceptron (`pos_learner`) predicts
-    /// the label (`B-<POS>` / `O`) at each character position and the
-    /// method returns word/POS pairs. The first word's POS is derived from
-    /// the predicted label at the first character position.
-    ///
-    /// Scoring runs against the compiled packed POS tables
-    /// (`crate::packed_pos_model::PackedPosModel`, issue #143) in the same
-    /// two passes as [`segment`](Self::segment): a static pass scatter-adds
-    /// every tag-free feature into an `n x n_classes` score matrix, and a
-    /// sequential pass adds the 16 tag-dependent dense rows and takes the
-    /// argmax. As in `segment()`, the accumulation order differs from the
-    /// string-keyed reference path (kept test-only as
-    /// [`segment_with_pos_reference`](Self::segment_with_pos_reference));
-    /// output equality is pinned empirically by the differential tests.
+    /// Segments the sentence and tags each word with its POS through the
+    /// two-stage pipeline (issue #147): the sentence is segmented by the
+    /// stage-1 boundary classifier (exactly as [`segment`](Self::segment)),
+    /// then each word is tagged through the candidate-tag lexicon —
+    /// single-candidate and dominant surfaces skip the classifier entirely —
+    /// with the stage-2 word-level tagger deciding ambiguous surfaces
+    /// (candidate-masked argmax) and unknown surfaces (full argmax).
     ///
     /// # Arguments
     /// * `sentence` - The sentence to segment
@@ -1048,247 +888,18 @@ impl Segmenter {
     /// `Result<Vec<(String, Upos)>>` - Pairs of words and their POS tags.
     /// An empty sentence yields `Ok` with an empty vector.
     ///
-    /// # Two-stage mode
-    /// When the segmenter was built with
-    /// [`with_two_stage_learner`](Self::with_two_stage_learner), this
-    /// method instead runs the two-stage pipeline (issue #147): the
-    /// sentence is segmented by the stage-1 boundary classifier (exactly
-    /// as [`segment`](Self::segment)), then each word is tagged through
-    /// the candidate-tag lexicon — single-candidate and dominant surfaces
-    /// skip the classifier entirely — with the stage-2 word-level tagger
-    /// deciding ambiguous surfaces (candidate-masked argmax) and unknown
-    /// surfaces (full argmax).
-    ///
     /// # Errors
-    /// Returns [`LitseaError::PosLearnerNotSet`] if neither a POS learner
-    /// nor a two-stage learner is set. Set one beforehand with
-    /// [`with_pos_learner`](Self::with_pos_learner),
-    /// [`with_two_stage_learner`](Self::with_two_stage_learner), or
-    /// [`add_corpus_with_pos`](Self::add_corpus_with_pos).
+    /// Returns [`LitseaError::PosLearnerNotSet`] if no two-stage learner is
+    /// set. Build the segmenter with
+    /// [`with_two_stage_learner`](Self::with_two_stage_learner) beforehand.
     pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>> {
         if sentence.is_empty() {
             return Ok(Vec::new());
         }
-        if let Some(packed) = self.two_stage.as_ref() {
-            let words = self.segment(sentence);
-            let tags = packed.tag_words(self.language, &words);
-            return Ok(words.into_iter().zip(tags).collect());
-        }
-        let pos_learner = self.pos_learner.as_ref().ok_or(LitseaError::PosLearnerNotSet)?;
-        let (chars, char_codes, type_ids) = self.packed_context(sentence);
-
-        let result = self.with_packed_pos(pos_learner, |packed| {
-            let cn = packed.n_classes;
-            // A perceptron without classes yields no prediction: every
-            // position falls back to O, so the whole sentence is one word
-            // tagged X, matching the reference path.
-            if cn == 0 {
-                return vec![(sentence.to_string(), Upos::X)];
-            }
-            let type_radix = self.language.type_codes().len();
-            let n = chars.len();
-            // Decision positions: lo..=hi. Unlike segment() (lo = 4), the
-            // POS path also predicts at the first real character (i = 3) to
-            // derive the first word's POS.
-            let lo = 3usize;
-            let hi = n - 4;
-
-            // ---- Static pass: everything that does not depend on boundary
-            // tags is accumulated into a per-position score row in one
-            // sweep, exactly as in segment() but with n_classes-wide rows.
-            // The f64 accumulation order differs from the string-keyed
-            // reference (see the module docs of packed_pos_model); output
-            // equality is pinned empirically by the differential tests.
-            let mut static_scores = vec![0.0f64; n * cn];
-            // Unigram families: one merged probe (UW) and one scatter-twin
-            // block (UC) per context position q feed decision positions
-            // i = q + 3 - k.
-            for (q, code) in char_codes.iter().enumerate() {
-                if let Some(row) = packed.uw.get(code) {
-                    for &(k, c, w) in row.iter() {
-                        let i = (q + 3).wrapping_sub(k as usize);
-                        if (lo..=hi).contains(&i) {
-                            static_scores[i * cn + c as usize] += w;
-                        }
-                    }
-                }
-                let block = &packed.uc[type_ids[q] as usize * 6 * cn..][..6 * cn];
-                for k in 0..6 {
-                    let i = (q + 3).wrapping_sub(k);
-                    if (lo..=hi).contains(&i) {
-                        let dst = &mut static_scores[i * cn..][..cn];
-                        for (s, w) in dst.iter_mut().zip(&block[k * cn..][..cn]) {
-                            *s += *w;
-                        }
-                    }
-                }
-            }
-            // Bigram families: the adjacent pair (q, q+1) feeds BW/BC at
-            // i = q + 2 - k; the triple (q, q+1, q+2) feeds TC at
-            // i = q + 3 - k.
-            for q in 0..n - 1 {
-                let key = (u64::from(char_codes[q]) << 24) | u64::from(char_codes[q + 1]);
-                if let Some(row) = packed.bw.get(&key) {
-                    for &(k, c, w) in row.iter() {
-                        let i = q + 2 - k as usize;
-                        if (lo..=hi).contains(&i) {
-                            static_scores[i * cn + c as usize] += w;
-                        }
-                    }
-                }
-                let pair = type_ids[q] as usize * type_radix + type_ids[q + 1] as usize;
-                let block = &packed.bc[pair * 3 * cn..][..3 * cn];
-                for k in 0..3 {
-                    let i = q + 2 - k;
-                    if (lo..=hi).contains(&i) {
-                        let dst = &mut static_scores[i * cn..][..cn];
-                        for (s, w) in dst.iter_mut().zip(&block[k * cn..][..cn]) {
-                            *s += *w;
-                        }
-                    }
-                }
-                if q + 2 < n {
-                    let triple = pair * type_radix + type_ids[q + 2] as usize;
-                    let block = &packed.tc[triple * 4 * cn..][..4 * cn];
-                    for k in 0..4 {
-                        let i = (q + 3).wrapping_sub(k);
-                        if (lo..=hi).contains(&i) {
-                            let dst = &mut static_scores[i * cn..][..cn];
-                            for (s, w) in dst.iter_mut().zip(&block[k * cn..][..cn]) {
-                                *s += *w;
-                            }
-                        }
-                    }
-                }
-            }
-            // WC probes (Japanese/Chinese only), gathered per position with
-            // the slot layout of WC1..WC4: (w3,c4), (c3,w4), (w3,c3),
-            // (w4,c4) — pinned against TEMPLATES by a unit test.
-            if templates_for(self.language).len() == TEMPLATES.len() && !packed.wc.is_empty() {
-                for i in lo..=hi {
-                    let mut probe = |idx: usize, chr: u32, typ: u8| {
-                        if let Some(row) = packed.wc.get(&wc_key(idx, chr, typ)) {
-                            let dst = &mut static_scores[i * cn..][..cn];
-                            for &(c, w) in row.iter() {
-                                dst[c as usize] += w;
-                            }
-                        }
-                    };
-                    probe(0, char_codes[i - 1], type_ids[i]);
-                    probe(1, char_codes[i], type_ids[i - 1]);
-                    probe(2, char_codes[i - 1], type_ids[i - 1]);
-                    probe(3, char_codes[i], type_ids[i]);
-                }
-            }
-
-            // ---- Sequential pass: the 16 tag-dependent dense rows plus
-            // the argmax remain per position (predict_seq).
-            // Padding for lookback: tags[0..3] are fixed U (unknown), and
-            // tags[3] is also U since there is no boundary decision before
-            // the first character.
-            let mut tags: Vec<u8> = Vec::with_capacity(n);
-            tags.extend_from_slice(&[TAG_U; 4]);
-            // Score row reused across positions to amortize allocations.
-            let mut scores = vec![0.0f64; cn];
-            let predict = |i: usize, tags: &[u8], scores: &mut [f64]| -> usize {
-                packed.predict_seq(
-                    &static_scores[i * cn..][..cn],
-                    (tags[i - 3] as usize, tags[i - 2] as usize, tags[i - 1] as usize),
-                    (
-                        type_ids[i - 3] as usize,
-                        type_ids[i - 2] as usize,
-                        type_ids[i - 1] as usize,
-                        type_ids[i] as usize,
-                    ),
-                    type_radix,
-                    scores,
-                )
-            };
-
-            // The first character always starts the first word; its
-            // predicted label is used only to determine the first word's
-            // POS.
-            let first_idx = predict(3, &tags, &mut scores);
-            let mut current_pos = packed.label(first_idx).pos().unwrap_or(Upos::X);
-
-            // Words are contiguous runs of the sentence, so they are
-            // materialized from byte offsets in one exact-size allocation
-            // each instead of being grown character by character.
-            let mut result: Vec<(String, Upos)> = Vec::new();
-            let mut word_start = 0usize;
-            let mut byte_pos = chars[3].len();
-
-            for (i, ch) in chars.iter().enumerate().take(n - 3).skip(4) {
-                let label = packed.label(predict(i, &tags, &mut scores));
-                if label.is_boundary() {
-                    // Finalize the current word and push it to the result
-                    result.push((sentence[word_start..byte_pos].to_string(), current_pos));
-                    word_start = byte_pos;
-                    current_pos = label.pos().unwrap_or(Upos::X);
-                    tags.push(TAG_B);
-                } else {
-                    tags.push(TAG_O);
-                }
-                byte_pos += ch.len();
-            }
-
-            result.push((sentence[word_start..].to_string(), current_pos));
-            result
-        });
-        Ok(result)
-    }
-
-    /// Reference implementation of
-    /// [`segment_with_pos`](Self::segment_with_pos) using the string-keyed
-    /// lookup path (the pre-#143 hot loop). Kept test-only as the oracle for
-    /// differential tests: `segment_with_pos` must produce identical output
-    /// for any model and input.
-    #[cfg(test)]
-    fn segment_with_pos_reference(&self, sentence: &str) -> Result<Vec<(String, Upos)>> {
-        if sentence.is_empty() {
-            return Ok(Vec::new());
-        }
-        let pos_learner = self.pos_learner.as_ref().ok_or(LitseaError::PosLearnerNotSet)?;
-
-        let (chars, types) = self.sentence_context(sentence);
-        let mut tags: Vec<&'static str> = Vec::with_capacity(chars.len());
-        tags.extend_from_slice(&["U"; 4]);
-        // Attribute and score buffers reused across positions to amortize
-        // allocations.
-        let mut attrs_buf: Vec<String> = Vec::new();
-        let mut scores_buf: Vec<f64> = Vec::new();
-
-        // The first character always starts the first word; its predicted
-        // label is used only to determine the first word's POS.
-        self.collect_attributes(3, &tags, &chars, &types, &mut attrs_buf);
-        let first_label: SegmentLabel = pos_learner
-            .predict_slice(&attrs_buf, &mut scores_buf)
-            .parse()
-            .unwrap_or(SegmentLabel::O);
-        let mut current_pos = first_label.pos().unwrap_or(Upos::X);
-
-        let mut result: Vec<(String, Upos)> = Vec::new();
-        let mut word = chars[3].to_string();
-
-        for (i, ch) in chars.iter().enumerate().take(chars.len() - 3).skip(4) {
-            self.collect_attributes(i, &tags, &chars, &types, &mut attrs_buf);
-            let label: SegmentLabel = pos_learner
-                .predict_slice(&attrs_buf, &mut scores_buf)
-                .parse()
-                .unwrap_or(SegmentLabel::O);
-            if label.is_boundary() {
-                // Finalize the current word and push it to the result
-                result.push((std::mem::take(&mut word), current_pos));
-                current_pos = label.pos().unwrap_or(Upos::X);
-                tags.push("B");
-            } else {
-                tags.push("O");
-            }
-            word.push_str(ch);
-        }
-
-        result.push((word, current_pos));
-        Ok(result)
+        let packed = self.two_stage.as_ref().ok_or(LitseaError::PosLearnerNotSet)?;
+        let words = self.segment(sentence);
+        let tags = packed.tag_words(self.language, &words);
+        Ok(words.into_iter().zip(tags).collect())
     }
 
     /// Builds the attribute set for a specific index (used by the corpus
@@ -1753,15 +1364,7 @@ mod tests {
         assert_eq!(attrs.len(), 38);
     }
 
-    // --- POS tagging tests ---
-
-    #[test]
-    fn test_add_corpus_with_pos() {
-        let mut segmenter = Segmenter::new(Language::Japanese);
-        segmenter.add_corpus_with_pos("これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT");
-        // pos_learner is initialized
-        assert!(segmenter.pos_learner.is_some());
-    }
+    // --- POS corpus pipeline tests ---
 
     #[test]
     fn test_add_corpus_with_pos_writer() {
@@ -1808,32 +1411,6 @@ mod tests {
             boundary_instances += 1;
         });
         assert_eq!(boundary_instances, 4); // AdaBoost path still starts at i=4
-    }
-
-    #[test]
-    fn test_segment_with_pos() {
-        let mut segmenter = Segmenter::new(Language::Japanese);
-
-        // Add the training data multiple times and train
-        for _ in 0..20 {
-            segmenter.add_corpus_with_pos("これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT");
-            segmenter.add_corpus_with_pos("私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT");
-        }
-
-        // Train the perceptron
-        let running = AtomicBool::new(true);
-        segmenter.pos_learner.as_mut().unwrap().train(10, &running);
-
-        // Segmentation + POS tagging
-        let result = segmenter.segment_with_pos("これはテストです。").unwrap();
-        assert!(!result.is_empty());
-
-        // Verify the result is (word, POS) pairs
-        for (word, pos) in &result {
-            assert!(!word.is_empty());
-            // The POS is one of the Upos variants
-            let _ = pos.to_string();
-        }
     }
 
     // --- Packed scoring path tests (#136) ---
@@ -2148,20 +1725,13 @@ mod tests {
 
     #[test]
     fn test_segment_with_pos_without_learner_errors() {
-        // #127: calling segment_with_pos without a POS learner returns a
-        // recoverable error instead of panicking.
+        // #127: calling segment_with_pos without a two-stage learner returns
+        // a recoverable error instead of panicking.
         let segmenter = Segmenter::new(Language::Japanese);
         let result = segmenter.segment_with_pos("これはテストです。");
         assert!(matches!(result, Err(LitseaError::PosLearnerNotSet)));
         // The empty sentence stays Ok regardless of learner state.
         assert!(segmenter.segment_with_pos("").unwrap().is_empty());
-    }
-
-    #[test]
-    fn test_segment_with_pos_empty() {
-        let segmenter = Segmenter::with_pos_learner(Language::Japanese, AveragedPerceptron::new());
-        let result = segmenter.segment_with_pos("").unwrap();
-        assert!(result.is_empty());
     }
 
     #[test]
@@ -2172,76 +1742,6 @@ mod tests {
             called = true;
         });
         assert!(!called);
-    }
-
-    // --- Packed POS scoring path tests (#143) ---
-
-    fn load_perceptron(model: &str) -> AveragedPerceptron {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model);
-        let mut learner = AveragedPerceptron::new();
-        learner.load_model_from_path(&path).unwrap();
-        learner
-    }
-
-    fn assert_pos_matches_reference(segmenter: &Segmenter, sentences: &[&str]) {
-        for sentence in sentences {
-            assert_eq!(
-                segmenter.segment_with_pos(sentence).unwrap(),
-                segmenter.segment_with_pos_reference(sentence).unwrap(),
-                "packed segment_with_pos diverged from the string-keyed reference for {sentence:?}"
-            );
-        }
-    }
-
-    #[test]
-    fn test_segment_with_pos_differential_japanese_model() {
-        let sentences = [
-            "これはテストです。",
-            "私の猫は可愛い。",
-            "東京都に住んでいます。",
-            "字",
-            "こんにちは",
-            "価格は1000円です。",
-            "RustでNLPを実装する。",
-        ];
-        let segmenter =
-            Segmenter::with_pos_learner(Language::Japanese, load_perceptron("japanese_pos.model"));
-        assert_pos_matches_reference(&segmenter, &sentences);
-        assert_pos_matches_reference(&segmenter, &STRESS_SENTENCES);
-    }
-
-    #[test]
-    fn test_segment_with_pos_differential_chinese_model() {
-        let sentences =
-            ["这是一个测试。", "我喜欢吃中国菜。", "他在北京工作。", "好", "2024年的春天。"];
-        let segmenter =
-            Segmenter::with_pos_learner(Language::Chinese, load_perceptron("chinese_pos.model"));
-        assert_pos_matches_reference(&segmenter, &sentences);
-        assert_pos_matches_reference(&segmenter, &STRESS_SENTENCES);
-    }
-
-    #[test]
-    fn test_segment_with_pos_differential_korean_model() {
-        let sentences =
-            ["이것은 테스트입니다.", "나는 고양이를 좋아한다.", "한국어 형태소 분석기.", "글"];
-        let segmenter =
-            Segmenter::with_pos_learner(Language::Korean, load_perceptron("korean_pos.model"));
-        assert_pos_matches_reference(&segmenter, &sentences);
-        assert_pos_matches_reference(&segmenter, &STRESS_SENTENCES);
-    }
-
-    #[test]
-    fn test_segment_with_pos_differential_bocchan_corpus() {
-        // Broad-coverage differential run over real text: the first 50
-        // non-empty lines of bocchan.txt against the bundled Japanese POS
-        // model.
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
-        let text = std::fs::read_to_string(&path).unwrap();
-        let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).take(50).collect();
-        assert!(!lines.is_empty());
-        let segmenter =
-            Segmenter::with_pos_learner(Language::Japanese, load_perceptron("japanese_pos.model"));
-        assert_pos_matches_reference(&segmenter, &lines);
     }
 
     #[test]
@@ -2267,81 +1767,5 @@ mod tests {
             }
             assert_eq!(diverged, 0, "{model}: {diverged} of {} lines diverged", lines.len());
         }
-    }
-
-    #[test]
-    #[ignore = "full-corpus sweep (slow with the string-keyed reference); run explicitly with --ignored"]
-    fn test_segment_with_pos_differential_bocchan_full() {
-        // Full-corpus differential net for the packed POS scorer: every
-        // non-empty bocchan line must match the string-keyed reference
-        // exactly. The fast suite covers the first 50 lines; this sweep
-        // covers the whole novel. (It also served as the adoption gate for
-        // the f32-table experiment, #145: zero divergence but no measurable
-        // speedup, so f64 stays.)
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
-        let text = std::fs::read_to_string(&path).unwrap();
-        let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
-        assert!(lines.len() > 400, "bocchan corpus unexpectedly small: {}", lines.len());
-        let segmenter =
-            Segmenter::with_pos_learner(Language::Japanese, load_perceptron("japanese_pos.model"));
-        let mut diverged = 0usize;
-        for line in &lines {
-            if segmenter.segment_with_pos(line).unwrap()
-                != segmenter.segment_with_pos_reference(line).unwrap()
-            {
-                diverged += 1;
-            }
-        }
-        assert_eq!(diverged, 0, "{diverged} of {} lines diverged", lines.len());
-    }
-
-    #[test]
-    fn test_segment_with_pos_differential_trained_in_memory() {
-        // Weights straight out of train() (not a saved/loaded file) must
-        // also match: exercises zero-weight columns in live FeatureSlots and
-        // the packed-cache invalidation of add_corpus_with_pos.
-        let mut segmenter = Segmenter::new(Language::Japanese);
-        for _ in 0..20 {
-            segmenter.add_corpus_with_pos("これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT");
-            segmenter.add_corpus_with_pos("私/PRON の/PART 猫/NOUN は/PART 可愛い/ADJ 。/PUNCT");
-        }
-        let running = AtomicBool::new(true);
-        segmenter.pos_learner_mut().unwrap().train(10, &running);
-        assert_pos_matches_reference(
-            &segmenter,
-            &["これはテストです。", "私の猫は可愛い。", "未知の文も分割する。"],
-        );
-    }
-
-    #[test]
-    fn test_segment_with_pos_cache_invalidated_by_mutation() {
-        // A prediction compiles the packed table; further training through
-        // pos_learner_mut()/add_corpus_with_pos must drop it so the next
-        // prediction reflects the new weights (the reference always reads
-        // the learner's current weights).
-        let mut segmenter = Segmenter::new(Language::Japanese);
-        for _ in 0..5 {
-            segmenter.add_corpus_with_pos("これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT");
-        }
-        let running = AtomicBool::new(true);
-        segmenter.pos_learner_mut().unwrap().train(5, &running);
-        let _ = segmenter.segment_with_pos("これはテストです。").unwrap();
-
-        for _ in 0..20 {
-            segmenter.add_corpus_with_pos("猫/NOUN が/PART 鳴く/VERB 。/PUNCT");
-        }
-        segmenter.pos_learner_mut().unwrap().train(10, &running);
-        assert_pos_matches_reference(&segmenter, &["猫が鳴く。", "これはテストです。"]);
-    }
-
-    #[test]
-    fn test_segment_with_pos_zero_class_perceptron() {
-        // A perceptron without classes predicts nothing: every position maps
-        // to O and the whole sentence becomes one word tagged X, exactly as
-        // the reference path's empty-prediction fallback behaves.
-        let segmenter = Segmenter::with_pos_learner(Language::Japanese, AveragedPerceptron::new());
-        let result = segmenter.segment_with_pos("テスト").unwrap();
-        assert_eq!(result, vec![("テスト".to_string(), Upos::X)]);
-        assert_eq!(result, segmenter.segment_with_pos_reference("テスト").unwrap());
     }
 }

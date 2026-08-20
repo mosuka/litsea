@@ -61,7 +61,6 @@ use rustc_hash::FxHashMap;
 use crate::adaboost::AdaBoost;
 use crate::error::{LitseaError, Result};
 use crate::perceptron::AveragedPerceptron;
-use crate::segmenter::Segmenter;
 use crate::upos::Upos;
 
 /// Magic first line of the two-stage model format (version 1).
@@ -89,8 +88,9 @@ const SECTION_STAGE2: &str = "[stage2]";
 pub const DEFAULT_DOMINANCE: f64 = 0.99;
 
 /// The kind of model stored in a litsea model file, detected from its
-/// content. Used to dispatch a file to the matching loader (CLI `--pos`
-/// accepts both joint and two-stage models).
+/// content. Used to give a wrong-kind file a precise error message (e.g.
+/// [`TwoStageLearner::load_model_from_reader`] rejecting a standalone
+/// perceptron file).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelKind {
     /// AdaBoost-format word-segmentation model (`feature\tweight` lines +
@@ -100,7 +100,10 @@ pub enum ModelKind {
     /// trained as a 2-class Averaged Perceptron and losslessly collapsed
     /// into this same format.
     AdaBoost,
-    /// Averaged-perceptron joint POS model (class count header).
+    /// Standalone Averaged Perceptron model (class-count header): the
+    /// output of `litsea train --perceptron` and the payload format of a
+    /// two-stage model's `[stage2]` section. Not loadable as a POS model —
+    /// this was the removed joint POS model format.
     AveragedPerceptron,
     /// Two-stage model (`litsea-two-stage` magic line).
     TwoStage,
@@ -483,6 +486,16 @@ impl TwoStageLearner {
                     first
                 )));
             }
+            // A bare-integer first line is the class-count header of a
+            // standalone Averaged Perceptron file — the removed joint POS
+            // model format (`ModelKind::AveragedPerceptron`).
+            if first.trim().parse::<usize>().is_ok() {
+                return Err(LitseaError::InvalidData(
+                    "this file is a joint POS (Averaged Perceptron) model; joint POS models \
+                     are no longer supported — retrain with `litsea train --two-stage`"
+                        .to_string(),
+                ));
+            }
             return Err(LitseaError::InvalidData(format!(
                 "missing '{}' magic line (found '{}')",
                 MAGIC, first
@@ -715,19 +728,18 @@ pub struct ParseTwoStageFeatureSetError {
 /// cost nothing at inference, so the set chosen at extraction time decides
 /// the model's speed/quality point:
 ///
-/// | set | ja tagged F1 (joint: 92.51) | throughput vs joint |
-/// |-----|------------------------------|---------------------|
-/// | `Full` | 93.41 | ~1.5x |
-/// | `Balanced` | 92.92 | ~2.2x |
-/// | `Fast` (default) | 92.71 | ~2.5x |
+/// | set | ja tagged F1 | relative throughput |
+/// |-----|--------------|---------------------|
+/// | `Full` | 93.41 | 1.0x |
+/// | `Balanced` | 92.92 | ~1.5x |
+/// | `Fast` (default) | 92.71 | ~1.7x |
 ///
 /// Caveat: this table reflects the original #167 prototype sweep (10
 /// training epochs), not the bundled models (50 epochs) — for example the
 /// bundled `japanese_two_stage.model` uses `Fast` and reaches 92.95%
 /// tagged F1, not the 92.71% above. The rows are still useful for the
 /// *relative* full/balanced/fast comparison; for current, per-model
-/// figures see `docs/src/algorithm/two-stage-tagging.md` ("Two-Stage vs.
-/// Joint Tagging").
+/// figures see `docs/src/algorithm/two-stage-tagging.md`.
 ///
 /// Segmentation quality is identical across sets (it is decided by
 /// stage 1).
@@ -798,78 +810,6 @@ impl TwoStageFeatureSet {
                     || id == T_P2
                     || id == T_S2
             ),
-        }
-    }
-}
-
-/// A POS-capable model loaded from a file whose kind was auto-detected:
-/// either a joint Averaged Perceptron model or a two-stage model.
-///
-/// This is the single-fetch entry point for callers (such as the CLI's
-/// `segment --pos` / `evaluate --pos`) that accept both model kinds: the
-/// model bytes are fetched once, dispatched on [`ModelKind::detect`], and
-/// parsed by the matching loader.
-#[derive(Debug)]
-pub enum AnyPosModel {
-    /// A joint segmentation + POS model (Averaged Perceptron format).
-    Joint(Box<AveragedPerceptron>),
-    /// A two-stage model (`litsea-two-stage v1` format).
-    TwoStage(Box<TwoStageLearner>),
-}
-
-impl AnyPosModel {
-    /// Loads a POS-capable model from a URI, auto-detecting its kind.
-    ///
-    /// The URI can be a file path, a `file://` path, or an `http(s)://`
-    /// URL (the latter requires the `remote_model` feature). The bytes are
-    /// fetched once.
-    ///
-    /// # Arguments
-    /// * `uri` - The URI of the model to load.
-    ///
-    /// # Returns
-    /// The loaded model with its detected kind.
-    ///
-    /// # Errors
-    /// Returns an error if the bytes cannot be fetched, the content is not
-    /// valid UTF-8, the detected format fails to parse, or the file is an
-    /// AdaBoost segmentation model (which cannot tag).
-    pub async fn load(uri: &str) -> Result<Self> {
-        let bytes = crate::model_io::read_model_bytes(uri).await?;
-        let content = std::str::from_utf8(&bytes)
-            .map_err(|e| LitseaError::InvalidData(format!("model is not valid UTF-8: {}", e)))?;
-        match ModelKind::detect(content) {
-            ModelKind::TwoStage => {
-                let mut learner = TwoStageLearner::new();
-                learner.load_model_from_reader(bytes.as_slice())?;
-                Ok(AnyPosModel::TwoStage(Box::new(learner)))
-            }
-            ModelKind::AveragedPerceptron => {
-                let mut learner = AveragedPerceptron::new();
-                learner.load_model_from_reader(bytes.as_slice())?;
-                Ok(AnyPosModel::Joint(Box::new(learner)))
-            }
-            ModelKind::AdaBoost => Err(LitseaError::InvalidData(
-                "the model is an AdaBoost segmentation model, which cannot tag; \
-                 pass a joint POS model or a litsea-two-stage model"
-                    .to_string(),
-            )),
-        }
-    }
-
-    /// Consumes the model and builds the matching [`Segmenter`].
-    ///
-    /// # Arguments
-    /// * `language` - The language for character type classification.
-    ///
-    /// # Returns
-    /// A segmenter whose [`segment_with_pos`](Segmenter::segment_with_pos)
-    /// runs the joint or two-stage pipeline according to the model kind.
-    #[must_use]
-    pub fn into_segmenter(self, language: crate::language::Language) -> Segmenter {
-        match self {
-            AnyPosModel::Joint(learner) => Segmenter::with_pos_learner(language, *learner),
-            AnyPosModel::TwoStage(learner) => Segmenter::with_two_stage_learner(language, *learner),
         }
     }
 }
@@ -1291,30 +1231,16 @@ mod tests {
         assert!(TwoStageFeatureSet::Full.includes(T_LB));
     }
 
-    #[tokio::test]
-    async fn test_any_pos_model_detects_and_loads() {
-        let dir = tempfile::tempdir().unwrap();
-
-        let two_stage_path = dir.path().join("model.two-stage");
-        std::fs::write(&two_stage_path, valid_model()).unwrap();
-        let model = AnyPosModel::load(two_stage_path.to_str().unwrap()).await.unwrap();
-        assert!(matches!(model, AnyPosModel::TwoStage(_)));
-        let segmenter = model.into_segmenter(crate::language::Language::Japanese);
-        assert!(segmenter.segment_with_pos("").unwrap().is_empty());
-
-        let joint_path = dir.path().join("model.joint");
-        std::fs::write(&joint_path, STAGE2).unwrap();
-        let model = AnyPosModel::load(joint_path.to_str().unwrap()).await.unwrap();
-        assert!(matches!(model, AnyPosModel::Joint(_)));
-        let segmenter = model.into_segmenter(crate::language::Language::Japanese);
-        assert!(segmenter.segment_with_pos("").unwrap().is_empty());
-
-        let adaboost_path = dir.path().join("model.adaboost");
-        std::fs::write(&adaboost_path, STAGE1).unwrap();
-        let result = AnyPosModel::load(adaboost_path.to_str().unwrap()).await;
+    #[test]
+    fn test_load_rejects_joint_perceptron_model() {
+        // A standalone Averaged Perceptron file (bare class-count first
+        // line) is the removed joint POS model format; the loader points at
+        // the two-stage retraining path instead of the generic magic-line
+        // error.
         assert!(matches!(
-            result,
-            Err(LitseaError::InvalidData(ref msg)) if msg.contains("AdaBoost")
+            load(STAGE2),
+            Err(LitseaError::InvalidData(ref msg))
+                if msg.contains("no longer supported") && msg.contains("train --two-stage")
         ));
     }
 }

@@ -20,7 +20,7 @@ docstring を参照）近似ではありません: この方法で学習した p
 同じコーパス・同じテンプレートで AdaBoost の presence-stump 弱学習器より
 大幅に高い held-out 品質に達します。代わりにモデルファイルは大きくなり
 （非ゼロ重みを持つ特徴量が増えるため）、学習手順も通常の `train` ではなく
-`train --pos` を経由します（詳細は下記の[学習手順](#学習手順)を参照）。
+`train --perceptron` を経由します（詳細は下記の[学習手順](#学習手順)を参照）。
 
 ### japanese.model
 
@@ -117,10 +117,10 @@ litsea extract -l <language> [韓国語なら --format tsv] [--tag-free] <corpus
 #    黙って逆転してしまう。
 sed -i 's/^1\t/B\t/; s/^-1\t/O\t/' <features.txt>
 
-# 3. 2 クラスの Averaged Perceptron として学習する。--pos はここでは
-#    汎用的に流用しているだけで（PosTrainer はラベルを不透明な文字列として
-#    扱う）、実際の品詞タグ付けのためではない。
-litsea train --pos --num-epochs <N> <features.txt> <perceptron.model>
+# 3. 2 クラスの Averaged Perceptron として学習する。--perceptron は
+#    汎用のトレーナー（PerceptronTrainer はラベルを不透明な文字列として
+#    扱う）。
+litsea train --perceptron --num-epochs <N> <features.txt> <perceptron.model>
 
 # 4. プレーンな AdaBoost モデル形式へ畳み込む（無損失 -- 導出はスクリプトの
 #    docstring を参照）。
@@ -171,102 +171,32 @@ scripts/prune_adaboost_model.py <collapsed.model> <pruned.model> <n>
 ペア計測方法論により測定したものなので、持ち越せるのは絶対値ではなく
 比率と考えてください。
 
-## 品詞推定モデル
-
-in-sample 行は `train` コマンドが学習データ自身で測ったメトリクス、held-out
-行は UD GSD テスト分割に対して `litsea evaluate --pos` で測定した単語 /
-タグ付き単語 F1 です（[モデルの評価](training-guide/evaluating-models.md)を
-参照）。韓国語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
-従うため、空白なしのテキストで評価しています。
-
-### japanese_pos.model
-
-| プロパティ | 値 |
-|----------|-------|
-| 言語 | 日本語 |
-| アルゴリズム | Averaged Perceptron |
-| 学習コーパス | UD Japanese-GSD（7,050 文） |
-| エポック数 | 10 |
-| 正解率（in-sample） | 98.23% |
-| マクロ適合率（in-sample） | 96.82% |
-| マクロ再現率（in-sample） | 93.30% |
-| 単語 F1（held-out） | 96.56% |
-| タグ付き単語 F1（held-out） | 92.51% |
-| ファイルサイズ | 約 11 MB |
-
-### chinese_pos.model
-
-| プロパティ | 値 |
-|----------|-------|
-| 言語 | 中国語（簡体字・繁体字） |
-| アルゴリズム | Averaged Perceptron |
-| 学習コーパス | UD Chinese-GSD（3,997 文） |
-| エポック数 | 10 |
-| 正解率（in-sample） | 97.04% |
-| マクロ適合率（in-sample） | 97.17% |
-| マクロ再現率（in-sample） | 96.14% |
-| 単語 F1（held-out） | 90.52% |
-| タグ付き単語 F1（held-out） | 81.18% |
-| ファイルサイズ | 約 19 MB |
-
-### korean_pos.model
-
-| プロパティ | 値 |
-|----------|-------|
-| 言語 | 韓国語 |
-| アルゴリズム | Averaged Perceptron |
-| 学習コーパス | UD Korean-GSD（4,400 文） |
-| エポック数 | 10 |
-| 正解率（in-sample） | 95.14% |
-| マクロ適合率（in-sample） | 95.00% |
-| マクロ再現率（in-sample） | 86.15% |
-| 単語 F1（held-out） | 80.51% |
-| タグ付き単語 F1（held-out） | 71.03% |
-| ファイルサイズ | 約 8.9 MB |
-
-#### 使用方法
-
-```sh
-echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
-```
-
-出力:
-
-```text
-これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
-```
-
 ## 二段構成の品詞推定モデル
 
 [二段構成アーキテクチャ](algorithm/two-stage-tagging.md)（issue #147）は、
 文字位置ごとに全 UPOS クラスを採点する代わりに、二値の境界分類器で分割し、
 確定した各単語を候補タグ語彙表と単語単位のタガーでタグ付けします。
-これは純粋な追加機能です: 上記の `*_pos.model` ファイルは影響を受けず、
-`segment --pos` / `evaluate --pos` はファイルからどちらの種類かを
-自動判別します。アーキテクチャと言語別の推奨については
-[二段構成 vs Joint タグ付け](algorithm/two-stage-tagging.md)を参照してください。
 
-in-sample・held-out の各行は上記 joint モデルと同じプロトコルです。
+held-out 行は UD GSD テスト分割に対して `litsea evaluate --pos` で測定した
+単語 / タグ付き単語 F1 です（[モデルの評価](training-guide/evaluating-models.md)を
+参照）。韓国語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
+従うため、空白なしのテキストで評価しています。
 「stage-2 特徴量セット」は単語単位テンプレートの選択
 （`fast`、`balanced`、`full`。[特徴量の抽出](training-guide/extracting-features.md)を参照）
-で、[二段構成 vs Joint タグ付け](algorithm/two-stage-tagging.md#stage-2-特徴量セットの選び方)の
+で、[二段構成タグ付け](algorithm/two-stage-tagging.md#stage-2-特徴量セットの選び方)の
 実測トレードオフから言語ごとに同梱モデル用に選定しています。スループットは
-このページの他のベンチマーク数値と同じ開発機での `cargo bench --
-external_corpus` によるもので、専用のアイドルハードウェアではありません
-（そのページの方法論の注記を参照）。joint との比較値は、実行間のばらつきが
-大きいため `*_pos.model` の表の値ではなく同一実行内で計測したスループットです。
+[ベンチマーク](advanced/benchmarking.md)ページと同じコーパスに対する
+`cargo bench -- external_corpus` によるもので、本プロジェクトの開発機で
+計測しています（専用のアイドルハードウェアではありません --
+そのページの方法論の注記を参照）。
 
-**エポック数についての注記**: 上記の joint モデルは、元々の 10 エポック学習の
-まま公開されています。二段構成の同梱にあたって行ったエポックスイープ
+**エポック数についての注記**: 二段構成の同梱にあたって行ったエポックスイープ
 （10〜150 エポック）では、stage 1 の**分割**品質は特に 10 エポックを大きく
 超えて向上し続け、50 エポック付近でプラトーに達することが判明しました
--- 以下の同梱二段構成モデルは、joint モデルと同じ 10 エポック慣習ではなく、
-このスイープから得た 50 エポックを使用しています。同じエポック数で比較すると、
-このスイープでは joint の中国語分割が依然として小さく一貫した優位
-（テストした全エポック数で概ね 0.5〜0.9pt）を保つことも分かりましたが、
-硬い上限ではありません: 以下の `chinese_two_stage.model`（50 エポック）は
-公開済み（10 エポック）の `chinese_pos.model` より高い held-out Word F1 を
-達成しています。
+-- 以下の同梱二段構成モデルは、このスイープから得た 50 エポックを使用して
+います。再学習の際、一発の低エポック実行ではこのアーキテクチャの到達可能な
+品質を過小評価することになります
+（[方法論についての注記](algorithm/two-stage-tagging.md#方法論についての注記-十分な学習エポック数を使う)を参照）。
 
 ### japanese_two_stage.model
 
@@ -276,9 +206,9 @@ external_corpus` によるもので、専用のアイドルハードウェアで
 | 学習コーパス | UD Japanese-GSD（7,050 文） |
 | エポック数 | 50 |
 | stage-2 特徴量セット | `fast` |
-| 単語 F1（held-out） | 96.78%（joint: 96.56%） |
-| タグ付き単語 F1（held-out） | 92.95%（joint: 92.51%） |
-| joint比スループット | 約2.8x（3回計測: 2.65〜3.05x） |
+| 単語 F1（held-out） | 96.78% |
+| タグ付き単語 F1（held-out） | 92.95% |
+| スループット | 4.38M chars/s |
 | ファイルサイズ | 約 5.4 MB |
 
 ### chinese_two_stage.model
@@ -289,9 +219,9 @@ external_corpus` によるもので、専用のアイドルハードウェアで
 | 学習コーパス | UD Chinese-GSD（3,997 文） |
 | エポック数 | 50 |
 | stage-2 特徴量セット | `balanced` |
-| 単語 F1（held-out） | 90.82%（joint: 90.52%） |
-| タグ付き単語 F1（held-out） | 82.29%（joint: 81.18%） |
-| joint比スループット | 約2.3x（3回計測: 2.13〜2.44x） |
+| 単語 F1（held-out） | 90.82% |
+| タグ付き単語 F1（held-out） | 82.29% |
+| スループット | 3.38M chars/s |
 | ファイルサイズ | 約 8.0 MB |
 
 ### korean_two_stage.model
@@ -302,23 +232,23 @@ external_corpus` によるもので、専用のアイドルハードウェアで
 | 学習コーパス | UD Korean-GSD（4,400 文、空白非保持の word/POS プロトコル -- 下記の注記を参照） |
 | エポック数 | 50 |
 | stage-2 特徴量セット | `balanced` |
-| 単語 F1（held-out） | 83.24%（joint: 80.51%） |
-| タグ付き単語 F1（held-out） | 78.86%（joint: 71.03%） |
-| joint比スループット | 約1.8x（3回計測: 1.75〜1.90x） |
+| 単語 F1（held-out） | 83.24% |
+| タグ付き単語 F1（held-out） | 78.86% |
+| スループット | 4.54M chars/s |
 | ファイルサイズ | 約 5.0 MB |
 
-韓国語のスループット向上が小さいのは語彙表に起因します: held-out
+韓国語のスループットのプロファイルは語彙表に起因します: held-out
 テキストの 34.5% が未知語（学習時に未出現の表層）で、未知語は常に
 stage 2 の全クラスフォールバックを払うことになり、安価な dominance
 スキップや候補マスクの経路を使えません。そのため日本語・中国語より
 多くの割合の韓国語の単語が stage 2 のフルコストを負担します。
 
 **韓国語のプロトコルについての注記**: `korean_two_stage.model` は
-`korean_pos.model` と同じ空白非保持の `word/POS` コーパスで学習されており、
+空白非保持の `word/POS` コーパスで学習されており、
 `korean.model` が使う空白保持 TSV コーパス（issue #152）ではありません。
 二段構成の extractor は両ステージに単一のコーパスを使うため、空白保持＋
-POS 付きを組み合わせた形式の構築は別機能であり未実装です。上記の数値は
-`korean_pos.model` とは比較可能ですが、`korean.model` の 99.91%
+POS 付きを組み合わせた形式の構築は別機能であり未実装です。したがって
+上記の数値は `korean.model` の 99.91%
 （全く異なるコーパス・プロトコル）とは比較できません -- 二段構成が
 優れている/劣っているという結果ではありません。
 
@@ -328,7 +258,7 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model
 ```
 
-出力は joint モデルと同じ形です:
+出力:
 
 ```text
 これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
@@ -340,14 +270,9 @@ echo "これはテストです。" | litsea segment --pos -l japanese models/jap
 - **中国語**には `chinese.model` を使用
 - **韓国語**には `korean.model` を使用
 - **品詞推定**には**二段構成**モデル（`japanese_two_stage.model`、
-  `chinese_two_stage.model`、`korean_two_stage.model`）を推奨します --
-  同梱されている状態で、現在公開されている joint モデルを Word F1・
-  Tagged F1 の両方でどの言語でも上回り、スループットは 1.8〜2.8 倍です。
-  joint（`*_pos.model`）は、`with_pos_learner()` に依存する既存コードとの
-  互換性のために、また同一学習量では joint が中国語分割で小さいながら
-  優位を保つケースのために引き続き利用可能にしています（詳細は上記の
-  エポック数についての注記を参照）。詳しい比較は
-  [二段構成 vs Joint タグ付け](algorithm/two-stage-tagging.md)を参照してください。
+  `chinese_two_stage.model`、`korean_two_stage.model`）を `segment --pos` /
+  `evaluate --pos` とともに使用してください（アーキテクチャと実測値は
+  [二段構成タグ付け](algorithm/two-stage-tagging.md)を参照）。
 - **ドメイン固有**の用途には、[独自モデルの学習](training-guide/preparing-corpus.md)または既存モデルの[再学習](training-guide/retraining-models.md)を検討
 
 ## サンプルデータ

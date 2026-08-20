@@ -107,7 +107,7 @@ impl PackedTwoStageModel {
         let class_names = stage2.class_names();
         let n = class_names.len();
         // TwoStageLearner validates every class name as a UPOS tag; the
-        // fallback mirrors PackedPosModel::build's defensive parse.
+        // parse fallback is defensive only.
         let classes: Box<[Upos]> =
             class_names.iter().map(|c| c.parse().unwrap_or(Upos::X)).collect();
         let type_stride = language.type_codes().len() + 2;
@@ -480,7 +480,5 @@ mod tests {
         assert_eq!(text, "これ");
         // Empty input stays empty.
         assert!(segmenter.segment_with_pos("").unwrap().is_empty());
-        // The two-stage segmenter has no joint POS learner.
-        assert!(segmenter.pos_learner().is_none());
     }
 }

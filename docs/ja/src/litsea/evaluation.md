@@ -3,13 +3,10 @@
 セグメンテーションおよび品詞タグ付けの held-out 品質評価
 （`litsea::evaluation`）です。
 [`litsea evaluate`](../litsea-cli/evaluate.md) サブコマンドの背後にある
-ライブラリ API です。`evaluate_pos` はどちらの品詞タグ付けアーキテクチャに
-対しても動作します -- [`with_pos_learner`](segmenter.md#with_pos_learner)
-で作成した Segmenter（joint）でも、
+ライブラリ API です。`evaluate_pos` は
 [`with_two_stage_learner`](segmenter.md#with_two_stage_learner) で作成した
-Segmenter（二段構成。[二段構成 vs Joint
-タグ付け](../algorithm/two-stage-tagging.md)を参照）でも構いません。
-どちらも同じシグネチャの `segment_with_pos` を実装しているためです。
+Segmenter（[二段構成タグ付け](../algorithm/two-stage-tagging.md)を参照）を
+`segment_with_pos` を通じて評価します。
 
 ## メトリクス型
 

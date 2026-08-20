@@ -3,10 +3,11 @@
 //! Provides four subcommands: `extract` (turn a corpus into training
 //! features, or, with `--two-stage`, into the three feature files consumed
 //! by two-stage training), `train` (train an AdaBoost segmentation model,
-//! or, with `--pos`, an Averaged Perceptron POS model, or, with
-//! `--two-stage`, a two-stage boundary+lexicon POS model), `segment`
-//! (segment sentences from standard input with a trained model), and
-//! `evaluate` (measure held-out quality against a gold corpus).
+//! or, with `--two-stage`, a two-stage boundary+lexicon POS model, or, with
+//! `--perceptron`, a generic Averaged Perceptron over opaque labels — the
+//! training step of the bundled segmentation models' collapse recipe),
+//! `segment` (segment sentences from standard input with a trained model),
+//! and `evaluate` (measure held-out quality against a gold corpus).
 
 use std::error::Error;
 use std::fs::File;
@@ -20,8 +21,8 @@ use clap::{Args, Parser, Subcommand};
 
 use litsea::version;
 use litsea::{
-    AdaBoost, AnyPosModel, Extractor, Language, LitseaError, PosTrainer, SegmentBuffer, Segmenter,
-    Trainer, TwoStageFeatureSet, TwoStageTrainer, evaluation,
+    AdaBoost, Extractor, Language, LitseaError, PerceptronTrainer, SegmentBuffer, Segmenter,
+    Trainer, TwoStageFeatureSet, TwoStageLearner, TwoStageTrainer, evaluation,
 };
 
 /// Arguments for the extract command.
@@ -32,19 +33,15 @@ struct ExtractArgs {
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
-    /// Extract features from a POS-tagged corpus (format: "word/POS word/POS ...")
-    #[arg(long)]
-    pos: bool,
-
     /// Corpus format: "space" (space-separated words) or "tsv" (tab-separated
     /// tokens; a token may be a literal space, preserving original spacing)
     #[arg(long, default_value = "space", value_parser = ["space", "tsv"])]
     format: String,
 
     /// Extract two-stage training features (issue #147) from a POS-tagged
-    /// corpus instead: writes {features_file}.stage1 (boundary features),
-    /// .stage2 (word-level features), and .lexicon. Cannot be combined
-    /// with --pos or --format tsv.
+    /// corpus (format: "word/POS word/POS ...") instead: writes
+    /// {features_file}.stage1 (boundary features), .stage2 (word-level
+    /// features), and .lexicon. Cannot be combined with --format tsv.
     #[arg(long)]
     two_stage: bool,
 
@@ -56,7 +53,7 @@ struct ExtractArgs {
     /// Exclude the 16 tag-dependent feature templates (UP*/BP*/UQ*/BQ*/TQ*,
     /// which read the previous boundary decisions) so the trained model is
     /// pointwise and segment() skips its sequential scoring pass entirely
-    /// (issue #183). Cannot be combined with --pos or --two-stage
+    /// (issue #183). Cannot be combined with --two-stage
     #[arg(long)]
     tag_free: bool,
 
@@ -71,13 +68,13 @@ struct ExtractArgs {
 #[derive(Debug, Args)]
 #[command(about = "Train a segmenter")]
 struct TrainArgs {
-    /// Early-stopping threshold for AdaBoost training. Ignored with `--pos`
-    /// or `--two-stage`
+    /// Early-stopping threshold for AdaBoost training. Ignored with
+    /// `--perceptron` or `--two-stage`
     #[arg(short, long, default_value = "0.01")]
     threshold: f64,
 
-    /// Maximum number of AdaBoost boosting iterations. Ignored with `--pos`
-    /// or `--two-stage`
+    /// Maximum number of AdaBoost boosting iterations. Ignored with
+    /// `--perceptron` or `--two-stage`
     #[arg(short = 'i', long, default_value = "100")]
     num_iterations: usize,
 
@@ -85,20 +82,23 @@ struct TrainArgs {
     #[arg(short = 'm', long)]
     load_model_uri: Option<String>,
 
-    /// Train a POS tagging model with the Averaged Perceptron
+    /// Train a generic Averaged Perceptron model (labels are opaque
+    /// strings). This is the training step of the bundled segmentation
+    /// models' collapse recipe (see scripts/collapse_binary_perceptron.py)
     #[arg(long)]
-    pos: bool,
+    perceptron: bool,
 
-    /// Number of training epochs for the POS model (applies to both
-    /// `--pos` and `--two-stage` training; for `--two-stage`, both stage 1
-    /// and stage 2 train for this many epochs)
+    /// Number of training epochs (applies to both `--perceptron` and
+    /// `--two-stage` training; for `--two-stage`, both stage 1 and stage 2
+    /// train for this many epochs)
     #[arg(long, default_value = "10")]
     num_epochs: usize,
 
     /// Train a two-stage model (issue #147) instead: reads
     /// {features_file}.stage1/.stage2/.lexicon (from extract --two-stage)
-    /// and writes a litsea-two-stage model. Cannot be combined with --pos
-    /// or -m/--load-model-uri (incremental training is not supported)
+    /// and writes a litsea-two-stage model. Cannot be combined with
+    /// --perceptron or -m/--load-model-uri (incremental training is not
+    /// supported)
     #[arg(long)]
     two_stage: bool,
 
@@ -124,7 +124,8 @@ struct SegmentArgs {
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
-    /// Segment with POS tagging (auto-detects joint or two-stage model)
+    /// Segment with POS tagging (requires a two-stage model, from
+    /// `train --two-stage`)
     #[arg(long)]
     pos: bool,
 
@@ -148,8 +149,7 @@ struct EvaluateArgs {
     language: Language,
 
     /// Evaluate segmentation + POS tagging (gold format: "word/POS word/POS
-    /// ..."); the model file is auto-detected as either a joint or a
-    /// two-stage model and evaluated the same way
+    /// ..."); requires a two-stage model
     #[arg(long)]
     pos: bool,
 
@@ -196,14 +196,12 @@ struct CommandArgs {
 /// word boundaries come from the corpus itself) and writes the extracted
 /// features to the output file. With `--two-stage` the corpus is
 /// POS-tagged and three files (boundary, word-level, and lexicon) are
-/// written via `extract_two_stage` (issue #147); with `--pos` (and no
-/// `--two-stage`) it is POS-tagged and features are extracted via
-/// `extract_with_pos`; otherwise each line is space-separated words, or
-/// tab-separated tokens with `--format tsv` (a token may be a literal
-/// space, preserving the original spacing; not supported with `--pos` or
-/// `--two-stage`). `--tag-free` (boundary pipeline only, composable with
-/// `--format tsv`) drops the 16 tag-dependent templates so the trained
-/// model is pointwise (issue #183).
+/// written via `extract_two_stage` (issue #147); otherwise each line is
+/// space-separated words, or tab-separated tokens with `--format tsv` (a
+/// token may be a literal space, preserving the original spacing; not
+/// supported with `--two-stage`). `--tag-free` (boundary pipeline only,
+/// composable with `--format tsv`) drops the 16 tag-dependent templates so
+/// the trained model is pointwise (issue #183).
 ///
 /// # Arguments
 /// * `args` - The arguments for the extract command [`ExtractArgs`].
@@ -213,15 +211,12 @@ struct CommandArgs {
 fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
     let extractor = Extractor::new(args.language);
 
-    if args.tag_free && (args.pos || args.two_stage) {
+    if args.tag_free && args.two_stage {
         // Tag-free extraction is a boundary-pipeline concept (#183); the
-        // POS pipelines use their own label/feature scheme.
-        return Err("--tag-free cannot be combined with --pos or --two-stage".into());
+        // two-stage pipeline uses its own label/feature scheme.
+        return Err("--tag-free cannot be combined with --two-stage".into());
     }
     if args.two_stage {
-        if args.pos {
-            return Err("--two-stage cannot be combined with --pos".into());
-        }
         if args.format == "tsv" {
             return Err("--two-stage cannot be combined with --format tsv".into());
         }
@@ -230,13 +225,6 @@ fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
             args.features_file.as_path(),
             args.stage2_features,
         )?;
-    } else if args.pos {
-        // The POS pipeline has no TSV variant (issue #152 covers the
-        // word-segmentation path only).
-        if args.format == "tsv" {
-            return Err("--format tsv is not supported together with --pos".into());
-        }
-        extractor.extract_with_pos(args.corpus_file.as_path(), args.features_file.as_path())?;
     } else if args.format == "tsv" && args.tag_free {
         extractor.extract_tsv_tag_free(args.corpus_file.as_path(), args.features_file.as_path())?;
     } else if args.format == "tsv" {
@@ -273,8 +261,8 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
     })?;
 
     if args.two_stage {
-        if args.pos {
-            return Err("--two-stage cannot be combined with --pos".into());
+        if args.perceptron {
+            return Err("--two-stage cannot be combined with --perceptron".into());
         }
         if args.load_model_uri.is_some() {
             return Err(
@@ -300,9 +288,9 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
         );
         eprintln!("  Stage 2 Macro Precision: {:.2}%", metrics.stage2.macro_precision);
         eprintln!("  Stage 2 Macro Recall: {:.2}%", metrics.stage2.macro_recall);
-    } else if args.pos {
-        // Train the POS tagging model with the Averaged Perceptron
-        let mut trainer = PosTrainer::new(args.num_epochs, args.features_file.as_path())?;
+    } else if args.perceptron {
+        // Train a generic Averaged Perceptron model (opaque string labels)
+        let mut trainer = PerceptronTrainer::new(args.num_epochs, args.features_file.as_path())?;
 
         if let Some(model_uri) = &args.load_model_uri {
             trainer.load_model(model_uri).await?;
@@ -310,7 +298,7 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
 
         let metrics = trainer.train(&running, args.model_file.as_path())?;
 
-        eprintln!("Result Metrics (POS):");
+        eprintln!("Result Metrics (Perceptron):");
         eprintln!("  Accuracy: {:.2}% ( {} )", metrics.accuracy, metrics.num_instances);
         eprintln!("  Macro Precision: {:.2}%", metrics.macro_precision);
         eprintln!("  Macro Recall: {:.2}%", metrics.macro_recall);
@@ -486,10 +474,9 @@ where
 /// Segment sentences read from standard input using a trained model.
 /// This function loads the model from the given model URI (a plain path, a
 /// `file://` path, or an `http(s)://` URL with the `remote_model` feature):
-/// with `--pos`, a joint (Averaged Perceptron) or two-stage POS model, with
-/// the model kind auto-detected from the file (issue #147); otherwise an
-/// AdaBoost model (word segmentation only). The segmented sentences are
-/// written to standard output.
+/// with `--pos`, a two-stage POS model (issue #147); otherwise an AdaBoost
+/// model (word segmentation only). The segmented sentences are written to
+/// standard output.
 ///
 /// A downstream consumer closing stdout early (broken pipe) terminates the
 /// command successfully instead of reporting an error.
@@ -509,10 +496,11 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     let threads = usize::from(args.threads);
 
     if args.pos {
-        // Joint or two-stage segmentation + POS tagging; the model kind is
-        // auto-detected from the file (issue #147).
-        let model = AnyPosModel::load(args.model_uri.as_str()).await?;
-        let segmenter = model.into_segmenter(language);
+        // Two-stage segmentation + POS tagging (issue #147). The loader
+        // rejects non-two-stage files with a precise error message.
+        let mut learner = TwoStageLearner::new();
+        learner.load_model(args.model_uri.as_str()).await?;
+        let segmenter = Segmenter::with_two_stage_learner(language, learner);
 
         if threads > 1 {
             // Parallel path (#185): workers need no reusable scratch for
@@ -614,11 +602,10 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
 /// Evaluate a model against a held-out gold corpus and print quality
 /// metrics.
 ///
-/// Loads an AdaBoost model, or, with `--pos`, a joint (Averaged Perceptron)
-/// or two-stage model auto-detected from the file (#147), from the model
-/// URI, parses the gold corpus in the selected format (space-separated
-/// tokens, tab-separated `tsv` tokens, or `word/POS` with `--pos`), and
-/// prints held-out precision/recall/F1 one metric per line.
+/// Loads an AdaBoost model, or, with `--pos`, a two-stage model (#147),
+/// from the model URI, parses the gold corpus in the selected format
+/// (space-separated tokens, tab-separated `tsv` tokens, or `word/POS` with
+/// `--pos`), and prints held-out precision/recall/F1 one metric per line.
 ///
 /// # Arguments
 /// * `args` - The arguments for the evaluate command [`EvaluateArgs`].
@@ -630,9 +617,11 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
     let reader = io::BufReader::new(gold_file);
 
     if args.pos {
-        // Joint or two-stage model, auto-detected from the file (#147).
-        let model = AnyPosModel::load(args.model_uri.as_str()).await?;
-        let segmenter = model.into_segmenter(args.language);
+        // Two-stage model (#147). The loader rejects non-two-stage files
+        // with a precise error message.
+        let mut learner = TwoStageLearner::new();
+        learner.load_model(args.model_uri.as_str()).await?;
+        let segmenter = Segmenter::with_two_stage_learner(args.language, learner);
 
         let gold = reader
             .lines()

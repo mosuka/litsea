@@ -45,13 +45,10 @@ cargo bench --bench bench -- external_corpus
 |----------|-------|--------|
 | `japanese` | japanese.model | wagahaiwa_nekodearu.txt |
 | `japanese-rwcp` | RWCP.model | wagahaiwa_nekodearu.txt |
-| `japanese-pos` | japanese_pos.model | wagahaiwa_nekodearu.txt |
 | `japanese-two-stage` | japanese_two_stage.model | wagahaiwa_nekodearu.txt |
 | `korean` | korean.model | mujeong.txt |
-| `korean-pos` | korean_pos.model | mujeong.txt |
 | `korean-two-stage` | korean_two_stage.model | mujeong.txt |
 | `chinese` | chinese.model | rulin_waishi.txt |
-| `chinese-pos` | chinese_pos.model | rulin_waishi.txt |
 | `chinese-two-stage` | chinese_two_stage.model | rulin_waishi.txt |
 
 The `*-two-stage` benches were added alongside the [two-stage
@@ -110,11 +107,11 @@ and measure with the same paired discipline described below.
 
 ### Run-to-Run Variance
 
-The published figures in this book (including the two-stage vs. joint
-comparisons on the [Two-Stage vs. Joint
-Tagging](../algorithm/two-stage-tagging.md) and [Pre-trained
-Models](../pre-trained-models.md) pages) are measured on this project's
-development machine, not dedicated, idle benchmarking hardware. Three
+The published figures in this book (including the throughput figures on
+the [Two-Stage Tagging](../algorithm/two-stage-tagging.md) and
+[Pre-trained Models](../pre-trained-models.md) pages) are measured on this
+project's development machine, not dedicated, idle benchmarking
+hardware. Three
 consecutive `external_corpus` runs of the same build showed spreads of
 10-20% on individual bench ids -- large enough that a single run should
 not be read as a precise figure. Where a page reports a range or an

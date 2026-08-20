@@ -27,7 +27,7 @@ Usage:
     litsea extract -l <language> [--format tsv] <corpus> <features.txt>
     # remap boundary labels 1/-1 -> B/O (tie-break correctness -- see above)
     sed -i 's/^1\\t/B\\t/; s/^-1\\t/O\\t/' <features.txt>
-    litsea train --pos --num-epochs <N> <features.txt> <perceptron.model>
+    litsea train --perceptron --num-epochs <N> <features.txt> <perceptron.model>
     scripts/collapse_binary_perceptron.py <perceptron.model> <out.model>
 """
 import sys

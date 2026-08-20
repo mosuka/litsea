@@ -1,6 +1,6 @@
 # Averaged Perceptron
 
-`AveragedPerceptron` 構造体は、単語分割と品詞タグ付けを同時に行うための多クラス分類を実装しています。
+`AveragedPerceptron` 構造体は、不透明な文字列ラベルに対する多クラス分類を実装しています。二段構成品詞推定アーキテクチャの両ステージと、同梱分割モデルの畳み込みレシピ（`litsea train --perceptron`）の学習側の学習器です。
 
 ## 定義
 
@@ -125,7 +125,7 @@ pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
 ```rust
 use std::path::Path;
 
-learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+learner.load_model_from_path(Path::new("./perceptron.model"))?;
 ```
 
 ### `load_model_from_reader`
@@ -144,13 +144,13 @@ pub async fn load_model(&mut self, uri: &str) -> litsea::Result<()>
 
 URI からモデルを読み込みます。以下の形式に対応しています:
 
-- ローカルファイルパス: `./models/japanese_pos.model`
+- ローカルファイルパス: `./perceptron.model`
 - File URI: `file:///path/to/model`
 - HTTP: `http://example.com/model`（`remote_model` フィーチャーが必要）
 - HTTPS: `https://example.com/model`（`remote_model` フィーチャーが必要）
 
 ```rust
-learner.load_model("https://example.com/models/japanese_pos.model").await?;
+learner.load_model("https://example.com/models/perceptron.model").await?;
 ```
 
 ## 評価

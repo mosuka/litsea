@@ -33,11 +33,11 @@ echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./
 
 ### 品詞推定付き分割
 
-Litsea は POS モデルを使うことで、単語分割と品詞推定を同時に行うことができます。`segment` コマンドに `--pos` フラグを追加します:
+Litsea は[二段構成](../algorithm/two-stage-tagging.md)モデルを使って、単語分割と品詞推定を行うことができます。`segment` コマンドに `--pos` フラグを追加します:
 
 ```sh
 echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
 ```
 
 出力:
@@ -47,17 +47,6 @@ echo "今日はいい天気ですね。" \
 ```
 
 各トークンには [Universal POS（UPOS）](https://universaldependencies.org/u/pos/) タグが付与されます。
-
-### 二段構成の品詞推定付き分割
-
-Litsea には、より高速な[二段構成](../algorithm/two-stage-tagging.md)の品詞推定アーキテクチャも同梱されています。CLI はファイルからモデルの種類を自動判定するため、コマンドはモデルファイル名以外は上の joint の例と同じです:
-
-```sh
-echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
-```
-
-出力の形式は joint の例と同じです。新規に使う場合は[事前学習済みモデル](../pre-trained-models.md#モデルの選択)で推奨されている二段構成モデルの利用を検討してください。
 
 ## ライブラリ クイックスタート
 
@@ -89,22 +78,22 @@ fn main() -> litsea::Result<()> {
 
 ### ライブラリでの品詞推定付き分割
 
-品詞推定付きモデルを読み込み、単語分割と品詞推定を同時に行う最小限の Rust プログラムです:
+POS モデルを読み込み、品詞タグ付きでテキストを分割する最小限の Rust プログラムです:
 
 ```rust
 use std::path::Path;
 
 use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
 
 fn main() -> litsea::Result<()> {
-    // Load the pre-trained POS model
-    let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+    // Load the pre-trained two-stage POS model
+    let mut learner = TwoStageLearner::new();
+    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
 
     // Create a segmenter with POS support
-    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
 
     // Segment text with POS tags
     let tokens = segmenter.segment_with_pos("今日はいい天気ですね。")?;

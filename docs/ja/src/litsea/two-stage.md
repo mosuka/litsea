@@ -2,9 +2,9 @@
 
 `two_stage` モジュールは `litsea-two-stage v1` モデルコンテナ
 （`TwoStageLearner`）、stage-2 特徴量セットの選択肢（`TwoStageFeatureSet`）、
-自動判別 POS モデルローダー（`AnyPosModel` / `ModelKind`）を定義します。
-アーキテクチャと計測済みの品質・速度比較は
-[二段構成 vs Joint タグ付け](../algorithm/two-stage-tagging.md) を、
+モデル種別の判定器（`ModelKind`）を定義します。
+アーキテクチャと計測済みの品質・速度の数値は
+[二段構成タグ付け](../algorithm/two-stage-tagging.md) を、
 モデルの新規学習は
 [`TwoStageTrainer`](trainer.md#twostagetrainer) を参照してください。
 
@@ -126,7 +126,7 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
 `Display`（小文字）を実装しています。`#[non_exhaustive]` が付与されて
 おり、外部の `match` 式にはワイルドカードアームが必要です。
 
-## `AnyPosModel` と `ModelKind`
+## `ModelKind`
 
 ```rust
 pub enum ModelKind {
@@ -134,37 +134,19 @@ pub enum ModelKind {
     AveragedPerceptron,
     TwoStage,
 }
-
-pub enum AnyPosModel {
-    Joint(Box<AveragedPerceptron>),
-    TwoStage(Box<TwoStageLearner>),
-}
 ```
 
 `ModelKind::detect(content: &str) -> ModelKind` はモデルファイルの
 1行目を調べて形式を判別します——これは判別のためのヒューリスティックで
-あり完全な検証ではありません。実際の検証は対応するローダーが行います。
+あり完全な検証ではありません。`AdaBoost` はプレーンな分割モデル形式
+（畳み込み済みの二段構成 stage 1 の形式でもあります）、
+`AveragedPerceptron` はスタンドアロンのパーセプトロンファイル
+（`train --perceptron` の出力であり、`[stage2]` セクションのペイロード
+形式。これは削除された joint POS モデル形式であり、POS モデルとしては
+読み込めません）、`TwoStage` は `litsea-two-stage` コンテナです。
 
-`AnyPosModel::load(uri: &str) -> Result<Self>` は joint モデルと
-二段構成モデルのどちらも受け付けるコードのための単一フェッチ
-エントリポイントです（`litsea segment --pos` と `litsea evaluate --pos`
-が実際に使用しています）: モデルバイト列を一度だけ取得し、種類を
-判別してから対応するローダーで解析します。ファイルがプレーンな
-AdaBoost 分割モデル（タグ付け不可）の場合、バイト列が有効な UTF-8 で
-ない場合、判別された形式の解析に失敗した場合はいずれも
-`LitseaError::InvalidData` を返します。
-
-`AnyPosModel::into_segmenter(self, language: Language) -> Segmenter` は
-対応する `Segmenter` を構築します——`Joint` には `with_pos_learner`、
-`TwoStage` には `with_two_stage_learner`——呼び出し側がモデル種別で
-分岐する必要はありません:
-
-```rust
-use litsea::language::Language;
-use litsea::two_stage::AnyPosModel;
-
-let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
-let segmenter = model.into_segmenter(Language::Japanese);
-let tagged = segmenter.segment_with_pos("これはテストです。")?;
-// ファイルが joint モデルでも二段構成モデルでも同じように動作します。
-```
+種類違いのファイルには `TwoStageLearner` のローダーが正確なエラーを
+返します: スタンドアロンの Averaged Perceptron ファイルを指定すると
+"joint POS models are no longer supported — retrain with `litsea train
+--two-stage`" で失敗し、それ以外の非二段構成の内容はマジック行の欠落
+エラーで失敗します。

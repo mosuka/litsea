@@ -20,11 +20,10 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input |
-| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--pos` or `--two-stage` |
-| `--two-stage` | off | Extract [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) training features instead of joint POS features. Requires a POS corpus as input; cannot be combined with `--pos` |
+| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--two-stage` |
+| `--two-stage` | off | Extract [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) training features. Requires a POS corpus as input |
 | `--stage2-features <SET>` | `fast` | Stage-2 word-feature set for `--two-stage`: `full` (best quality), `balanced`, or `fast` (best throughput) |
-| `--tag-free` | off | Exclude the 16 tag-dependent feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) so the trained model is pointwise and `segment()` skips its sequential scoring pass (issue #183; used for the bundled `korean.model` -- see [Tag-Free (Pointwise) Models](../pre-trained-models.md#tag-free-pointwise-models) for the per-language quality/speed trade-off). Composable with `--format tsv`; cannot be combined with `--pos` or `--two-stage` |
+| `--tag-free` | off | Exclude the 16 tag-dependent feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) so the trained model is pointwise and `segment()` skips its sequential scoring pass (issue #183; used for the bundled `korean.model` -- see [Tag-Free (Pointwise) Models](../pre-trained-models.md#tag-free-pointwise-models) for the per-language quality/speed trade-off). Composable with `--format tsv`; cannot be combined with `--two-stage` |
 
 ## Corpus Format
 
@@ -80,9 +79,11 @@ Output to stderr on success:
 Feature extraction completed successfully.
 ```
 
-## POS Feature Extraction
+## Two-Stage Feature Extraction
 
-When the `--pos` flag is specified, `extract` expects a **POS corpus** instead of a plain word-separated corpus. Each line contains words annotated with UPOS tags in the format `word/POS`:
+When the `--two-stage` flag is specified, `extract` expects a **POS
+corpus** instead of a plain word-separated corpus. Each line contains
+words annotated with UPOS tags in the format `word/POS`:
 
 ### POS Corpus Format
 
@@ -91,31 +92,13 @@ When the `--pos` flag is specified, `extract` expects a **POS corpus** instead o
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
-### POS Feature Output Format
-
-In POS mode, the label column uses segment labels (`B-NOUN`, `B-VERB`, ..., `B-X`, `O`) instead of binary `1`/`-1`. Features are again written tab-separated in alphabetically sorted order:
-
-```text
-B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	BW1:B2B1	...
-O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
-```
-
-### POS Extraction Example
-
-```sh
-litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
-```
-
-## Two-Stage Feature Extraction
-
-With `--two-stage`, `extract` reads the same POS corpus format as `--pos`
-(`word/POS word/POS ...`) but writes **three** files derived from
-`FEATURES_FILE` as a prefix, for the [two-stage segmentation + POS tagging
+`extract --two-stage` writes **three** files derived from `FEATURES_FILE`
+as a prefix, for the [two-stage segmentation + POS tagging
 architecture](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1):
 
 | File | Content |
 |------|---------|
-| `{FEATURES_FILE}.stage1` | Boundary features, one row per character position, label `B` or `O` (the same feature templates as `--pos`) |
+| `{FEATURES_FILE}.stage1` | Boundary features, one row per character position, label `B` or `O` (the same character-level feature templates as plain extraction, emitted at every position including the first) |
 | `{FEATURES_FILE}.stage2` | Word-level features, one row per word, label a UPOS tag; which templates are written is controlled by `--stage2-features` |
 | `{FEATURES_FILE}.lexicon` | The candidate-tag lexicon: `surface\tTAG:count[,TAG:count...]`, most-frequent-first |
 

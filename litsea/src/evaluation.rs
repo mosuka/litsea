@@ -1,5 +1,4 @@
-//! Held-out evaluation of segmentation (and POS tagging, joint or
-//! two-stage) quality.
+//! Held-out evaluation of segmentation (and POS tagging) quality.
 //!
 //! Compares a [`Segmenter`]'s output against gold-standard token sequences
 //! using character-offset spans: the gold text is the concatenation of the
@@ -40,16 +39,15 @@ pub struct SegmentationMetrics {
     pub predicted_words: usize,
 }
 
-/// Held-out segmentation + POS tagging quality metrics, for either the
-/// joint or the two-stage architecture (both are evaluated the same way,
-/// through [`Segmenter::segment_with_pos`]).
+/// Held-out segmentation + POS tagging quality metrics, evaluated through
+/// [`Segmenter::segment_with_pos`].
 ///
 /// The segmentation part is identical to [`SegmentationMetrics`]; the
 /// tagged-word metrics additionally require the predicted POS tag to match
 /// the gold tag on top of the exact token span.
 #[derive(Debug, Clone)]
 pub struct PosMetrics {
-    /// Segmentation quality of the joint output.
+    /// Segmentation quality of the tagged output.
     pub segmentation: SegmentationMetrics,
     /// Tagged-word precision in percentage (%): span and tag both match.
     pub tagged_precision: f64,
@@ -176,7 +174,7 @@ where
 }
 
 /// Evaluates segmentation + POS tagging quality against gold `(token, tag)`
-/// sequences, for either the joint or the two-stage architecture.
+/// sequences.
 ///
 /// Segmentation is scored exactly like [`evaluate_segmentation`]; the
 /// tagged-word metrics additionally require the predicted [`Upos`] to
@@ -184,8 +182,7 @@ where
 ///
 /// # Arguments
 /// * `segmenter` - The segmenter to evaluate. Internally calls
-///   [`Segmenter::segment_with_pos`], so a segmenter built with either an
-///   Averaged Perceptron POS learner (joint) or a two-stage learner works.
+///   [`Segmenter::segment_with_pos`], so build it with a two-stage learner.
 /// * `gold` - Gold sentences as `(token, tag)` vectors; empty sentences are skipped.
 ///
 /// # Returns
@@ -193,7 +190,7 @@ where
 ///
 /// # Errors
 /// Returns [`crate::error::LitseaError::PosLearnerNotSet`] if the segmenter
-/// has neither a POS learner nor a two-stage learner set.
+/// has no two-stage learner set.
 pub fn evaluate_pos<I, S>(segmenter: &Segmenter, gold: I) -> crate::error::Result<PosMetrics>
 where
     I: IntoIterator<Item = Vec<(S, Upos)>>,
