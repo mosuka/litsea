@@ -25,6 +25,7 @@
   - [Japanese](language-support/japanese.md)
   - [Chinese](language-support/chinese.md)
   - [Korean](language-support/korean.md)
+  - [English](language-support/english.md)
   - [Adding a New Language](language-support/adding-a-new-language.md)
 
 # litsea (Library)

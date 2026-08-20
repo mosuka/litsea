@@ -25,6 +25,7 @@
   - [日本語](language-support/japanese.md)
   - [中国語](language-support/chinese.md)
   - [韓国語](language-support/korean.md)
+  - [英語](language-support/english.md)
   - [新しい言語の追加](language-support/adding-a-new-language.md)
 
 # litsea (ライブラリ)

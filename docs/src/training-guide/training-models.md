@@ -15,7 +15,7 @@ litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 ```
 
 This is a generic example of plain AdaBoost training. The bundled
-`japanese.model`, `chinese.model`, and `korean.model` are **not** produced
+`japanese.model`, `chinese.model`, `korean.model`, and `english.model` are **not** produced
 this way -- see [Training Procedure](../pre-trained-models.md#training-procedure)
 for the procedure actually used for those files.
 
@@ -45,11 +45,12 @@ flowchart TD
 | Iterations | `-i` | 100 | Start with 20000. AdaBoost selects one feature per iteration, so this caps the number of features in the model; the default produces very small models with much lower held-out accuracy |
 
 **Note**: these are generic starting points for training a plain AdaBoost
-model from scratch. The bundled `japanese.model`, `chinese.model`, and
-`korean.model` are produced by a different procedure -- a 2-class Averaged
-Perceptron collapsed to AdaBoost weights, with per-language epoch counts
-and pruning -- see [Training Procedure](../pre-trained-models.md#training-procedure)
-in Pre-trained Models for how those files are actually made.
+model from scratch. The bundled `japanese.model`, `chinese.model`,
+`korean.model`, and `english.model` are produced by a different procedure
+-- a 2-class Averaged Perceptron collapsed to AdaBoost weights, with
+per-language epoch counts and pruning -- see [Training
+Procedure](../pre-trained-models.md#training-procedure) in Pre-trained
+Models for how those files are actually made.
 
 ## Interpreting Output
 

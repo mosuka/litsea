@@ -15,7 +15,7 @@ litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 ```
 
 これは通常の AdaBoost 学習の一般的な例です。同梱の `japanese.model`、
-`chinese.model`、`korean.model` は**この方法では作られていません** --
+`chinese.model`、`korean.model`、`english.model` は**この方法では作られていません** --
 これらのファイルの実際の学習手順は
 [学習手順](../pre-trained-models.md#学習手順)を参照してください。
 
@@ -45,8 +45,8 @@ flowchart TD
 | 反復回数 | `-i` | 100 | 20000 から開始することを推奨。AdaBoost は 1 反復につき特徴を 1 つ選択するため、この値がモデルの特徴数の上限になる。デフォルト値では非常に小さいモデルになり、held-out 精度が大幅に低くなる |
 
 **注**: これらはゼロから通常の AdaBoost モデルを学習する際の一般的な
-出発点です。同梱の `japanese.model`、`chinese.model`、`korean.model` は
-別の手順（2 クラスの Averaged Perceptron を AdaBoost の重みへ畳み込み、
+出発点です。同梱の `japanese.model`、`chinese.model`、`korean.model`、
+`english.model` は別の手順（2 クラスの Averaged Perceptron を AdaBoost の重みへ畳み込み、
 言語ごとに異なるエポック数と剪定を適用）で作られています -- これらの
 ファイルが実際にどう作られているかは、事前学習済みモデルの
 [学習手順](../pre-trained-models.md#学習手順)を参照してください。

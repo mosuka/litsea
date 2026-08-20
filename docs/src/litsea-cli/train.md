@@ -63,8 +63,8 @@ litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 ```
 
 This is a generic plain-AdaBoost example. The bundled `japanese.model`,
-`chinese.model`, and `korean.model` use a different procedure -- see
-[Training Procedure](../pre-trained-models.md#training-procedure).
+`chinese.model`, `korean.model`, and `english.model` use a different
+procedure -- see [Training Procedure](../pre-trained-models.md#training-procedure).
 
 Training with higher precision (lower threshold, more iterations):
 

@@ -30,9 +30,9 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `-l`, `--language <LANGUAGE>` | `japanese` | Language of the model and gold corpus. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `-l`, `--language <LANGUAGE>` | `japanese` | Language of the model and gold corpus. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | Evaluate segmentation + POS tagging. The gold corpus must then be in `word/POS` format. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`) |
-| `--format <FORMAT>` | `space` | Gold corpus format: `space` (space-separated tokens) or `tsv` (tab-separated tokens; a token may be a literal space, as in the Korean space-preserving corpus). Ignored with `--pos` |
+| `--format <FORMAT>` | `space` | Gold corpus format: `space` (space-separated tokens) or `tsv` (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). Ignored with `--pos` |
 
 ## Metrics
 
@@ -48,8 +48,8 @@ Two token sequences are compared for every sentence:
 
 Predicted and gold tokens are matched by exact character-offset spans over
 the reconstructed sentence. Pure-whitespace tokens are excluded from
-scoring, so the Korean space-preserving protocol does not inflate the
-numbers.
+scoring, so the Korean/English space-preserving protocol does not inflate
+the numbers.
 
 | Metric | Measures | A low value means |
 |--------|----------|-------------------|
@@ -75,6 +75,7 @@ Reproduce the documented held-out figures with the bundled gold data
 litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 ```
 

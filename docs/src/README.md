@@ -7,10 +7,10 @@ Unlike traditional morphological analyzers such as [MeCab](https://taku910.githu
 ## Key Features
 
 - **Fast and safe Rust implementation** -- built with Rust's safety guarantees and performance
-- **Compact pre-trained models** -- the legacy `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` files are kilobyte-scale; the quality-optimized `japanese`/`chinese`/`korean.model` files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP
+- **Compact pre-trained models** -- the legacy `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` files are kilobyte-scale; the quality-optimized `japanese`/`chinese`/`korean`/`english.model` files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP
 - **No dictionary dependency** -- segmentation is driven entirely by a statistical model
 - **Two-stage POS tagging** -- segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, adding little cost over plain segmentation
-- **Multilingual support** -- Japanese, Chinese (Simplified/Traditional), and Korean
+- **Multilingual support** -- Japanese, Chinese (Simplified/Traditional), Korean, and English
 - **Model training capabilities** -- train custom models using AdaBoost or Averaged Perceptron with your own corpora
 - **Remote model loading** -- load models from HTTP/HTTPS URLs (opt-in `remote_model` feature) or local files
 - **Simple and extensible API** -- easy to integrate into Rust projects as a library

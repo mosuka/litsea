@@ -57,6 +57,7 @@ limits.
 | Japanese | 96.78% | 92.95% | 4.38M chars/s |
 | Chinese | 90.82% | 82.29% | 3.38M chars/s |
 | Korean | 83.24% | 78.86% | 4.54M chars/s |
+| English | 70.33% | 65.83% | 2.05M chars/s |
 
 Two observations worth keeping in mind:
 
@@ -69,6 +70,18 @@ Two observations worth keeping in mind:
   full-class fallback rather than the cheap dominance-skip or
   candidate-masked paths.
 
+**English's Word F1 is much lower than the others, and this is not a bug.**
+Unlike the Korean and Japanese/Chinese rows above, `english_pos.model` is
+trained and evaluated on unspaced text where none of the other languages'
+segmentation task is anywhere near as hard: Korean's agglutinative
+particles and verb endings leave strong boundary cues even with spaces
+removed (its unspaced two-stage Word F1, 83.24% here, is not far from its
+space-preserving `korean.model`'s 99.91%), while English orthography
+leaves almost none, so segmenting unspaced English is intrinsically much
+harder. See [English](../language-support/english.md#english_posmodel) and
+[Pre-trained Models](../pre-trained-models.md#english_posmodel) for the
+full explanation.
+
 ## Choosing a stage-2 feature set
 
 Stage 2's word-level tagger can be extracted with three feature sets
@@ -78,18 +91,20 @@ quality for throughput. Segmentation quality is unaffected -- it is
 decided entirely by stage 1. The figures below are at 50 epochs, matching
 the bundled models.
 
-| Feature set | Chinese Tagged F1 | Korean Tagged F1 |
-|-------------|-----|-----|
-| `fast` (default) | 81.33% | 77.42% |
-| `balanced` | 82.29% | 78.86% |
-| `full` | 82.96% | 78.88% |
+| Feature set | Chinese Tagged F1 | Korean Tagged F1 | English Tagged F1 |
+|-------------|-----|-----|-----|
+| `fast` (default) | 81.33% | 77.42% | 64.88% |
+| `balanced` | 82.29% | 78.86% | 64.82% |
+| `full` | 82.96% | 78.88% | 65.70% |
 
 For Japanese, `fast` alone reaches 92.95% tagged F1, so the bundled
 `japanese_pos.model` uses it. For Chinese, `balanced` gives most of
 `full`'s gain (82.29% vs. 82.96%) at meaningfully better throughput, so
 `chinese_pos.model` uses `balanced` rather than `full`. For Korean,
 `full` adds essentially nothing over `balanced` (78.88% vs. 78.86%), so
-`korean_pos.model` also uses `balanced`. Retraining with a different
+`korean_pos.model` also uses `balanced`. For English, `full` is the clear
+winner by a full point over the other two (65.70% vs. ~64.8%), so
+`english_pos.model` uses `full`. Retraining with a different
 set is a matter of re-running `extract --pos --stage2-features
 <set>` + `train --pos`; there is no need to change any other part of
 the pipeline.

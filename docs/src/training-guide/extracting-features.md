@@ -50,13 +50,16 @@ Each line represents one character position. For the corpus line `これ は テ
 ## Space-Preserving (TSV) Corpus Format
 
 For a corpus that preserves the original spacing of the sentence -- used to
-train the Korean model, since inter-word spaces are its strongest boundary
-signal (see [Korean](../language-support/korean.md#space-preserving-training))
+train the Korean and English models, since inter-word spaces are their
+strongest boundary signal (see
+[Korean](../language-support/korean.md#space-preserving-training) and
+[English](../language-support/english.md#space-preserving-training))
 -- pass `--format tsv` instead of extracting from the default
 space-separated format:
 
 ```sh
 litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.txt
 ```
 
 The input is a tab-separated corpus (one sentence per line, tokens

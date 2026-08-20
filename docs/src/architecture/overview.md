@@ -37,6 +37,6 @@ flowchart LR
 ## Design Principles
 
 - **No dictionary dependency** -- Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns
-- **Compact models** -- Legacy word-segmentation models (`RWCP.model`, `JEITA_Genpaku_ChaSen_IPAdic.model`) are ~16-22 KB; the retrained `japanese`/`chinese`/`korean.model` are ~86 KB-2.0 MB, trading file size for the quality gains documented in [Pre-trained Models](../pre-trained-models.md); two-stage POS models are ~5-8 MB -- all still small enough to embed directly in applications, containing only the feature weights that matter
+- **Compact models** -- Legacy word-segmentation models (`RWCP.model`, `JEITA_Genpaku_ChaSen_IPAdic.model`) are ~16-22 KB; the retrained `japanese`/`chinese`/`korean`/`english.model` are ~86 KB-2.0 MB, trading file size for the quality gains documented in [Pre-trained Models](../pre-trained-models.md); two-stage POS models are ~3.6-8 MB -- all still small enough to embed directly in applications, containing only the feature weights that matter
 - **Language-agnostic framework** -- The core algorithm is the same for all languages; only the character type patterns differ
 - **Simple extensibility** -- Adding a new language requires only defining character type patterns and training a model

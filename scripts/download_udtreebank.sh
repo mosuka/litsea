@@ -13,7 +13,7 @@ usage() {
     echo ""
     echo "Download a UD Treebank and print the path to the training CoNLL-U file."
     echo ""
-    echo "  -l lang        Language code: ja, ko, zh (default: ja)"
+    echo "  -l lang        Language code: ja, ko, zh, en (default: ja)"
     echo "  -o output_dir  Directory to clone the treebank into (default: current directory)"
     exit 1
 }
@@ -44,8 +44,12 @@ case "$lang" in
         ud_repo="UD_Chinese-GSD"
         ud_prefix="zh_gsd-ud"
         ;;
+    en)
+        ud_repo="UD_English-EWT"
+        ud_prefix="en_ewt-ud"
+        ;;
     *)
-        echo "Error: Unsupported language '${lang}'. Supported: ja, ko, zh" >&2
+        echo "Error: Unsupported language '${lang}'. Supported: ja, ko, zh, en" >&2
         exit 1
         ;;
 esac

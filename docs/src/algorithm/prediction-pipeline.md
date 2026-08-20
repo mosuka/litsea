@@ -89,7 +89,7 @@ on earlier boundary decisions:
 
    **Pointwise fast path** (issue #183): if the model has no tag-dependent
    features at all (e.g. it was trained with `litsea extract --tag-free`,
-   like the bundled `korean.model`), the compiled model records this at
+   like the bundled `korean.model`/`english.model`), the compiled model records this at
    load time and the sequential pass is skipped entirely -- the decision
    reduces to `bias + static[i] >= 0` with no tag bookkeeping. Output is
    identical either way (the skipped loads would each add `0.0`); only the
@@ -123,7 +123,7 @@ The compiled model splits by key-space size and tag dependence:
   (one probe per character, type dimension direct-indexed).
 - **Dense arrays** for tag/type-only templates: each of the 29 gets a
   direct-indexed table sized by the exact mixed-radix product (3 per tag
-  slot, 8--10 per type slot; about 74 KB total for Japanese). The
+  slot, 7--10 per type slot; about 74 KB total for Japanese). The
   `UC`/`BC`/`TC` tables additionally get merged scatter-vector views for
   the static pass.
 

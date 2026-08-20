@@ -20,8 +20,8 @@ The benchmarks are defined in `litsea/benches/bench.rs`:
 
 | Benchmark | Description |
 |-----------|------------|
-| `segment_short/adaboost/{japanese,chinese,korean}` | Segment a short sentence (AdaBoost) |
-| `segment_short/averaged_perceptron/{japanese,chinese,korean}` | Segment + POS tag a short sentence |
+| `segment_short/adaboost/{japanese,chinese,korean,english}` | Segment a short sentence (AdaBoost) |
+| `segment_short/averaged_perceptron/{japanese,chinese,korean,english}` | Segment + POS tag a short sentence |
 | `segment_long_japanese/{adaboost,averaged_perceptron}` | Process the full Bocchan novel (~300 KB) |
 | `external_corpus/*` | Corpus throughput, mirroring tokenizer-speed-bench (see below) |
 | `char_type_hiragana` | Character type classification |
@@ -34,8 +34,9 @@ Models are loaded synchronously with `load_model_from_path` — no async runtime
 
 The `external_corpus` group reproduces the seven litsea benches of the
 external [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
-harness in-repo, so throughput regressions can be caught with `cargo bench`
-alone:
+harness in-repo (the `english`/`english-two-stage` cases below have no
+counterpart there yet), so throughput regressions can be caught with
+`cargo bench` alone:
 
 ```sh
 cargo bench --bench bench -- external_corpus
@@ -50,6 +51,8 @@ cargo bench --bench bench -- external_corpus
 | `korean-two-stage` | korean_pos.model | mujeong.txt |
 | `chinese` | chinese.model | rulin_waishi.txt |
 | `chinese-two-stage` | chinese_pos.model | rulin_waishi.txt |
+| `english` | english.model | pride_and_prejudice.txt |
+| `english-two-stage` | english_pos.model | pride_and_prejudice.txt |
 
 The `*-two-stage` benches were added alongside the [two-stage
 architecture](../algorithm/two-stage-tagging.md) (#147/#169); they are not
@@ -67,6 +70,7 @@ The corpora live in `resources/`, byte-identical to the external harness:
 | wagahaiwa_nekodearu.txt | ~1.1 MB | 吾輩は猫である (Natsume Soseki), Aozora Bunko, public domain |
 | mujeong.txt | ~786 KB | 무정 (Yi Kwang-su, 1917), ko.wikisource, public domain — naturally spaced modern Korean, matching the space-aware korean.model |
 | rulin_waishi.txt | ~985 KB | 儒林外史 (Wu Jingzi), zh.wikisource, public domain — Traditional Chinese, matching UD Chinese-GSD |
+| pride_and_prejudice.txt | ~688 KB | Pride and Prejudice (Jane Austen), Project Gutenberg eBook #1342, public domain — naturally spaced English, matching the space-aware english.model |
 
 Numbers are comparable to, but not identical with, the published
 tokenizer-speed-bench figures, for two methodological reasons: Criterion
@@ -78,14 +82,14 @@ the default release profile.
 ## API Comparison (`segment_into`)
 
 The `segment_into` group pairs the owned-output `segment()` API against
-the buffer-reusing `segment_into()` API (issue #184) on the same three
+the buffer-reusing `segment_into()` API (issue #184) on the same four
 segmentation corpora as `external_corpus` (same per-line workload,
 chars/sec via `Throughput::Elements`):
 
 | Bench ID | API |
 |----------|-----|
-| `japanese-strings` / `korean-strings` / `chinese-strings` | `segment()` (one `String` per token, fresh scratch per call) |
-| `japanese-ranges` / `korean-ranges` / `chinese-ranges` | `segment_into()` with one reused `SegmentBuffer` |
+| `japanese-strings` / `korean-strings` / `chinese-strings` / `english-strings` | `segment()` (one `String` per token, fresh scratch per call) |
+| `japanese-ranges` / `korean-ranges` / `chinese-ranges` / `english-ranges` | `segment_into()` with one reused `SegmentBuffer` |
 
 Compare the two ids of a language within one run: their difference is the
 per-call allocation cost the buffer-reusing API removes. The scoring work

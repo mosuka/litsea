@@ -6,7 +6,7 @@ Litsea is an extremely compact word segmentation and POS (Part-of-Speech) taggin
 
 - **Word Segmentation** using AdaBoost binary classification on character n-gram features
 - **POS Tagging** with the UPOS (Universal POS) tagset from [Universal Dependencies](https://universaldependencies.org/u/pos/) (17 tags), via a two-stage architecture: a binary boundary classifier plus a word-level tagger with a candidate-tag lexicon (`--pos`)
-- **Multilingual Support** for Japanese, Korean, and Chinese
+- **Multilingual Support** for Japanese, Korean, Chinese, and English
 - **Backward Compatible** — existing segmentation-only workflows continue to work as before
 
 There is a small plant called Litsea cubeba (Aomoji) in the same camphoraceae family as Lindera (Kuromoji). This is the origin of the name Litsea.
@@ -65,7 +65,7 @@ Prepare a corpus with words separated by spaces in advance.
 
     ```
 
-Extract the information and features from the corpus. Use the `-l` flag to specify the language (`japanese`, `korean`, or `chinese`):
+Extract the information and features from the corpus. Use the `-l` flag to specify the language (`japanese`, `korean`, `chinese`, or `english`):
 
 ```sh
 ./target/release/litsea extract -l japanese ./corpus.txt ./features.txt
@@ -83,7 +83,7 @@ Train the features output by the above command using AdaBoost. Use `-t` to set t
 ./target/release/litsea train -t 0.0001 -i 20000 ./features.txt ./models/my_model.model
 ```
 
-(The bundled `japanese.model`/`chinese.model`/`korean.model` are *not* produced this way — see [Pre-trained models](#pre-trained-models) below for their actual training procedure.)
+(The bundled `japanese.model`/`chinese.model`/`korean.model`/`english.model` are *not* produced this way — see [Pre-trained models](#pre-trained-models) below for their actual training procedure.)
 
 The `train` command reports metrics computed on the training data (with enough iterations the model can fit the training corpus almost perfectly; evaluate on held-out text for a realistic quality estimate):
 
@@ -113,11 +113,12 @@ The output is:
 Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
-For Korean and Chinese:
+For Korean, Chinese, and English:
 
 ```sh
 echo "한국어 단어 분할 테스트입니다." | ./target/release/litsea segment -l korean ./models/korean.model
 echo "中文分词测试。" | ./target/release/litsea segment -l chinese ./models/chinese.model
+echo "I don't know." | ./target/release/litsea segment -l english ./models/english.model
 ```
 
 ## How to segment sentences with POS tagging
@@ -155,7 +156,7 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese).
+Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese), `en` (English).
 
 ### Step 2: Extract two-stage features
 
@@ -203,8 +204,11 @@ The output will look like:
 - **chinese.model**
   Trained on the [UD Chinese-GSD](https://github.com/UniversalDependencies/UD_Chinese-GSD) Treebank, same collapsed-perceptron procedure as above. Held-out word F1: 90.69%.
 
-- **japanese_pos.model** / **chinese_pos.model** / **korean_pos.model**
-  Two-stage word segmentation and POS tagging models trained on the UD GSD Treebanks (see [How to train two-stage POS models](#how-to-train-two-stage-pos-models)). Held-out word/tagged-word F1: Japanese 96.78% / 92.95%, Chinese 90.82% / 82.29%, Korean 83.24% / 78.86%.
+- **english.model**
+  Trained on the [UD English-EWT](https://github.com/UniversalDependencies/UD_English-EWT) Treebank with a space-preserving corpus, same collapsed-perceptron procedure as above but tag-free (`extract --tag-free`). Held-out word F1: 98.31%.
+
+- **japanese_pos.model** / **chinese_pos.model** / **korean_pos.model** / **english_pos.model**
+  Two-stage word segmentation and POS tagging models trained on the UD GSD/EWT Treebanks (see [How to train two-stage POS models](#how-to-train-two-stage-pos-models)). Held-out word/tagged-word F1: Japanese 96.78% / 92.95%, Chinese 90.82% / 82.29%, Korean 83.24% / 78.86%, English 70.33% / 65.83% (English is trained and evaluated on unspaced text, unlike `english.model` above — see [docs/src/language-support/english.md](docs/src/language-support/english.md#english_posmodel) for why this is a much larger quality gap than Korean's).
 
 - **JEITA_Genpaku_ChaSen_IPAdic.model**
   This model is trained using the morphologically analyzed corpus published by the Japan Electronics and Information Technology Industries Association (JEITA). It employs data from Project Sugita Genpaku analyzed with ChaSen+IPAdic.
@@ -220,7 +224,7 @@ You can further improve performance by resuming training from an existing model 
 ./target/release/litsea train -t 0.0001 -i 20000 -m ./models/my_model.model ./new_features.txt ./models/my_model.model
 ```
 
-(This incremental-retraining path applies to plain AdaBoost models. The bundled `japanese.model`/`chinese.model`/`korean.model` are retrained from scratch via the collapsed-perceptron procedure instead, not incrementally. `train --pos` does not support `-m`/incremental training at all.)
+(This incremental-retraining path applies to plain AdaBoost models. The bundled `japanese.model`/`chinese.model`/`korean.model`/`english.model` are retrained from scratch via the collapsed-perceptron procedure instead, not incrementally. `train --pos` does not support `-m`/incremental training at all.)
 
 ## License
 

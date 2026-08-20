@@ -20,8 +20,8 @@ make bench
 
 | ベンチマーク | 説明 |
 |-----------|------------|
-| `segment_short/adaboost/{japanese,chinese,korean}` | 短い文の分割（AdaBoost） |
-| `segment_short/averaged_perceptron/{japanese,chinese,korean}` | 短い文の分割+品詞付与 |
+| `segment_short/adaboost/{japanese,chinese,korean,english}` | 短い文の分割（AdaBoost） |
+| `segment_short/averaged_perceptron/{japanese,chinese,korean,english}` | 短い文の分割+品詞付与 |
 | `segment_long_japanese/{adaboost,averaged_perceptron}` | 坊っちゃん全文の処理（約 300 KB） |
 | `external_corpus/*` | tokenizer-speed-bench と同一のコーパススループット計測（後述） |
 | `char_type_hiragana` | 文字種分類 |
@@ -34,7 +34,8 @@ make bench
 
 `external_corpus` グループは、外部の
 [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
-にある litsea の 7 ベンチをリポジトリ内で再現します。これにより、
+にある litsea の 7 ベンチをリポジトリ内で再現します（下記の `english`/`english-two-stage`
+ケースはこの外部ハーネスにはまだ対応するものがありません）。これにより、
 スループットの回帰を `cargo bench` だけで検出できます:
 
 ```sh
@@ -50,6 +51,8 @@ cargo bench --bench bench -- external_corpus
 | `korean-two-stage` | korean_pos.model | mujeong.txt |
 | `chinese` | chinese.model | rulin_waishi.txt |
 | `chinese-two-stage` | chinese_pos.model | rulin_waishi.txt |
+| `english` | english.model | pride_and_prejudice.txt |
+| `english-two-stage` | english_pos.model | pride_and_prejudice.txt |
 
 `*-two-stage` ベンチは[二段構成アーキテクチャ](../algorithm/two-stage-tagging.md)
 （#147/#169）と合わせて追加したもので、上記の元々の tokenizer-speed-bench
@@ -66,6 +69,7 @@ Criterion の `elem/s` 表示がそのまま **chars/sec** として読めます
 | wagahaiwa_nekodearu.txt | 約 1.1 MB | 吾輩は猫である（夏目漱石）、青空文庫、パブリックドメイン |
 | mujeong.txt | 約 786 KB | 무정（李光洙、1917）、ko.wikisource、パブリックドメイン — 分かち書きされた現代表記の韓国語で、空白対応 korean.model の想定入力 |
 | rulin_waishi.txt | 約 985 KB | 儒林外史（呉敬梓）、zh.wikisource、パブリックドメイン — UD Chinese-GSD と同じ繁体字 |
+| pride_and_prejudice.txt | 約 688 KB | Pride and Prejudice（Jane Austen）、Project Gutenberg eBook #1342、パブリックドメイン — 自然な分かち書きの英語で、空白対応 english.model の想定入力 |
 
 数値は公表されている tokenizer-speed-bench の値と比較可能ですが、方法論の違いに
 より完全には一致しません: Criterion はプロセス内のウォームアップ + サンプリング
@@ -76,14 +80,14 @@ Criterion の `elem/s` 表示がそのまま **chars/sec** として読めます
 ## API 比較（`segment_into`）
 
 `segment_into` グループは、所有出力の `segment()` API とバッファ再利用の
-`segment_into()` API（issue #184）を、`external_corpus` と同じ 3 つの
+`segment_into()` API（issue #184）を、`external_corpus` と同じ 4 つの
 分割コーパス（同じ行単位ワークロード、`Throughput::Elements` による
 chars/sec 表示）でペア比較します:
 
 | ベンチ ID | API |
 |----------|-----|
-| `japanese-strings` / `korean-strings` / `chinese-strings` | `segment()`（トークンごとに `String` 1 つ、呼び出しごとに新規スクラッチ） |
-| `japanese-ranges` / `korean-ranges` / `chinese-ranges` | 1 つの `SegmentBuffer` を再利用する `segment_into()` |
+| `japanese-strings` / `korean-strings` / `chinese-strings` / `english-strings` | `segment()`（トークンごとに `String` 1 つ、呼び出しごとに新規スクラッチ） |
+| `japanese-ranges` / `korean-ranges` / `chinese-ranges` / `english-ranges` | 1 つの `SegmentBuffer` を再利用する `segment_into()` |
 
 同一 run 内で同じ言語の 2 つの ID を比較してください: その差が、バッファ
 再利用 API が取り除く呼び出しごとのアロケーションコストです。採点処理は

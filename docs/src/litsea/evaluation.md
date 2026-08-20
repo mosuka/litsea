@@ -33,7 +33,7 @@ pub struct PosMetrics {
 
 Both are re-exported at the crate root. Tokens are matched by exact
 character-offset spans over the concatenation of the gold tokens;
-pure-whitespace tokens are excluded from scoring (the Korean
+pure-whitespace tokens are excluded from scoring (the Korean/English
 space-preserving protocol; a no-op for languages written without spaces).
 
 ## Functions

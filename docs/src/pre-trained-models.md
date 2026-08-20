@@ -11,8 +11,8 @@ decisions. Note that the `train` command prints *in-sample* metrics
 (measured on the training data itself), which are higher than these
 held-out figures.
 
-**Algorithm note**: `japanese.model`, `chinese.model`, and `korean.model`
-are trained as a 2-class (boundary/non-boundary) Averaged Perceptron and
+**Algorithm note**: `japanese.model`, `chinese.model`, `korean.model`, and
+`english.model` are trained as a 2-class (boundary/non-boundary) Averaged Perceptron and
 then collapsed to scalar per-feature weights (issue #165) -- the file is
 still the plain AdaBoost text format the engine has always loaded, and
 `Segmenter::with_learner` / `AdaBoost::load_model_from_path` work
@@ -69,6 +69,29 @@ only on the input text -- so `segment()` skips its sequential scoring pass
 entirely (issue #183). See [Tag-Free (Pointwise)
 Models](#tag-free-pointwise-models) below for the trade-off in the other
 languages.
+
+### english.model
+
+| Property | Value |
+|----------|-------|
+| Language | English |
+| Training Corpus | UD English-EWT (space-preserving TSV corpus) |
+| Epochs | 20 |
+| Feature Templates | tag-free (pointwise, issue #183), no WC features |
+| Pruned To | not pruned (4,794 features) |
+| Word F1 (held-out) | 98.31% |
+| Boundary F1 (held-out) | 99.18% |
+| File Size | ~125 KB |
+
+Like `korean.model`, `english.model` is trained and evaluated on text that
+preserves the original spaces (each space is its own token, excluded from
+the F1 computation); see [English](language-support/english.md) for the
+space-preserving training protocol, the multiword-token (contraction)
+handling, and the epoch sweep that picked 20 epochs and the tag-free /
+no-WC configuration. English's residual boundary ambiguity (contractions,
+hyphenated compounds, abbreviations like "U.S.") is why its held-out Word
+F1 sits below Korean's near-deterministic 99.91%, even though both share
+the same space-preserving recipe.
 
 ### chinese.model
 
@@ -162,11 +185,20 @@ from converged epoch sweeps on the UD GSD test splits, issue #183):
 | Language | Word F1 with tags | Word F1 tag-free | Throughput change |
 |----------|-------------------|------------------|-------------------|
 | Korean | 99.90% | **99.91%** | faster (sequential pass skipped) |
+| English | 98.71% | **98.68%*** | faster (sequential pass skipped) |
 | Japanese | **96.70%** | 96.33% | ~+45-50% measured end-to-end |
 | Chinese | **90.69%** | 90.18% | ~+12% measured end-to-end |
 
+\* English's dev-split comparison (98.71% with tags vs. 98.68% tag-free, a
+0.03pt difference) is close enough that either choice is defensible; the
+bundled model ships tag-free for the same throughput reason as Korean. The
+held-out test-split figure reported for `english.model` above (98.31%) is
+measured only once, at the end of the sweep, and is not directly comparable
+to this dev-split pair.
+
 With the inter-eojeol space signal available, Korean's tag features
 contribute nothing, so `korean.model` ships tag-free (and ~22% smaller).
+English is close behind for the same reason (dominant whitespace signal).
 For Japanese and Chinese they still buy 0.37-0.51pt of Word F1, so the
 bundled models keep them -- quality stays the default. If your workload
 prefers speed, retrain with the same procedure above plus `--tag-free` on
@@ -257,6 +289,38 @@ POS-tagged format is a separate feature not yet implemented; the numbers
 above are therefore not comparable to `korean.model`'s 99.91% (a different
 corpus and protocol entirely, not a stronger or weaker two-stage result).
 
+### english_pos.model
+
+| Property | Value |
+|----------|-------|
+| Language | English |
+| Training Corpus | UD English-EWT (12,544 sentences, unspaced word/POS protocol -- see the note below) |
+| Epochs | 50 |
+| Stage-2 Feature Set | `full` |
+| Word F1 (held-out) | 70.33% |
+| Tagged Word F1 (held-out) | 65.83% |
+| Throughput | 2.05M chars/s |
+| File Size | ~3.6 MB |
+
+**English protocol note, read before comparing to `english.model`'s
+98.31%.** `english_pos.model` is trained (and evaluated) on the same
+unspaced `word/POS` protocol as `korean_pos.model` -- this is not a
+train/inference mismatch, `evaluate --pos` scores it the same way it was
+trained. The much larger quality gap for English than for Korean (Korean:
+99.90% unspaced vs. 99.91% spaced -- almost no gap; English: 70.33%
+unspaced vs. 98.31% spaced -- a large gap) reflects a genuine difference
+between the two languages, not an implementation defect: Korean is
+agglutinative, so particles and verb endings leave strong character-level
+cues for word boundaries even with every space removed, while English
+orthography carries almost none, so segmenting unspaced English text (e.g.
+`"thecatsatonthemat"`) is intrinsically a much harder task for this
+model's feature templates. At inference the model still receives real,
+spaced input, and spaces are re-emitted as their own tokens; see
+[English](language-support/english.md#english_posmodel) for the full
+explanation and a pinned example of the real (imperfect) output. Combining
+the space-preserving TSV protocol with two-stage POS training would need a
+new corpus format the pipeline does not currently support.
+
 #### Usage
 
 ```sh
@@ -274,11 +338,14 @@ Output:
 - For **Japanese**, use `japanese.model` for the best accuracy, or `RWCP.model` for compatibility with the original TinySegmenter
 - For **Chinese**, use `chinese.model`
 - For **Korean**, use `korean.model`
+- For **English**, use `english.model`
 - For **POS tagging**, use the **two-stage** models
   (`japanese_pos.model`, `chinese_pos.model`,
-  `korean_pos.model`) with `segment --pos` / `evaluate --pos` (see
-  [Two-Stage Tagging](algorithm/two-stage-tagging.md) for the architecture
-  and measured figures).
+  `korean_pos.model`, `english_pos.model`) with `segment --pos` /
+  `evaluate --pos` (see [Two-Stage Tagging](algorithm/two-stage-tagging.md)
+  for the architecture and measured figures; for English specifically,
+  read the protocol note above before relying on `english_pos.model`'s
+  segmentation quality).
 - For **domain-specific** needs, consider [training your own model](training-guide/preparing-corpus.md) or [retraining](training-guide/retraining-models.md) an existing one
 
 ## Sample Data
@@ -289,8 +356,12 @@ The `resources/` directory also contains sample data used for benchmarking:
 - **wagahaiwa_nekodearu.txt** -- 吾輩は猫である (Natsume Soseki), ~1.1 MB, Aozora Bunko.
 - **mujeong.txt** -- 무정 (Yi Kwang-su, 1917), ~786 KB, ko.wikisource.
 - **rulin_waishi.txt** -- 儒林外史 (Wu Jingzi), ~985 KB, zh.wikisource.
+- **pride_and_prejudice.txt** -- Pride and Prejudice (Jane Austen), ~688 KB, Project Gutenberg eBook #1342 (header, footer, and illustration captions stripped; one paragraph per line).
 
-The last three are byte-identical to the corpora of the external
+The `wagahaiwa_nekodearu.txt`/`mujeong.txt`/`rulin_waishi.txt` trio is
+byte-identical to the corpora of the external
 [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
-harness and feed the `external_corpus` benchmark group (see
-[Benchmarking](advanced/benchmarking.md)). All are public domain.
+harness and feeds the `external_corpus` benchmark group (see
+[Benchmarking](advanced/benchmarking.md)); `pride_and_prejudice.txt` feeds
+the same benchmark group's English cases but has no counterpart in that
+external harness yet. All are public domain.

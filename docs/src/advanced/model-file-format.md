@@ -124,13 +124,15 @@ Model file sizes vary considerably by model type and language:
 | japanese.model | ~1.1 MB | UD Japanese-GSD |
 | chinese.model | ~2.0 MB | UD Chinese-GSD |
 | korean.model | ~86 KB | UD Korean-GSD |
+| english.model | ~125 KB | UD English-EWT |
 | RWCP.model | ~22 KB | Original TinySegmenter |
 | JEITA_Genpaku_ChaSen_IPAdic.model | ~16 KB | JEITA corpus |
 | japanese_pos.model | ~5.4 MB | UD Japanese-GSD (two-stage) |
 | chinese_pos.model | ~8.0 MB | UD Chinese-GSD (two-stage) |
 | korean_pos.model | ~5.0 MB | UD Korean-GSD (two-stage) |
+| english_pos.model | ~3.6 MB | UD English-EWT (two-stage) |
 
-`RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model` are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained `japanese.model`, `chinese.model`, and `korean.model` (see [Pre-trained Models](../pre-trained-models.md)) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (`*_pos.model`) models, which are larger because they carry per-class and per-stage weights.
+`RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model` are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained `japanese.model`, `chinese.model`, `korean.model`, and `english.model` (see [Pre-trained Models](../pre-trained-models.md)) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (`*_pos.model`) models, which are larger because they carry per-class and per-stage weights.
 
 ## Compatibility
 

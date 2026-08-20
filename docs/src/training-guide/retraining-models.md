@@ -50,8 +50,8 @@ flowchart LR
   does **not** support `-m`/`--load-model-uri` -- incremental training of a
   two-stage model is not supported, so if you need to update one you must
   retrain it from scratch with `train --pos`
-- The bundled `japanese.model`, `chinese.model`, and `korean.model` are not
-  produced with this plain `-m` recipe -- they go through the
+- The bundled `japanese.model`, `chinese.model`, `korean.model`, and
+  `english.model` are not produced with this plain `-m` recipe -- they go through the
   perceptron-collapse procedure described in [Training
   Procedure](../pre-trained-models.md#training-procedure). Running further
   incremental AdaBoost training on top of one of them with `-m` would mix

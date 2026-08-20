@@ -42,9 +42,9 @@ Recall = TP / (TP + FN)
 
 ## 事前学習済みモデルのベンチマーク
 
-同梱の `japanese.model`、`chinese.model`、`korean.model` は、通常の AdaBoost
-`-t`/`-i` 学習ではなく binary-perceptron 畳み込み手順で学習しています --
-正確な手順は[学習手順](../pre-trained-models.md#学習手順)を参照してください。
+同梱の `japanese.model`、`chinese.model`、`korean.model`、`english.model` は、
+通常の AdaBoost `-t`/`-i` 学習ではなく binary-perceptron 畳み込み手順で
+学習しています -- 正確な手順は[学習手順](../pre-trained-models.md#学習手順)を参照してください。
 いずれも学習コーパスの held-out テスト分割で評価しています。**単語 F1** は
 単語の完全一致、**境界 F1** は個々の境界判定のスコアです。
 
@@ -53,11 +53,15 @@ Recall = TP / (TP + FN)
 | japanese.model | 96.70% | 98.59% | UD Japanese-GSD |
 | korean.model | 99.91% | 99.96% | UD Korean-GSD |
 | chinese.model | 90.69% | 95.64% | UD Chinese-GSD |
+| english.model | 98.31% | 99.18% | UD English-EWT |
 
-韓国語は、元の語節（어절）間の空白を保持したテキスト（空白保持 TSV コーパス。
-空白トークンは F1 の計算から除外）で学習・評価しています。韓国語では空白が
+韓国語と英語は、元の空白を保持したテキスト（空白保持 TSV コーパス。空白
+トークンは F1 の計算から除外）で学習・評価しています。この 2 言語では空白が
 ほとんどの語境界を示すため、空白を使わずに表記される日本語・中国語に比べて
-タスクが大幅に容易になります — このスコアは言語間で直接比較できません。
+タスクが容易になります — このスコアは言語間で直接比較できません。韓国語の
+ほぼ決定論的な 99.91% と、それより低い英語の 98.31% はどちらもこの同じ
+空白保持プロトコルによるものですが、両者の差は空白があってもなお英語に残る
+曖昧性（短縮形、ハイフン付き複合語、省略語）に由来します。
 
 ### ベンチマークの再現
 
@@ -69,14 +73,18 @@ Recall = TP / (TP + FN)
 litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 ```
 
 コマンドリファレンスは [evaluate](../litsea-cli/evaluate.md) を参照して
-ください。POS モデルは `*_gsd_test_pos.txt` ファイルに対して `--pos` で評価し、
-その held-out の数値は[事前学習済みモデル](../pre-trained-models.md)に記載して
-います。なお、韓国語の POS ゴールドは POS パイプラインの慣例（空白トークン
-なし）に従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
-評価します。
+ください。POS モデルは `*_gsd_test_pos.txt` / `english_ewt_test_pos.txt`
+ファイルに対して `--pos` で評価し、その held-out の数値は
+[事前学習済みモデル](../pre-trained-models.md)に記載しています。なお、
+韓国語と英語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
+従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
+評価します -- 英語ではこれが韓国語よりもはるかに大きな品質差を生みます。
+理由は[事前学習済みモデル](../pre-trained-models.md#english_posmodel)を
+参照してください。
 
 ## モデル品質の改善
 

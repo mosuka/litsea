@@ -12,6 +12,7 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
 }
 ```
 
@@ -20,7 +21,7 @@ The enum is marked `#[non_exhaustive]` because new languages are expected to be 
 ### Traits
 
 - `Default` -- Returns `Language::Japanese`
-- `Display` -- Returns lowercase name (`"japanese"`, `"chinese"`, `"korean"`)
+- `Display` -- Returns lowercase name (`"japanese"`, `"chinese"`, `"korean"`, `"english"`)
 - `FromStr` -- Parses from full name or ISO 639-1 code (case-insensitive)
 
 ### Parsing
@@ -32,11 +33,13 @@ use litsea::language::Language;
 let ja: Language = "japanese".parse().unwrap();
 let zh: Language = "chinese".parse().unwrap();
 let ko: Language = "korean".parse().unwrap();
+let en: Language = "english".parse().unwrap();
 
 // ISO 639-1 codes
 let ja: Language = "ja".parse().unwrap();
 let zh: Language = "zh".parse().unwrap();
 let ko: Language = "ko".parse().unwrap();
+let en: Language = "en".parse().unwrap();
 
 // Case-insensitive
 let ko: Language = "KOREAN".parse().unwrap();
@@ -64,7 +67,7 @@ assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 ```
 
-Internally, `char_type` is a table lookup over the numeric type id returned by a private per-language function (`japanese_char_type_id`, `chinese_char_type_id`, `korean_char_type_id`), so string codes and numeric ids cannot drift apart. The classes common to all languages -- `"P"` (punctuation), `"A"` (Latin), and `"N"` (digits) -- are handled by a shared helper that is checked after the language-specific classes.
+Internally, `char_type` is a table lookup over the numeric type id returned by a private per-language function (`japanese_char_type_id`, `chinese_char_type_id`, `korean_char_type_id`, `english_char_type_id`), so string codes and numeric ids cannot drift apart. The classes common to all languages -- `"P"` (punctuation), `"A"` (Latin), and `"N"` (digits) -- are handled by a shared helper that is checked after the language-specific classes (English widens `"P"` to cover ASCII punctuation too; see [English](../language-support/english.md)).
 
 ## ParseLanguageError
 
@@ -78,4 +81,4 @@ assert_eq!(err.input(), "french");
 ```
 
 - `input()` -- Returns the string that failed to parse
-- The error message enumerates the supported languages: `Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)`
+- The error message enumerates the supported languages: `Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko), english (en)`

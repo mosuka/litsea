@@ -13,6 +13,7 @@ Litsea は単語分割と品詞推定の両方のデータソースとして UD 
 | 日本語 | UD Japanese-GSD | `UD_Japanese-GSD` |
 | 中国語 | UD Chinese-GSD | `UD_Chinese-GSD` |
 | 韓国語 | UD Korean-GSD | `UD_Korean-GSD` |
+| 英語 | UD English-EWT | `UD_English-EWT` |
 
 ### ステップ 1: UD Treebank のダウンロード
 
@@ -22,7 +23,7 @@ Litsea は単語分割と品詞推定の両方のデータソースとして UD 
 conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 ```
 
-対応言語: `ja`（日本語、デフォルト）、`ko`（韓国語）、`zh`（中国語）。`-o` で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。
+対応言語: `ja`（日本語、デフォルト）、`ko`（韓国語）、`zh`（中国語）、`en`（英語）。`-o` で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。
 
 ## 単語分割用コーパス
 
@@ -47,14 +48,19 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 
 これにより、CoNLL-U データがスペース区切りの単語（1行1文）に変換されます。
 
-### 空白保持 TSV コーパス（韓国語）
+### 空白保持 TSV コーパス（韓国語、英語）
 
-上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語ではこれにより最も強力な境界シグナルである語節間の空白が失われてしまうため、代わりに `-s` フラグを使用します。このフラグは、（ツリーバンクの `SpaceAfter` アノテーションから復元した）元の各空白を独立したトークンとして保持する **タブ区切りコーパス** を出力します:
+上記のスペース区切り形式では、元の文の空白情報は失われます（学習時には単語が空白なしで連結されます）。韓国語と英語ではこれにより最も強力な境界シグナル（韓国語の語節間の空白、英語の単語間の空白）が失われてしまうため、代わりに `-s` フラグを使用します。このフラグは、（ツリーバンクの `SpaceAfter` アノテーションから復元した）元の各空白を独立したトークンとして保持する **タブ区切りコーパス** を出力します:
 
 ```sh
 conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+
+conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" en_corpus.tsv
 ```
+
+英語に特有の点として、`-s` は複合語トークン（`don't` のような短縮形。CoNLL-U では 2 つの単語行にまたがる範囲行として表現されます）も処理します: 範囲に属する単語同士は間に空白トークンを挟まずに連結され、範囲自体の `SpaceAfter` アノテーションは最後の構成単語の後に適用されます。詳細は[英語](../language-support/english.md#空白保持学習space-preserving-training)を参照してください。
 
 TSV コーパスからの特徴量抽出には `litsea extract --format tsv` を使用します。`-s` フラグは `-p` と併用できません（POS パイプラインには TSV バリアントがありません）。
 
@@ -102,7 +108,7 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-`download_udtreebank.sh` の対応言語: `ja`（日本語、デフォルト）、`ko`（韓国語）、`zh`（中国語）。
+`download_udtreebank.sh` の対応言語: `ja`（日本語、デフォルト）、`ko`（韓国語）、`zh`（中国語）、`en`（英語）。
 
 ## Wikipedia ダンプからのコーパス作成
 

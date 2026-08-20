@@ -338,13 +338,20 @@ const BASE_TEMPLATE_COUNT: usize = 38;
 
 /// Returns the templates applicable to `language`, in emission order.
 ///
-/// Japanese and Chinese use all 42 templates; other languages use the 38
-/// base templates (the `WC*` char/type mixed features are excluded for
-/// Korean because its uniform syllable types would make them noise).
+/// Japanese and Chinese use all 42 templates. Korean and English use the
+/// 38 base templates: the `WC*` char/type mixed features are excluded
+/// because their type distributions are dominated by a single class
+/// (uniform Hangul syllables for Korean, lowercase Latin for English) and
+/// the whitespace signal already resolves most boundaries, so `WC*` adds
+/// noise rather than information.
+///
+/// The match is deliberately exhaustive (no wildcard arm): adding a new
+/// language must be a compile error here so the `WC*` decision is made
+/// explicitly rather than inherited silently.
 pub(crate) fn templates_for(language: Language) -> &'static [Template] {
     match language {
         Language::Japanese | Language::Chinese => &TEMPLATES[..],
-        _ => &TEMPLATES[..BASE_TEMPLATE_COUNT],
+        Language::Korean | Language::English => &TEMPLATES[..BASE_TEMPLATE_COUNT],
     }
 }
 
@@ -606,6 +613,7 @@ mod tests {
         assert_eq!(templates_for(Language::Japanese).len(), 42);
         assert_eq!(templates_for(Language::Chinese).len(), 42);
         assert_eq!(templates_for(Language::Korean).len(), 38);
+        assert_eq!(templates_for(Language::English).len(), 38);
         // The gated tail is exactly the WC* templates.
         for template in &TEMPLATES[BASE_TEMPLATE_COUNT..] {
             assert!(template.prefix.starts_with("WC"));
@@ -625,8 +633,8 @@ mod tests {
     }
 
     fn ctx_for(language: Language) -> Ctx {
-        // Type ids 1..=6 exist for every language (all tables have >= 8
-        // codes); index 0 stays "O".
+        // Type ids 1..=6 exist for every language (all tables have >= 7
+        // codes; English has exactly 7); index 0 stays "O".
         let type_ids = [0u8, 1, 2, 3, 4, 5, 6];
         Ctx {
             tag_strs: ["U", "U", "B", "O", "U", "U", "U"],
@@ -671,7 +679,8 @@ mod tests {
         // parsing it back must yield exactly the packed key (unique parse —
         // the current grammar is unambiguous), and distinct rendered strings
         // must map to distinct keys within a language.
-        for language in [Language::Japanese, Language::Chinese, Language::Korean] {
+        for language in [Language::Japanese, Language::Chinese, Language::Korean, Language::English]
+        {
             let ctx = ctx_for(language);
             let mut seen: FxHashMap<u64, String> = FxHashMap::default();
             for template in templates_for(language) {
@@ -860,7 +869,8 @@ mod tests {
         // For every dense template and language: the scorer's directly
         // computed index equals the index decoded from the packed key (the
         // builder's path), and both are within the table.
-        for language in [Language::Japanese, Language::Chinese, Language::Korean] {
+        for language in [Language::Japanese, Language::Chinese, Language::Korean, Language::English]
+        {
             let type_radix = language.type_codes().len();
             let ctx = ctx_for(language);
             for template in templates_for(language) {

@@ -1030,6 +1030,19 @@ mod tests {
     }
 
     #[test]
+    fn test_char_type_english() {
+        let segmenter = Segmenter::new(Language::English);
+
+        assert_eq!(segmenter.char_type('T'), "U"); // Uppercase
+        assert_eq!(segmenter.char_type('t'), "A"); // Lowercase
+        assert_eq!(segmenter.char_type(' '), "W"); // Space
+        assert_eq!(segmenter.char_type('\''), "Q"); // Apostrophe
+        assert_eq!(segmenter.char_type('.'), "P"); // Punctuation
+        assert_eq!(segmenter.char_type('5'), "N"); // Digit
+        assert_eq!(segmenter.char_type('字'), "O"); // Other
+    }
+
+    #[test]
     fn test_add_corpus_with_writer() {
         let segmenter = Segmenter::new(Language::Japanese);
         let sentence = "テスト です";
@@ -1483,6 +1496,20 @@ mod tests {
     }
 
     #[test]
+    fn test_segment_differential_english_model() {
+        let sentences = [
+            "This is a test.",
+            "I don't know.",
+            "Google's search engine.",
+            "The price is $1,000.",
+            "word",
+        ];
+        let segmenter = Segmenter::with_learner(Language::English, load_adaboost("english.model"));
+        assert_segment_matches_reference(&segmenter, &sentences);
+        assert_segment_matches_reference(&segmenter, &STRESS_SENTENCES);
+    }
+
+    #[test]
     fn test_segment_differential_bocchan_corpus() {
         // Broad-coverage differential run over real text: the first 100
         // non-empty lines of bocchan.txt against the RWCP model.
@@ -1542,6 +1569,13 @@ mod tests {
         assert_segment_into_matches(
             &segmenter,
             &["이것은 테스트입니다.", "나는 고양이를 좋아한다.", "글", "2024년 봄."],
+        );
+        // Pointwise fast path: english.model is tag-free too, with literal
+        // space tokens and ASCII text.
+        let segmenter = Segmenter::with_learner(Language::English, load_adaboost("english.model"));
+        assert_segment_into_matches(
+            &segmenter,
+            &["This is a test.", "I don't know.", "Google's search engine.", "word"],
         );
         // Empty input yields an empty range slice.
         let mut buf = SegmentBuffer::new();

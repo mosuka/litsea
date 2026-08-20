@@ -59,8 +59,8 @@ graph TD
 
 Defines the `Language` enum and character type classification.
 
-- **`Language`** -- Enum with variants `Japanese`, `Chinese`, `Korean`
-  - Implements `FromStr` (parses `"japanese"`, `"ja"`, `"chinese"`, `"zh"`, `"korean"`, `"ko"`)
+- **`Language`** -- Enum with variants `Japanese`, `Chinese`, `Korean`, `English`
+  - Implements `FromStr` (parses `"japanese"`, `"ja"`, `"chinese"`, `"zh"`, `"korean"`, `"ko"`, `"english"`, `"en"`)
   - Implements `Display` (outputs lowercase name)
   - `char_type(c: char) -> &'static str` -- Classifies a character as a table lookup over the numeric type id returned by the private `char_type_id()`, which dispatches to a per-language function (`japanese_char_type_id`, etc.) implemented as a direct `match` on character ranges (allocation-free; no regex). The language-specific functions share a `punct_latin_digit()` helper for the common `"P"`/`"A"`/`"N"` classes.
 
@@ -76,7 +76,7 @@ The main user-facing module.
   - `segment_into(sentence, buf)` -- Allocation-free variant (#184): returns token byte ranges borrowed from a reusable `SegmentBuffer`
   - `segment_with_pos(sentence)` -- Segment and tag, returns `Result<Vec<(String, Upos)>>` (`PosLearnerNotSet` unless a two-stage learner is set)
   - `char_type(ch)` -- Classify a single character into its type code
-  - `add_corpus(corpus)` / `add_corpus_tsv(corpus)` -- Add training data (space-separated, or tab-separated/space-preserving; the latter is used for Korean, see issue #152)
+  - `add_corpus(corpus)` / `add_corpus_tsv(corpus)` -- Add training data (space-separated, or tab-separated/space-preserving; the latter is used for Korean and English, see issue #152)
   - `add_corpus_with_writer(corpus, callback)` / `add_corpus_with_pos_writer(corpus, callback)` / `add_corpus_tsv_with_writer(corpus, callback)` -- Process a corpus with a custom callback (the POS-writer variant feeds two-stage stage-1 feature extraction)
 
 ### `adaboost.rs` -- AdaBoost Algorithm
@@ -118,7 +118,7 @@ Extracts features from a corpus for model training.
 - **`Extractor`** -- Wraps a `Segmenter` to process corpus files
   - `new(language)` -- Create an extractor for a specific language
   - `extract(corpus_path, features_path)` -- Read a corpus, write a features file
-  - `extract_tsv(corpus_path, features_path)` -- Same for tab-separated, space-preserving corpora (issue #152, used for Korean)
+  - `extract_tsv(corpus_path, features_path)` -- Same for tab-separated, space-preserving corpora (issue #152, used for Korean and English)
   - `extract_two_stage(corpus_path, output_prefix, feature_set)` -- Extract two-stage training features (issue #147) from a POS-tagged corpus: writes `{output_prefix}.stage1` (boundary features), `.stage2` (word-level features), and `.lexicon`
 
 ### `trainer.rs` -- Training Orchestration

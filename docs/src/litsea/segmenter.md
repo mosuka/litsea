@@ -184,7 +184,7 @@ Tab-separated variants of `add_corpus` / `add_corpus_with_writer`: tokens
 are separated by tab characters, and a token may be a literal space `" "`.
 This preserves the original spacing of the sentence in the training text so
 the model can learn from space characters as boundary context (used for the
-Korean model; issue #152).
+Korean and English models; issue #152).
 
 ```rust
 let mut segmenter = Segmenter::new(Language::Korean);
@@ -202,7 +202,7 @@ pub fn learner_mut(&mut self) -> &mut AdaBoost
 Provide access to the segmenter's language and its internal learner (for a
 two-stage segmenter, the stage-1 boundary classifier).
 
-> Feature extraction for a character position (38 features for Korean, 42 for Japanese/Chinese) is an internal detail; the former `get_attributes` method is now private.
+> Feature extraction for a character position (38 features for Korean/English, 42 for Japanese/Chinese) is an internal detail; the former `get_attributes` method is now private.
 
 ## POS-Mode API
 

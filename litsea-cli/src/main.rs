@@ -29,7 +29,7 @@ use litsea::{
 #[derive(Debug, Args)]
 #[command(about = "Extract features from a corpus")]
 struct ExtractArgs {
-    /// Language of the corpus (japanese, chinese, or korean)
+    /// Language of the corpus (japanese, chinese, korean, or english)
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
@@ -120,7 +120,7 @@ struct TrainArgs {
 #[derive(Debug, Args)]
 #[command(about = "Segment a sentence")]
 struct SegmentArgs {
-    /// Language of the input text (japanese, chinese, or korean)
+    /// Language of the input text (japanese, chinese, korean, or english)
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 
@@ -144,7 +144,7 @@ struct SegmentArgs {
 #[derive(Debug, Args)]
 #[command(about = "Evaluate a model against a held-out gold corpus")]
 struct EvaluateArgs {
-    /// Language of the model and gold corpus (japanese, chinese, or korean)
+    /// Language of the model and gold corpus (japanese, chinese, korean, or english)
     #[arg(short, long, default_value = "japanese", value_parser = Language::from_str)]
     language: Language,
 

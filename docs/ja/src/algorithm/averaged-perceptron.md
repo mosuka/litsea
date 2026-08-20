@@ -11,7 +11,7 @@ Litsea は、二段構成品詞推定アーキテクチャの両ステージと�
 
 これらのラベルは Universal Dependencies プロジェクトの 17 個の [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) タグに対応し、`B-` プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。
 
-Averaged Perceptron を 2 クラスモード（`B`/`O` ラベルのみ）で使うと、実際には同梱の `japanese.model`・`chinese.model`・`korean.model` の各分割モデルを学習しています。学習後、推論用に AdaBoost モデル形式へ無損失で畳み込まれます — 完全な導出は[事前学習済みモデル: 学習手順](../pre-trained-models.md#学習手順)を参照してください。同じ畳み込みが[二段構成アーキテクチャ](two-stage-tagging.md)の stage-1 境界分類器の学習にも使われ、多クラス形式は stage-2 単語タガーのアルゴリズムです。
+Averaged Perceptron を 2 クラスモード（`B`/`O` ラベルのみ）で使うと、実際には同梱の `japanese.model`・`chinese.model`・`korean.model`・`english.model` の各分割モデルを学習しています。学習後、推論用に AdaBoost モデル形式へ無損失で畳み込まれます — 完全な導出は[事前学習済みモデル: 学習手順](../pre-trained-models.md#学習手順)を参照してください。同じ畳み込みが[二段構成アーキテクチャ](two-stage-tagging.md)の stage-1 境界分類器の学習にも使われ、多クラス形式は stage-2 単語タガーのアルゴリズムです。
 
 ## アルゴリズム
 
@@ -134,7 +134,7 @@ feature2\tclass2\tweight2
 | 重みの管理 | 特徴量ごとに1つの重み | クラス×特徴量の重み行列 |
 | 汎化手法 | アンサンブル | 重みの平均化 |
 | 学習方式 | サンプル再重み付けによる反復ブースティング | 重み平均化によるオンライン学習 |
-| モデルサイズ | 約 86 KB〜2.0 MB（再学習済み japanese/chinese/korean.model）／約 16〜22 KB（レガシー RWCP/JEITA） | 約 5-8 MB（二段構成モデル） |
+| モデルサイズ | 約 86 KB〜2.0 MB（再学習済み japanese/chinese/korean/english.model）／約 16〜22 KB（レガシー RWCP/JEITA） | 約 3.6-8 MB（二段構成モデル） |
 | ハイパーパラメータ | `threshold`, `num_iterations` | `num_epochs` |
 
 ## ハイパーパラメータ

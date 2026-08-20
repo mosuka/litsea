@@ -79,8 +79,8 @@ pub fn extract_tsv(
 Reads a tab-separated corpus file (tokens separated by tabs, one sentence
 per line; a token may be a literal space `" "`) and writes the extracted
 features. The preserved spaces let the model learn from space characters as
-boundary context — used to train the Korean model (issue #152). Output
-format is identical to `extract`.
+boundary context — used to train the Korean and English models (issue #152).
+Output format is identical to `extract`.
 
 ```rust
 use std::path::Path;
@@ -112,7 +112,8 @@ input and output formats, but the 16 tag-dependent templates
 (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`, which read the previous boundary
 decisions) are dropped from every row. A model trained on these features
 is *pointwise*, so `segment()` skips its sequential scoring pass entirely.
-The bundled `korean.model` is trained this way; see [Tag-Free (Pointwise)
+The bundled `korean.model`/`english.model` are trained this way; see
+[Tag-Free (Pointwise)
 Models](../pre-trained-models.md#tag-free-pointwise-models) for the
 measured per-language quality/speed trade-off. These back the CLI's
 `extract --tag-free`.
