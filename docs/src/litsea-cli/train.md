@@ -23,9 +23,9 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 | `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | Maximum number of boosting iterations |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | URI of an existing model to resume training from (file path or HTTP/HTTPS URL) |
 | `--perceptron` | off | Train a generic Averaged Perceptron over opaque string labels (the training step of the bundled segmentation models' collapse recipe) |
-| `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (`--perceptron` and `--two-stage` modes) |
-| `--two-stage` | off | Train a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model instead. Reads `{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon` (from `extract --two-stage`). Cannot be combined with `--perceptron` or `-m`/`--load-model-uri` (incremental training is not supported) |
-| `--dominance <DOMINANCE>` | `0.99` | Classifier-skip threshold for `--two-stage`, in `(0.5, 1.0]`: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier |
+| `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (`--perceptron` and `--pos` modes) |
+| `--pos` | off | Train a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model instead. Reads `{FEATURES_FILE}.stage1`/`.stage2`/`.lexicon` (from `extract --pos`). Cannot be combined with `--perceptron` or `-m`/`--load-model-uri` (incremental training is not supported) |
+| `--dominance <DOMINANCE>` | `0.99` | Classifier-skip threshold for `--pos`, in `(0.5, 1.0]`: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier |
 
 ## Output
 
@@ -138,7 +138,7 @@ Same as AdaBoost training, perceptron training supports graceful interruption. T
 
 ## Two-Stage Model Training
 
-With `--two-stage`, `train` builds a [two-stage
+With `--pos`, `train` builds a [two-stage
 model](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1):
 a binary boundary classifier (stage 1) plus a word-level POS tagger
 (stage 2), assembled with the candidate-tag lexicon into a single
@@ -151,16 +151,16 @@ as it scores a plain `segment()` model.
 ### Usage
 
 ```sh
-litsea train --two-stage [OPTIONS] <FEATURES_PREFIX> <MODEL_FILE>
+litsea train --pos [OPTIONS] <FEATURES_PREFIX> <MODEL_FILE>
 ```
 
-`FEATURES_PREFIX` is the same prefix passed to `extract --two-stage`.
+`FEATURES_PREFIX` is the same prefix passed to `extract --pos`.
 
 ### Example
 
 ```sh
-litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 ```
 
 ### Output

@@ -109,7 +109,7 @@ Result Metrics (Perceptron):
 
 ## 二段構成モデルの学習
 
-品詞推定には、`--two-stage` フラグを使用します。
+品詞推定には、`--pos` フラグを使用します。
 [二段構成モデル](../algorithm/two-stage-tagging.md)（issue #147）を学習します:
 二値の境界分類器（stage 1）と単語単位のタガー（stage 2）を、候補タグ語彙表と
 ともに単一の `litsea-two-stage v1` ファイルに組み立てます。アーキテクチャと
@@ -119,19 +119,19 @@ Result Metrics (Perceptron):
 ### 二段構成学習コマンド
 
 ```sh
-litsea extract --two-stage <CORPUS_FILE> <FEATURES_PREFIX>
-litsea train --two-stage --num-epochs 50 <FEATURES_PREFIX> <MODEL_FILE>
+litsea extract --pos <CORPUS_FILE> <FEATURES_PREFIX>
+litsea train --pos --num-epochs 50 <FEATURES_PREFIX> <MODEL_FILE>
 ```
 
-`extract --two-stage` は `word/POS` コーパスを読み込み、
-`FEATURES_PREFIX` から 3 つのファイルを書き出します。`train --two-stage`
+`extract --pos` は `word/POS` コーパスを読み込み、
+`FEATURES_PREFIX` から 3 つのファイルを書き出します。`train --pos`
 は同じプレフィックスからそれらを読み込みます。
 
 ### 二段構成学習の使用例
 
 ```sh
-litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 ```
 
 ### 二段構成学習のハイパーパラメータ
@@ -140,7 +140,7 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
 |-----------|------|---------|----------|
 | エポック数 | `--num-epochs` | 10 | 同梱モデル作成時のエポックスイープ（[方法論についての注記](../algorithm/two-stage-tagging.md#方法論についての注記-十分な学習エポック数を使う)を参照）で、分割品質が既定値を大きく超えて向上し続け **50** 付近でプラトーに達すると判明しました -- 同梱モデルは 10 ではなく 50 を使用しています |
 | Dominance | `--dominance` | 0.99 | 分類器スキップの閾値、範囲は `(0.5, 1.0]`: 既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされます。値を小さくするとより頻繁に分類器をスキップします（高速だが語彙表への依存度が上がる）。既定値は同梱モデルと同じです |
-| stage-2 特徴量セット | `extract --two-stage` の `--stage2-features` | `fast` | `full`、`balanced`、`fast`。[特徴量の抽出](extracting-features.md)と[特徴量セットの選び方](../algorithm/two-stage-tagging.md#stage-2-特徴量セットの選び方)を参照 |
+| stage-2 特徴量セット | `extract --pos` の `--stage2-features` | `fast` | `full`、`balanced`、`fast`。[特徴量の抽出](extracting-features.md)と[特徴量セットの選び方](../algorithm/two-stage-tagging.md#stage-2-特徴量セットの選び方)を参照 |
 
 ### 二段構成学習の出力
 

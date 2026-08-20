@@ -30,7 +30,7 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | モデルとゴールドコーパスの言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--pos` | off | 単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは `word/POS` 形式である必要があります。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --two-stage`）が必要です |
+| `--pos` | off | 単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは `word/POS` 形式である必要があります。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --pos`）が必要です |
 | `--format <FORMAT>` | `space` | ゴールドコーパスの形式: `space`（スペース区切りトークン）または `tsv`（タブ区切りトークン。韓国語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。`--pos` 指定時は無視されます |
 
 ## メトリクス
@@ -71,7 +71,7 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
-litsea evaluate --pos -l japanese models/japanese_two_stage.model resources/eval/japanese_gsd_test_pos.txt
+litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 ```
 
 出力:

@@ -76,7 +76,7 @@ use litsea::two_stage::TwoStageLearner;
 
 fn main() -> litsea::Result<()> {
     let mut learner = TwoStageLearner::new();
-    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
     let tokens = segmenter.segment_with_pos("これはテストです。")?;

@@ -176,7 +176,7 @@ fn golden_segment_korean() {
 
 #[test]
 fn golden_segment_with_pos_japanese_two_stage() {
-    let segmenter = two_stage_segmenter(Language::Japanese, "japanese_two_stage.model");
+    let segmenter = two_stage_segmenter(Language::Japanese, "japanese_pos.model");
     assert_segment_with_pos(
         &segmenter,
         &[
@@ -249,7 +249,7 @@ fn golden_segment_with_pos_japanese_two_stage() {
 
 #[test]
 fn golden_segment_with_pos_chinese_two_stage() {
-    let segmenter = two_stage_segmenter(Language::Chinese, "chinese_two_stage.model");
+    let segmenter = two_stage_segmenter(Language::Chinese, "chinese_pos.model");
     assert_segment_with_pos(
         &segmenter,
         &[
@@ -303,11 +303,11 @@ fn golden_segment_with_pos_chinese_two_stage() {
 
 #[test]
 fn golden_segment_with_pos_korean_two_stage() {
-    // Note: korean_two_stage.model is trained on the unspaced `word/POS`
+    // Note: korean_pos.model is trained on the unspaced `word/POS`
     // corpus, not the space-preserving TSV corpus korean.model uses.
     // Inference still receives the spaced text as-is, so spaces surface as
     // their own tokens here.
-    let segmenter = two_stage_segmenter(Language::Korean, "korean_two_stage.model");
+    let segmenter = two_stage_segmenter(Language::Korean, "korean_pos.model");
     assert_segment_with_pos(
         &segmenter,
         &[
@@ -382,7 +382,7 @@ fn roundtrip_two_stage_model() {
     let sentences = ["これはテストです。", "私の猫は可愛い。", "価格は1000円です。", "こんにちは"];
 
     let mut original = TwoStageLearner::new();
-    original.load_model_from_path(&model_path("japanese_two_stage.model")).unwrap();
+    original.load_model_from_path(&model_path("japanese_pos.model")).unwrap();
 
     let temp = tempfile::NamedTempFile::new().unwrap();
     original.save_model(temp.path()).unwrap();

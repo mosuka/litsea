@@ -13,8 +13,8 @@ Both workflows use [Universal Dependencies (UD)](https://universaldependencies.o
 ## POS Tagging (Two-Stage)
 
 1. [Prepare a POS corpus](training-guide/preparing-corpus.md) from a UD Treebank: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp) && bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt`
-2. [Extract two-stage features](training-guide/extracting-features.md): `litsea extract --two-stage -l japanese pos_corpus.txt features`
-3. [Train a two-stage POS model](training-guide/training-models.md): `litsea train --two-stage --num-epochs 50 features model.model`
+2. [Extract two-stage features](training-guide/extracting-features.md): `litsea extract --pos -l japanese pos_corpus.txt features`
+3. [Train a two-stage POS model](training-guide/training-models.md): `litsea train --pos --num-epochs 50 features model.model`
 
 ## Per-Language Differences
 

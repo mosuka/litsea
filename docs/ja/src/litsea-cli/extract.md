@@ -20,10 +20,10 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
-| `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--two-stage` と併用できません |
-| `--two-stage` | off | [二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です |
-| `--stage2-features <SET>` | `fast` | `--two-stage` 用の stage-2 単語特徴セット: `full`（品質最優先）、`balanced`、`fast`（速度最優先） |
-| `--tag-free` | オフ | 16 個のタグ依存特徴量テンプレート（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`）を除外し、学習されるモデルを pointwise にして `segment()` の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の `korean.model` で使用 -- 言語別の品質・速度トレードオフは[タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)を参照）。`--format tsv` と併用可。`--two-stage` とは併用不可 |
+| `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--pos` と併用できません |
+| `--pos` | off | [二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です |
+| `--stage2-features <SET>` | `fast` | `--pos` 用の stage-2 単語特徴セット: `full`（品質最優先）、`balanced`、`fast`（速度最優先） |
+| `--tag-free` | オフ | 16 個のタグ依存特徴量テンプレート（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`）を除外し、学習されるモデルを pointwise にして `segment()` の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の `korean.model` で使用 -- 言語別の品質・速度トレードオフは[タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)を参照）。`--format tsv` と併用可。`--pos` とは併用不可 |
 
 ## コーパスの形式
 
@@ -76,7 +76,7 @@ Feature extraction completed successfully.
 
 ## 二段構成の特徴量抽出
 
-`--two-stage` フラグを指定すると、`extract` は通常の単語区切りコーパスの代わりに **品詞付きコーパス** を入力として受け取ります。各行には、`単語/品詞` の形式で UPOS タグが付与された単語が含まれます。
+`--pos` フラグを指定すると、`extract` は通常の単語区切りコーパスの代わりに **品詞付きコーパス** を入力として受け取ります。各行には、`単語/品詞` の形式で UPOS タグが付与された単語が含まれます。
 
 ### 品詞付きコーパスの形式
 
@@ -85,7 +85,7 @@ Feature extraction completed successfully.
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 ```
 
-`extract --two-stage` は、
+`extract --pos` は、
 [二段構成アーキテクチャ](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)
 向けに `FEATURES_FILE` をプレフィックスとした**3つ**のファイルを書き出します。
 
@@ -95,9 +95,9 @@ Feature extraction completed successfully.
 | `{FEATURES_FILE}.stage2` | 単語単位の特徴量。単語ごとに1行、ラベルは UPOS タグ。書き出すテンプレートは `--stage2-features` で制御 |
 | `{FEATURES_FILE}.lexicon` | 候補タグ語彙表: `surface\tTAG:count[,TAG:count...]`（出現頻度の降順） |
 
-同じプレフィックスを `litsea train --two-stage` に渡します:
+同じプレフィックスを `litsea train --pos` に渡します:
 
 ```sh
-litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
-# ./two_stage_features.stage1, .stage2, .lexicon を書き出す
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
+# ./pos_features.stage1, .stage2, .lexicon を書き出す
 ```

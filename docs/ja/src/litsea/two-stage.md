@@ -72,7 +72,7 @@ use std::path::Path;
 use litsea::two_stage::TwoStageLearner;
 
 let mut learner = TwoStageLearner::new();
-learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 ```
 
 ### アクセサ
@@ -148,5 +148,5 @@ pub enum ModelKind {
 種類違いのファイルには `TwoStageLearner` のローダーが正確なエラーを
 返します: スタンドアロンの Averaged Perceptron ファイルを指定すると
 "joint POS models are no longer supported — retrain with `litsea train
---two-stage`" で失敗し、それ以外の非二段構成の内容はマジック行の欠落
+--pos`" で失敗し、それ以外の非二段構成の内容はマジック行の欠落
 エラーで失敗します。

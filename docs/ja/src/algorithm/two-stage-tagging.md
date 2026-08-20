@@ -1,7 +1,7 @@
 # 二段構成タグ付け
 
 Litsea の `segment_with_pos()` は**二段構成（two-stage）モデル**
-（`--two-stage`、`Segmenter::with_two_stage_learner`、issue #147）に
+（`--pos`、`Segmenter::with_two_stage_learner`、issue #147）に
 支えられています。モデルファイルの `litsea-two-stage v1` ヘッダがこの形式を
 識別し（[モデルファイル形式](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)を参照）、
 メソッドは `Vec<(String, Upos)>` の単語/タグのペアを返します。
@@ -69,7 +69,7 @@ held-out の数値は UD GSD test split に対する `litsea evaluate --pos`
 ## stage-2 特徴量セットの選び方
 
 stage 2 の単語単位タガーは 3 種類の特徴量セット（`litsea extract
---two-stage` の `--stage2-features`。[特徴量の抽出](../training-guide/extracting-features.md)を参照）で
+--pos` の `--stage2-features`。[特徴量の抽出](../training-guide/extracting-features.md)を参照）で
 抽出でき、タグ付け品質とスループットをトレードオフできます。分割品質は
 影響を受けません -- 分割は stage 1 だけで決まります。以下の数値は
 同梱モデルと同じ 50 エポックでの値です。
@@ -81,12 +81,12 @@ stage 2 の単語単位タガーは 3 種類の特徴量セット（`litsea extr
 | `full` | 82.96% | 78.88% |
 
 日本語では `fast` だけで Tagged F1 92.95% に到達するため、同梱の
-`japanese_two_stage.model` はこれを使用しています。
+`japanese_pos.model` はこれを使用しています。
 中国語では `balanced` が `full` の伸びの大半（82.29% vs 82.96%）を
-明確に良いスループットで得られるため、`chinese_two_stage.model` は
+明確に良いスループットで得られるため、`chinese_pos.model` は
 `full` ではなく `balanced` を使用しています。韓国語では `full` は
 `balanced` に対してほとんど何も加えない（78.88% vs 78.86%）ため、
-`korean_two_stage.model` も `balanced` を使用しています。別の特徴量セットで
-再学習するには `extract --two-stage --stage2-features <set>` +
-`train --two-stage` を再実行するだけで、パイプラインの他の部分を
+`korean_pos.model` も `balanced` を使用しています。別の特徴量セットで
+再学習するには `extract --pos --stage2-features <set>` +
+`train --pos` を再実行するだけで、パイプラインの他の部分を
 変更する必要はありません。

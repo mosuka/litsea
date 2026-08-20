@@ -49,15 +49,15 @@ flowchart LR
 ```mermaid
 flowchart LR
     A["1. scripts/download_udtreebank.sh"] --> B["2. scripts/corpus_udtreebank.sh -p"]
-    B --> C["3. litsea extract --two-stage"]
-    C --> D["4. litsea train --two-stage"]
+    B --> C["3. litsea extract --pos"]
+    C --> D["4. litsea train --pos"]
     D --> E["5. litsea segment --pos"]
 ```
 
 1. Download a UD Treebank: `conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)`
 2. Convert to POS corpus format: `bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt`
-3. Extract two-stage features: `litsea extract --two-stage -l japanese pos_corpus.txt features_prefix`
-4. Train a two-stage model: `litsea train --two-stage --num-epochs 50 features_prefix model.model`
+3. Extract two-stage features: `litsea extract --pos -l japanese pos_corpus.txt features_prefix`
+4. Train a two-stage model: `litsea train --pos --num-epochs 50 features_prefix model.model`
 5. Segment with POS tags: `echo "text" | litsea segment --pos -l japanese model.model`
 
 See [Two-Stage Tagging](algorithm/two-stage-tagging.md) for the

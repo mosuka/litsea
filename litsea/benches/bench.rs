@@ -151,16 +151,11 @@ fn bench_external_corpus(c: &mut Criterion) {
         (
             "japanese-two-stage",
             Language::Japanese,
-            "japanese_two_stage.model",
+            "japanese_pos.model",
             "wagahaiwa_nekodearu.txt",
         ),
-        ("korean-two-stage", Language::Korean, "korean_two_stage.model", "mujeong.txt"),
-        (
-            "chinese-two-stage",
-            Language::Chinese,
-            "chinese_two_stage.model",
-            "rulin_waishi.txt",
-        ),
+        ("korean-two-stage", Language::Korean, "korean_pos.model", "mujeong.txt"),
+        ("chinese-two-stage", Language::Chinese, "chinese_pos.model", "rulin_waishi.txt"),
     ];
     for (id, language, model, corpus) in two_stage_cases {
         let (lines, chars) = load_corpus_lines(corpus);

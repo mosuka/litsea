@@ -112,7 +112,7 @@ Litsea は TinySegmenter を 参考 に 開発 さ れ た 、 Rust で 実装 �
 Use the `--pos` flag with the `segment` command and a two-stage model to perform word segmentation and POS tagging:
 
 ```sh
-echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment --pos -l japanese ./models/japanese_two_stage.model
+echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment --pos -l japanese ./models/japanese_pos.model
 ```
 
 The output will look like:
@@ -125,18 +125,18 @@ Litsea/PROPN は/ADP Tiny/PROPN Segmenter/NOUN を/ADP 参考/NOUN に/ADP 開�
 
 ### Step 1: Extract two-stage features
 
-Use the `--two-stage` flag with the `extract` command; it writes three files (`.stage1`, `.stage2`, `.lexicon`) from the given prefix:
+Use the `--pos` flag with the `extract` command; it writes three files (`.stage1`, `.stage2`, `.lexicon`) from the given prefix:
 
 ```sh
-./target/release/litsea extract --two-stage -l japanese ./corpus_pos.txt ./two_stage_features
+./target/release/litsea extract --pos -l japanese ./corpus_pos.txt ./pos_features
 ```
 
 ### Step 2: Train the two-stage POS model
 
-Use the `--two-stage` flag with the `train` command. Use `--num-epochs` to set the number of training epochs:
+Use the `--pos` flag with the `train` command. Use `--num-epochs` to set the number of training epochs:
 
 ```sh
-./target/release/litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_two_stage.model
+./target/release/litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 ```
 
 ## Pre-trained models

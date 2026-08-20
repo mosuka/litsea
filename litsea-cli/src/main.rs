@@ -1,11 +1,11 @@
 //! Command-line interface for litsea.
 //!
 //! Provides four subcommands: `extract` (turn a corpus into training
-//! features, or, with `--two-stage`, into the three feature files consumed
-//! by two-stage training), `train` (train an AdaBoost segmentation model,
-//! or, with `--two-stage`, a two-stage boundary+lexicon POS model, or, with
-//! `--perceptron`, a generic Averaged Perceptron over opaque labels — the
-//! training step of the bundled segmentation models' collapse recipe),
+//! features, or, with `--pos`, into the three feature files consumed
+//! by two-stage POS training), `train` (train an AdaBoost segmentation
+//! model, or, with `--pos`, a two-stage boundary+lexicon POS model, or,
+//! with `--perceptron`, a generic Averaged Perceptron over opaque labels —
+//! the training step of the bundled segmentation models' collapse recipe),
 //! `segment` (segment sentences from standard input with a trained model),
 //! and `evaluate` (measure held-out quality against a gold corpus).
 
@@ -38,14 +38,14 @@ struct ExtractArgs {
     #[arg(long, default_value = "space", value_parser = ["space", "tsv"])]
     format: String,
 
-    /// Extract two-stage training features (issue #147) from a POS-tagged
-    /// corpus (format: "word/POS word/POS ...") instead: writes
+    /// Extract two-stage POS training features (issue #147) from a
+    /// POS-tagged corpus (format: "word/POS word/POS ...") instead: writes
     /// {features_file}.stage1 (boundary features), .stage2 (word-level
     /// features), and .lexicon. Cannot be combined with --format tsv.
     #[arg(long)]
-    two_stage: bool,
+    pos: bool,
 
-    /// Stage-2 word-feature set for --two-stage: "full" (best quality),
+    /// Stage-2 word-feature set for --pos: "full" (best quality),
     /// "balanced", or "fast" (best throughput; default)
     #[arg(long, default_value = "fast", value_parser = TwoStageFeatureSet::from_str)]
     stage2_features: TwoStageFeatureSet,
@@ -53,13 +53,13 @@ struct ExtractArgs {
     /// Exclude the 16 tag-dependent feature templates (UP*/BP*/UQ*/BQ*/TQ*,
     /// which read the previous boundary decisions) so the trained model is
     /// pointwise and segment() skips its sequential scoring pass entirely
-    /// (issue #183). Cannot be combined with --two-stage
+    /// (issue #183). Cannot be combined with --pos
     #[arg(long)]
     tag_free: bool,
 
     /// Path to the input corpus file (one pre-segmented sentence per line)
     corpus_file: PathBuf,
-    /// Path to the output features file (with --two-stage, the prefix for
+    /// Path to the output features file (with --pos, the prefix for
     /// the three output files)
     features_file: PathBuf,
 }
@@ -69,12 +69,12 @@ struct ExtractArgs {
 #[command(about = "Train a segmenter")]
 struct TrainArgs {
     /// Early-stopping threshold for AdaBoost training. Ignored with
-    /// `--perceptron` or `--two-stage`
+    /// `--perceptron` or `--pos`
     #[arg(short, long, default_value = "0.01")]
     threshold: f64,
 
     /// Maximum number of AdaBoost boosting iterations. Ignored with
-    /// `--perceptron` or `--two-stage`
+    /// `--perceptron` or `--pos`
     #[arg(short = 'i', long, default_value = "100")]
     num_iterations: usize,
 
@@ -89,20 +89,20 @@ struct TrainArgs {
     perceptron: bool,
 
     /// Number of training epochs (applies to both `--perceptron` and
-    /// `--two-stage` training; for `--two-stage`, both stage 1 and stage 2
+    /// `--pos` training; for `--pos`, both stage 1 and stage 2
     /// train for this many epochs)
     #[arg(long, default_value = "10")]
     num_epochs: usize,
 
-    /// Train a two-stage model (issue #147) instead: reads
-    /// {features_file}.stage1/.stage2/.lexicon (from extract --two-stage)
+    /// Train a two-stage POS model (issue #147) instead: reads
+    /// {features_file}.stage1/.stage2/.lexicon (from extract --pos)
     /// and writes a litsea-two-stage model. Cannot be combined with
     /// --perceptron or -m/--load-model-uri (incremental training is not
     /// supported)
     #[arg(long)]
-    two_stage: bool,
+    pos: bool,
 
-    /// Classifier-skip dominance threshold for --two-stage: a known word
+    /// Classifier-skip dominance threshold for --pos: a known word
     /// whose most frequent tag covers at least this fraction of its
     /// training occurrences is tagged without invoking the classifier.
     /// Must be in (0.5, 1.0]
@@ -110,7 +110,7 @@ struct TrainArgs {
     dominance: f64,
 
     /// Path to the features file produced by the extract command (with
-    /// --two-stage, the prefix passed to extract --two-stage)
+    /// --pos, the prefix passed to extract --pos)
     features_file: PathBuf,
     /// Path to write the trained model to
     model_file: PathBuf,
@@ -125,7 +125,7 @@ struct SegmentArgs {
     language: Language,
 
     /// Segment with POS tagging (requires a two-stage model, from
-    /// `train --two-stage`)
+    /// `train --pos`)
     #[arg(long)]
     pos: bool,
 
@@ -149,7 +149,7 @@ struct EvaluateArgs {
     language: Language,
 
     /// Evaluate segmentation + POS tagging (gold format: "word/POS word/POS
-    /// ..."); requires a two-stage model
+    /// ..."); requires a two-stage model (from `train --pos`)
     #[arg(long)]
     pos: bool,
 
@@ -194,12 +194,12 @@ struct CommandArgs {
 /// Extract features from a corpus file and write them to a specified output file.
 /// This function reads pre-segmented sentences from the corpus file (the
 /// word boundaries come from the corpus itself) and writes the extracted
-/// features to the output file. With `--two-stage` the corpus is
+/// features to the output file. With `--pos` the corpus is
 /// POS-tagged and three files (boundary, word-level, and lexicon) are
 /// written via `extract_two_stage` (issue #147); otherwise each line is
 /// space-separated words, or tab-separated tokens with `--format tsv` (a
 /// token may be a literal space, preserving the original spacing; not
-/// supported with `--two-stage`). `--tag-free` (boundary pipeline only,
+/// supported with `--pos`). `--tag-free` (boundary pipeline only,
 /// composable with `--format tsv`) drops the 16 tag-dependent templates so
 /// the trained model is pointwise (issue #183).
 ///
@@ -211,14 +211,14 @@ struct CommandArgs {
 fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
     let extractor = Extractor::new(args.language);
 
-    if args.tag_free && args.two_stage {
+    if args.tag_free && args.pos {
         // Tag-free extraction is a boundary-pipeline concept (#183); the
-        // two-stage pipeline uses its own label/feature scheme.
-        return Err("--tag-free cannot be combined with --two-stage".into());
+        // two-stage POS pipeline uses its own label/feature scheme.
+        return Err("--tag-free cannot be combined with --pos".into());
     }
-    if args.two_stage {
+    if args.pos {
         if args.format == "tsv" {
-            return Err("--two-stage cannot be combined with --format tsv".into());
+            return Err("--pos cannot be combined with --format tsv".into());
         }
         extractor.extract_two_stage(
             args.corpus_file.as_path(),
@@ -260,14 +260,12 @@ async fn train(args: TrainArgs) -> Result<(), Box<dyn Error>> {
         }
     })?;
 
-    if args.two_stage {
+    if args.pos {
         if args.perceptron {
-            return Err("--two-stage cannot be combined with --perceptron".into());
+            return Err("--pos cannot be combined with --perceptron".into());
         }
         if args.load_model_uri.is_some() {
-            return Err(
-                "--two-stage does not support -m/--load-model-uri (incremental training)".into()
-            );
+            return Err("--pos does not support -m/--load-model-uri (incremental training)".into());
         }
         // Train the two-stage model (issue #147): a binary boundary
         // classifier plus a word-level tagger, assembled with the lexicon.

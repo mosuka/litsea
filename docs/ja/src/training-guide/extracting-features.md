@@ -62,24 +62,24 @@ litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
 入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
 空白文字そのもの（`" "`）を含められます。出力される特徴量ファイルの形式は既定の
 `extract` と同一で、コーパスの解析方法のみが異なります。`--format tsv` は
-`--two-stage` と併用できません。
+`--pos` と併用できません。
 
 ## 二段構成の特徴量抽出
 
 [二段構成の品詞タグ付け](../algorithm/two-stage-tagging.md)（issue #147）用には、
-`--two-stage` を使用します:
+`--pos` を使用します:
 
 ```sh
-litsea extract --two-stage [--stage2-features full|balanced|fast] <CORPUS_FILE> <FEATURES_PREFIX>
+litsea extract --pos [--stage2-features full|balanced|fast] <CORPUS_FILE> <FEATURES_PREFIX>
 ```
 
 ### 使用例
 
 ```sh
-litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
+litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 ```
 
-`--two-stage` は POS タグ付きコーパス（`word/POS word/POS ...`）を
+`--pos` は POS タグ付きコーパス（`word/POS word/POS ...`）を
 読み込み、コーパスを1パスで処理し、`<FEATURES_PREFIX>` から1ファイルではなく
 **3ファイル**を書き出します:
 
@@ -89,8 +89,8 @@ litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
 | `<FEATURES_PREFIX>.stage2` | 単語単位の特徴量（ラベルは UPOS タグ）。`--stage2-features` で選択したテンプレート |
 | `<FEATURES_PREFIX>.lexicon` | 候補タグ語彙表（`surface\tTAG:count[,TAG:count...]`、出現頻度の高い順） |
 
-`litsea train --two-stage` は同じプレフィックスから3ファイルすべてを読み込みます。
-`--two-stage` は `--format tsv` と併用できません。
+`litsea train --pos` は同じプレフィックスから3ファイルすべてを読み込みます。
+`--pos` は `--format tsv` と併用できません。
 
 ### `--stage2-features` の選び方
 
@@ -108,7 +108,7 @@ litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
 [stage-2 特徴量セットの選び方](../algorithm/two-stage-tagging.md#stage-2-特徴量セットの選び方)を参照してください。
 
 ```sh
-litsea extract --two-stage --stage2-features balanced -l chinese ./pos_corpus.txt ./two_stage_features
+litsea extract --pos --stage2-features balanced -l chinese ./pos_corpus.txt ./pos_features
 ```
 
 ## ファイルサイズの目安

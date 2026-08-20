@@ -72,13 +72,13 @@ held-out 指標は、空白トークンをスコアリングから除外した�
 [タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)
 を参照してください。
 
-### korean_two_stage.model
+### korean_pos.model
 
 - **アルゴリズム**: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）
 - **注記**: 上記の `korean.model` とは異なり、このモデルは空白非保持の
   `word/POS` コーパスで学習されており、
   このページで説明している空白保持プロトコルは使用していません
-- **詳細**: [事前学習済みモデル](../pre-trained-models.md#korean_two_stagemodel)を参照
+- **詳細**: [事前学習済みモデル](../pre-trained-models.md#korean_posmodel)を参照
 
 ## 使用例
 

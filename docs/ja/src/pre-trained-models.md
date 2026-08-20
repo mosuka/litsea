@@ -198,7 +198,7 @@ held-out 行は UD GSD テスト分割に対して `litsea evaluate --pos` で�
 品質を過小評価することになります
 （[方法論についての注記](algorithm/two-stage-tagging.md#方法論についての注記-十分な学習エポック数を使う)を参照）。
 
-### japanese_two_stage.model
+### japanese_pos.model
 
 | プロパティ | 値 |
 |----------|-------|
@@ -211,7 +211,7 @@ held-out 行は UD GSD テスト分割に対して `litsea evaluate --pos` で�
 | スループット | 4.38M chars/s |
 | ファイルサイズ | 約 5.4 MB |
 
-### chinese_two_stage.model
+### chinese_pos.model
 
 | プロパティ | 値 |
 |----------|-------|
@@ -224,7 +224,7 @@ held-out 行は UD GSD テスト分割に対して `litsea evaluate --pos` で�
 | スループット | 3.38M chars/s |
 | ファイルサイズ | 約 8.0 MB |
 
-### korean_two_stage.model
+### korean_pos.model
 
 | プロパティ | 値 |
 |----------|-------|
@@ -243,7 +243,7 @@ stage 2 の全クラスフォールバックを払うことになり、安価な
 スキップや候補マスクの経路を使えません。そのため日本語・中国語より
 多くの割合の韓国語の単語が stage 2 のフルコストを負担します。
 
-**韓国語のプロトコルについての注記**: `korean_two_stage.model` は
+**韓国語のプロトコルについての注記**: `korean_pos.model` は
 空白非保持の `word/POS` コーパスで学習されており、
 `korean.model` が使う空白保持 TSV コーパス（issue #152）ではありません。
 二段構成の extractor は両ステージに単一のコーパスを使うため、空白保持＋
@@ -255,7 +255,7 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 #### 使用方法
 
 ```sh
-echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model
+echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 ```
 
 出力:
@@ -269,8 +269,8 @@ echo "これはテストです。" | litsea segment --pos -l japanese models/jap
 - **日本語**には、最高精度を求める場合は `japanese.model` を、オリジナルの TinySegmenter との互換性を重視する場合は `RWCP.model` を使用
 - **中国語**には `chinese.model` を使用
 - **韓国語**には `korean.model` を使用
-- **品詞推定**には**二段構成**モデル（`japanese_two_stage.model`、
-  `chinese_two_stage.model`、`korean_two_stage.model`）を `segment --pos` /
+- **品詞推定**には**二段構成**モデル（`japanese_pos.model`、
+  `chinese_pos.model`、`korean_pos.model`）を `segment --pos` /
   `evaluate --pos` とともに使用してください（アーキテクチャと実測値は
   [二段構成タグ付け](algorithm/two-stage-tagging.md)を参照）。
 - **ドメイン固有**の用途には、[独自モデルの学習](training-guide/preparing-corpus.md)または既存モデルの[再学習](training-guide/retraining-models.md)を検討

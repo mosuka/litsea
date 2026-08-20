@@ -45,11 +45,11 @@ cargo bench --bench bench -- external_corpus
 |----------|-------|--------|
 | `japanese` | japanese.model | wagahaiwa_nekodearu.txt |
 | `japanese-rwcp` | RWCP.model | wagahaiwa_nekodearu.txt |
-| `japanese-two-stage` | japanese_two_stage.model | wagahaiwa_nekodearu.txt |
+| `japanese-two-stage` | japanese_pos.model | wagahaiwa_nekodearu.txt |
 | `korean` | korean.model | mujeong.txt |
-| `korean-two-stage` | korean_two_stage.model | mujeong.txt |
+| `korean-two-stage` | korean_pos.model | mujeong.txt |
 | `chinese` | chinese.model | rulin_waishi.txt |
-| `chinese-two-stage` | chinese_two_stage.model | rulin_waishi.txt |
+| `chinese-two-stage` | chinese_pos.model | rulin_waishi.txt |
 
 `*-two-stage` ベンチは[二段構成アーキテクチャ](../algorithm/two-stage-tagging.md)
 （#147/#169）と合わせて追加したもので、上記の元々の tokenizer-speed-bench

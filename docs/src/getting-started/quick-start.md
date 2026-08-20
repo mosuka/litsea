@@ -37,7 +37,7 @@ Litsea can perform word segmentation and POS tagging using a [two-stage](../algo
 
 ```sh
 echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
+  | litsea segment --pos -l japanese ./models/japanese_pos.model
 ```
 
 Output:
@@ -90,7 +90,7 @@ use litsea::two_stage::TwoStageLearner;
 fn main() -> litsea::Result<()> {
     // Load the pre-trained two-stage POS model
     let mut learner = TwoStageLearner::new();
-    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 
     // Create a segmenter with POS support
     let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);

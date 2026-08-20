@@ -90,14 +90,14 @@ Models](../pre-trained-models.md#tag-free-pointwise-models).
 Held-out metrics are computed on the original spaced text with space tokens
 excluded from scoring.
 
-### korean_two_stage.model
+### korean_pos.model
 
 - **Algorithm**: two-stage segmentation + POS tagging (a binary boundary
   classifier plus a word-level tagger with a candidate-tag lexicon)
 - **Note**: unlike `korean.model` above, this model is trained on the
   *unspaced* `word/POS` corpus,
   not the space-preserving protocol described on this page
-- **Details**: see [Pre-trained Models](../pre-trained-models.md#korean_two_stagemodel)
+- **Details**: see [Pre-trained Models](../pre-trained-models.md#korean_posmodel)
 
 ## Example
 

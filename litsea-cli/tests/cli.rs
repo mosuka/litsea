@@ -78,7 +78,7 @@ fn test_segment_threads_output_identical() {
         );
     }
 
-    let pos_model_owned = model_path("japanese_two_stage.model");
+    let pos_model_owned = model_path("japanese_pos.model");
     let pos_model = pos_model_owned.to_str().unwrap();
     let sequential = run_litsea(&["segment", "--pos", "-l", "japanese", pos_model], Some(&input));
     assert!(sequential.status.success());
@@ -119,7 +119,7 @@ fn test_segment_pos_golden_output() {
             "--pos",
             "-l",
             "japanese",
-            model_path("japanese_two_stage.model").to_str().unwrap(),
+            model_path("japanese_pos.model").to_str().unwrap(),
         ],
         Some("これはテストです。\n"),
     );
@@ -146,7 +146,7 @@ fn test_segment_pos_rejects_joint_model() {
     assert!(!output.status.success(), "expected a joint-format model to be rejected");
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("no longer supported") && stderr.contains("train --two-stage"),
+        stderr.contains("no longer supported") && stderr.contains("train --pos"),
         "unexpected stderr: {stderr}"
     );
 }
@@ -225,9 +225,9 @@ fn test_extract_tag_free_format() {
 }
 
 /// Pins the `--tag-free` conflict rule: it is a boundary-pipeline flag and
-/// must be rejected together with --two-stage.
+/// must be rejected together with --pos.
 #[test]
-fn test_extract_tag_free_rejects_two_stage() {
+fn test_extract_tag_free_rejects_pos() {
     let dir = tempfile::tempdir().expect("tempdir");
     let corpus = dir.path().join("corpus.txt");
     std::fs::write(&corpus, "これ/PRON は/ADP\n").expect("write corpus");
@@ -237,6 +237,31 @@ fn test_extract_tag_free_rejects_two_stage() {
         &[
             "extract",
             "--tag-free",
+            "--pos",
+            "-l",
+            "japanese",
+            corpus.to_str().unwrap(),
+            features.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(!output.status.success(), "expected --tag-free --pos to fail");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("cannot be combined"), "unexpected stderr: {stderr}");
+}
+
+/// Pins the removal of the old flag spelling: `--two-stage` is not accepted
+/// (no alias), so clap rejects it at argument parsing.
+#[test]
+fn test_extract_rejects_removed_two_stage_flag() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let corpus = dir.path().join("corpus.txt");
+    std::fs::write(&corpus, "これ/PRON は/ADP\n").expect("write corpus");
+    let features = dir.path().join("features.txt");
+
+    let output = run_litsea(
+        &[
+            "extract",
             "--two-stage",
             "-l",
             "japanese",
@@ -245,9 +270,9 @@ fn test_extract_tag_free_rejects_two_stage() {
         ],
         None,
     );
-    assert!(!output.status.success(), "expected --tag-free --two-stage to fail");
+    assert!(!output.status.success(), "expected --two-stage to be rejected");
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("cannot be combined"), "unexpected stderr: {stderr}");
+    assert!(stderr.contains("unexpected argument"), "unexpected stderr: {stderr}");
 }
 
 /// Pins extract's `--format tsv` routing: tab-separated tokens with a
@@ -351,7 +376,7 @@ fn test_evaluate_pos_output() {
             "--pos",
             "-l",
             "japanese",
-            model_path("japanese_two_stage.model").to_str().unwrap(),
+            model_path("japanese_pos.model").to_str().unwrap(),
             gold.to_str().unwrap(),
         ],
         None,
@@ -359,7 +384,7 @@ fn test_evaluate_pos_output() {
     assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("Evaluation Metrics (POS):"), "unexpected output: {stderr}");
-    // japanese_two_stage.model reproduces this tagging exactly (golden test).
+    // japanese_pos.model reproduces this tagging exactly (golden test).
     assert!(stderr.contains("Tagged Word F1: 100.00%"), "unexpected output: {stderr}");
 }
 

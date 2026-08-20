@@ -92,7 +92,7 @@ litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.
 5. **再学習** -- 既存のモデルから開始し、追加データで学習する（[モデルの再学習](retraining-models.md)を参照）
 
 上記の閾値・反復回数のチューニングは、通常の AdaBoost 学習
-（`--perceptron`/`--two-stage` を付けない `litsea train`）に適用されるものです。
+（`--perceptron`/`--pos` を付けない `litsea train`）に適用されるものです。
 同梱モデル自身が通常の AdaBoost に対して達成している +5〜13pt の held-out
 品質向上は、`-t`/`-i` のチューニングによるものではなく、2 クラスの
 Averaged Perceptron を学習してから無損失に AdaBoost の重みへ畳み込む手順に

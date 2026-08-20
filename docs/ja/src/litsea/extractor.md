@@ -138,7 +138,7 @@ use litsea::TwoStageFeatureSet;
 
 extractor.extract_two_stage(
     Path::new("./pos_corpus.txt"),
-    Path::new("./two_stage_features"),
+    Path::new("./pos_features"),
     TwoStageFeatureSet::Fast,
 )?;
 ```

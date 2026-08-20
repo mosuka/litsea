@@ -204,7 +204,7 @@ retraining, a one-shot low-epoch run will understate the quality the
 architecture can reach (see the [methodology
 note](algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epochs)).
 
-### japanese_two_stage.model
+### japanese_pos.model
 
 | Property | Value |
 |----------|-------|
@@ -217,7 +217,7 @@ note](algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epoc
 | Throughput | 4.38M chars/s |
 | File Size | ~5.4 MB |
 
-### chinese_two_stage.model
+### chinese_pos.model
 
 | Property | Value |
 |----------|-------|
@@ -230,7 +230,7 @@ note](algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epoc
 | Throughput | 3.38M chars/s |
 | File Size | ~8.0 MB |
 
-### korean_two_stage.model
+### korean_pos.model
 
 | Property | Value |
 |----------|-------|
@@ -249,7 +249,7 @@ take the full stage-2 classifier fallback rather than the cheap
 dominance-skip or candidate-masked paths, so a larger share of Korean's
 words pay the full stage-2 cost than in Japanese or Chinese.
 
-**Korean protocol note**: `korean_two_stage.model` is trained on the
+**Korean protocol note**: `korean_pos.model` is trained on the
 unspaced `word/POS` corpus, *not* the space-preserving TSV corpus
 `korean.model` uses (issue #152). The two-stage extractor takes a single
 corpus for both stages, and building a combined space-preserving +
@@ -260,7 +260,7 @@ corpus and protocol entirely, not a stronger or weaker two-stage result).
 #### Usage
 
 ```sh
-echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model
+echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
 ```
 
 Output:
@@ -275,8 +275,8 @@ Output:
 - For **Chinese**, use `chinese.model`
 - For **Korean**, use `korean.model`
 - For **POS tagging**, use the **two-stage** models
-  (`japanese_two_stage.model`, `chinese_two_stage.model`,
-  `korean_two_stage.model`) with `segment --pos` / `evaluate --pos` (see
+  (`japanese_pos.model`, `chinese_pos.model`,
+  `korean_pos.model`) with `segment --pos` / `evaluate --pos` (see
   [Two-Stage Tagging](algorithm/two-stage-tagging.md) for the architecture
   and measured figures).
 - For **domain-specific** needs, consider [training your own model](training-guide/preparing-corpus.md) or [retraining](training-guide/retraining-models.md) an existing one
