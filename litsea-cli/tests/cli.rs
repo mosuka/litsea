@@ -43,6 +43,18 @@ fn test_segment_golden_output() {
     assert_eq!(String::from_utf8_lossy(&output.stdout), "これ は テスト です 。\n");
 }
 
+/// Pins English word-segmentation output (same expectation as the golden
+/// test suite) and the `-l english` wiring, including the space token.
+#[test]
+fn test_segment_english_golden_output() {
+    let output = run_litsea(
+        &["segment", "-l", "english", model_path("english.model").to_str().unwrap()],
+        Some("I don't know.\n"),
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    assert_eq!(String::from_utf8_lossy(&output.stdout), "I   do n't   know .\n");
+}
+
 /// Pins `--threads` (issue #185): parallel output must be byte-identical
 /// to the single-threaded default, including trim/empty-line handling and
 /// input order, for both the plain and the `--pos` pipelines.

@@ -32,7 +32,7 @@ For each character position *i* in the input, the segmenter extracts features fr
 - `WC3`: character at i-1 + type code at i-1
 - `WC4`: character at i + type code at i
 
-> **Why no WC for Korean?** Korean Hangul syllables are classified into only two types (SN and SF), so WC features would add noise rather than useful signal.
+> **Why no WC for Korean and English?** Korean Hangul syllables are classified into only two types (SN and SF), so WC features would add noise rather than useful signal. English measured the same outcome directly: a dev-split comparison scored 98.68% Word F1 with the 38 base templates versus 98.65% with all 42 (WC included) -- see [English](../language-support/english.md#no-wc-features).
 
 ### Total Feature Count
 
@@ -41,6 +41,7 @@ For each character position *i* in the input, the segmenter extracts features fr
 | Japanese | 38 | 4 | **42** |
 | Chinese | 38 | 4 | **42** |
 | Korean | 38 | 0 | **38** |
+| English | 38 | 0 | **38** |
 
 ## Single Source of Truth
 

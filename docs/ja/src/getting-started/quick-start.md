@@ -31,6 +31,12 @@ echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 ```
 
+**英語:**
+
+```sh
+echo "I don't know." | litsea segment -l english ./models/english.model
+```
+
 ### 品詞推定付き分割
 
 Litsea は[二段構成](../algorithm/two-stage-tagging.md)モデルを使って、単語分割と品詞推定を行うことができます。`segment` コマンドに `--pos` フラグを追加します:

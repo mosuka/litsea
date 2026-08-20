@@ -10,7 +10,9 @@ use std::str::FromStr;
 
 /// Error returned when parsing a [`Language`] from a string fails.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("Unsupported language: '{input}'. Supported: japanese (ja), chinese (zh), korean (ko)")]
+#[error(
+    "Unsupported language: '{input}'. Supported: japanese (ja), chinese (zh), korean (ko), english (en)"
+)]
 pub struct ParseLanguageError {
     input: String,
 }
@@ -38,6 +40,8 @@ pub enum Language {
     Chinese,
     /// Korean (한국어)
     Korean,
+    /// English
+    English,
 }
 
 impl fmt::Display for Language {
@@ -46,6 +50,7 @@ impl fmt::Display for Language {
             Language::Japanese => write!(f, "japanese"),
             Language::Chinese => write!(f, "chinese"),
             Language::Korean => write!(f, "korean"),
+            Language::English => write!(f, "english"),
         }
     }
 }
@@ -58,6 +63,7 @@ impl FromStr for Language {
             "japanese" | "ja" => Ok(Language::Japanese),
             "chinese" | "zh" => Ok(Language::Chinese),
             "korean" | "ko" => Ok(Language::Korean),
+            "english" | "en" => Ok(Language::English),
             _ => Err(ParseLanguageError {
                 input: s.to_string(),
             }),
@@ -89,6 +95,7 @@ impl Language {
             Language::Japanese => &["O", "P", "A", "N", "M", "H", "I", "K"],
             Language::Chinese => &["O", "P", "A", "N", "F", "C", "X", "R", "B"],
             Language::Korean => &["O", "P", "A", "N", "E", "SN", "SF", "J", "G", "H"],
+            Language::English => &["O", "P", "A", "N", "U", "W", "Q"],
         }
     }
 
@@ -102,6 +109,7 @@ impl Language {
             Language::Japanese => japanese_char_type_id(c),
             Language::Chinese => chinese_char_type_id(c),
             Language::Korean => korean_char_type_id(c),
+            Language::English => english_char_type_id(c),
         }
     }
 
@@ -221,6 +229,42 @@ fn korean_char_type_id(c: char) -> u8 {
     }
 }
 
+/// Character type classification for English, returning type ids.
+///
+/// Type codes (ids per the English [`Language::type_codes`] table):
+/// - "U" (4): Uppercase Latin (A-Z, full-width Ａ-Ｚ) — sentence-initial
+///   capitals, proper nouns, and acronyms correlate with boundaries
+/// - "W" (5): Horizontal whitespace (space, tab, NBSP). Only U+0020 occurs
+///   in training data; tab and NBSP share the id so pasted input inherits
+///   space behavior instead of falling back to "O"
+/// - "Q" (6): Apostrophe (U+0027 and U+2019) — the intra-token marker of
+///   contractions and possessives (`do|n't`, `Google|'s`)
+/// - "P" (1): ASCII punctuation except the apostrophe, plus General
+///   Punctuation (dashes, typographic quotes, ellipsis) except U+2019.
+///   Note this deliberately includes characters other languages leave as
+///   "O" (e.g. '@'); CJK/full-width punctuation still maps to "P" via
+///   [`punct_latin_digit`]
+/// - "A" (2): Lowercase Latin (uppercase is intercepted by "U" above);
+///   "N" (3): digits — both via [`punct_latin_digit`]
+/// - "O" (0): Other (fallback)
+fn english_char_type_id(c: char) -> u8 {
+    match c {
+        'A'..='Z' | 'Ａ'..='Ｚ' => 4, // "U"
+        ' ' | '\t' | '\u{00A0}' => 5, // "W"
+        '\'' | '\u{2019}' => 6,       // "Q"
+        // ASCII punctuation minus the apostrophe (U+0027), plus General
+        // Punctuation (U+2010..U+2027) minus the apostrophe (U+2019)
+        '!'..='&'
+        | '('..='/'
+        | ':'..='@'
+        | '['..='`'
+        | '{'..='~'
+        | '\u{2010}'..='\u{2018}'
+        | '\u{201A}'..='\u{2027}' => 1, // "P"
+        _ => punct_latin_digit(c).unwrap_or(OTHER_TYPE_ID),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -238,6 +282,9 @@ mod tests {
         assert_eq!("korean".parse::<Language>().unwrap(), Language::Korean);
         assert_eq!("ko".parse::<Language>().unwrap(), Language::Korean);
         assert_eq!("KOREAN".parse::<Language>().unwrap(), Language::Korean);
+        assert_eq!("english".parse::<Language>().unwrap(), Language::English);
+        assert_eq!("en".parse::<Language>().unwrap(), Language::English);
+        assert_eq!("English".parse::<Language>().unwrap(), Language::English);
         assert!("french".parse::<Language>().is_err());
         assert!("".parse::<Language>().is_err());
     }
@@ -249,7 +296,7 @@ mod tests {
         let err = "french".parse::<Language>().unwrap_err();
         assert_eq!(
             err.to_string(),
-            "Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)"
+            "Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko), english (en)"
         );
         assert_eq!(err.input(), "french");
     }
@@ -259,6 +306,7 @@ mod tests {
         assert_eq!(Language::Japanese.to_string(), "japanese");
         assert_eq!(Language::Chinese.to_string(), "chinese");
         assert_eq!(Language::Korean.to_string(), "korean");
+        assert_eq!(Language::English.to_string(), "english");
     }
 
     #[test]
@@ -268,7 +316,8 @@ mod tests {
 
     // --- Type-code table tests (#136) ---
 
-    const ALL_LANGUAGES: [Language; 3] = [Language::Japanese, Language::Chinese, Language::Korean];
+    const ALL_LANGUAGES: [Language; 4] =
+        [Language::Japanese, Language::Chinese, Language::Korean, Language::English];
 
     #[test]
     fn test_type_codes_unique_and_shared_prefix() {
@@ -312,7 +361,9 @@ mod tests {
     fn test_char_type_id_consistent_with_char_type() {
         // char_type is a table lookup over char_type_id, so consistency is
         // structural; this pins the id values for a representative sample.
-        let samples = ['あ', 'ア', '漢', '的', '中', '는', '한', '가', 'A', '5', '。', '@'];
+        let samples = [
+            'あ', 'ア', '漢', '的', '中', '는', '한', '가', 'A', 't', '5', '。', '@', ' ', '\'',
+        ];
         for lang in ALL_LANGUAGES {
             for c in samples {
                 let id = lang.char_type_id(c) as usize;
@@ -410,5 +461,40 @@ mod tests {
         assert_eq!(lang.char_type('A'), "A"); // ASCII
         assert_eq!(lang.char_type('5'), "N"); // Digit
         assert_eq!(lang.char_type('@'), "O"); // Other
+    }
+
+    // --- English pattern tests ---
+
+    #[test]
+    fn test_english_char_types() {
+        let lang = Language::English;
+        assert_eq!(lang.char_type('T'), "U"); // Uppercase
+        assert_eq!(lang.char_type('Z'), "U"); // Uppercase (boundary)
+        assert_eq!(lang.char_type('Ｔ'), "U"); // Full-width uppercase
+        assert_eq!(lang.char_type('t'), "A"); // Lowercase
+        assert_eq!(lang.char_type('ｔ'), "A"); // Full-width lowercase
+        assert_eq!(lang.char_type(' '), "W"); // Space (U+0020)
+        assert_eq!(lang.char_type('\t'), "W"); // Tab
+        assert_eq!(lang.char_type('\u{00A0}'), "W"); // No-break space
+        assert_eq!(lang.char_type('\''), "Q"); // Apostrophe (U+0027)
+        assert_eq!(lang.char_type('\u{2019}'), "Q"); // Right single quotation mark
+        assert_eq!(lang.char_type('.'), "P"); // Sentence-final punctuation
+        assert_eq!(lang.char_type(','), "P"); // Comma
+        assert_eq!(lang.char_type('-'), "P"); // Hyphen (EWT splits hyphenated compounds)
+        assert_eq!(lang.char_type('"'), "P"); // ASCII double quote
+        assert_eq!(lang.char_type('\u{201C}'), "P"); // Left double quotation mark
+        assert_eq!(lang.char_type('\u{2018}'), "P"); // Left single quotation mark (not Q)
+        assert_eq!(lang.char_type('\u{2014}'), "P"); // Em dash
+        assert_eq!(lang.char_type('\u{2026}'), "P"); // Horizontal ellipsis
+        assert_eq!(lang.char_type('$'), "P"); // Currency symbol
+        // '@' is deliberately "P" for English (uniform ASCII punctuation),
+        // unlike the other languages where it stays "O".
+        assert_eq!(lang.char_type('@'), "P");
+        assert_eq!(lang.char_type('。'), "P"); // CJK punctuation via shared fallback
+        assert_eq!(lang.char_type('5'), "N"); // Digit
+        assert_eq!(lang.char_type('５'), "N"); // Full-width digit
+        assert_eq!(lang.char_type('字'), "O"); // CJK ideograph is Other in English
+        assert_eq!(lang.char_type('é'), "O"); // Accented Latin outside ASCII
+        assert_eq!(lang.char_type('\n'), "O"); // Newline is not horizontal whitespace
     }
 }

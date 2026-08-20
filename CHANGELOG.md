@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Added
+
+- English language support (#194): `Language::English` (`"english"` /
+  `"en"`), plus bundled `models/english.model` (tag-free segmentation,
+  trained on UD English-EWT's space-preserving TSV corpus, held-out Word
+  F1 98.31%) and `models/english_pos.model` (two-stage POS, held-out Word
+  F1 70.33% / Tagged Word F1 65.83% -- trained and evaluated on unspaced
+  text, same protocol as `korean_pos.model`; see
+  [English](docs/src/language-support/english.md#english_posmodel) for
+  why this is a much larger quality gap than Korean's). English adds a
+  7-code character type table (`O`/`P`/`A`/`N`/`U`/`W`/`Q`; uppercase,
+  whitespace, and the apostrophe are new dedicated classes) and, like
+  Korean, ships without `WC*` feature templates (measured worse on a
+  dev-split comparison, not just unhelpful). `corpus_udtreebank.sh -s`
+  gained multiword-token (contraction) support so its space-preserving
+  protocol handles English correctly (e.g. `don't` -> `do` + `n't` with
+  no inserted space token); Korean's existing gold TSV is byte-identical
+  after the change. New benchmark corpus `resources/pride_and_prejudice.txt`
+  (Project Gutenberg #1342, public domain).
+
 ### Changed (breaking)
 
 - The joint POS tagging architecture is removed; two-stage (#147) is now

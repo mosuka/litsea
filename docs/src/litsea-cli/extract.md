@@ -19,11 +19,11 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--pos` |
 | `--pos` | off | Extract [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) training features. Requires a POS corpus as input |
 | `--stage2-features <SET>` | `fast` | Stage-2 word-feature set for `--pos`: `full` (best quality), `balanced`, or `fast` (best throughput) |
-| `--tag-free` | off | Exclude the 16 tag-dependent feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) so the trained model is pointwise and `segment()` skips its sequential scoring pass (issue #183; used for the bundled `korean.model` -- see [Tag-Free (Pointwise) Models](../pre-trained-models.md#tag-free-pointwise-models) for the per-language quality/speed trade-off). Composable with `--format tsv`; cannot be combined with `--pos` |
+| `--tag-free` | off | Exclude the 16 tag-dependent feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) so the trained model is pointwise and `segment()` skips its sequential scoring pass (issue #183; used for the bundled `korean.model`/`english.model` -- see [Tag-Free (Pointwise) Models](../pre-trained-models.md#tag-free-pointwise-models) for the per-language quality/speed trade-off). Composable with `--format tsv`; cannot be combined with `--pos` |
 
 ## Corpus Format
 
@@ -39,12 +39,14 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 With `--format tsv`, tokens are separated by tab characters and a token may
 be a literal space `" "`. This preserves the original spacing of the
 sentence in the training text, which is essential for languages like Korean
-where spaces mark most word boundaries (see
-[Korean](../language-support/korean.md)). Generate such a corpus from a UD
+and English where spaces mark most word boundaries (see
+[Korean](../language-support/korean.md) and
+[English](../language-support/english.md)). Generate such a corpus from a UD
 Treebank with `corpus_udtreebank.sh -s`:
 
 ```sh
 litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
+litsea extract -l english --format tsv --tag-free ./en_corpus.tsv ./en_features.txt
 ```
 
 ## Output Format
@@ -71,6 +73,9 @@ litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
 
 # Korean
 litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+
+# English
+litsea extract -l en ./corpus_en.txt ./features_en.txt
 ```
 
 Output to stderr on success:

@@ -12,6 +12,7 @@ pub enum Language {
     Japanese,
     Chinese,
     Korean,
+    English,
 }
 ```
 
@@ -20,7 +21,7 @@ pub enum Language {
 ### トレイト
 
 - `Default` -- `Language::Japanese` を返す
-- `Display` -- 小文字の名前を返す（`"japanese"`、`"chinese"`、`"korean"`）
+- `Display` -- 小文字の名前を返す（`"japanese"`、`"chinese"`、`"korean"`、`"english"`）
 - `FromStr` -- 完全名または ISO 639-1 コードから解析（大文字・小文字を区別しない）
 
 ### パース
@@ -32,11 +33,13 @@ use litsea::language::Language;
 let ja: Language = "japanese".parse().unwrap();
 let zh: Language = "chinese".parse().unwrap();
 let ko: Language = "korean".parse().unwrap();
+let en: Language = "english".parse().unwrap();
 
 // ISO 639-1 codes
 let ja: Language = "ja".parse().unwrap();
 let zh: Language = "zh".parse().unwrap();
 let ko: Language = "ko".parse().unwrap();
+let en: Language = "en".parse().unwrap();
 
 // Case-insensitive
 let ko: Language = "KOREAN".parse().unwrap();
@@ -64,7 +67,7 @@ assert_eq!(lang.char_type('漢'), "H");
 assert_eq!(lang.char_type('@'), "O");
 ```
 
-内部的には、`char_type` は言語ごとの非公開関数（`japanese_char_type_id`、`chinese_char_type_id`、`korean_char_type_id`）が返す数値の type id に対するテーブル参照になっており、文字列コードと数値 id が食い違うことはありません。全言語に共通のクラス -- `"P"`（句読点）、`"A"`（ラテン文字）、`"N"`（数字） -- は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます。
+内部的には、`char_type` は言語ごとの非公開関数（`japanese_char_type_id`、`chinese_char_type_id`、`korean_char_type_id`、`english_char_type_id`）が返す数値の type id に対するテーブル参照になっており、文字列コードと数値 id が食い違うことはありません。全言語に共通のクラス -- `"P"`（句読点）、`"A"`（ラテン文字）、`"N"`（数字） -- は、言語固有のクラスの後にチェックされる共通ヘルパーで処理されます（英語では `"P"` を ASCII の句読点全般まで広げています。詳細は[英語](../language-support/english.md)を参照）。
 
 ## ParseLanguageError
 
@@ -78,4 +81,4 @@ assert_eq!(err.input(), "french");
 ```
 
 - `input()` -- パースに失敗した文字列を返す
-- エラーメッセージにはサポートされている言語が列挙されます: `Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko)`
+- エラーメッセージにはサポートされている言語が列挙されます: `Unsupported language: 'french'. Supported: japanese (ja), chinese (zh), korean (ko), english (en)`

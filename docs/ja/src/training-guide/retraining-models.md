@@ -50,8 +50,8 @@ flowchart LR
   `-m`/`--load-model-uri` に**対応していません** -- 二段構成モデルの増分学習は
   サポートされていないため、更新したい場合は `train --pos` で
   ゼロから再学習する必要があります
-- 同梱の `japanese.model`、`chinese.model`、`korean.model` はこの `-m` を
-  使うレシピでは作られていません -- これらは
+- 同梱の `japanese.model`、`chinese.model`、`korean.model`、`english.model`
+  はこの `-m` を使うレシピでは作られていません -- これらは
   [学習手順](../pre-trained-models.md#学習手順)で説明している
   perceptron 畳み込み手順で学習されています。これらの上に `-m` で
   さらに増分 AdaBoost 学習を行うと、2 つの手法が混ざってしまいます。

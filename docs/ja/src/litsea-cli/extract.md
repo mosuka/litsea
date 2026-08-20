@@ -19,11 +19,11 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--pos` と併用できません |
 | `--pos` | off | [二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です |
 | `--stage2-features <SET>` | `fast` | `--pos` 用の stage-2 単語特徴セット: `full`（品質最優先）、`balanced`、`fast`（速度最優先） |
-| `--tag-free` | オフ | 16 個のタグ依存特徴量テンプレート（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`）を除外し、学習されるモデルを pointwise にして `segment()` の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の `korean.model` で使用 -- 言語別の品質・速度トレードオフは[タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)を参照）。`--format tsv` と併用可。`--pos` とは併用不可 |
+| `--tag-free` | オフ | 16 個のタグ依存特徴量テンプレート（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`）を除外し、学習されるモデルを pointwise にして `segment()` の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の `korean.model`/`english.model` で使用 -- 言語別の品質・速度トレードオフは[タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)を参照）。`--format tsv` と併用可。`--pos` とは併用不可 |
 
 ## コーパスの形式
 
@@ -36,10 +36,11 @@ Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア
 
 ### TSV コーパス形式（`--format tsv`）
 
-`--format tsv` を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（`" "`）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語のような言語では、これが不可欠です（[韓国語](../language-support/korean.md)を参照）。このようなコーパスは UD Treebank から `corpus_udtreebank.sh -s` で生成できます:
+`--format tsv` を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（`" "`）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語や英語のような言語では、これが不可欠です（[韓国語](../language-support/korean.md)および[英語](../language-support/english.md)を参照）。このようなコーパスは UD Treebank から `corpus_udtreebank.sh -s` で生成できます:
 
 ```sh
 litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
+litsea extract -l english --format tsv --tag-free ./en_corpus.tsv ./en_features.txt
 ```
 
 ## 出力形式
@@ -66,6 +67,9 @@ litsea extract -l zh ./corpus_zh.txt ./features_zh.txt
 
 # Korean
 litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
+
+# English
+litsea extract -l en ./corpus_en.txt ./features_en.txt
 ```
 
 成功時のstderr出力:

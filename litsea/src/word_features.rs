@@ -416,6 +416,7 @@ mod tests {
             (Language::Japanese, "3匹のネコ"),
             (Language::Korean, "고양이가 3마리"),
             (Language::Chinese, "我爱北京"),
+            (Language::English, "The cat's 3 dogs"),
         ] {
             let (sent, type_ids) = context(language, text);
             for start in 0..sent.len() {

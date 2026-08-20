@@ -29,9 +29,9 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `-l`, `--language <LANGUAGE>` | `japanese` | モデルとゴールドコーパスの言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `-l`, `--language <LANGUAGE>` | `japanese` | モデルとゴールドコーパスの言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | 単語分割と品詞推定を同時に評価します。この場合、ゴールドコーパスは `word/POS` 形式である必要があります。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --pos`）が必要です |
-| `--format <FORMAT>` | `space` | ゴールドコーパスの形式: `space`（スペース区切りトークン）または `tsv`（タブ区切りトークン。韓国語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。`--pos` 指定時は無視されます |
+| `--format <FORMAT>` | `space` | ゴールドコーパスの形式: `space`（スペース区切りトークン）または `tsv`（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。`--pos` 指定時は無視されます |
 
 ## メトリクス
 
@@ -46,7 +46,7 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 
 予測トークンとゴールドトークンは、復元した文上の文字オフセットスパンの
 完全一致で対応付けます。空白のみのトークンはスコア計算から除外されるため、
-韓国語の空白保持プロトコルが数値を押し上げることはありません。
+韓国語/英語の空白保持プロトコルが数値を押し上げることはありません。
 
 | メトリクス | 測るもの | 低い場合の意味 |
 |--------|----------|-------------------|
@@ -71,6 +71,7 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 ```
 

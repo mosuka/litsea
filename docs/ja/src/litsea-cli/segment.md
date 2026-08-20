@@ -18,7 +18,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | 品詞推定付き分割を有効にします。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --pos`）が必要です |
 | `--threads <N>` | `1` | バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。`N > 1` では入力行を並列に分割しつつ**入力順で**出力するため、出力はどちらでもバイト単位で同一です（`--pos` の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません |
 
@@ -54,6 +54,12 @@ echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 ```sh
 echo "한국어 단어 분할 테스트입니다." \
   | litsea segment -l korean ./models/korean.model
+```
+
+**英語:**
+
+```sh
+echo "I don't know." | litsea segment -l english ./models/english.model
 ```
 
 **ファイルの処理:**

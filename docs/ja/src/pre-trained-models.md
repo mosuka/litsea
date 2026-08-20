@@ -11,7 +11,7 @@ Litsea は `models/` ディレクトリに複数の事前学習済みモデル�
 ください。
 
 **アルゴリズムについての注記**: `japanese.model`、`chinese.model`、
-`korean.model` は 2 クラス（境界／非境界）の Averaged Perceptron として学習した後、
+`korean.model`、`english.model` は 2 クラス（境界／非境界）の Averaged Perceptron として学習した後、
 スカラーの特徴量重みへ畳み込んでいます（issue #165）。ファイル自体は従来どおり
 プレーンな AdaBoost テキスト形式のままで、`Segmenter::with_learner` /
 `AdaBoost::load_model_from_path` は無変更で動作します。この畳み込みは
@@ -64,6 +64,28 @@ docstring を参照）近似ではありません: この方法で学習した p
 スコアリングパスを丸ごとスキップします（issue #183）。他言語での
 トレードオフは後述の[タグなし（pointwise）モデル](#タグなしpointwiseモデル)
 を参照してください。
+
+### english.model
+
+| プロパティ | 値 |
+|----------|-------|
+| 言語 | 英語 |
+| 学習コーパス | UD English-EWT（空白保持 TSV コーパス） |
+| エポック数 | 20 |
+| 特徴量テンプレート | タグなし（pointwise、issue #183）、WC 特徴量なし |
+| 剪定後の特徴量数 | 剪定なし（4,794 特徴量） |
+| 単語 F1（held-out） | 98.31% |
+| 境界 F1（held-out） | 99.18% |
+| ファイルサイズ | 約 125 KB |
+
+`korean.model` と同様に `english.model` も、元の空白を保持したテキストで
+学習・評価しています（各空白は独立したトークンとして扱い、F1 の計算からは
+除外します）。空白保持の学習プロトコル、複数語トークン（短縮形）の扱い、
+20 エポックとタグなし／WC 特徴量なしの構成を選んだエポックスイープについては
+[English](language-support/english.md) を参照してください。英語には短縮形
+（contraction）、ハイフンでつながる複合語、"U.S." のような略語といった
+境界の曖昧性が残っているため、同じ空白保持レシピを共有していても、
+held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回ります。
 
 ### chinese.model
 
@@ -158,11 +180,19 @@ scripts/prune_adaboost_model.py <collapsed.model> <pruned.model> <n>
 | 言語 | 単語 F1（タグあり） | 単語 F1（タグなし） | スループット変化 |
 |------|--------------------|--------------------|------------------|
 | 韓国語 | 99.90% | **99.91%** | 高速化（逐次パスをスキップ） |
+| 英語 | 98.71% | **98.68%\*** | 高速化（逐次パスをスキップ） |
 | 日本語 | **96.70%** | 96.33% | 実測 end-to-end 約 +45〜50% |
 | 中国語 | **90.69%** | 90.18% | 実測 end-to-end 約 +12% |
 
+\* 英語の dev split での比較（タグあり 98.71% vs タグなし 98.68%、差は
+0.03pt）はどちらを選んでも大差ない水準であり、同梱モデルは韓国語と同じ
+スループット上の理由からタグなしで出荷しています。上記の `english.model`
+の held-out テスト分割の数値（98.31%）はスイープの最後に一度だけ計測した
+ものであり、この dev split の対比とは直接比較できません。
+
 語節間の空白シグナルがある韓国語ではタグ特徴量は何も寄与しないため、
-`korean.model` はタグなしで同梱しています（サイズも約 22% 減）。
+`korean.model` はタグなしで同梱しています（サイズも約 22% 減）。英語も
+同じ理由（空白シグナルが支配的であるため）でほぼ同様の状況にあります。
 日本語・中国語ではまだ単語 F1 で 0.37〜0.51pt の価値があるため、
 同梱モデルはタグ特徴量を保持しています -- 品質がデフォルトです。
 速度を優先するワークロードでは、上記の手順に extract ステップの
@@ -252,6 +282,37 @@ POS 付きを組み合わせた形式の構築は別機能であり未実装で�
 （全く異なるコーパス・プロトコル）とは比較できません -- 二段構成が
 優れている/劣っているという結果ではありません。
 
+### english_pos.model
+
+| プロパティ | 値 |
+|----------|-------|
+| 言語 | 英語 |
+| 学習コーパス | UD English-EWT（12,544 文、空白非保持の word/POS プロトコル -- 下記の注記を参照） |
+| エポック数 | 50 |
+| stage-2 特徴量セット | `full` |
+| 単語 F1（held-out） | 70.33% |
+| タグ付き単語 F1（held-out） | 65.83% |
+| スループット | 2.05M chars/s |
+| ファイルサイズ | 約 3.6 MB |
+
+**英語のプロトコルについての注記 -- `english.model` の 98.31% と比較する前に
+必ずお読みください。** `english_pos.model` は `korean_pos.model` と同じ
+空白非保持の `word/POS` プロトコルで学習・評価しています -- これは学習と
+推論のミスマッチではなく、`evaluate --pos` は学習時と同じ方法で採点して
+います。英語の品質差が韓国語よりはるかに大きい理由（韓国語: 空白なし
+99.90% vs 空白あり 99.91% -- ほぼ差がない／英語: 空白なし 70.33% vs
+空白あり 98.31% -- 大きな差がある）は、実装上の欠陥ではなく両言語の本質的な
+違いを反映しています: 韓国語は膠着語であり、助詞や語尾変化が文字レベルの
+強い境界手がかりを残すため、すべての空白を除いても単語境界を判定できます。
+一方、英語の正書法にはそうした手がかりがほとんど残らないため、空白のない
+英語のテキスト（例: `"thecatsatonthemat"`）を分割することは、このモデルの
+特徴量テンプレートにとって本質的にはるかに難しいタスクになります。推論時
+にはモデルは実際の空白付き入力を受け取り、空白は独立したトークンとして
+再出力されます。詳しい説明と実際の（不完全な）出力例は
+[English](language-support/english.md#english_posmodel) を参照してください。
+空白保持 TSV プロトコルと二段構成 POS 学習を組み合わせるには、パイプラインが
+現時点でサポートしていない新しいコーパス形式が必要になります。
+
 #### 使用方法
 
 ```sh
@@ -269,10 +330,14 @@ echo "これはテストです。" | litsea segment --pos -l japanese models/jap
 - **日本語**には、最高精度を求める場合は `japanese.model` を、オリジナルの TinySegmenter との互換性を重視する場合は `RWCP.model` を使用
 - **中国語**には `chinese.model` を使用
 - **韓国語**には `korean.model` を使用
+- **英語**には `english.model` を使用
 - **品詞推定**には**二段構成**モデル（`japanese_pos.model`、
-  `chinese_pos.model`、`korean_pos.model`）を `segment --pos` /
-  `evaluate --pos` とともに使用してください（アーキテクチャと実測値は
-  [二段構成タグ付け](algorithm/two-stage-tagging.md)を参照）。
+  `chinese_pos.model`、`korean_pos.model`、`english_pos.model`）を
+  `segment --pos` / `evaluate --pos` とともに使用してください
+  （アーキテクチャと実測値は
+  [二段構成タグ付け](algorithm/two-stage-tagging.md)を参照。英語については
+  特に、`english_pos.model` の分割品質に頼る前に上記のプロトコルについての
+  注記を必ず読んでください）。
 - **ドメイン固有**の用途には、[独自モデルの学習](training-guide/preparing-corpus.md)または既存モデルの[再学習](training-guide/retraining-models.md)を検討
 
 ## サンプルデータ
@@ -283,8 +348,11 @@ echo "これはテストです。" | litsea segment --pos -l japanese models/jap
 - **wagahaiwa_nekodearu.txt** -- 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。
 - **mujeong.txt** -- 무정（李光洙、1917）、約 786 KB、ko.wikisource。
 - **rulin_waishi.txt** -- 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。
+- **pride_and_prejudice.txt** -- Pride and Prejudice（Jane Austen）、約 688 KB、Project Gutenberg eBook #1342（ヘッダー・フッター・挿絵キャプションを除去し、1 行 1 段落に整形）。
 
-後半の 3 つは外部の
+`wagahaiwa_nekodearu.txt`／`mujeong.txt`／`rulin_waishi.txt` の 3 つは外部の
 [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
 のコーパスとバイト同一で、`external_corpus` ベンチマークグループが使用します
-（[ベンチマーク](advanced/benchmarking.md)を参照）。いずれもパブリックドメインです。
+（[ベンチマーク](advanced/benchmarking.md)を参照）。`pride_and_prejudice.txt`
+は同じベンチマークグループの英語のケースに使われますが、この外部ハーネス側
+にはまだ対応するコーパスがありません。いずれもパブリックドメインです。

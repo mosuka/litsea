@@ -31,6 +31,12 @@ echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 ```
 
+**English:**
+
+```sh
+echo "I don't know." | litsea segment -l english ./models/english.model
+```
+
 ### POS Tagging
 
 Litsea can perform word segmentation and POS tagging using a [two-stage](../algorithm/two-stage-tagging.md) model. Add the `--pos` flag to the `segment` command:

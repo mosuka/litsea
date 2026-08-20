@@ -14,6 +14,7 @@
 //! - Japanese
 //! - Chinese (Simplified and Traditional)
 //! - Korean
+//! - English
 
 pub mod adaboost;
 pub mod error;

@@ -49,14 +49,18 @@ flowchart TD
 
 ## 空白保持（TSV）コーパス形式
 
-文の元の空白を保持したコーパス --- 韓国語モデルの学習に使用（単語間の空白が
-韓国語における最も強力な境界シグナルであるため。詳細は
-[韓国語](../language-support/korean.md#空白保持学習space-preserving-training)を参照）
+文の元の空白を保持したコーパス --- 韓国語モデルおよび英語モデルの学習に使用
+（単語間の空白がこれらの言語における最も強力な境界シグナルであるため。詳細は
+[韓国語](../language-support/korean.md#空白保持学習space-preserving-training)
+および
+[英語](../language-support/english.md#空白保持学習space-preserving-training)
+を参照）
 --- から抽出するには、既定のスペース区切り形式の代わりに `--format tsv` を
 指定します:
 
 ```sh
 litsea extract --format tsv -l korean ./ko_corpus.tsv ./ko_features.txt
+litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.txt
 ```
 
 入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして

@@ -159,6 +159,30 @@ fn golden_segment_korean() {
     assert!(segmenter.segment("").is_empty());
 }
 
+#[test]
+fn golden_segment_english() {
+    let segmenter = adaboost_segmenter(Language::English, "english.model");
+    assert_segment(
+        &segmenter,
+        &[
+            ("This is a test.", &["This", " ", "is", " ", "a", " ", "test", "."]),
+            // Contraction: split at the intra-token apostrophe, no space token.
+            ("I don't know.", &["I", " ", "do", "n't", " ", "know", "."]),
+            // Possessive: split at the apostrophe, no space token.
+            ("Google's search engine.", &["Google", "'s", " ", "search", " ", "engine", "."]),
+            // Currency symbol and comma-grouped number stay attached to
+            // neighboring punctuation the way UD English-EWT tokenizes them.
+            (
+                "The price is $1,000.",
+                &["The", " ", "price", " ", "is", " ", "$", "1,000", "."],
+            ),
+            // Edge case: single word (whole sentence is one token).
+            ("word", &["word"]),
+        ],
+    );
+    assert!(segmenter.segment("").is_empty());
+}
+
 // ---------------------------------------------------------------------------
 // Two-stage segmentation + POS tagging (issue #147)
 //
@@ -341,6 +365,52 @@ fn golden_segment_with_pos_korean_two_stage() {
             (
                 "2024년 봄.",
                 &[("2024년", "NOUN"), (" ", "PUNCT"), ("봄", "NOUN"), (".", "PUNCT")],
+            ),
+        ],
+    );
+    assert!(segmenter.segment_with_pos("").expect("two-stage learner is set").is_empty());
+}
+
+#[test]
+fn golden_segment_with_pos_english_two_stage() {
+    // english_pos.model is trained on the unspaced `word/POS` corpus (the
+    // two-stage POS pipeline has no space-preserving variant, same as
+    // Korean). Unlike Korean, English orthography carries almost no
+    // sub-word signal for segmenting a string with no spaces (Korean's
+    // agglutinative particles/endings do), so the stage-1 boundary
+    // classifier scores far worse in this unspaced setting than
+    // english.model does on real spaced input: held-out Word F1 on the UD
+    // English-EWT test split (also evaluated unspaced, matching training)
+    // is ~70.3%, vs. english.model's ~98.3%. Inference still receives the
+    // spaced text as-is, so this pins the actual (imperfect) real-world
+    // behavior rather than an idealized one -- see docs/src/language-support/
+    // english.md for the full caveat and numbers.
+    let segmenter = two_stage_segmenter(Language::English, "english_pos.model");
+    assert_segment_with_pos(
+        &segmenter,
+        &[
+            (
+                "This is a test.",
+                &[
+                    ("This", "DET"),
+                    (" ", "PUNCT"),
+                    ("is", "AUX"),
+                    (" ", "PART"),
+                    ("a test", "ADV"),
+                    (".", "PUNCT"),
+                ],
+            ),
+            (
+                "I don't know.",
+                &[
+                    ("I", "PRON"),
+                    (" ", "AUX"),
+                    ("do", "AUX"),
+                    ("n't", "PART"),
+                    (" ", "AUX"),
+                    ("know", "VERB"),
+                    (".", "PUNCT"),
+                ],
             ),
         ],
     );

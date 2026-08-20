@@ -19,16 +19,16 @@ Both workflows use [Universal Dependencies (UD)](https://universaldependencies.o
 ## Per-Language Differences
 
 The pipeline (prepare → extract → train) and the scripts are shared by all
-three languages. Only two things are language-specific:
+four languages. Only two things are language-specific:
 
 1. **The `-l` flag on `extract`** selects the language's character-type
-   classification (Japanese 8 types, Chinese 9, Korean 10; Korean uses no
-   WC features — see the
+   classification (Japanese 8 types, Chinese 9, Korean 10, English 7;
+   Korean and English use no WC features — see the
    [language support overview](language-support/overview.md)). Models are
    therefore language-specific.
-2. **Korean uses the space-preserving TSV corpus format.** Korean is
-   written with spaces between eojeol, and those spaces are the strongest
-   boundary signal, so the Korean corpus keeps them as tokens
+2. **Korean and English use the space-preserving TSV corpus format.**
+   Both are written with spaces between words, and those spaces are the
+   strongest boundary signal, so their corpora keep them as tokens
    (`corpus_udtreebank.sh -s` + `litsea extract --format tsv`). Japanese
    and Chinese are written without spaces, so they use the plain
    space-separated format.
@@ -38,19 +38,19 @@ three languages. Only two things are language-specific:
 bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 litsea extract -l japanese corpus.txt features.txt
 
-# Korean: space-preserving TSV corpus
+# Korean / English: space-preserving TSV corpus
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l korean --format tsv corpus.tsv features.txt
 ```
 
-The `train` step's command shape is the same for all three languages, but
+The `train` step's command shape is the same for all four languages, but
 the actual hyperparameters differ. `-t 0.0001 -i 20000` (see [Training
 Models](training-guide/training-models.md)) is a good starting point when
 training a plain AdaBoost model from scratch with `litsea train`, but it is
-not what the bundled `japanese`/`chinese`/`korean` models use -- those go
-through a different procedure with per-language epoch counts and pruning.
-See [Training Procedure](pre-trained-models.md#training-procedure) for the
-actual recipe.
+not what the bundled `japanese`/`chinese`/`korean`/`english` models use --
+those go through a different procedure with per-language epoch counts and
+pruning. See [Training Procedure](pre-trained-models.md#training-procedure)
+for the actual recipe.
 
 ## Additional Topics
 

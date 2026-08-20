@@ -71,12 +71,35 @@ Korean uses a **range arm with a codepoint test** for the SN and SF types. This 
 
 This distinction is important because the presence of a final consonant (받침) affects Korean word boundary patterns and particle attachment.
 
+## English Character Types
+
+| Code | Name | Pattern / Range | Examples |
+|------|------|----------------|----------|
+| **U** | Uppercase Latin | `[A-ZＡ-Ｚ]` | A, Z, Ｔ |
+| **W** | Whitespace | Space, tab, U+00A0 | ` `, `\t` |
+| **Q** | Apostrophe | U+0027, U+2019 | `'`, `’` |
+| **P** | Punctuation | ASCII (minus apostrophe) + General Punctuation + CJK/full-width | `.`, `-`, `@`, `。` |
+| **A** | Lowercase Latin | `[a-zａ-ｚ]` | a, z |
+| **N** | Digits | `[0-9０-９]` | 0, ５ |
+| **O** | Other | Fallback | 字, é |
+
+Unlike the other three languages, English classifies ASCII punctuation
+(minus the apostrophe) as `"P"` rather than leaving it as `"O"` — a
+deliberate, English-specific difference (`char_type('@')` is `"O"`
+elsewhere but `"P"` for English). The apostrophe is split out into its own
+type (`"Q"`) because it is the character-level marker of contractions and
+possessives (`do` + `n't`, `Google` + `'s`), and uppercase gets its own
+type (`"U"`) because it correlates with sentence-initial and proper-noun
+boundaries. See [English](../language-support/english.md) for the full
+rationale, including why the hyphen stays `"P"` rather than getting an
+eighth type.
+
 ## Cross-Language Comparison
 
-| Feature | Japanese | Chinese | Korean |
-|---------|----------|---------|--------|
-| Total types | 8 | 9 | 10 |
-| Unique types | M, H, I, K | F, C, X, R, B | E, SN, SF, J, G |
-| Shared types | P, A, N, O | P, A, N, O | P, A, N, O (H shared with JP) |
-| Matching method | Range match | Range match | Range match + codepoint test |
-| WC features used | Yes | Yes | No |
+| Feature | Japanese | Chinese | Korean | English |
+|---------|----------|---------|--------|---------|
+| Total types | 8 | 9 | 10 | 7 |
+| Unique types | M, H, I, K | F, C, X, R, B | E, SN, SF, J, G | U, W, Q |
+| Shared types | P, A, N, O | P, A, N, O | P, A, N, O (H shared with JP) | P, A, N, O (P widened to all ASCII punct) |
+| Matching method | Range match | Range match | Range match + codepoint test | Range match |
+| WC features used | Yes | Yes | No | No |

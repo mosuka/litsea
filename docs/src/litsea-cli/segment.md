@@ -18,7 +18,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko` |
+| `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | Enable POS-tagged segmentation output. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`) |
 | `--threads <N>` | `1` | Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with `N > 1`, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without `--pos`). Wall-clock time for large inputs drops with core count; single-line latency is unchanged |
 
@@ -54,6 +54,12 @@ echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
 ```sh
 echo "한국어 단어 분할 테스트입니다." \
   | litsea segment -l korean ./models/korean.model
+```
+
+**English:**
+
+```sh
+echo "I don't know." | litsea segment -l english ./models/english.model
 ```
 
 **Processing a file:**

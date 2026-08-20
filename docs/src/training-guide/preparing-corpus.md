@@ -13,6 +13,7 @@ Litsea uses UD Treebanks as the data source for both word segmentation and POS t
 | Japanese | UD Japanese-GSD | `UD_Japanese-GSD` |
 | Chinese | UD Chinese-GSD | `UD_Chinese-GSD` |
 | Korean | UD Korean-GSD | `UD_Korean-GSD` |
+| English | UD English-EWT | `UD_English-EWT` |
 
 ### Step 1: Download a UD Treebank
 
@@ -22,7 +23,7 @@ Use `scripts/download_udtreebank.sh` to download a UD Treebank. It prints the pa
 conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 ```
 
-Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese). Use `-o` to specify the output directory (default: current directory).
+Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese), `en` (English). Use `-o` to specify the output directory (default: current directory).
 
 ## Corpus for Word Segmentation
 
@@ -47,19 +48,31 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 
 This converts the CoNLL-U data into space-separated words (one sentence per line).
 
-### Space-Preserving TSV Corpus (Korean)
+### Space-Preserving TSV Corpus (Korean, English)
 
 The space-separated format above discards the original spacing of the
 sentence: the words are later concatenated without spaces for training. For
-Korean this loses the strongest boundary signal (the inter-eojeol space),
-so use the `-s` flag instead, which emits a **tab-separated corpus** in
-which every original space (reconstructed from the treebank's `SpaceAfter`
-annotations) is kept as its own token:
+Korean and English this loses the strongest boundary signal (Korean's
+inter-eojeol space, English's inter-word space), so use the `-s` flag
+instead, which emits a **tab-separated corpus** in which every original
+space (reconstructed from the treebank's `SpaceAfter` annotations) is kept
+as its own token:
 
 ```sh
 conllu_file=$(bash scripts/download_udtreebank.sh -l ko -o /tmp)
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" ko_corpus.tsv
+
+conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -s "$conllu_file" en_corpus.tsv
 ```
+
+For English specifically, `-s` also handles multiword tokens (contractions
+like `don't`, represented in CoNLL-U as a range line covering two word
+lines): the range's member words are joined with no space token between
+them, and the range's own `SpaceAfter` annotation is applied after the
+last member word. See
+[English](../language-support/english.md#space-preserving-training) for
+the details.
 
 Extract features from a TSV corpus with `litsea extract --format tsv`. The
 `-s` flag cannot be combined with `-p` (the POS pipeline has no TSV
@@ -109,7 +122,7 @@ bash scripts/corpus_udtreebank.sh "$conllu_file" corpus.txt
 bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 ```
 
-Supported languages for `download_udtreebank.sh`: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese).
+Supported languages for `download_udtreebank.sh`: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese), `en` (English).
 
 ## Corpus from Wikipedia Dump
 

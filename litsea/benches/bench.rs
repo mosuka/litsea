@@ -49,12 +49,14 @@ fn bench_segment_short(c: &mut Criterion) {
         ("japanese", Language::Japanese, "japanese.model"),
         ("chinese", Language::Chinese, "chinese.model"),
         ("korean", Language::Korean, "korean.model"),
+        ("english", Language::English, "english.model"),
     ];
 
     let inputs: &[(&str, &str)] = &[
         ("japanese", "これはテストです。"),
         ("chinese", "这是一个测试。"),
         ("korean", "이것은테스트입니다."),
+        ("english", "This is a test."),
     ];
 
     let mut group = c.benchmark_group("segment_short");
@@ -132,6 +134,7 @@ fn bench_external_corpus(c: &mut Criterion) {
         ("japanese-rwcp", Language::Japanese, "RWCP.model", "wagahaiwa_nekodearu.txt"),
         ("korean", Language::Korean, "korean.model", "mujeong.txt"),
         ("chinese", Language::Chinese, "chinese.model", "rulin_waishi.txt"),
+        ("english", Language::English, "english.model", "pride_and_prejudice.txt"),
     ];
     for (id, language, model, corpus) in segment_cases {
         let (lines, chars) = load_corpus_lines(corpus);
@@ -156,6 +159,12 @@ fn bench_external_corpus(c: &mut Criterion) {
         ),
         ("korean-two-stage", Language::Korean, "korean_pos.model", "mujeong.txt"),
         ("chinese-two-stage", Language::Chinese, "chinese_pos.model", "rulin_waishi.txt"),
+        (
+            "english-two-stage",
+            Language::English,
+            "english_pos.model",
+            "pride_and_prejudice.txt",
+        ),
     ];
     for (id, language, model, corpus) in two_stage_cases {
         let (lines, chars) = load_corpus_lines(corpus);
@@ -235,6 +244,7 @@ fn bench_segment_into(c: &mut Criterion) {
         ("japanese", Language::Japanese, "japanese.model", "wagahaiwa_nekodearu.txt"),
         ("korean", Language::Korean, "korean.model", "mujeong.txt"),
         ("chinese", Language::Chinese, "chinese.model", "rulin_waishi.txt"),
+        ("english", Language::English, "english.model", "pride_and_prejudice.txt"),
     ];
     for (id, language, model, corpus) in cases {
         let (lines, chars) = load_corpus_lines(corpus);

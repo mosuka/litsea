@@ -43,9 +43,9 @@ Of the **actual** boundaries, what fraction did the model **find**. High recall 
 
 ## Pre-trained Model Benchmarks
 
-The bundled `japanese.model`, `chinese.model`, and `korean.model` are
-trained with a binary-perceptron-collapse procedure, not plain AdaBoost
-`-t`/`-i` training -- see [Training
+The bundled `japanese.model`, `chinese.model`, `korean.model`, and
+`english.model` are trained with a binary-perceptron-collapse procedure,
+not plain AdaBoost `-t`/`-i` training -- see [Training
 Procedure](../pre-trained-models.md#training-procedure) for the exact
 recipe. All are evaluated on the held-out test split of their training
 treebank. **Word F1** scores exact word matches; **Boundary F1** scores
@@ -56,13 +56,17 @@ individual boundary decisions.
 | japanese.model | 96.70% | 98.59% | UD Japanese-GSD |
 | korean.model | 99.91% | 99.96% | UD Korean-GSD |
 | chinese.model | 90.69% | 95.64% | UD Chinese-GSD |
+| english.model | 98.31% | 99.18% | UD English-EWT |
 
-Korean is trained and evaluated on text that preserves the original
-inter-eojeol spaces (space-preserving TSV corpus; space tokens are excluded
-from the F1 computation). Since spaces mark most Korean word boundaries,
-this makes the task far easier than for Japanese and Chinese, which are
-written without spaces — the scores are not directly comparable across
-languages.
+Korean and English are trained and evaluated on text that preserves the
+original spaces (space-preserving TSV corpus; space tokens are excluded
+from the F1 computation). Since spaces mark most word boundaries in these
+two languages, this makes the task easier than for Japanese and Chinese,
+which are written without spaces — the scores are not directly comparable
+across languages. Korean's near-deterministic 99.91% and English's lower
+98.31% both come from this same space-preserving protocol; the remaining
+gap is residual ambiguity English keeps even with spaces present
+(contractions, hyphenated compounds, abbreviations).
 
 ### Reproducing the Benchmarks
 
@@ -75,14 +79,18 @@ splits):
 litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
+litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 ```
 
 See [evaluate](../litsea-cli/evaluate.md) for the command reference. POS
-models are evaluated with `--pos` against the `*_gsd_test_pos.txt` files;
-their held-out figures are listed in
-[Pre-trained Models](../pre-trained-models.md). Note the Korean POS gold
-follows the POS pipeline's convention (no space tokens), so unlike the
-segmentation row above it is evaluated on unspaced text.
+models are evaluated with `--pos` against the `*_gsd_test_pos.txt` /
+`english_ewt_test_pos.txt` files; their held-out figures are listed in
+[Pre-trained Models](../pre-trained-models.md). Note the Korean and
+English POS gold follow the POS pipeline's convention (no space tokens),
+so unlike the segmentation rows above they are evaluated on unspaced text
+-- for English this produces a much larger quality gap than for Korean,
+see [Pre-trained Models](../pre-trained-models.md#english_posmodel) for
+why.
 
 ## Improving Model Quality
 

@@ -59,8 +59,8 @@ graph TD
 
 `Language` enum と文字種分類を定義します。
 
-- **`Language`** -- `Japanese`・`Chinese`・`Korean` のバリアントを持つ enum
-  - `FromStr` を実装（`"japanese"`・`"ja"`・`"chinese"`・`"zh"`・`"korean"`・`"ko"` をパース）
+- **`Language`** -- `Japanese`・`Chinese`・`Korean`・`English` のバリアントを持つ enum
+  - `FromStr` を実装（`"japanese"`・`"ja"`・`"chinese"`・`"zh"`・`"korean"`・`"ko"`・`"english"`・`"en"` をパース）
   - `Display` を実装（小文字名を出力）
   - `char_type(c: char) -> &'static str` -- 非公開の `char_type_id()` が返す数値の type id に対するテーブル参照として文字を分類します。`char_type_id()` は言語別関数（`japanese_char_type_id` など）にディスパッチし、各関数は文字範囲に対する直接の `match` として実装されています（アロケーションなし・正規表現不使用）。言語別関数は、共通の `"P"`/`"A"`/`"N"` クラス用の `punct_latin_digit()` ヘルパーを共有します。
 
@@ -76,7 +76,7 @@ graph TD
   - `segment_into(sentence, buf)` -- アロケーションフリー版（#184）: 再利用可能な `SegmentBuffer` から借用したトークンのバイト範囲を返す
   - `segment_with_pos(sentence)` -- 分割と品詞付与を行い `Result<Vec<(String, Upos)>>` を返す（二段構成学習器が未設定の場合は `PosLearnerNotSet`）
   - `char_type(ch)` -- 1文字を種別コードに分類
-  - `add_corpus(corpus)` / `add_corpus_tsv(corpus)` -- 学習データを追加（それぞれ空白区切り・タブ区切り/空白保持。後者は韓国語で使用、issue #152 を参照）
+  - `add_corpus(corpus)` / `add_corpus_tsv(corpus)` -- 学習データを追加（それぞれ空白区切り・タブ区切り/空白保持。後者は韓国語と英語で使用、issue #152 を参照）
   - `add_corpus_with_writer(corpus, callback)` / `add_corpus_with_pos_writer(corpus, callback)` / `add_corpus_tsv_with_writer(corpus, callback)` -- カスタムコールバックでコーパスを処理（POS writer 版は二段構成の stage-1 特徴量抽出が使用）
 
 ### `adaboost.rs` -- AdaBoost アルゴリズム
@@ -118,7 +118,7 @@ graph TD
 - **`Extractor`** -- `Segmenter` をラップしてコーパスファイルを処理
   - `new(language)` -- 言語を指定して作成
   - `extract(corpus_path, features_path)` -- コーパスを読み、特徴量ファイルを書き出す
-  - `extract_tsv(corpus_path, features_path)` -- タブ区切り・空白保持コーパス版（issue #152、韓国語で使用）
+  - `extract_tsv(corpus_path, features_path)` -- タブ区切り・空白保持コーパス版（issue #152、韓国語と英語で使用）
   - `extract_two_stage(corpus_path, output_prefix, feature_set)` -- 品詞付きコーパスから二段構成の学習特徴量（issue #147）を抽出: `{output_prefix}.stage1`（境界特徴量）、`.stage2`（単語レベル特徴量）、`.lexicon` を書き出す
 
 ### `trainer.rs` -- 学習オーケストレーション
