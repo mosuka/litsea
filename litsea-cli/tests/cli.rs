@@ -400,6 +400,40 @@ fn test_evaluate_pos_output() {
     assert!(stderr.contains("Tagged Word F1: 100.00%"), "unexpected output: {stderr}");
 }
 
+/// Pins evaluate's `--pos --format tsv` routing (issue #196): a
+/// space-preserving POS gold, for measuring real-world (spaced) quality
+/// instead of the unspaced protocol `--pos` alone uses. The gold line is
+/// english_pos.model's own pinned real-spaced-input output for "I don't
+/// know." (golden.rs's golden_segment_with_pos_english_two_stage), so this
+/// scores 100% by construction; the space tokens carry no /POS suffix and
+/// are excluded from scoring regardless.
+#[test]
+fn test_evaluate_pos_tsv_format() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let gold = dir.path().join("gold_pos.tsv");
+    std::fs::write(&gold, "I/PRON\t \tdo/AUX\tn't/PART\t \tknow/VERB\t./PUNCT\n")
+        .expect("write gold");
+
+    let output = run_litsea(
+        &[
+            "evaluate",
+            "--pos",
+            "--format",
+            "tsv",
+            "-l",
+            "english",
+            model_path("english_pos.model").to_str().unwrap(),
+            gold.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Evaluation Metrics (POS):"), "unexpected output: {stderr}");
+    assert!(stderr.contains("Word F1: 100.00%"), "unexpected output: {stderr}");
+    assert!(stderr.contains("Tagged Word F1: 100.00%"), "unexpected output: {stderr}");
+}
+
 /// Smoke-tests both train modes end to end: metrics are reported on stderr
 /// and a model file is written.
 #[test]

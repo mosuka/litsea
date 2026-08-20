@@ -21,6 +21,24 @@
   no inserted space token); Korean's existing gold TSV is byte-identical
   after the change. New benchmark corpus `resources/pride_and_prejudice.txt`
   (Project Gutenberg #1342, public domain).
+- `litsea evaluate --pos --format tsv` measures a two-stage POS model's
+  real-world quality on natural, spaced input for space-delimited
+  languages (issue #196), as opposed to the unspaced protocol `--pos`
+  alone has always used (which matches how the two-stage pipeline itself
+  trains, but doesn't reflect what `segment --pos` actually produces on
+  real Korean/English text). No training or extraction code changed --
+  `evaluate_pos` already reconstructs its input text from the gold token
+  sequence, so a space-preserving `word/POS` gold format (new
+  `resources/eval/{korean_gsd,english_ewt}_test_pos_spaced.tsv`, generated
+  by a new combined `corpus_udtreebank.sh -p -s` mode) was all that was
+  needed. Real-world quality: `korean_pos.model` 94.01% Word F1 (up from
+  83.24% unspaced) / `english_pos.model` 77.55% Word F1 (up from 70.33%
+  unspaced) -- both still well short of their dedicated space-preserving
+  segmentation models (`korean.model` 99.91%, `english.model` 98.31%), and
+  the gap is roughly 3.5x larger for English than for Korean.
+  `evaluation::parse_gold_pos_line` gained a `tsv: bool` parameter
+  (**breaking**, matching `parse_gold_line`'s existing shape) to support
+  the new gold format.
 
 ### Changed (breaking)
 

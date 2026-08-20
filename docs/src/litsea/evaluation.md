@@ -68,13 +68,20 @@ nor a two-stage learner set.
 
 ```rust
 pub fn parse_gold_line(line: &str, tsv: bool) -> Vec<String>
-pub fn parse_gold_pos_line(line: &str) -> Vec<(String, Upos)>
+pub fn parse_gold_pos_line(line: &str, tsv: bool) -> Vec<(String, Upos)>
 ```
 
-`parse_gold_line` splits on spaces (or tabs with `tsv = true`, where a
-token may be a literal space); `parse_gold_pos_line` splits each token at
-its **last** `/` (the training pipeline's rule), defaulting to `Upos::X`
-for missing or unparsable tags.
+Both split on spaces (or tabs with `tsv = true`, where a token may be a
+literal space -- see [English](../language-support/english.md) for why
+that matters for space-delimited languages); `parse_gold_pos_line`
+additionally splits each token at its **last** `/` (the training
+pipeline's rule), defaulting to `Upos::X` for missing or unparsable tags.
+With `tsv = true`, a literal space token has no `/POS` suffix and always
+gets `Upos::X`, but this is harmless -- whitespace tokens are excluded
+from tagged-word scoring by content, not by their assigned tag. This
+supports measuring a two-stage POS model's real-world quality on
+space-delimited languages (issue #196), whose training corpus itself has
+no space-preserving variant.
 
 ## Example
 

@@ -4,8 +4,8 @@
 //! using character-offset spans: the gold text is the concatenation of the
 //! gold tokens, so predicted and gold tokens can be matched exactly by
 //! their `(start, end)` offsets. Pure-whitespace tokens are excluded from
-//! scoring (the Korean space-preserving protocol of issue #152; a no-op
-//! for languages written without spaces).
+//! scoring (the Korean/English space-preserving protocol of issue
+//! #152/#196; a no-op for languages written without spaces).
 
 use std::collections::HashSet;
 
@@ -259,18 +259,30 @@ pub fn parse_gold_line(line: &str, tsv: bool) -> Vec<String> {
     line.split(sep).filter(|t| !t.is_empty()).map(str::to_string).collect()
 }
 
-/// Parses one POS-tagged gold line (`"word/POS word/POS ..."`) into
-/// `(token, tag)` pairs, splitting each token at its **last** `/` (the
-/// same rule as the training pipeline); a token without a slash gets
-/// [`Upos::X`], as does an unparsable tag.
+/// Parses one POS-tagged gold line into `(token, tag)` pairs, splitting
+/// each token at its **last** `/` (the same rule as the training
+/// pipeline); a token without a slash gets [`Upos::X`], as does an
+/// unparsable tag.
+///
+/// * `space` format: `"word/POS word/POS ..."`, space-separated.
+/// * `tsv` format: tab-separated tokens; a token may be a literal space
+///   `" "` (the space-preserving TSV corpus of issue #152/#196) with no
+///   `/POS` suffix, so it always gets [`Upos::X`] -- harmless, since
+///   whitespace tokens are excluded from tagged-word scoring the same way
+///   they are excluded from word scoring (see [`spans`]'s whitespace
+///   flag). CoNLL-U itself carries no UPOS annotation for inter-token
+///   whitespace, so leaving it untagged is more accurate than inventing
+///   one.
 ///
 /// # Arguments
 /// * `line` - The POS-tagged gold corpus line.
+/// * `tsv` - Whether the line is tab-separated (`true`) or space-separated.
 ///
 /// # Returns
 /// The `(token, tag)` vector; empty for blank lines.
-pub fn parse_gold_pos_line(line: &str) -> Vec<(String, Upos)> {
-    line.split(' ')
+pub fn parse_gold_pos_line(line: &str, tsv: bool) -> Vec<(String, Upos)> {
+    let sep = if tsv { '\t' } else { ' ' };
+    line.split(sep)
         .filter(|t| !t.is_empty())
         .map(|token| match token.rfind('/') {
             Some(idx) => (token[..idx].to_string(), token[idx + 1..].parse().unwrap_or(Upos::X)),
@@ -353,7 +365,7 @@ mod tests {
 
     #[test]
     fn test_parse_gold_pos_line() {
-        let parsed = parse_gold_pos_line("これ/PRON は/ADP //PUNCT plain");
+        let parsed = parse_gold_pos_line("これ/PRON は/ADP //PUNCT plain", false);
         assert_eq!(
             parsed,
             vec![
@@ -363,5 +375,34 @@ mod tests {
                 ("plain".to_string(), Upos::X),
             ]
         );
+    }
+
+    #[test]
+    fn test_parse_gold_pos_line_tsv() {
+        // Space-preserving TSV: a literal space token carries no /POS
+        // suffix and gets Upos::X, matching how a whitespace segmentation
+        // token is left untagged rather than assigned an invented one.
+        let parsed =
+            parse_gold_pos_line("I/PRON\t \tdo/AUX\tn't/PART\t \tknow/VERB\t./PUNCT", true);
+        assert_eq!(
+            parsed,
+            vec![
+                ("I".to_string(), Upos::PRON),
+                (" ".to_string(), Upos::X),
+                ("do".to_string(), Upos::AUX),
+                ("n't".to_string(), Upos::PART),
+                (" ".to_string(), Upos::X),
+                ("know".to_string(), Upos::VERB),
+                (".".to_string(), Upos::PUNCT),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_parse_gold_pos_line_tsv_drops_empty_tokens() {
+        // Consecutive tabs (e.g. a trailing tab) must not produce a
+        // spurious empty token.
+        let parsed = parse_gold_pos_line("word/NOUN\t\t.", true);
+        assert_eq!(parsed, vec![("word".to_string(), Upos::NOUN), (".".to_string(), Upos::X)]);
     }
 }

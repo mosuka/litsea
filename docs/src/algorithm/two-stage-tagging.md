@@ -45,7 +45,7 @@ reach.
 
 ## Measured quality and throughput
 
-Held-out figures are from `litsea evaluate --pos` on the UD GSD test
+Held-out figures are from `litsea evaluate --pos` on the UD GSD/EWT test
 splits (see [Pre-trained Models](../pre-trained-models.md)). Throughput is
 `cargo bench -- external_corpus` on this project's development machine
 (not dedicated, idle hardware); run-to-run spread is noticeable -- see
@@ -56,8 +56,10 @@ limits.
 |----------|---------|-----------|------------|
 | Japanese | 96.78% | 92.95% | 4.38M chars/s |
 | Chinese | 90.82% | 82.29% | 3.38M chars/s |
-| Korean | 83.24% | 78.86% | 4.54M chars/s |
-| English | 70.33% | 65.83% | 2.05M chars/s |
+| Korean (unspaced protocol) | 83.24% | 78.86% | 4.54M chars/s |
+| Korean (real-world/spaced) | 94.01% | 83.20% | -- |
+| English (unspaced protocol) | 70.33% | 65.83% | 2.05M chars/s |
+| English (real-world/spaced) | 77.55% | 69.89% | -- |
 
 Two observations worth keeping in mind:
 
@@ -70,15 +72,33 @@ Two observations worth keeping in mind:
   full-class fallback rather than the cheap dominance-skip or
   candidate-masked paths.
 
-**English's Word F1 is much lower than the others, and this is not a bug.**
-Unlike the Korean and Japanese/Chinese rows above, `english_pos.model` is
-trained and evaluated on unspaced text where none of the other languages'
-segmentation task is anywhere near as hard: Korean's agglutinative
-particles and verb endings leave strong boundary cues even with spaces
-removed (its unspaced two-stage Word F1, 83.24% here, is not far from its
-space-preserving `korean.model`'s 99.91%), while English orthography
-leaves almost none, so segmenting unspaced English is intrinsically much
-harder. See [English](../language-support/english.md#english_posmodel) and
+**Japanese and Chinese have no "unspaced protocol" vs. "real-world" split**
+because their real text has no spaces to begin with -- the single row
+above already *is* their real-world number. Korean and English are
+space-delimited languages evaluated on two different protocols: the
+"unspaced protocol" row measures the model on the same unspaced text it
+was trained on (not a train/inference mismatch -- `evaluate --pos` scores
+it consistently either way); the "real-world/spaced" row (issue #196)
+reconstructs the model's actual spaced input from a space-preserving POS
+gold and measures what `segment --pos` really produces, without changing
+training. Both rows are the *same model* -- these two-stage POS models are
+trained on unspaced text regardless of protocol shown, since the two-stage
+training pipeline itself has no space-preserving corpus format yet.
+
+**English's Word F1 is much lower than Korean's, and this is not a bug.**
+The clearest apples-to-apples comparison is each language's real-world
+two-stage number against its own dedicated space-preserving *segmentation*
+model -- the ceiling a model trained directly on spaced text reaches for
+that language: Korean's real-world POS quality (94.01%) sits only 5.9pt
+below `korean.model`'s 99.91%, while English's (77.55%) sits 20.8pt below
+`english.model`'s 98.31%. Both `korean_pos.model` and `english_pos.model`
+are trained on unspaced text (the two-stage pipeline has no
+space-preserving corpus format), so this gap is the cost of that unspaced
+training protocol -- and it is roughly 3.5x larger for English than for
+Korean, because Korean's agglutinative particles and verb endings leave
+much stronger boundary cues even with spaces removed than English
+orthography does. See
+[English](../language-support/english.md#english_posmodel) and
 [Pre-trained Models](../pre-trained-models.md#english_posmodel) for the
 full explanation.
 
