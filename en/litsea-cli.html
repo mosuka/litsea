@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-606bda11.js";
+            window.path_to_searchindex_js = "searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-4bbd3799.js"></script>
+        <script src="toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -227,21 +227,7 @@
 <li>Train a model: <code>litsea train -t 0.0001 -i 20000 features.txt model.model</code></li>
 <li>Segment text: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
-<h3 id="pos-workflow-word-segmentation-with-pos-tagging"><a class="header" href="#pos-workflow-word-segmentation-with-pos-tagging">POS Workflow (Word Segmentation with POS Tagging)</a></h3>
-<pre><code class="language-mermaid">flowchart LR
-    A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
-    B --&gt; C["3. litsea extract --pos"]
-    C --&gt; D["4. litsea train --pos"]
-    D --&gt; E["5. litsea segment --pos"]
-</code></pre>
-<ol>
-<li>Download a UD Treebank: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
-<li>Convert to POS corpus format: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
-<li>Extract POS features: <code>litsea extract --pos -l japanese pos_corpus.txt features_pos.txt</code></li>
-<li>Train a POS model: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
-<li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
-</ol>
-<h3 id="two-stage-workflow-faster-pos-tagging"><a class="header" href="#two-stage-workflow-faster-pos-tagging">Two-Stage Workflow (Faster POS Tagging)</a></h3>
+<h3 id="two-stage-workflow-word-segmentation-with-pos-tagging"><a class="header" href="#two-stage-workflow-word-segmentation-with-pos-tagging">Two-Stage Workflow (Word Segmentation with POS Tagging)</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
     B --&gt; C["3. litsea extract --two-stage"]
@@ -255,10 +241,8 @@
 <li>Train a two-stage model: <code>litsea train --two-stage --num-epochs 50 features_prefix model.model</code></li>
 <li>Segment with POS tags: <code>echo "text" | litsea segment --pos -l japanese model.model</code></li>
 </ol>
-<p><code>segment --pos</code> and <code>evaluate --pos</code> auto-detect a two-stage model from its
-file header, so no extra flag is needed to use one once trained. See
-<a href="algorithm/two-stage-tagging.html">Two-Stage vs. Joint Tagging</a> for the
-architecture and why to prefer it for new work, and <a href="training-guide/training-models.html#two-stage-model-training">Training
+<p>See <a href="algorithm/two-stage-tagging.html">Two-Stage Tagging</a> for the
+architecture, and <a href="training-guide/training-models.html#two-stage-model-training">Training
 Models</a> or
 <a href="litsea-cli/train.html#two-stage-model-training"><code>train</code></a> for the full flag
 reference.</p>

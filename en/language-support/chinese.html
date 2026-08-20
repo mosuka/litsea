@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -229,14 +229,10 @@ Procedure</a> for the full recipe</li>
 <li><strong>Word F1 (held-out)</strong>: 90.69%</li>
 <li><strong>Boundary F1 (held-out)</strong>: 95.64%</li>
 </ul>
-<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
-<ul>
-<li><strong>Algorithm</strong>: Averaged Perceptron (joint segmentation + POS tagging)</li>
-<li><strong>Details</strong>: see <a href="../pre-trained-models.html#chinese_posmodel">Pre-trained Models</a></li>
-</ul>
 <h3 id="chinese_two_stagemodel"><a class="header" href="#chinese_two_stagemodel">chinese_two_stage.model</a></h3>
 <ul>
-<li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (faster than the joint model, same output shape)</li>
+<li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
+classifier plus a word-level tagger with a candidate-tag lexicon)</li>
 <li><strong>Details</strong>: see <a href="../pre-trained-models.html#chinese_two_stagemodel">Pre-trained Models</a></li>
 </ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>

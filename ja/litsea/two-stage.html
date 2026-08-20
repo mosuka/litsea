@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,9 +183,9 @@
                         <h1 id="二段構成モデルtwo-stage-model"><a class="header" href="#二段構成モデルtwo-stage-model">二段構成モデル（Two-Stage Model）</a></h1>
 <p><code>two_stage</code> モジュールは <code>litsea-two-stage v1</code> モデルコンテナ
 （<code>TwoStageLearner</code>）、stage-2 特徴量セットの選択肢（<code>TwoStageFeatureSet</code>）、
-自動判別 POS モデルローダー（<code>AnyPosModel</code> / <code>ModelKind</code>）を定義します。
-アーキテクチャと計測済みの品質・速度比較は
-<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint タグ付け</a> を、
+モデル種別の判定器（<code>ModelKind</code>）を定義します。
+アーキテクチャと計測済みの品質・速度の数値は
+<a href="../algorithm/two-stage-tagging.html">二段構成タグ付け</a> を、
 モデルの新規学習は
 <a href="trainer.html#twostagetrainer"><code>TwoStageTrainer</code></a> を参照してください。</p>
 <h2 id="twostagelearner"><a class="header" href="#twostagelearner"><code>TwoStageLearner</code></a></h2>
@@ -294,7 +294,7 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
 <p><code>FromStr</code>（大文字小文字を区別しない: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>）と
 <code>Display</code>（小文字）を実装しています。<code>#[non_exhaustive]</code> が付与されて
 おり、外部の <code>match</code> 式にはワイルドカードアームが必要です。</p>
-<h2 id="anyposmodel-と-modelkind"><a class="header" href="#anyposmodel-と-modelkind"><code>AnyPosModel</code> と <code>ModelKind</code></a></h2>
+<h2 id="modelkind"><a class="header" href="#modelkind"><code>ModelKind</code></a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub enum ModelKind {
@@ -302,37 +302,19 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
     AveragedPerceptron,
     TwoStage,
 }
-
-pub enum AnyPosModel {
-    Joint(Box&lt;AveragedPerceptron&gt;),
-    TwoStage(Box&lt;TwoStageLearner&gt;),
-}
 <span class="boring">}</span></code></pre>
 <p><code>ModelKind::detect(content: &amp;str) -&gt; ModelKind</code> はモデルファイルの
 1行目を調べて形式を判別します——これは判別のためのヒューリスティックで
-あり完全な検証ではありません。実際の検証は対応するローダーが行います。</p>
-<p><code>AnyPosModel::load(uri: &amp;str) -&gt; Result&lt;Self&gt;</code> は joint モデルと
-二段構成モデルのどちらも受け付けるコードのための単一フェッチ
-エントリポイントです（<code>litsea segment --pos</code> と <code>litsea evaluate --pos</code>
-が実際に使用しています）: モデルバイト列を一度だけ取得し、種類を
-判別してから対応するローダーで解析します。ファイルがプレーンな
-AdaBoost 分割モデル（タグ付け不可）の場合、バイト列が有効な UTF-8 で
-ない場合、判別された形式の解析に失敗した場合はいずれも
-<code>LitseaError::InvalidData</code> を返します。</p>
-<p><code>AnyPosModel::into_segmenter(self, language: Language) -&gt; Segmenter</code> は
-対応する <code>Segmenter</code> を構築します——<code>Joint</code> には <code>with_pos_learner</code>、
-<code>TwoStage</code> には <code>with_two_stage_learner</code>——呼び出し側がモデル種別で
-分岐する必要はありません:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use litsea::language::Language;
-use litsea::two_stage::AnyPosModel;
-
-let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
-let segmenter = model.into_segmenter(Language::Japanese);
-let tagged = segmenter.segment_with_pos("これはテストです。")?;
-// ファイルが joint モデルでも二段構成モデルでも同じように動作します。
-<span class="boring">}</span></code></pre>
+あり完全な検証ではありません。<code>AdaBoost</code> はプレーンな分割モデル形式
+（畳み込み済みの二段構成 stage 1 の形式でもあります）、
+<code>AveragedPerceptron</code> はスタンドアロンのパーセプトロンファイル
+（<code>train --perceptron</code> の出力であり、<code>[stage2]</code> セクションのペイロード
+形式。これは削除された joint POS モデル形式であり、POS モデルとしては
+読み込めません）、<code>TwoStage</code> は <code>litsea-two-stage</code> コンテナです。</p>
+<p>種類違いのファイルには <code>TwoStageLearner</code> のローダーが正確なエラーを
+返します: スタンドアロンの Averaged Perceptron ファイルを指定すると
+“joint POS models are no longer supported — retrain with <code>litsea train --two-stage</code>” で失敗し、それ以外の非二段構成の内容はマジック行の欠落
+エラーで失敗します。</p>
 
                     </main>
 

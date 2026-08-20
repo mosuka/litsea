@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -265,11 +265,10 @@ returns them directly from a reusable buffer); the sentinel entries
 (<code>B3</code>…<code>E3</code>) map to code points just above the Unicode scalar range.</p>
 <h3 id="the-compiled-scoring-tables"><a class="header" href="#the-compiled-scoring-tables">The Compiled Scoring Tables</a></h3>
 <p>The feature template is defined once as a declarative table
-(<code>packed_model::TEMPLATES</code>), from which four consumers derive: the string
+(<code>packed_model::TEMPLATES</code>), from which three consumers derive: the string
 writer used by training and extraction, the load-time parser that
-converts each model feature string into an integer key, the two-pass
-scorer’s tables, and the multiclass POS twin of parser and scorer
-(<code>packed_pos_model::PackedPosModel</code>, see below). Compilation happens
+converts each model feature string into an integer key, and the two-pass
+scorer’s tables. Compilation happens
 eagerly in <code>Segmenter::with_learner</code> and is invalidated whenever the
 learner is mutated (<code>learner_mut()</code> / <code>add_corpus</code>), then rebuilt lazily
 on the next <code>segment()</code> call.</p>
@@ -289,8 +288,8 @@ the static pass.</li>
 <p>Model features that the segmenter’s language could never generate (for
 example Korean type codes in a Japanese segmenter) are omitted from all
 tables; they are unreachable at scoring time, so scores are unaffected.</p>
-<p>This table and its four consumers cover the character-level (stage-1 /
-AdaBoost / joint) feature set only. <a href="two-stage-tagging.html">Two-stage POS
+<p>This table and its three consumers cover the character-level (stage-1 /
+AdaBoost) feature set only. <a href="two-stage-tagging.html">Two-stage POS
 tagging</a>’s stage-2 word tagger is compiled from a
 separate, parallel declarative table (<code>litsea::word_features</code>, 23
 word-level templates) into its own runtime,
@@ -306,54 +305,17 @@ been observed: the exact-equality differential tests (all bundled models,
 sentinel stress strings, and a real-text corpus) pass unchanged, and they
 remain in the test suite as the detection net for any knife-edge score
 flip a future model might expose.</p>
-<h2 id="joint-segmentation-and-pos-tagging-segment_with_pos"><a class="header" href="#joint-segmentation-and-pos-tagging-segment_with_pos">Joint Segmentation and POS Tagging (<code>segment_with_pos</code>)</a></h2>
-<p><code>segment_with_pos</code> runs the same two-pass pipeline with the Averaged
-Perceptron instead of AdaBoost (issue #143). The perceptron’s weights are
-compiled once into a multiclass twin of the segmentation tables
-(<code>packed_pos_model::PackedPosModel</code>), cached next to the AdaBoost tables
-and invalidated by <code>pos_learner_mut()</code> / <code>add_corpus_with_pos()</code>. No
-feature strings are built at inference time:</p>
-<ol>
-<li><strong>Static pass</strong> – as in <code>segment()</code>, one merged <code>UW</code> probe per
-position, one merged <code>BW</code> probe per pair, <code>WC</code> gathers, and
-<code>UC</code>/<code>BC</code>/<code>TC</code> scatter-twin blocks accumulate into an
-<code>n x n_classes</code> score matrix. Because perceptron updates touch only
-the gold/predicted class pair, features average ~3 non-zero classes,
-so the hash-table families store sparse <code>(class, weight)</code> rows.</li>
-<li><strong>Sequential pass</strong> – at each position, the 16 tag-dependent dense
-rows are added on top of the static row and the argmax class is
-taken (first strictly-greater class wins, exactly like
-<code>AveragedPerceptron</code>’s prediction). A presence bitset skips the rows
-of features absent from the model without touching the weight
-tables. The predicted class maps to a pre-parsed <code>SegmentLabel</code>
-(<code>B-&lt;POS&gt;</code> or <code>O</code>) – no per-character label string parsing.</li>
-<li>Unlike <code>segment()</code>, decisions start at the <strong>first character
-position</strong> (<code>lo = 3</code>): its label determines the first word’s POS.
-Since #100 the POS training pipeline emits that position too, so
-training and inference are symmetric (the boundary/AdaBoost pipeline
-still skips it because its first-position label is degenerate).</li>
-<li>A <code>B-&lt;POS&gt;</code> label closes the current word and starts a new one
-carrying that POS; <code>O</code> extends the current word. Words are
-materialized from byte offsets of the input, one exact-size
-allocation each.</li>
-</ol>
-<p>The string-keyed path is kept test-only (<code>segment_with_pos_reference</code>)
-as the oracle for exact-equality differential tests, which measure zero
-output divergence across all bundled POS models, stress strings, and a
-real-text corpus – the same guarantee net as <code>segment()</code>’s.</p>
-<h3 id="two-stage-mode-takes-a-different-path"><a class="header" href="#two-stage-mode-takes-a-different-path">Two-Stage Mode Takes a Different Path</a></h3>
-<p>Everything above describes <code>segment_with_pos</code> when the segmenter was built
-with a joint (<code>AveragedPerceptron</code>) POS learner. When it was instead built
-with <a href="../litsea/segmenter.html#with_two_stage_learner"><code>with_two_stage_learner</code></a>,
-<code>segment_with_pos</code> checks for the two-stage learner <strong>first</strong> and, if one
-is set, never runs the packed-perceptron path above at all: it segments
-with the ordinary <code>segment()</code> boundary path, then tags each resulting word
-through <code>packed_two_stage::PackedTwoStageModel::tag_words</code> – a
-candidate-tag lexicon lookup, with a masked-argmax fallback for ambiguous
-known words and a full-argmax fallback for unknown words. See <a href="two-stage-tagging.html">Two-Stage
-vs. Joint Tagging</a> for the full explanation of that
-pipeline and why it is faster than the per-character multiclass scoring
-above.</p>
+<h2 id="segmentation-and-pos-tagging-segment_with_pos"><a class="header" href="#segmentation-and-pos-tagging-segment_with_pos">Segmentation and POS Tagging (<code>segment_with_pos</code>)</a></h2>
+<p><code>segment_with_pos</code> requires a segmenter built with
+<a href="../litsea/segmenter.html#with_two_stage_learner"><code>with_two_stage_learner</code></a>
+(issue #147). It segments with the ordinary <code>segment()</code> boundary path
+described above, then tags each resulting word through
+<code>packed_two_stage::PackedTwoStageModel::tag_words</code> – a candidate-tag
+lexicon lookup, with a masked-argmax fallback for ambiguous known words
+and a full-argmax fallback for unknown words. The POS layer therefore adds
+no per-character scoring at all; see <a href="two-stage-tagging.html">Two-Stage
+Tagging</a> for the full explanation of that pipeline
+and its cost model.</p>
 <h2 id="training-vs-prediction"><a class="header" href="#training-vs-prediction">Training vs. Prediction</a></h2>
 <div class="table-wrapper">
 <table>

@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>二段構成 vs Joint タグ付け - Litsea ドキュメント</title>
+        <title>二段構成タグ付け - Litsea ドキュメント</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,21 +180,14 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="二段構成-vs-joint-タグ付け"><a class="header" href="#二段構成-vs-joint-タグ付け">二段構成 vs Joint タグ付け</a></h1>
-<p>Litsea は <code>segment_with_pos()</code> に対して 2 つのアーキテクチャを提供します:
-従来の <strong>joint モデル</strong>（<code>--pos</code>、<code>Segmenter::with_pos_learner</code>）と、
-新しい<strong>二段構成モデル</strong>（<code>--two-stage</code>、<code>Segmenter::with_two_stage_learner</code>、
-issue #147）です。どちらも全く同じ <code>segment_with_pos()</code> シグネチャを実装し、
-同じ <code>Vec&lt;(String, Upos)&gt;</code> を返します。モデルファイルのヘッダがパイプラインを
-選択する（<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">モデルファイル形式</a>を参照）
-ため、呼び出し側はどちらを読み込んだかを意識する必要がありません。</p>
-<h2 id="なぜ-2-つのアーキテクチャがあるのか"><a class="header" href="#なぜ-2-つのアーキテクチャがあるのか">なぜ 2 つのアーキテクチャがあるのか</a></h2>
-<p>joint モデルは<strong>各文字位置ごとに約 18 個の UPOS クラス全てを採点</strong>します
-（<a href="prediction-pipeline.html#単語分割と品詞タグ付けの同時実行segment_with_pos">予測パイプライン</a>を参照）:
-各判定が <code>segment()</code> の単一スカラー加算の代わりに <code>n_classes</code> 幅の
-スコア行に触れます。特徴量テンプレート自体は同一なので、これが両者の
-コスト差の全てであり、POS パスが通常の分割より数倍遅い理由です。</p>
-<p>二段構成はこれを<strong>文字レベルでは一切タグ付けしない</strong>ことで回避します:</p>
+                        <h1 id="二段構成タグ付け"><a class="header" href="#二段構成タグ付け">二段構成タグ付け</a></h1>
+<p>Litsea の <code>segment_with_pos()</code> は<strong>二段構成（two-stage）モデル</strong>
+（<code>--two-stage</code>、<code>Segmenter::with_two_stage_learner</code>、issue #147）に
+支えられています。モデルファイルの <code>litsea-two-stage v1</code> ヘッダがこの形式を
+識別し（<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">モデルファイル形式</a>を参照）、
+メソッドは <code>Vec&lt;(String, Upos)&gt;</code> の単語/タグのペアを返します。</p>
+<h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
+<p>二段構成タグ付けは、文字レベルで POS クラスを採点することは一切ありません:</p>
 <ol>
 <li><strong>stage 1</strong> は二値の境界分類器で分割します – <code>segment()</code> が使うのと
 構造的に同じスカラー重みの AdaBoost 形式なので、同じ速度で動きます。</li>
@@ -212,76 +205,49 @@ issue #147）です。どちらも全く同じ <code>segment_with_pos()</code> �
 </li>
 </ol>
 <p>単語は平均して 1 文字より多くの文字を含み、大半の単語は曖昧でないか
-分類器そのものをスキップするため、stage 2 の総コストは「全文字位置で
-全クラスを採点する」コストのごく一部で済みます。これが下記のスループット
-向上の源であり、特徴量セットやモデルが原理的に小さいことが理由ではありません。</p>
-<h2 id="方法論についての注記-学習エポック数はアーキテクチャ以上に効く"><a class="header" href="#方法論についての注記-学習エポック数はアーキテクチャ以上に効く">方法論についての注記: 学習エポック数はアーキテクチャ以上に効く</a></h2>
-<p>同梱モデルの初期比較（両アーキテクチャとも joint の既存慣習に合わせて
-10 エポックで学習）では、joint 側に有利な 0.90pt の中国語分割精度差が
-実測され、一見すると 2 クラス境界分類器に固有の限界のように見えました。
-エポック数を 10〜150 まで振った実験（両アーキテクチャで実施）により、
-これは主に学習不足によるアーティファクトであってアーキテクチャ由来では
-ないと判明しました: <strong>どちらのモデルも</strong> 10 エポックを大きく超えて品質が
-向上し続け、しかも二段構成の stage 1 は同じコーパスで joint に匹敵する
-水準に達するのに joint より<strong>多くの</strong>エポックを必要とします。<strong>同じ</strong>
-エポック数で比較すると、joint の中国語分割は依然としてより小さく一貫した
-優位（テストした 10〜150 の全エポック数で概ね 0.5〜0.9pt）を保っていました
-– これは実在する再現可能な差であり、おそらく joint モデルの文字ごとの
-タグ依存特徴量が、stage 1 の境界のみの特徴量より学習事例あたりの
-シグナルを多く運ぶためと考えられます。ただしこれは硬い上限ではありません:
-十分な学習（品質がプラトーに達する 50 エポック）を行えば、二段構成の
-中国語分割は公開済み（10 エポック）の joint モデルを<strong>上回ります</strong>。</p>
-<p>そのため以下で同梱している二段構成モデルは、このスイープから得られた
-50 エポックを使用しています – joint モデルの元々の 10 エポック慣習
-（二段構成の同梱で問題が浮上するまで見直されていませんでした）ではありません。
-<a href="../pre-trained-models.html">事前学習済みモデル</a>にある joint の <code>*_pos.model</code>
-の数値は、公開時点（10 エポック）のまま変更していません。この比較のために
-再学習していないため、joint モデルを同じエポック数で再学習すれば同様に
-数値が改善する可能性が高いです（スイープでは 100 エポックでも中国語の
-品質がまだ向上していました）。つまり以下の比較は「同梱されている
-二段構成モデル」対「現在公開されている joint モデル」の比較であり、
-「各アーキテクチャの到達可能な最良精度」の比較ではありません –
-表を読む際に留意すべき点です。</p>
-<h2 id="実測比較"><a class="header" href="#実測比較">実測比較</a></h2>
+分類器そのものをスキップするため、stage 2 の総コストは文字単位の多クラス
+採点のごく一部で済みます。これが POS パスを通常の分割とほぼ同じ速さにして
+いる理由です: 歴史的な joint アーキテクチャ（二段構成への一本化に伴い削除）
+は各文字位置ごとに約 18 個の UPOS クラス全てを採点しており、同じコーパスで
+1.8〜2.8 倍遅く動作していました。</p>
+<h2 id="方法論についての注記-十分な学習エポック数を使う"><a class="header" href="#方法論についての注記-十分な学習エポック数を使う">方法論についての注記: 十分な学習エポック数を使う</a></h2>
+<p>二段構成の展開時に行ったエポックスイープ（10〜150 エポック）により、
+モデル品質は旧来のモデルが学習されていた 10 エポック慣習を大きく超えて
+向上し続け、UD GSD 学習セットでは 50 エポック前後でプラトーに達することが
+分かりました。特に stage 1 の境界のみの特徴量は、よりリッチな文字ごとの
+特徴量セットに比べて、同じコーパスで収束するのにより多くのエポックを
+必要とします。<strong>同梱の二段構成モデルは 50 エポックを使用しています</strong>。
+再学習の際、一発の低エポック実行ではこのアーキテクチャの到達可能な品質を
+過小評価することになります。</p>
+<h2 id="実測の品質とスループット"><a class="header" href="#実測の品質とスループット">実測の品質とスループット</a></h2>
 <p>held-out の数値は UD GSD test split に対する <code>litsea evaluate --pos</code>
 （<a href="../pre-trained-models.html">事前学習済みモデル</a>を参照）です。スループットは
 本プロジェクトの開発機での <code>cargo bench -- external_corpus</code> で、
-専用のアイドルハードウェアではありません。同一ビルドでの 3 回の実行で
-無視できない振れ幅が見られました（日本語 2.65〜3.05x、中国語 2.13〜2.44x、
-韓国語 1.75〜1.90x）– 方法論とその限界については
-<a href="../advanced/benchmarking.html">ベンチマーク</a>を参照してください。以下の範囲は
-この同じ 3 回の実行によるもので、代表値はその平均です。</p>
+専用のアイドルハードウェアではありません。実行間の振れ幅は無視できない
+大きさです – 方法論とその限界については
+<a href="../advanced/benchmarking.html">ベンチマーク</a>を参照してください。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>言語</th><th>Word F1（joint → 二段構成）</th><th>Tagged F1（joint → 二段構成）</th><th>スループット（joint → 二段構成）</th></tr>
+<tr><th>言語</th><th>Word F1</th><th>Tagged F1</th><th>スループット</th></tr>
 </thead>
 <tbody>
-<tr><td>日本語</td><td>96.56% → 96.78%（+0.22）</td><td>92.51% → 92.95%（+0.44）</td><td>1.55M → 4.38M chars/s（〜2.8x、範囲 2.65〜3.05x）</td></tr>
-<tr><td>中国語</td><td>90.52% → 90.82%（+0.30）</td><td>81.18% → 82.29%（+1.11）</td><td>1.49M → 3.38M chars/s（〜2.3x、範囲 2.13〜2.44x）</td></tr>
-<tr><td>韓国語</td><td>80.51% → 83.24%（+2.73）</td><td>71.03% → 78.86%（+7.83）</td><td>2.48M → 4.54M chars/s（〜1.8x、範囲 1.75〜1.90x）</td></tr>
+<tr><td>日本語</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
+<tr><td>中国語</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
+<tr><td>韓国語</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
 </tbody>
 </table>
 </div>
-<p>3 点が際立っています:</p>
+<p>留意すべき 2 つの観察:</p>
 <ul>
-<li><strong>Word F1・Tagged F1 とも、どの言語でも（同梱モデルとしては）二段構成が
-有利</strong>で、韓国語のタグ付けでは +7.83pt と大差になります。上の方法論の
-注記のとおり、これは一部には同梱の二段構成モデルが公開済みの joint
-モデルより多くのエポックで学習されていることによるものであり、
-純粋にアーキテクチャだけの効果ではありません – この表を無条件の
-アーキテクチャ優劣として扱う前に、その注記を確認してください。</li>
-<li><strong>候補タグ制限はエポック効果とは独立した、実在する品質レバーです。</strong>
-上記スイープでの同一エポック数比較でも、二段構成のタグ付け品質は
-joint と同等以上でした: 既知単語の候補を実際に観測されたものに
-制限することで、分類器がありえないタグを選ぶ機会の大半が排除され、
-単語あたりの特徴量セットが小さいことによる不利を補います。</li>
-<li><strong>スループットの向上幅は 1.8〜2.8 倍と幅があり、単一の固定値には
-収束しません。</strong> 韓国語のスループット向上が小さいのは語彙表に起因します:
-held-out 単語の 34.5% が未知語（学習時に未出現）で、常に stage 2 の
-全クラスフォールバックを払うことになり、安価な dominance スキップや
-候補マスクの経路を使えません。そのため日本語・中国語より多くの割合の
-韓国語の単語が stage 2 のフルコストを負担します。</li>
+<li><strong>候補タグ制限は実在する品質レバーです。</strong> 既知単語の候補を実際に
+観測されたものに制限することで、分類器がありえないタグを選ぶ機会の
+大半が排除され、単語あたりの特徴量セットが小さいことによる不利を
+補います。</li>
+<li><strong>スループットは語彙表のカバレッジによって変わります。</strong> 韓国語は
+held-out 単語の 34.5% が未知語であるため、安価な dominance スキップや
+候補マスクの経路ではなく、stage 2 の全クラスフォールバックを払う
+単語の割合が大きくなります。</li>
 </ul>
 <h2 id="stage-2-特徴量セットの選び方"><a class="header" href="#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a></h2>
 <p>stage 2 の単語単位タガーは 3 種類の特徴量セット（<code>litsea extract --two-stage</code> の <code>--stage2-features</code>。<a href="../training-guide/extracting-features.html">特徴量の抽出</a>を参照）で
@@ -300,8 +266,8 @@ held-out 単語の 34.5% が未知語（学習時に未出現）で、常に sta
 </tbody>
 </table>
 </div>
-<p>日本語では <code>fast</code> だけで joint 基準（92.95% vs 92.51%）を余裕をもって
-上回るため、同梱の <code>japanese_two_stage.model</code> はこれを使用しています。
+<p>日本語では <code>fast</code> だけで Tagged F1 92.95% に到達するため、同梱の
+<code>japanese_two_stage.model</code> はこれを使用しています。
 中国語では <code>balanced</code> が <code>full</code> の伸びの大半（82.29% vs 82.96%）を
 明確に良いスループットで得られるため、<code>chinese_two_stage.model</code> は
 <code>full</code> ではなく <code>balanced</code> を使用しています。韓国語では <code>full</code> は
@@ -310,28 +276,6 @@ held-out 単語の 34.5% が未知語（学習時に未出現）で、常に sta
 再学習するには <code>extract --two-stage --stage2-features &lt;set&gt;</code> +
 <code>train --two-stage</code> を再実行するだけで、パイプラインの他の部分を
 変更する必要はありません。</p>
-<h2 id="どちらを使うべきか"><a class="header" href="#どちらを使うべきか">どちらを使うべきか</a></h2>
-<p><strong>新規の用途では二段構成モデルを推奨します。</strong> 同梱されている状態で、
-現在公開されている joint モデルを Word F1・Tagged F1 の両方でどの言語でも
-上回り、スループットは 1.8〜2.8 倍、ファイルサイズも小さくなっています。</p>
-<p>joint（<code>*_pos.model</code>）モデルは以下の理由で引き続き利用可能にしています:</p>
-<ul>
-<li><strong>互換性</strong>: <code>with_pos_learner()</code> や joint モデルファイル形式に依存する
-既存コードとの互換性。二段構成の追加は joint モデルの挙動を一切変更しません
-（<a href="https://github.com/mosuka/litsea/issues/147">設計の議論</a>を参照 –
-純粋な追加です）。</li>
-<li><strong>同一学習量での中国語分割精度</strong>: 同じエポック数で比較すると、joint は
-依然として中国語分割で小さいながら実在する優位を保ちます（上記の方法論の
-注記を参照）。同梱の二段構成モデルは学習量を増やすことでこれを解消済み
-ですが、より少ないエポックでゼロから二段構成を再学習した場合はそうなりません。</li>
-<li><strong>リファレンス実装として</strong>: joint モデルの文字単位採点はアーキテクチャ的に
-よりシンプルです（語彙表・dominance 閾値・候補マスクがありません）。
-上記の二段構成の数値もこの joint モデルを基準に検証されたものであり、
-joint を維持し続けることで将来の比較の基準点を保てます。</li>
-</ul>
-<p>両者とも <code>segment --pos</code> / <code>evaluate --pos</code> がモデルファイルから自動判別する
-（<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">モデルファイル形式</a>を参照）ため、
-切り替えは参照するファイルを変えるだけで済み、コードやフラグの変更は不要です。</p>
 
                     </main>
 

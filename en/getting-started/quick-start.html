@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,20 +198,14 @@
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
 <h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
-<p>Litsea can perform joint word segmentation and POS tagging using a POS model. Add the <code>--pos</code> flag to the <code>segment</code> command:</p>
+<p>Litsea can perform word segmentation and POS tagging using a <a href="../algorithm/two-stage-tagging.html">two-stage</a> model. Add the <code>--pos</code> flag to the <code>segment</code> command:</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
 </code></pre>
 <p>Output:</p>
 <pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p>Each token is annotated with a <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tag.</p>
-<h3 id="two-stage-pos-tagging"><a class="header" href="#two-stage-pos-tagging">Two-Stage POS Tagging</a></h3>
-<p>Litsea also ships a faster <a href="../algorithm/two-stage-tagging.html">two-stage</a> POS tagging architecture. The CLI auto-detects the model kind from the file, so the command is identical to the joint example above except for the model filename:</p>
-<pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
-</code></pre>
-<p>Output is the same shape as the joint example. <a href="../pre-trained-models.html#choosing-a-model">Pre-trained Models</a> recommends the two-stage models for new work.</p>
 <h2 id="library-quick-start"><a class="header" href="#library-quick-start">Library Quick Start</a></h2>
 <p>Here is a minimal Rust program that loads a model and segments text:</p>
 <pre class="playground"><code class="language-rust">use std::path::Path;
@@ -240,16 +234,16 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <pre class="playground"><code class="language-rust">use std::path::Path;
 
 use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
-    // Load the pre-trained POS model
-    let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+    // Load the pre-trained two-stage POS model
+    let mut learner = TwoStageLearner::new();
+    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
 
     // Create a segmenter with POS support
-    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
 
     // Segment text with POS tags
     let tokens = segmenter.segment_with_pos("今日はいい天気ですね。")?;

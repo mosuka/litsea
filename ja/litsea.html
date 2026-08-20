@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a451f517.js";
+            window.path_to_searchindex_js = "searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-72f19d1d.js"></script>
+        <script src="toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,20 +186,20 @@
 <pre><code class="language-toml">[dependencies]
 litsea = "0.12.0"
 </code></pre>
-<p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（<code>load_model</code>）を使う場合のみ、非同期ランタイムを追加してください（<code>AnyPosModel::load</code> も常に同じ非同期経路でモデル URI を解決するため、これに該当します）。</p>
+<p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（<code>load_model</code>）を使う場合のみ、非同期ランタイムを追加してください（例えば <code>TwoStageLearner::load_model</code> も常に同じ非同期経路でモデル URI を解決するため、これに該当します）。</p>
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
     C["litsea::adaboost"] --- D["AdaBoost"]
     E["litsea::language"] --- F["Language"]
     G["litsea::extractor"] --- H["Extractor"]
-    I["litsea::trainer"] --- J["Trainer, PosTrainer, TwoStageTrainer, TwoStageMetrics"]
+    I["litsea::trainer"] --- J["Trainer, PerceptronTrainer, TwoStageTrainer, TwoStageMetrics"]
     K["litsea::error"] --- L["LitseaError, Result"]
     M["litsea::perceptron"] --- N["AveragedPerceptron"]
     O["litsea::upos"] --- P["Upos, SegmentLabel"]
     Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
     S["litsea::evaluation"] --- T["PosMetrics, SegmentationMetrics"]
-    U["litsea::two_stage"] --- V["AnyPosModel, ModelKind, TwoStageFeatureSet, TwoStageLearner"]
+    U["litsea::two_stage"] --- V["ModelKind, TwoStageFeatureSet, TwoStageLearner"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -207,17 +207,17 @@ litsea = "0.12.0"
 <tr><th>モジュール</th><th>主要な型</th><th>用途</th></tr>
 </thead>
 <tbody>
-<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code>, <code>SegmentBuffer</code></td><td>単語分割（所有出力またはアロケーションフリー出力）、品詞推定付き分割</td></tr>
+<tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code>, <code>SegmentBuffer</code></td><td>単語分割（所有出力またはアロケーションフリー出力）、二段構成の品詞推定付き分割</td></tr>
 <tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code></td><td>二値分類、モデルの入出力</td></tr>
-<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>多クラス分類（品詞推定）、モデルの入出力</td></tr>
+<tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>多クラス分類（二段構成の学習）、モデルの入出力</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS 品詞タグ、セグメントラベル</td></tr>
 <tr><td><code>litsea::language</code></td><td><code>Language</code></td><td>言語定義、文字分類</td></tr>
 <tr><td><code>litsea::extractor</code></td><td><code>Extractor</code></td><td>コーパスからの特徴量抽出</td></tr>
-<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PosTrainer</code>, <code>TwoStageTrainer</code>, <code>TwoStageMetrics</code></td><td>学習パイプラインの制御</td></tr>
+<tr><td><code>litsea::trainer</code></td><td><code>Trainer</code>, <code>PerceptronTrainer</code>, <code>TwoStageTrainer</code>, <code>TwoStageMetrics</code></td><td>学習パイプラインの制御</td></tr>
 <tr><td><code>litsea::error</code></td><td><code>LitseaError</code>, <code>Result</code></td><td>エラー型と <code>Result</code> エイリアス</td></tr>
 <tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>学習結果の評価指標(in-sample)</td></tr>
 <tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>gold コーパスに対する held-out 評価</td></tr>
-<tr><td><code>litsea::two_stage</code></td><td><code>AnyPosModel</code>, <code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>二段構成モデルのコンテナと自動判定ローダー</td></tr>
+<tr><td><code>litsea::two_stage</code></td><td><code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>二段構成モデルのコンテナとモデル種別の判定</td></tr>
 </tbody>
 </table>
 </div>
@@ -243,14 +243,14 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <pre class="playground"><code class="language-rust">use std::path::Path;
 
 use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
-    let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+    let mut learner = TwoStageLearner::new();
+    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
 
-    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
     let tokens = segmenter.segment_with_pos("これはテストです。")?;
 
     for (word, pos) in &amp;tokens {
@@ -260,27 +260,6 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 
     Ok(())
 }</code></pre>
-<h2 id="クイックスタート任意の品詞モデル"><a class="header" href="#クイックスタート任意の品詞モデル">クイックスタート（任意の品詞モデル）</a></h2>
-<p>CLI の <code>segment --pos</code> はこのパターンを使っているため、呼び出し側がどちらの種類かを意識せずに、joint モデルと二段構成モデルのどちらのファイルでも動作します:</p>
-<pre class="playground"><code class="language-rust">use litsea::language::Language;
-use litsea::two_stage::AnyPosModel;
-
-#[tokio::main]
-async fn main() -&gt; litsea::Result&lt;()&gt; {
-    // joint（`*_pos.model`）と二段構成（`*_two_stage.model`）の
-    // どちらのモデルファイルにも対応 -- 種類は自動判定される。
-    let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
-    let segmenter = model.into_segmenter(Language::Japanese);
-
-    let tokens = segmenter.segment_with_pos("これはテストです。")?;
-    for (word, pos) in &amp;tokens {
-        print!("{}/{} ", word, pos);
-    }
-    println!();
-
-    Ok(())
-}</code></pre>
-<h2 id="api-ドキュメント"><a class="header" href="#api-ドキュメント">API ドキュメント</a></h2>
 <p>完全な API ドキュメントは <a href="https://docs.rs/litsea">docs.rs/litsea</a> で参照できます。</p>
 
                     </main>

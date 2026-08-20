@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -205,11 +205,10 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>品詞（POS）特徴量抽出モードを有効にします。入力には品詞付きコーパスが必要です</td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--pos</code> および <code>--two-stage</code> と併用できません</td></tr>
-<tr><td><code>--two-stage</code></td><td>off</td><td>通常の品詞特徴量の代わりに<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です。<code>--pos</code> とは併用できません</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>コーパスの形式: <code>space</code>（スペース区切りの単語）または <code>tsv</code>（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。<code>tsv</code> は <code>--two-stage</code> と併用できません</td></tr>
+<tr><td><code>--two-stage</code></td><td>off</td><td><a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td><code>--two-stage</code> 用の stage-2 単語特徴セット: <code>full</code>（品質最優先）、<code>balanced</code>、<code>fast</code>（速度最優先）</td></tr>
-<tr><td><code>--tag-free</code></td><td>オフ</td><td>16 個のタグ依存特徴量テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>）を除外し、学習されるモデルを pointwise にして <code>segment()</code> の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の <code>korean.model</code> で使用 – 言語別の品質・速度トレードオフは<a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を参照）。<code>--format tsv</code> と併用可。<code>--pos</code> / <code>--two-stage</code> とは併用不可</td></tr>
+<tr><td><code>--tag-free</code></td><td>オフ</td><td>16 個のタグ依存特徴量テンプレート（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>）を除外し、学習されるモデルを pointwise にして <code>segment()</code> の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の <code>korean.model</code> で使用 – 言語別の品質・速度トレードオフは<a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を参照）。<code>--format tsv</code> と併用可。<code>--two-stage</code> とは併用不可</td></tr>
 </tbody>
 </table>
 </div>
@@ -245,23 +244,13 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 <p>成功時のstderr出力:</p>
 <pre><code class="language-text">Feature extraction completed successfully.
 </code></pre>
-<h2 id="品詞付き特徴量抽出--pos"><a class="header" href="#品詞付き特徴量抽出--pos">品詞付き特徴量抽出（<code>--pos</code>）</a></h2>
-<p><code>--pos</code> フラグを指定すると、<code>extract</code> は通常の単語区切りコーパスの代わりに <strong>品詞付きコーパス</strong> を入力として受け取ります。各行には、<code>単語/品詞</code> の形式で UPOS タグが付与された単語が含まれます。</p>
+<h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
+<p><code>--two-stage</code> フラグを指定すると、<code>extract</code> は通常の単語区切りコーパスの代わりに <strong>品詞付きコーパス</strong> を入力として受け取ります。各行には、<code>単語/品詞</code> の形式で UPOS タグが付与された単語が含まれます。</p>
 <h3 id="品詞付きコーパスの形式"><a class="header" href="#品詞付きコーパスの形式">品詞付きコーパスの形式</a></h3>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
-<h3 id="品詞付き特徴量の出力形式"><a class="header" href="#品詞付き特徴量の出力形式">品詞付き特徴量の出力形式</a></h3>
-<p>POSモードでは、ラベル列は二値の <code>1</code>/<code>-1</code> の代わりにセグメントラベル（<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>）を使用します。特徴量はここでもアルファベット順にソートされてタブ区切りで書き出されます。</p>
-<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	BW1:B2B1	...
-O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
-</code></pre>
-<h3 id="品詞付き特徴量抽出の例"><a class="header" href="#品詞付き特徴量抽出の例">品詞付き特徴量抽出の例</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
-</code></pre>
-<h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
-<p><code>--two-stage</code> を指定すると、<code>extract</code> は <code>--pos</code> と同じ品詞付きコーパス形式
-（<code>単語/品詞 単語/品詞 ...</code>）を読み込みますが、
+<p><code>extract --two-stage</code> は、
 <a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成アーキテクチャ</a>
 向けに <code>FEATURES_FILE</code> をプレフィックスとした<strong>3つ</strong>のファイルを書き出します。</p>
 <div class="table-wrapper">
@@ -270,7 +259,7 @@ O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	.
 <tr><th>ファイル</th><th>内容</th></tr>
 </thead>
 <tbody>
-<tr><td><code>{FEATURES_FILE}.stage1</code></td><td>境界特徴量。文字位置ごとに1行、ラベルは <code>B</code> または <code>O</code>（<code>--pos</code> と同じ特徴量テンプレート）</td></tr>
+<tr><td><code>{FEATURES_FILE}.stage1</code></td><td>境界特徴量。文字位置ごとに1行、ラベルは <code>B</code> または <code>O</code>（通常の抽出と同じ文字レベルの特徴量テンプレート。先頭を含む全位置で出力）</td></tr>
 <tr><td><code>{FEATURES_FILE}.stage2</code></td><td>単語単位の特徴量。単語ごとに1行、ラベルは UPOS タグ。書き出すテンプレートは <code>--stage2-features</code> で制御</td></tr>
 <tr><td><code>{FEATURES_FILE}.lexicon</code></td><td>候補タグ語彙表: <code>surface\tTAG:count[,TAG:count...]</code>（出現頻度の降順）</td></tr>
 </tbody>

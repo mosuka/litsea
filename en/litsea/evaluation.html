@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,12 +184,10 @@
 <p>Held-out quality evaluation of segmentation and POS tagging
 (<code>litsea::evaluation</code>). This is the library API behind the
 <a href="../litsea-cli/evaluate.html"><code>litsea evaluate</code></a> subcommand. <code>evaluate_pos</code>
-works against either POS architecture – a segmenter built with
-<a href="segmenter.html#with_pos_learner"><code>with_pos_learner</code></a> (joint) or
+evaluates a segmenter built with
 <a href="segmenter.html#with_two_stage_learner"><code>with_two_stage_learner</code></a>
-(two-stage, see <a href="../algorithm/two-stage-tagging.html">Two-Stage vs. Joint
-Tagging</a>) – since both implement
-<code>segment_with_pos</code> with the same signature.</p>
+(see <a href="../algorithm/two-stage-tagging.html">Two-Stage Tagging</a>) through
+<code>segment_with_pos</code>.</p>
 <h2 id="metrics-types"><a class="header" href="#metrics-types">Metrics Types</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

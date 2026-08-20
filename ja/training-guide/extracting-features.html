@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -202,7 +202,7 @@
 <ol>
 <li><code>Extractor</code> がコーパスの各行を読み込む</li>
 <li>各文に対して、文字配列・文字種配列・タグ配列を持つ <code>Segmenter</code> コンテキストを作成する</li>
-<li>各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む。<code>--pos</code> パイプラインでは先頭位置も出力され、最初の単語の品詞タグが学習データに含まれるようになっている</li>
+<li>各文字位置（先頭を除く）について特徴量を抽出し、正しいラベルとともに書き込む。二段構成の stage-1 パイプラインでは先頭位置も出力され、最初の単語の境界判定が学習データに含まれるようになっている</li>
 </ol>
 <h2 id="特徴量ファイルの形式"><a class="header" href="#特徴量ファイルの形式">特徴量ファイルの形式</a></h2>
 <p>各行は1つの文字位置を表します。コーパス行 <code>これ は テスト です 。</code> に対する最初の2行は次のとおりです:</p>
@@ -224,42 +224,17 @@
 <p>入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
 空白文字そのもの（<code>" "</code>）を含められます。出力される特徴量ファイルの形式は既定の
 <code>extract</code> と同一で、コーパスの解析方法のみが異なります。<code>--format tsv</code> は
-<code>--pos</code> または <code>--two-stage</code> と併用できません。</p>
-<h2 id="品詞付き特徴量の抽出"><a class="header" href="#品詞付き特徴量の抽出">品詞付き特徴量の抽出</a></h2>
-<p>品詞推定モデル用には、<code>--pos</code> フラグを使用して、二値境界ラベルの代わりに品詞ラベル付きの特徴量を抽出します。</p>
-<h3 id="コマンド-1"><a class="header" href="#コマンド-1">コマンド</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
-</code></pre>
-<h3 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l japanese ./corpus.txt ./features.txt
-</code></pre>
-<h3 id="品詞ラベル"><a class="header" href="#品詞ラベル">品詞ラベル</a></h3>
-<p>品詞特徴量を抽出する場合、各文字位置には二値の <code>1</code>/<code>-1</code> ラベルではなく、18種類のセグメントラベルのいずれかが付与されます:</p>
-<ul>
-<li><strong>B-NOUN</strong>, <strong>B-VERB</strong>, <strong>B-ADJ</strong>, <strong>B-ADP</strong>, <strong>B-ADV</strong>, <strong>B-AUX</strong>, <strong>B-CCONJ</strong>, <strong>B-DET</strong>, <strong>B-INTJ</strong>, <strong>B-NUM</strong>, <strong>B-PART</strong>, <strong>B-PRON</strong>, <strong>B-PROPN</strong>, <strong>B-PUNCT</strong>, <strong>B-SCONJ</strong>, <strong>B-SYM</strong>, <strong>B-X</strong> – 対応する品詞タグを持つ単語境界</li>
-<li><strong>O</strong> – 非境界（単語の内部）</li>
-</ul>
-<p>特徴量テンプレート（文字 n-gram、文字種 n-gram など）は標準の分割と同じで、ラベル体系のみが異なります。</p>
-<h3 id="品詞特徴量ファイルの形式"><a class="header" href="#品詞特徴量ファイルの形式">品詞特徴量ファイルの形式</a></h3>
-<p>品詞付きコーパス行 <code>これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT</code> に対する最初の3行は次のとおりです:</p>
-<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	...
-O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
-B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
-</code></pre>
-<ul>
-<li>最初の列: セグメントラベル（例: <code>B-PRON</code>、<code>O</code>）</li>
-<li>残りの列: 特徴量。アルファベット順にソートされてタブ区切りで書き出される（そのため各行は <code>BC1:</code> 特徴量から始まる）</li>
-</ul>
+<code>--two-stage</code> と併用できません。</p>
 <h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
 <p><a href="../algorithm/two-stage-tagging.html">二段構成の品詞タグ付け</a>（issue #147）用には、
-<code>--pos</code> の代わりに <code>--two-stage</code> を使用します:</p>
+<code>--two-stage</code> を使用します:</p>
 <pre><code class="language-sh">litsea extract --two-stage [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
 </code></pre>
-<h3 id="使用例-2"><a class="header" href="#使用例-2">使用例</a></h3>
+<h3 id="使用例-1"><a class="header" href="#使用例-1">使用例</a></h3>
 <pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
 </code></pre>
-<p><code>--two-stage</code> は <code>--pos</code> と同じ POS タグ付きコーパス（<code>word/POS word/POS ...</code>）を
-読み込みますが、コーパスを1パスで処理し、<code>&lt;FEATURES_PREFIX&gt;</code> から1ファイルではなく
+<p><code>--two-stage</code> は POS タグ付きコーパス（<code>word/POS word/POS ...</code>）を
+読み込み、コーパスを1パスで処理し、<code>&lt;FEATURES_PREFIX&gt;</code> から1ファイルではなく
 <strong>3ファイル</strong>を書き出します:</p>
 <div class="table-wrapper">
 <table>
@@ -267,14 +242,14 @@ B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
 <tr><th>ファイル</th><th>内容</th></tr>
 </thead>
 <tbody>
-<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage1</code></td><td>境界特徴量（ラベルは <code>B</code> または <code>O</code>）。<code>--pos</code> と同じテンプレート</td></tr>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage1</code></td><td>境界特徴量（ラベルは <code>B</code> または <code>O</code>）。通常の抽出と同じ文字レベルテンプレートを、先頭を含む全位置で出力</td></tr>
 <tr><td><code>&lt;FEATURES_PREFIX&gt;.stage2</code></td><td>単語単位の特徴量（ラベルは UPOS タグ）。<code>--stage2-features</code> で選択したテンプレート</td></tr>
 <tr><td><code>&lt;FEATURES_PREFIX&gt;.lexicon</code></td><td>候補タグ語彙表（<code>surface\tTAG:count[,TAG:count...]</code>、出現頻度の高い順）</td></tr>
 </tbody>
 </table>
 </div>
 <p><code>litsea train --two-stage</code> は同じプレフィックスから3ファイルすべてを読み込みます。
-<code>--two-stage</code> は <code>--pos</code> または <code>--format tsv</code> と併用できません。</p>
+<code>--two-stage</code> は <code>--format tsv</code> と併用できません。</p>
 <h3 id="--stage2-features-の選び方"><a class="header" href="#--stage2-features-の選び方"><code>--stage2-features</code> の選び方</a></h3>
 <p><code>--stage2-features</code> は <code>&lt;FEATURES_PREFIX&gt;.stage2</code> に書き出す stage-2 の単語単位
 テンプレート（<a href="../algorithm/feature-extraction.html#単語単位の特徴量テンプレート二段構成">単語単位の特徴量テンプレート（二段構成）</a>を参照）を選択し、

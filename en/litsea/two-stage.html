@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -183,9 +183,9 @@
                         <h1 id="two-stage-model"><a class="header" href="#two-stage-model">Two-Stage Model</a></h1>
 <p>The <code>two_stage</code> module defines the <code>litsea-two-stage v1</code> model container
 (<code>TwoStageLearner</code>), the stage-2 feature-set selector (<code>TwoStageFeatureSet</code>),
-and the auto-detecting POS-model loader (<code>AnyPosModel</code> / <code>ModelKind</code>). See
-<a href="../algorithm/two-stage-tagging.html">Two-Stage vs. Joint Tagging</a> for the
-architecture and measured quality/speed comparison, and
+and the model-kind detector (<code>ModelKind</code>). See
+<a href="../algorithm/two-stage-tagging.html">Two-Stage Tagging</a> for the
+architecture and measured quality/speed figures, and
 <a href="trainer.html#twostagetrainer"><code>TwoStageTrainer</code></a> for training a model from
 scratch.</p>
 <h2 id="twostagelearner"><a class="header" href="#twostagelearner"><code>TwoStageLearner</code></a></h2>
@@ -293,7 +293,7 @@ current, measured numbers.</p>
 <p>Implements <code>FromStr</code> (case-insensitive: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>) and
 <code>Display</code> (lowercase). Marked <code>#[non_exhaustive]</code> — external <code>match</code>
 expressions need a wildcard arm.</p>
-<h2 id="anyposmodel-and-modelkind"><a class="header" href="#anyposmodel-and-modelkind"><code>AnyPosModel</code> and <code>ModelKind</code></a></h2>
+<h2 id="modelkind"><a class="header" href="#modelkind"><code>ModelKind</code></a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub enum ModelKind {
@@ -301,36 +301,19 @@ expressions need a wildcard arm.</p>
     AveragedPerceptron,
     TwoStage,
 }
-
-pub enum AnyPosModel {
-    Joint(Box&lt;AveragedPerceptron&gt;),
-    TwoStage(Box&lt;TwoStageLearner&gt;),
-}
 <span class="boring">}</span></code></pre>
 <p><code>ModelKind::detect(content: &amp;str) -&gt; ModelKind</code> inspects a model file’s
 first line to identify its format — a dispatch heuristic, not full
-validation; the matching loader still validates the content.</p>
-<p><code>AnyPosModel::load(uri: &amp;str) -&gt; Result&lt;Self&gt;</code> is the single-fetch entry
-point for code that accepts either a joint or a two-stage POS model (this is
-what <code>litsea segment --pos</code> and <code>litsea evaluate --pos</code> use): it fetches the
-model bytes once, detects the kind, and parses with the matching loader.
-Returns <code>LitseaError::InvalidData</code> if the file is a plain AdaBoost
-segmentation model (which cannot tag), if the bytes aren’t valid UTF-8, or if
-the detected format fails to parse.</p>
-<p><code>AnyPosModel::into_segmenter(self, language: Language) -&gt; Segmenter</code> builds
-the matching <code>Segmenter</code> — <code>with_pos_learner</code> for <code>Joint</code>,
-<code>with_two_stage_learner</code> for <code>TwoStage</code> — so callers don’t need to branch on
-the model kind themselves:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use litsea::language::Language;
-use litsea::two_stage::AnyPosModel;
-
-let model = AnyPosModel::load("./models/japanese_two_stage.model").await?;
-let segmenter = model.into_segmenter(Language::Japanese);
-let tagged = segmenter.segment_with_pos("これはテストです。")?;
-// Works identically whether the file was a joint or two-stage model.
-<span class="boring">}</span></code></pre>
+validation. <code>AdaBoost</code> is the plain segmentation format (also the format of
+a collapsed two-stage stage 1); <code>AveragedPerceptron</code> is a standalone
+perceptron file (the output of <code>train --perceptron</code> and the payload format
+of the <code>[stage2]</code> section — this was the removed joint POS model format,
+and is not loadable as a POS model); <code>TwoStage</code> is the <code>litsea-two-stage</code>
+container.</p>
+<p>Wrong-kind files get precise errors from <code>TwoStageLearner</code>’s loaders:
+pointing them at a standalone Averaged Perceptron file fails with “joint
+POS models are no longer supported — retrain with <code>litsea train --two-stage</code>”, and any other non-two-stage content fails with a
+missing-magic-line error.</p>
 
                     </main>
 

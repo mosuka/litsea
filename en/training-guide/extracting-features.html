@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -202,7 +202,7 @@
 <ol>
 <li>The <code>Extractor</code> reads each line from the corpus</li>
 <li>For each sentence, it creates a <code>Segmenter</code> context with character arrays, type arrays, and tag arrays</li>
-<li>For each character position (except the first), it extracts features and writes them with the correct label. The <code>--pos</code> pipeline also emits the first position, so that the first word’s POS tag is part of the training data</li>
+<li>For each character position (except the first), it extracts features and writes them with the correct label. The two-stage stage-1 pipeline also emits the first position, so that the first word’s boundary decision is part of the training data</li>
 </ol>
 <h2 id="feature-file-format"><a class="header" href="#feature-file-format">Feature File Format</a></h2>
 <p>Each line represents one character position. For the corpus line <code>これ は テスト です 。</code>, the first two lines are:</p>
@@ -225,42 +225,17 @@ space-separated format:</p>
 separated by tabs) in which a token may be a literal space character
 (<code>" "</code>). The output feature file format is identical to the default
 <code>extract</code>; only the corpus parsing differs. <code>--format tsv</code> cannot be
-combined with <code>--pos</code> or <code>--two-stage</code>.</p>
-<h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
-<p>For POS tagging models, use the <code>--pos</code> flag to extract features with POS labels instead of binary boundary labels.</p>
-<h3 id="command-1"><a class="header" href="#command-1">Command</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l &lt;LANGUAGE&gt; &lt;CORPUS_FILE&gt; &lt;FEATURES_FILE&gt;
-</code></pre>
-<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l japanese ./corpus.txt ./features.txt
-</code></pre>
-<h3 id="pos-labels"><a class="header" href="#pos-labels">POS Labels</a></h3>
-<p>When extracting POS features, each character position is labeled with one of 18 segment labels instead of the binary <code>1</code>/<code>-1</code> labels:</p>
-<ul>
-<li><strong>B-NOUN</strong>, <strong>B-VERB</strong>, <strong>B-ADJ</strong>, <strong>B-ADP</strong>, <strong>B-ADV</strong>, <strong>B-AUX</strong>, <strong>B-CCONJ</strong>, <strong>B-DET</strong>, <strong>B-INTJ</strong>, <strong>B-NUM</strong>, <strong>B-PART</strong>, <strong>B-PRON</strong>, <strong>B-PROPN</strong>, <strong>B-PUNCT</strong>, <strong>B-SCONJ</strong>, <strong>B-SYM</strong>, <strong>B-X</strong> – Word boundary with the corresponding POS tag</li>
-<li><strong>O</strong> – Non-boundary (inside a word)</li>
-</ul>
-<p>The feature template (character n-grams, type n-grams, etc.) is the same as for standard segmentation – only the label scheme differs.</p>
-<h3 id="pos-feature-file-format"><a class="header" href="#pos-feature-file-format">POS Feature File Format</a></h3>
-<p>For the POS corpus line <code>これ/PRON は/PART テスト/NOUN です/AUX 。/PUNCT</code>, the first three lines are:</p>
-<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	...
-O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	...
-B-PART	BC1:II	BC2:II	BC3:IK	BP1:UU	BP2:UO	BQ1:UII	BQ2:UII	BQ3:OII	BQ4:OII	...
-</code></pre>
-<ul>
-<li>First column: segment label (e.g., <code>B-PRON</code>, <code>O</code>)</li>
-<li>Remaining columns: features, written tab-separated in alphabetically sorted order (so each line starts with the <code>BC1:</code> feature)</li>
-</ul>
+combined with <code>--two-stage</code>.</p>
 <h2 id="two-stage-feature-extraction"><a class="header" href="#two-stage-feature-extraction">Two-Stage Feature Extraction</a></h2>
 <p>For <a href="../algorithm/two-stage-tagging.html">two-stage POS tagging</a> (issue #147),
-use <code>--two-stage</code> instead of <code>--pos</code>:</p>
+use <code>--two-stage</code>:</p>
 <pre><code class="language-sh">litsea extract --two-stage [--stage2-features full|balanced|fast] &lt;CORPUS_FILE&gt; &lt;FEATURES_PREFIX&gt;
 </code></pre>
-<h3 id="example-2"><a class="header" href="#example-2">Example</a></h3>
+<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
 <pre><code class="language-sh">litsea extract --two-stage -l japanese ./pos_corpus.txt ./two_stage_features
 </code></pre>
-<p><code>--two-stage</code> reads the same POS-tagged corpus as <code>--pos</code>
-(<code>word/POS word/POS ...</code>) but, in a single pass over the corpus, writes
+<p><code>--two-stage</code> reads a POS-tagged corpus
+(<code>word/POS word/POS ...</code>) and, in a single pass over the corpus, writes
 <strong>three</strong> files from <code>&lt;FEATURES_PREFIX&gt;</code> instead of one:</p>
 <div class="table-wrapper">
 <table>
@@ -268,14 +243,14 @@ use <code>--two-stage</code> instead of <code>--pos</code>:</p>
 <tr><th>File</th><th>Contents</th></tr>
 </thead>
 <tbody>
-<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage1</code></td><td>Boundary features (label <code>B</code> or <code>O</code>), the same templates as <code>--pos</code></td></tr>
+<tr><td><code>&lt;FEATURES_PREFIX&gt;.stage1</code></td><td>Boundary features (label <code>B</code> or <code>O</code>), the same character-level templates as plain extraction, emitted at every position including the first</td></tr>
 <tr><td><code>&lt;FEATURES_PREFIX&gt;.stage2</code></td><td>Word-level features (label a UPOS tag), the templates selected by <code>--stage2-features</code></td></tr>
 <tr><td><code>&lt;FEATURES_PREFIX&gt;.lexicon</code></td><td>The candidate-tag lexicon (<code>surface\tTAG:count[,TAG:count...]</code>, most-frequent-first)</td></tr>
 </tbody>
 </table>
 </div>
 <p><code>litsea train --two-stage</code> reads all three files back from the same
-prefix. <code>--two-stage</code> cannot be combined with <code>--pos</code> or <code>--format tsv</code>.</p>
+prefix. <code>--two-stage</code> cannot be combined with <code>--format tsv</code>.</p>
 <h3 id="choosing---stage2-features"><a class="header" href="#choosing---stage2-features">Choosing <code>--stage2-features</code></a></h3>
 <p><code>--stage2-features</code> selects which stage-2 word-level templates (see
 <a href="../algorithm/feature-extraction.html#word-level-feature-templates-two-stage">Word-Level Feature Templates</a>)

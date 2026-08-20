@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a451f517.js";
+            window.path_to_searchindex_js = "searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-72f19d1d.js"></script>
+        <script src="toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -227,21 +227,7 @@
 <li>モデルを学習する: <code>litsea train -t 0.0001 -i 20000 features.txt model.model</code></li>
 <li>テキストを分割する: <code>echo "text" | litsea segment -l japanese model.model</code></li>
 </ol>
-<h3 id="pos-ワークフロー品詞推定付き単語分割"><a class="header" href="#pos-ワークフロー品詞推定付き単語分割">POS ワークフロー（品詞推定付き単語分割）</a></h3>
-<pre><code class="language-mermaid">flowchart LR
-    A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
-    B --&gt; C["3. litsea extract --pos"]
-    C --&gt; D["4. litsea train --pos"]
-    D --&gt; E["5. litsea segment --pos"]
-</code></pre>
-<ol>
-<li>UD Treebank をダウンロードする: <code>conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)</code></li>
-<li>品詞付きコーパスを準備する: <code>bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt</code></li>
-<li>品詞付き特徴量を抽出する: <code>litsea extract --pos -l japanese pos_corpus.txt features_pos.txt</code></li>
-<li>POS モデルを学習する: <code>litsea train --pos --num-epochs 10 features_pos.txt model_pos.model</code></li>
-<li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model_pos.model</code></li>
-</ol>
-<h3 id="二段構成ワークフロー高速な品詞推定"><a class="header" href="#二段構成ワークフロー高速な品詞推定">二段構成ワークフロー（高速な品詞推定）</a></h3>
+<h3 id="二段構成ワークフロー品詞推定付き単語分割"><a class="header" href="#二段構成ワークフロー品詞推定付き単語分割">二段構成ワークフロー（品詞推定付き単語分割）</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["1. scripts/download_udtreebank.sh"] --&gt; B["2. scripts/corpus_udtreebank.sh -p"]
     B --&gt; C["3. litsea extract --two-stage"]
@@ -255,10 +241,8 @@
 <li>二段構成モデルを学習する: <code>litsea train --two-stage --num-epochs 50 features_prefix model.model</code></li>
 <li>品詞推定付き分割: <code>echo "text" | litsea segment --pos -l japanese model.model</code></li>
 </ol>
-<p><code>segment --pos</code> と <code>evaluate --pos</code> はファイルヘッダから二段構成モデルを
-自動判別するため、学習後の利用に追加のフラグは不要です。アーキテクチャと
-新規用途で推奨する理由については
-<a href="algorithm/two-stage-tagging.html">二段構成 vs Joint タグ付け</a>を、フラグの
+<p>アーキテクチャについては
+<a href="algorithm/two-stage-tagging.html">二段構成タグ付け</a>を、フラグの
 完全なリファレンスは
 <a href="training-guide/training-models.html#二段構成モデルの学習">モデルの学習</a>や
 <a href="litsea-cli/train.html#二段構成モデルの学習"><code>train</code></a>を参照してください。</p>

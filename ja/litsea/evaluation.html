@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -184,13 +184,10 @@
 <p>セグメンテーションおよび品詞タグ付けの held-out 品質評価
 （<code>litsea::evaluation</code>）です。
 <a href="../litsea-cli/evaluate.html"><code>litsea evaluate</code></a> サブコマンドの背後にある
-ライブラリ API です。<code>evaluate_pos</code> はどちらの品詞タグ付けアーキテクチャに
-対しても動作します – <a href="segmenter.html#with_pos_learner"><code>with_pos_learner</code></a>
-で作成した Segmenter（joint）でも、
+ライブラリ API です。<code>evaluate_pos</code> は
 <a href="segmenter.html#with_two_stage_learner"><code>with_two_stage_learner</code></a> で作成した
-Segmenter（二段構成。<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint
-タグ付け</a>を参照）でも構いません。
-どちらも同じシグネチャの <code>segment_with_pos</code> を実装しているためです。</p>
+Segmenter（<a href="../algorithm/two-stage-tagging.html">二段構成タグ付け</a>を参照）を
+<code>segment_with_pos</code> を通じて評価します。</p>
 <h2 id="メトリクス型"><a class="header" href="#メトリクス型">メトリクス型</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

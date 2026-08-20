@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Two-Stage vs. Joint Tagging - Litsea Documentation</title>
+        <title>Two-Stage Tagging - Litsea Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -180,24 +180,14 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="two-stage-vs-joint-tagging"><a class="header" href="#two-stage-vs-joint-tagging">Two-Stage vs. Joint Tagging</a></h1>
-<p>Litsea offers two architectures for <code>segment_with_pos()</code>: the original
-<strong>joint</strong> model (<code>--pos</code>, <code>Segmenter::with_pos_learner</code>) and the newer
-<strong>two-stage</strong> model (<code>--two-stage</code>, <code>Segmenter::with_two_stage_learner</code>,
-issue #147). Both implement the exact same <code>segment_with_pos()</code> signature
-and return the same <code>Vec&lt;(String, Upos)&gt;</code> shape; the model file’s header
-selects the pipeline (see <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">Model File
+                        <h1 id="two-stage-tagging"><a class="header" href="#two-stage-tagging">Two-Stage Tagging</a></h1>
+<p>Litsea’s <code>segment_with_pos()</code> is backed by the <strong>two-stage</strong> model
+(<code>--two-stage</code>, <code>Segmenter::with_two_stage_learner</code>, issue #147). The model
+file’s <code>litsea-two-stage v1</code> header identifies the format (see <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">Model File
 Format</a>),
-so callers do not need to know which one they loaded.</p>
-<h2 id="why-two-architectures-exist"><a class="header" href="#why-two-architectures-exist">Why two architectures exist</a></h2>
-<p>The joint model scores <strong>every one of the ~18 UPOS classes at every
-character position</strong> (see <a href="prediction-pipeline.html#joint-segmentation-and-pos-tagging-segment_with_pos">Prediction
-Pipeline</a>):
-each decision touches an <code>n_classes</code>-wide score row instead of the single
-scalar <code>segment()</code> adds. That is the entire cost difference – the feature
-templates are identical – and it is the reason the POS path runs several
-times slower than plain segmentation.</p>
-<p>Two-stage avoids this by <strong>not tagging at the character level at all</strong>:</p>
+and the method returns <code>Vec&lt;(String, Upos)&gt;</code> word/tag pairs.</p>
+<h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
+<p>Two-stage tagging never scores POS classes at the character level:</p>
 <ol>
 <li><strong>Stage 1</strong> segments with a binary boundary classifier – structurally
 the same scalar-weight AdaBoost format <code>segment()</code> uses, so it runs at
@@ -218,78 +208,49 @@ tags (a masked argmax), not all ~18 classes.</li>
 </ol>
 <p>Since a word averages more characters than one, and most words are either
 unambiguous or skip the classifier entirely, stage 2’s total cost is a
-small fraction of scoring every class at every character – this is the
-source of the throughput gain below, not a different feature set or a
-smaller model in principle.</p>
-<h2 id="a-methodology-note-training-epochs-matter-more-than-architecture"><a class="header" href="#a-methodology-note-training-epochs-matter-more-than-architecture">A methodology note: training epochs matter more than architecture</a></h2>
-<p>An early comparison of the bundled models – both trained with the
-existing joint convention of 10 epochs – showed a real-looking 0.90pt
-Chinese segmentation gap in joint’s favor, which read like an inherent
-limit of the two-class boundary classifier. An epoch sweep (10 to 150
-epochs, both architectures) showed this was mostly a training artifact,
-not an architectural one: <strong>both</strong> models’ quality keeps improving well
-past 10 epochs, and two-stage’s stage 1 needs <em>more</em> epochs than the joint
-model to reach a comparable point on the same corpus. At <em>matched</em> epoch
-counts, joint’s Chinese segmentation kept a smaller, consistent edge
-(roughly 0.5-0.9pt across every epoch count tested from 10 to 150) –
-a real, reproducible difference, most likely because the joint model’s
-per-character tag-dependent features carry more signal per training
-example than stage 1’s boundary-only features. It is a modest effect, not
-a hard ceiling: with enough training (50 epochs, where quality plateaus)
-two-stage’s Chinese segmentation <em>exceeds</em> the published (10-epoch) joint
-model’s.</p>
-<p>The bundled two-stage models below therefore use 50 epochs, found from
-this sweep – not the joint models’ original 10-epoch convention, which
-was never revisited when two-stage bundling raised the question. The
-joint <code>*_pos.model</code> figures in <a href="../pre-trained-models.html">Pre-trained Models</a>
-remain their originally published (10-epoch) numbers; they were not
-retrained for this comparison, so a matched-epoch re-run of the joint
-models would likely also improve their numbers somewhat (the sweep showed
-joint’s Chinese quality still rising at 100 epochs). The comparison below
-is therefore “the two-stage models as bundled” vs. “the joint models as
-currently published,” not “the best achievable accuracy of each
-architecture” – a caveat worth keeping in mind when reading the table.</p>
-<h2 id="measured-comparison"><a class="header" href="#measured-comparison">Measured comparison</a></h2>
+small fraction of per-character multiclass scoring. This is what makes the
+POS path nearly as fast as plain segmentation: the historical joint
+architecture (removed in favor of two-stage) scored every one of the ~18
+UPOS classes at every character position and ran 1.8-2.8x slower on the
+same corpora.</p>
+<h2 id="a-methodology-note-use-enough-training-epochs"><a class="header" href="#a-methodology-note-use-enough-training-epochs">A methodology note: use enough training epochs</a></h2>
+<p>An epoch sweep (10 to 150 epochs) during the two-stage rollout showed that
+model quality keeps improving well past the 10-epoch convention older
+models were trained with, and plateaus at around 50 epochs on the UD GSD
+training sets. In particular, stage 1’s boundary-only features need more
+epochs than richer per-character feature sets to converge on the same
+corpus. <strong>The bundled two-stage models use 50 epochs</strong>; when retraining, a
+one-shot low-epoch run will understate the quality the architecture can
+reach.</p>
+<h2 id="measured-quality-and-throughput"><a class="header" href="#measured-quality-and-throughput">Measured quality and throughput</a></h2>
 <p>Held-out figures are from <code>litsea evaluate --pos</code> on the UD GSD test
 splits (see <a href="../pre-trained-models.html">Pre-trained Models</a>). Throughput is
 <code>cargo bench -- external_corpus</code> on this project’s development machine
-(not dedicated, idle hardware); three runs on the same build gave a
-noticeable spread (Japanese 2.65-3.05x, Chinese 2.13-2.44x, Korean
-1.75-1.90x) – see <a href="../advanced/benchmarking.html">Benchmarking</a> for the
-methodology and its limits. The ranges below are the same three runs; the
-point figure is their mean.</p>
+(not dedicated, idle hardware); run-to-run spread is noticeable – see
+<a href="../advanced/benchmarking.html">Benchmarking</a> for the methodology and its
+limits.</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Language</th><th>Word F1 (joint -&gt; two-stage)</th><th>Tagged F1 (joint -&gt; two-stage)</th><th>Throughput (joint -&gt; two-stage)</th></tr>
+<tr><th>Language</th><th>Word F1</th><th>Tagged F1</th><th>Throughput</th></tr>
 </thead>
 <tbody>
-<tr><td>Japanese</td><td>96.56% -&gt; 96.78% (+0.22)</td><td>92.51% -&gt; 92.95% (+0.44)</td><td>1.55M -&gt; 4.38M chars/s (~2.8x, range 2.65-3.05x)</td></tr>
-<tr><td>Chinese</td><td>90.52% -&gt; 90.82% (+0.30)</td><td>81.18% -&gt; 82.29% (+1.11)</td><td>1.49M -&gt; 3.38M chars/s (~2.3x, range 2.13-2.44x)</td></tr>
-<tr><td>Korean</td><td>80.51% -&gt; 83.24% (+2.73)</td><td>71.03% -&gt; 78.86% (+7.83)</td><td>2.48M -&gt; 4.54M chars/s (~1.8x, range 1.75-1.90x)</td></tr>
+<tr><td>Japanese</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
+<tr><td>Chinese</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
+<tr><td>Korean</td><td>83.24%</td><td>78.86%</td><td>4.54M chars/s</td></tr>
 </tbody>
 </table>
 </div>
-<p>Three things stand out:</p>
+<p>Two observations worth keeping in mind:</p>
 <ul>
-<li><strong>Both Word F1 and Tagged F1 favor two-stage (as bundled) in every
-language</strong>, sometimes by a wide margin (Korean’s +7.83pt tagging). As
-the methodology note above explains, part of this is the extra training
-epochs the bundled two-stage models use relative to the published joint
-models, not purely the architecture – see that note before treating
-this table as an unconditional architecture ranking.</li>
-<li><strong>Candidate-tag restriction is a real quality lever, independent of the
-epoch effect.</strong> Even at matched epochs (the sweep in the note above),
-two-stage’s tagging quality met or beat joint’s: restricting a known
-word’s candidates to what was actually observed removes most
+<li><strong>Candidate-tag restriction is a real quality lever.</strong> Restricting a
+known word’s candidates to what was actually observed removes most
 opportunities to pick an implausible tag, which offsets scoring a
 smaller feature set per word.</li>
-<li><strong>Throughput gains vary (1.8-2.8x) rather than hitting a single fixed
-number.</strong> Korean’s smaller speedup traces to its lexicon: 34.5% of
-held-out words are unknown (never seen in training) and always pay
-stage 2’s full-class fallback rather than the cheap dominance-skip or
-candidate-masked paths, so a larger share of Korean’s words carry the
-full stage-2 cost than in Japanese or Chinese.</li>
+<li><strong>Throughput varies by lexicon coverage.</strong> Korean’s 34.5% held-out
+unknown-word rate means a larger share of its words pay stage 2’s
+full-class fallback rather than the cheap dominance-skip or
+candidate-masked paths.</li>
 </ul>
 <h2 id="choosing-a-stage-2-feature-set"><a class="header" href="#choosing-a-stage-2-feature-set">Choosing a stage-2 feature set</a></h2>
 <p>Stage 2’s word-level tagger can be extracted with three feature sets
@@ -310,42 +271,14 @@ the bundled models.</p>
 </tbody>
 </table>
 </div>
-<p>For Japanese, <code>fast</code> alone already clears the joint baseline comfortably
-(92.95% vs. 92.51%), so the bundled <code>japanese_two_stage.model</code> uses it.
-For Chinese, <code>balanced</code> gives most of <code>full</code>’s gain (82.29% vs. 82.96%) at
-meaningfully better throughput, so <code>chinese_two_stage.model</code> uses
-<code>balanced</code> rather than <code>full</code>. For Korean, <code>full</code> adds essentially nothing
-over <code>balanced</code> (78.88% vs. 78.86%), so <code>korean_two_stage.model</code> also uses
-<code>balanced</code>. Retraining with a different set is a matter of re-running
-<code>extract --two-stage --stage2-features &lt;set&gt;</code> + <code>train --two-stage</code>; there
-is no need to change any other part of the pipeline.</p>
-<h2 id="which-one-to-use"><a class="header" href="#which-one-to-use">Which one to use</a></h2>
-<p><strong>Prefer the two-stage models for new work.</strong> As bundled, they beat the
-currently published joint models on both Word F1 and Tagged F1 in every
-language, at 1.8-2.8x the throughput and a smaller file.</p>
-<p>Keep the joint (<code>*_pos.model</code>) models available for:</p>
-<ul>
-<li><strong>Compatibility</strong> with existing code built against <code>with_pos_learner()</code>
-or the joint model file format; nothing about the two-stage addition
-changes joint model behavior (see the <a href="https://github.com/mosuka/litsea/issues/147">design
-discussion</a> – it is purely
-additive).</li>
-<li><strong>Matched-training-budget Chinese segmentation.</strong> At the same epoch
-count, joint keeps a small, real edge on Chinese segmentation (see the
-methodology note above); the bundled two-stage model already closes
-this with more training, but a from-scratch two-stage retrain at fewer
-epochs would not.</li>
-<li><strong>A reference implementation.</strong> The joint model’s per-character scoring
-is architecturally simpler (no lexicon, no dominance threshold, no
-candidate masking) and is what the two-stage numbers above were
-validated against; keeping it available preserves that baseline for
-future comparisons.</li>
-</ul>
-<p>Both are auto-detected by <code>segment --pos</code> / <code>evaluate --pos</code> from the
-model file (see <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">Model File
-Format</a>),
-so switching between them is a matter of pointing at a different file, not
-a code or flag change.</p>
+<p>For Japanese, <code>fast</code> alone reaches 92.95% tagged F1, so the bundled
+<code>japanese_two_stage.model</code> uses it. For Chinese, <code>balanced</code> gives most of
+<code>full</code>’s gain (82.29% vs. 82.96%) at meaningfully better throughput, so
+<code>chinese_two_stage.model</code> uses <code>balanced</code> rather than <code>full</code>. For Korean,
+<code>full</code> adds essentially nothing over <code>balanced</code> (78.88% vs. 78.86%), so
+<code>korean_two_stage.model</code> also uses <code>balanced</code>. Retraining with a different
+set is a matter of re-running <code>extract --two-stage --stage2-features &lt;set&gt;</code> + <code>train --two-stage</code>; there is no need to change any other part of
+the pipeline.</p>
 
                     </main>
 

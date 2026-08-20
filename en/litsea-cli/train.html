@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -207,9 +207,9 @@
 <tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>Weak classifier accuracy threshold for early stopping. Lower values allow more iterations</td></tr>
 <tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) training mode using Averaged Perceptron</td></tr>
-<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (POS and <code>--two-stage</code> modes)</td></tr>
-<tr><td><code>--two-stage</code></td><td>off</td><td>Train a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model instead. Reads <code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code> (from <code>extract --two-stage</code>). Cannot be combined with <code>--pos</code> or <code>-m</code>/<code>--load-model-uri</code> (incremental training is not supported)</td></tr>
+<tr><td><code>--perceptron</code></td><td>off</td><td>Train a generic Averaged Perceptron over opaque string labels (the training step of the bundled segmentation models’ collapse recipe)</td></tr>
+<tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (<code>--perceptron</code> and <code>--two-stage</code> modes)</td></tr>
+<tr><td><code>--two-stage</code></td><td>off</td><td>Train a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model instead. Reads <code>{FEATURES_FILE}.stage1</code>/<code>.stage2</code>/<code>.lexicon</code> (from <code>extract --two-stage</code>). Cannot be combined with <code>--perceptron</code> or <code>-m</code>/<code>--load-model-uri</code> (incremental training is not supported)</td></tr>
 <tr><td><code>--dominance &lt;DOMINANCE&gt;</code></td><td><code>0.99</code></td><td>Classifier-skip threshold for <code>--two-stage</code>, in <code>(0.5, 1.0]</code>: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier</td></tr>
 </tbody>
 </table>
@@ -260,37 +260,42 @@
 </tbody>
 </table>
 </div>
-<h2 id="pos-model-training"><a class="header" href="#pos-model-training">POS Model Training</a></h2>
-<p>When the <code>--pos</code> flag is specified, <code>train</code> uses the <strong>Averaged Perceptron</strong> algorithm instead of AdaBoost. This trains a multiclass classifier for joint word segmentation and POS tagging.</p>
+<h2 id="generic-perceptron-training"><a class="header" href="#generic-perceptron-training">Generic Perceptron Training</a></h2>
+<p>When the <code>--perceptron</code> flag is specified, <code>train</code> uses the <strong>Averaged
+Perceptron</strong> algorithm instead of AdaBoost. Labels are opaque strings, so
+this mode trains any multiclass classifier from a <code>label\tfeature\t...</code>
+features file. Its main use is training the 2-class (<code>B</code>/<code>O</code>) boundary
+perceptron of the bundled segmentation models’ collapse recipe (see
+<a href="../pre-trained-models.html#training-procedure">Training Procedure</a>).</p>
 <h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
-<pre><code class="language-sh">litsea train --pos [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
+<pre><code class="language-sh">litsea train --perceptron [OPTIONS] &lt;FEATURES_FILE&gt; &lt;MODEL_FILE&gt;
 </code></pre>
-<h3 id="pos-training-options"><a class="header" href="#pos-training-options">POS Training Options</a></h3>
+<h3 id="perceptron-training-options"><a class="header" href="#perceptron-training-options">Perceptron Training Options</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS training mode</td></tr>
+<tr><td><code>--perceptron</code></td><td>off</td><td>Enable generic perceptron training mode</td></tr>
 <tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
 </tbody>
 </table>
 </div>
 <h3 id="examples-1"><a class="header" href="#examples-1">Examples</a></h3>
-<pre><code class="language-sh"># Train a POS model from POS features
-litsea train --pos --num-epochs 10 ./pos_features.txt ./models/japanese_pos.model
+<pre><code class="language-sh"># Train a 2-class boundary perceptron (collapse recipe, step 3)
+litsea train --perceptron --num-epochs 50 ./features.txt ./perceptron.model
 </code></pre>
 <h3 id="output-1"><a class="header" href="#output-1">Output</a></h3>
-<p>POS training metrics are printed to stderr (macro-averaged precision and recall):</p>
-<pre><code class="language-text">Result Metrics (POS):
+<p>Perceptron training metrics are printed to stderr (macro-averaged precision and recall):</p>
+<pre><code class="language-text">Result Metrics (Perceptron):
   Accuracy: 98.23% ( 277213 )
   Macro Precision: 96.82%
   Macro Recall: 93.30%
 </code></pre>
 <h3 id="ctrlc-handling-1"><a class="header" href="#ctrlc-handling-1">Ctrl+C Handling</a></h3>
-<p>Same as AdaBoost training, POS training supports graceful interruption. The first Ctrl+C stops training and saves the model at its current state.</p>
-<h3 id="pos-hyperparameters"><a class="header" href="#pos-hyperparameters">POS Hyperparameters</a></h3>
+<p>Same as AdaBoost training, perceptron training supports graceful interruption. The first Ctrl+C stops training and saves the model at its current state.</p>
+<h3 id="perceptron-hyperparameters"><a class="header" href="#perceptron-hyperparameters">Perceptron Hyperparameters</a></h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -329,8 +334,7 @@ litsea train --two-stage --num-epochs 50 ./two_stage_features ./models/japanese_
   Stage 2 Macro Recall: 98.77%
 </code></pre>
 <p>As with the other modes, these are in-sample metrics; evaluate on held-out
-text with <code>litsea evaluate --pos</code> for a realistic quality estimate. <code>segment --pos</code> and <code>evaluate --pos</code> auto-detect a two-stage model from its file
-header, so no extra flag is needed to use it.</p>
+text with <code>litsea evaluate --pos</code> for a realistic quality estimate.</p>
 
                     </main>
 

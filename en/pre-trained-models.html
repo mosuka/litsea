@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-606bda11.js";
+            window.path_to_searchindex_js = "searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-4bbd3799.js"></script>
+        <script src="toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -200,7 +200,7 @@ not an approximation: a perceptron trained this way reaches substantially
 higher held-out quality than AdaBoost’s presence-stump weak learners on the
 same corpus and templates, at the cost of a larger model file (more
 distinct features get non-zero weight) and a training procedure that goes
-through <code>train --pos</code> (see <a href="#training-procedure">Training Procedure</a>
+through <code>train --perceptron</code> (see <a href="#training-procedure">Training Procedure</a>
 below) rather than plain <code>train</code>.</p>
 <h3 id="japanesemodel"><a class="header" href="#japanesemodel">japanese.model</a></h3>
 <div class="table-wrapper">
@@ -318,9 +318,9 @@ litsea extract -l &lt;language&gt; [--format tsv for Korean] [--tag-free] &lt;co
 #    Training directly on "1"/"-1" would silently invert what ties resolve to.
 sed -i 's/^1\t/B\t/; s/^-1\t/O\t/' &lt;features.txt&gt;
 
-# 3. Train a 2-class Averaged Perceptron. --pos is being reused generically
-#    here (PosTrainer treats labels as opaque strings), not for POS tagging.
-litsea train --pos --num-epochs &lt;N&gt; &lt;features.txt&gt; &lt;perceptron.model&gt;
+# 3. Train a 2-class Averaged Perceptron. --perceptron is the generic
+#    trainer (PerceptronTrainer treats labels as opaque strings).
+litsea train --perceptron --num-epochs &lt;N&gt; &lt;features.txt&gt; &lt;perceptron.model&gt;
 
 # 4. Collapse to the plain AdaBoost model format (lossless -- see the
 #    script's docstring for the derivation).
@@ -372,114 +372,30 @@ the extract step; the throughput numbers were measured on this project’s
 development machine with the paired methodology of
 <a href="advanced/benchmarking.html">Benchmarking</a>, so expect the ratio, not the
 absolute numbers, to carry over.</p>
-<h2 id="pos-tagging-models"><a class="header" href="#pos-tagging-models">POS Tagging Models</a></h2>
-<p>In-sample rows are the <code>train</code> command’s metrics on the training data;
-held-out rows are word / tagged-word F1 measured with <code>litsea evaluate --pos</code> on the UD GSD test splits (see
-<a href="training-guide/evaluating-models.html">Evaluating Models</a>). The Korean POS
-gold follows the POS pipeline’s convention (no space tokens), so it is
-evaluated on unspaced text.</p>
-<h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Property</th><th>Value</th></tr>
-</thead>
-<tbody>
-<tr><td>Language</td><td>Japanese</td></tr>
-<tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
-<tr><td>Training Corpus</td><td>UD Japanese-GSD (7,050 sentences)</td></tr>
-<tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy (in-sample)</td><td>98.23%</td></tr>
-<tr><td>Macro Precision (in-sample)</td><td>96.82%</td></tr>
-<tr><td>Macro Recall (in-sample)</td><td>93.30%</td></tr>
-<tr><td>Word F1 (held-out)</td><td>96.56%</td></tr>
-<tr><td>Tagged Word F1 (held-out)</td><td>92.51%</td></tr>
-<tr><td>File Size</td><td>~11 MB</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="chinese_posmodel"><a class="header" href="#chinese_posmodel">chinese_pos.model</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Property</th><th>Value</th></tr>
-</thead>
-<tbody>
-<tr><td>Language</td><td>Chinese (Simplified &amp; Traditional)</td></tr>
-<tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
-<tr><td>Training Corpus</td><td>UD Chinese-GSD (3,997 sentences)</td></tr>
-<tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy (in-sample)</td><td>97.04%</td></tr>
-<tr><td>Macro Precision (in-sample)</td><td>97.17%</td></tr>
-<tr><td>Macro Recall (in-sample)</td><td>96.14%</td></tr>
-<tr><td>Word F1 (held-out)</td><td>90.52%</td></tr>
-<tr><td>Tagged Word F1 (held-out)</td><td>81.18%</td></tr>
-<tr><td>File Size</td><td>~19 MB</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>Property</th><th>Value</th></tr>
-</thead>
-<tbody>
-<tr><td>Language</td><td>Korean</td></tr>
-<tr><td>Algorithm</td><td>Averaged Perceptron</td></tr>
-<tr><td>Training Corpus</td><td>UD Korean-GSD (4,400 sentences)</td></tr>
-<tr><td>Epochs</td><td>10</td></tr>
-<tr><td>Accuracy (in-sample)</td><td>95.14%</td></tr>
-<tr><td>Macro Precision (in-sample)</td><td>95.00%</td></tr>
-<tr><td>Macro Recall (in-sample)</td><td>86.15%</td></tr>
-<tr><td>Word F1 (held-out)</td><td>80.51%</td></tr>
-<tr><td>Tagged Word F1 (held-out)</td><td>71.03%</td></tr>
-<tr><td>File Size</td><td>~8.9 MB</td></tr>
-</tbody>
-</table>
-</div>
-<h4 id="usage"><a class="header" href="#usage">Usage</a></h4>
-<pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_pos.model
-</code></pre>
-<p>Output:</p>
-<pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
-</code></pre>
 <h2 id="two-stage-pos-tagging-models"><a class="header" href="#two-stage-pos-tagging-models">Two-Stage POS Tagging Models</a></h2>
 <p>The <a href="algorithm/two-stage-tagging.html">two-stage architecture</a> (issue #147)
 segments with a binary boundary classifier and tags each resulting word
 through a candidate-tag lexicon plus a word-level tagger, instead of
-scoring every UPOS class at every character position. It is additive: the
-<code>*_pos.model</code> files above are unaffected, and <code>segment --pos</code> /
-<code>evaluate --pos</code> auto-detect either kind from the file. See <a href="algorithm/two-stage-tagging.html">Two-Stage vs.
-Joint Tagging</a> for the architecture and the
-per-language recommendation.</p>
-<p>In-sample and held-out rows use the same protocol as the joint models
-above. “Stage-2 feature set” is the word-level template selection (<code>fast</code>,
-<code>balanced</code>, or <code>full</code>; see <a href="training-guide/extracting-features.html">Extracting
+scoring every UPOS class at every character position.</p>
+<p>Held-out rows are word / tagged-word F1 measured with <code>litsea evaluate --pos</code> on the UD GSD test splits (see
+<a href="training-guide/evaluating-models.html">Evaluating Models</a>). The Korean POS
+gold follows the POS pipeline’s convention (no space tokens), so it is
+evaluated on unspaced text. “Stage-2 feature set” is the word-level
+template selection (<code>fast</code>, <code>balanced</code>, or <code>full</code>; see <a href="training-guide/extracting-features.html">Extracting
 Features</a>) chosen for the bundled
-file per language, from the measured tradeoff in <a href="algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">Two-Stage vs. Joint
+file per language, from the measured tradeoff in <a href="algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">Two-Stage
 Tagging</a>.
 Throughput is from <code>cargo bench -- external_corpus</code> on the same corpora as
-the <a href="advanced/benchmarking.html">Benchmarking</a> page, run on the same
-development machine as the other benchmark figures on this page (not
-dedicated, idle hardware – see that page’s methodology note); the joint
-comparison figure is the throughput measured in the same run, not the
-<code>*_pos.model</code> table above, since bench-to-bench variance on shared hardware
-makes a same-run comparison the only fair one.</p>
-<p><strong>Epoch note</strong>: the joint models above are documented at their original
-10-epoch training. An epoch sweep during two-stage bundling (10 to 150
+the <a href="advanced/benchmarking.html">Benchmarking</a> page, run on this project’s
+development machine (not dedicated, idle hardware – see that page’s
+methodology note).</p>
+<p><strong>Epoch note</strong>: an epoch sweep during two-stage bundling (10 to 150
 epochs) found that stage 1’s <em>segmentation</em> quality specifically continues
 improving well past 10 epochs and plateaus around 50 – the bundled
-two-stage models below use 50 epochs, chosen from that sweep, not the same
-10-epoch convention as the joint models. At <em>matched</em> epoch counts, the
-sweep also found joint’s segmentation retains a small, consistent edge
-over two-stage for Chinese (roughly 0.5-0.9pt across every epoch count
-tested) – a real, reproducible difference, most likely because the joint
-model’s per-character tag-dependent features carry more signal per
-training example than stage 1’s boundary-only features. It does not,
-however, rise to a hard ceiling: 50-epoch two-stage training closes it and
-the bundled <code>chinese_two_stage.model</code> below has a higher held-out Word F1
-than the published (10-epoch) <code>chinese_pos.model</code>.</p>
+two-stage models below use 50 epochs, chosen from that sweep. When
+retraining, a one-shot low-epoch run will understate the quality the
+architecture can reach (see the <a href="algorithm/two-stage-tagging.html#a-methodology-note-use-enough-training-epochs">methodology
+note</a>).</p>
 <h3 id="japanese_two_stagemodel"><a class="header" href="#japanese_two_stagemodel">japanese_two_stage.model</a></h3>
 <div class="table-wrapper">
 <table>
@@ -491,9 +407,9 @@ than the published (10-epoch) <code>chinese_pos.model</code>.</p>
 <tr><td>Training Corpus</td><td>UD Japanese-GSD (7,050 sentences)</td></tr>
 <tr><td>Epochs</td><td>50</td></tr>
 <tr><td>Stage-2 Feature Set</td><td><code>fast</code></td></tr>
-<tr><td>Word F1 (held-out)</td><td>96.78% (joint: 96.56%)</td></tr>
-<tr><td>Tagged Word F1 (held-out)</td><td>92.95% (joint: 92.51%)</td></tr>
-<tr><td>Throughput vs. joint</td><td>~2.8x (3 runs: 2.65-3.05x)</td></tr>
+<tr><td>Word F1 (held-out)</td><td>96.78%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>92.95%</td></tr>
+<tr><td>Throughput</td><td>4.38M chars/s</td></tr>
 <tr><td>File Size</td><td>~5.4 MB</td></tr>
 </tbody>
 </table>
@@ -509,9 +425,9 @@ than the published (10-epoch) <code>chinese_pos.model</code>.</p>
 <tr><td>Training Corpus</td><td>UD Chinese-GSD (3,997 sentences)</td></tr>
 <tr><td>Epochs</td><td>50</td></tr>
 <tr><td>Stage-2 Feature Set</td><td><code>balanced</code></td></tr>
-<tr><td>Word F1 (held-out)</td><td>90.82% (joint: 90.52%)</td></tr>
-<tr><td>Tagged Word F1 (held-out)</td><td>82.29% (joint: 81.18%)</td></tr>
-<tr><td>Throughput vs. joint</td><td>~2.3x (3 runs: 2.13-2.44x)</td></tr>
+<tr><td>Word F1 (held-out)</td><td>90.82%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>82.29%</td></tr>
+<tr><td>Throughput</td><td>3.38M chars/s</td></tr>
 <tr><td>File Size</td><td>~8.0 MB</td></tr>
 </tbody>
 </table>
@@ -527,30 +443,29 @@ than the published (10-epoch) <code>chinese_pos.model</code>.</p>
 <tr><td>Training Corpus</td><td>UD Korean-GSD (4,400 sentences, unspaced word/POS protocol – see the note below)</td></tr>
 <tr><td>Epochs</td><td>50</td></tr>
 <tr><td>Stage-2 Feature Set</td><td><code>balanced</code></td></tr>
-<tr><td>Word F1 (held-out)</td><td>83.24% (joint: 80.51%)</td></tr>
-<tr><td>Tagged Word F1 (held-out)</td><td>78.86% (joint: 71.03%)</td></tr>
-<tr><td>Throughput vs. joint</td><td>~1.8x (3 runs: 1.75-1.90x)</td></tr>
+<tr><td>Word F1 (held-out)</td><td>83.24%</td></tr>
+<tr><td>Tagged Word F1 (held-out)</td><td>78.86%</td></tr>
+<tr><td>Throughput</td><td>4.54M chars/s</td></tr>
 <tr><td>File Size</td><td>~5.0 MB</td></tr>
 </tbody>
 </table>
 </div>
-<p>Korean’s smaller speedup traces to its lexicon: held-out text is 34.5%
+<p>Korean’s throughput profile traces to its lexicon: held-out text is 34.5%
 unknown words (surfaces never seen in training), and unknown words always
 take the full stage-2 classifier fallback rather than the cheap
 dominance-skip or candidate-masked paths, so a larger share of Korean’s
 words pay the full stage-2 cost than in Japanese or Chinese.</p>
-<p><strong>Korean protocol note</strong>: <code>korean_two_stage.model</code> is trained on the same
-unspaced <code>word/POS</code> corpus as <code>korean_pos.model</code>, <em>not</em> the
-space-preserving TSV corpus <code>korean.model</code> uses (issue #152). The two-stage
-extractor takes a single corpus for both stages, and building a combined
-space-preserving + POS-tagged format is a separate feature not yet
-implemented; the numbers above are therefore comparable to <code>korean_pos.model</code>
-but not to <code>korean.model</code>’s 99.91% (a different corpus and protocol
-entirely, not a stronger or weaker two-stage result).</p>
-<h4 id="usage-1"><a class="header" href="#usage-1">Usage</a></h4>
+<p><strong>Korean protocol note</strong>: <code>korean_two_stage.model</code> is trained on the
+unspaced <code>word/POS</code> corpus, <em>not</em> the space-preserving TSV corpus
+<code>korean.model</code> uses (issue #152). The two-stage extractor takes a single
+corpus for both stages, and building a combined space-preserving +
+POS-tagged format is a separate feature not yet implemented; the numbers
+above are therefore not comparable to <code>korean.model</code>’s 99.91% (a different
+corpus and protocol entirely, not a stronger or weaker two-stage result).</p>
+<h4 id="usage"><a class="header" href="#usage">Usage</a></h4>
 <pre><code class="language-sh">echo "これはテストです。" | litsea segment --pos -l japanese models/japanese_two_stage.model
 </code></pre>
-<p>The output is identical in shape to the joint model’s:</p>
+<p>Output:</p>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
 </code></pre>
 <h2 id="choosing-a-model"><a class="header" href="#choosing-a-model">Choosing a Model</a></h2>
@@ -558,18 +473,11 @@ entirely, not a stronger or weaker two-stage result).</p>
 <li>For <strong>Japanese</strong>, use <code>japanese.model</code> for the best accuracy, or <code>RWCP.model</code> for compatibility with the original TinySegmenter</li>
 <li>For <strong>Chinese</strong>, use <code>chinese.model</code></li>
 <li>For <strong>Korean</strong>, use <code>korean.model</code></li>
-<li>For <strong>POS tagging</strong>, prefer the <strong>two-stage</strong> models
+<li>For <strong>POS tagging</strong>, use the <strong>two-stage</strong> models
 (<code>japanese_two_stage.model</code>, <code>chinese_two_stage.model</code>,
-<code>korean_two_stage.model</code>) – 1.8-2.8x the throughput and a smaller file,
-at Word F1 and Tagged F1 that both beat the currently published joint
-models in every language. Keep the joint <code>*_pos.model</code> files available
-for compatibility with any code already built against <code>with_pos_learner</code>
-/ the joint model files, and as the simpler reference implementation the
-two-stage numbers above were measured against. At <em>matched</em> training
-epochs the two architectures are closer, with joint retaining a small
-edge on Chinese segmentation specifically (see the epoch note above and
-<a href="algorithm/two-stage-tagging.html">Two-Stage vs. Joint Tagging</a> for the
-full comparison and methodology).</li>
+<code>korean_two_stage.model</code>) with <code>segment --pos</code> / <code>evaluate --pos</code> (see
+<a href="algorithm/two-stage-tagging.html">Two-Stage Tagging</a> for the architecture
+and measured figures).</li>
 <li>For <strong>domain-specific</strong> needs, consider <a href="training-guide/preparing-corpus.html">training your own model</a> or <a href="training-guide/retraining-models.html">retraining</a> an existing one</li>
 </ul>
 <h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>

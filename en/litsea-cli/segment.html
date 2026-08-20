@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -204,7 +204,7 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Accepts a joint model (<code>train --pos</code>) or a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --two-stage</code>), auto-detected from the file</td></tr>
+<tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --two-stage</code>)</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
 </tbody>
 </table>
@@ -240,22 +240,24 @@
 </code></pre>
 <h2 id="pos-tagged-segmentation---pos"><a class="header" href="#pos-tagged-segmentation---pos">POS-Tagged Segmentation (<code>--pos</code>)</a></h2>
 <p>When the <code>--pos</code> flag is specified, segmentation and POS tagging are
-performed simultaneously. The model kind (joint Averaged Perceptron or
-<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a>)
-is auto-detected from the file header, so the same command works for
-either — including a model produced by <code>train --two-stage</code>.</p>
+performed together with a
+<a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a>
+model produced by <code>train --two-stage</code>. Pointing <code>--pos</code> at any other model
+kind fails with a precise error (a standalone Averaged Perceptron file —
+the removed joint POS model format — is rejected with a hint to retrain
+with <code>train --two-stage</code>).</p>
 <h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
 <pre><code class="language-sh">echo "text" | litsea segment --pos [OPTIONS] &lt;MODEL_URI&gt;
 </code></pre>
 <h3 id="output-format"><a class="header" href="#output-format">Output Format</a></h3>
 <p>Each token is output in <code>word/POS</code> format. POS tags conform to the UPOS tag set.</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
 </code></pre>
 <pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <h3 id="processing-a-file"><a class="header" href="#processing-a-file">Processing a File</a></h3>
-<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_pos.model &gt; output.txt
+<pre><code class="language-sh">cat input.txt | litsea segment --pos -l japanese ./models/japanese_two_stage.model &gt; output.txt
 </code></pre>
 <h2 id="parallel-batch-segmentation---threads"><a class="header" href="#parallel-batch-segmentation---threads">Parallel Batch Segmentation (<code>--threads</code>)</a></h2>
 <p>Sentences are independent, so batch throughput scales with cores without
@@ -274,7 +276,7 @@ numbers and should not be compared directly (see
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
 <li>The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (<code>load_model_from_path</code>)</li>
 <li>The model URI is not restricted to file paths – any valid URL is accepted</li>
-<li>When using <code>--pos</code>, the model must be a POS-capable model trained with <code>train --pos</code> or <code>train --two-stage</code></li>
+<li>When using <code>--pos</code>, the model must be a two-stage model trained with <code>train --two-stage</code></li>
 </ul>
 
                     </main>

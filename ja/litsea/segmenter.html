@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -188,20 +188,19 @@
 </span>pub struct Segmenter {
     // private: language: Language,
     // private: learner: AdaBoost,
-    // private: pos_learner: Option&lt;AveragedPerceptron&gt;,
     // private: two_stage: Option&lt;PackedTwoStageModel&gt;（コンパイル済み stage-2 モデル）
-    // internal: packed / packed_pos caches (see below)
+    // internal: packed cache (see below)
 }
 <span class="boring">}</span></code></pre>
-<p>フィールドは非公開です。アクセサメソッド <code>language()</code>、<code>learner()</code>、<code>learner_mut()</code>、<code>pos_learner()</code>、<code>pos_learner_mut()</code> を使ってアクセスしてください。</p>
-<p>これらに加えて、構造体は <code>packed</code> と <code>packed_pos</code> も保持しています。これらは学習器の重みを <code>segment()</code> / <code>segment_with_pos()</code> が採点に使う整数インデックスのテーブル群へコンパイルした、遅延再構築されるキャッシュです（<a href="../algorithm/prediction-pipeline.html#コンパイル済みスコアリングテーブル">予測パイプライン</a>を参照）。これらは内部実装の詳細でありアクセサはなく、対応する学習器が変更されると自動的に無効化されます。<code>two_stage</code> は <a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a>（後述）が設定するコンパイル済み stage-2 タグ付けモデルを保持します。二段構成モデルから作成された Segmenter でなければ <code>None</code> です。キャッシュとは異なり、保持された学習器から導出されるものではありません — 生の stage-2 パーツはコンパイル後に破棄され、このフィールドへの変更経路は存在しません。</p>
+<p>フィールドは非公開です。アクセサメソッド <code>language()</code>、<code>learner()</code>、<code>learner_mut()</code> を使ってアクセスしてください。</p>
+<p>これらに加えて、構造体は <code>packed</code> も保持しています。これは学習器の重みを <code>segment()</code> が採点に使う整数インデックスのテーブル群へコンパイルした、遅延再構築されるキャッシュです（<a href="../algorithm/prediction-pipeline.html#コンパイル済みスコアリングテーブル">予測パイプライン</a>を参照）。これは内部実装の詳細でありアクセサはなく、学習器が変更されると自動的に無効化されます。<code>two_stage</code> は <a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a>（後述）が設定するコンパイル済み stage-2 タグ付けモデルを保持します。二段構成モデルから作成された Segmenter でなければ <code>None</code> です。キャッシュとは異なり、保持された学習器から導出されるものではありません — 生の stage-2 パーツはコンパイル後に破棄され、このフィールドへの変更経路は存在しません。</p>
 <h2 id="コンストラクタ"><a class="header" href="#コンストラクタ">コンストラクタ</a></h2>
 <h3 id="segmenternew"><a class="header" href="#segmenternew"><code>Segmenter::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn new(language: Language) -&gt; Self
 <span class="boring">}</span></code></pre>
-<p>デフォルト（未学習）の <code>AdaBoost</code> 学習器を持つ Segmenter を作成します。学習や特徴量抽出に適しています。モデルが読み込まれるか学習データが追加されるまでは、<code>segment</code> は文字ごとに1単語を返します。POS 学習器は未設定のままで、<code>segment_with_pos</code> は <code>Err(LitseaError::PosLearnerNotSet)</code> を返します — 単語分割と品詞タグ付けを同時に行うには <a href="#pos-mode-api"><code>with_pos_learner</code></a> を使用してください。</p>
+<p>デフォルト（未学習）の <code>AdaBoost</code> 学習器を持つ Segmenter を作成します。学習や特徴量抽出に適しています。モデルが読み込まれるか学習データが追加されるまでは、<code>segment</code> は文字ごとに1単語を返します。二段構成モデルは未設定のままで、<code>segment_with_pos</code> は <code>Err(LitseaError::PosLearnerNotSet)</code> を返します — 単語分割と品詞タグ付けを行うには <a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a> を使用してください。</p>
 <h3 id="segmenterwith_learner"><a class="header" href="#segmenterwith_learner"><code>Segmenter::with_learner</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -334,44 +333,13 @@ segmenter.add_corpus_tsv("나는\t \t고양이");
 </span>pub fn language(&amp;self) -&gt; Language
 pub fn learner(&amp;self) -&gt; &amp;AdaBoost
 pub fn learner_mut(&amp;mut self) -&gt; &amp;mut AdaBoost
-pub fn pos_learner(&amp;self) -&gt; Option&lt;&amp;AveragedPerceptron&gt;
-pub fn pos_learner_mut(&amp;mut self) -&gt; Option&lt;&amp;mut AveragedPerceptron&gt;
 <span class="boring">}</span></code></pre>
-<p>Segmenter の言語と内部の学習器へのアクセスを提供します。</p>
+<p>Segmenter の言語と内部の学習器（二段構成の Segmenter では stage-1 境界分類器）へのアクセスを提供します。</p>
 <blockquote>
 <p>文字位置ごとの特徴量抽出（韓国語では38個、日本語・中国語では42個の特徴量）は内部実装の詳細です。以前の <code>get_attributes</code> メソッドは非公開になりました。</p>
 </blockquote>
 <h2 id="pos-mode-api"><a class="header" href="#pos-mode-api">POS-Mode API</a></h2>
-<p>Segmenter は、Averaged Perceptron モデルを使った <strong>単語分割と品詞タグ付けの同時実行</strong> もサポートしています。</p>
-<h3 id="with_pos_learner"><a class="header" href="#with_pos_learner"><code>with_pos_learner</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn with_pos_learner(language: Language, pos_learner: AveragedPerceptron) -&gt; Self
-<span class="boring">}</span></code></pre>
-<p>単語分割と品詞タグ付けを同時に行うように設定された Segmenter を作成します。</p>
-<h3 id="segment_with_pos"><a class="header" href="#segment_with_pos"><code>segment_with_pos</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn segment_with_pos(&amp;self, sentence: &amp;str) -&gt; Result&lt;Vec&lt;(String, Upos)&gt;&gt;
-<span class="boring">}</span></code></pre>
-<p>文を単語に分割すると同時に、各単語の UPOS タグを予測します。最初の文字位置での予測結果が最初の単語の品詞を決定します。空の文に対しては、空のベクターを持つ <code>Ok</code> を返します。</p>
-<p><strong>エラー</strong>: POS 学習器も二段構成学習器も設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を返します — <code>with_pos_learner()</code> または <code>with_two_stage_learner()</code> で Segmenter を作成するか、事前に <code>add_corpus_with_pos()</code> で学習データを登録してください。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::path::Path;
-
-use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
-use litsea::segmenter::Segmenter;
-
-let mut pos_learner = AveragedPerceptron::new();
-pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
-
-let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
-let tokens = segmenter.segment_with_pos("これはテストです。")?;
-// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
-//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
-<span class="boring">}</span></code></pre>
+<p>Segmenter は、二段構成モデル（issue #147）を使った <strong>単語分割と品詞タグ付け</strong> もサポートしています。</p>
 <h3 id="with_two_stage_learner"><a class="header" href="#with_two_stage_learner"><code>with_two_stage_learner</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -382,16 +350,32 @@ Segmenter を作成します。モデルの stage-1 境界分類器はそのま�
 AdaBoost 経路の学習器になり（<code>segment</code> は自然に動作します）、<code>segment_with_pos</code> は
 分割された各単語を候補タグ語彙表（lexicon）でタグ付けします — 単一候補・優勢候補の
 表層は分類器を完全にスキップし、曖昧な表層は候補マスク付き argmax、未知の表層は
-全クラスの argmax を stage-2 の単語単位タガーが決定します。<code>segment_with_pos</code> の
-シグネチャと戻り値は joint モードと同一で、モデル種別だけがパイプラインを選択します。
+全クラスの argmax を stage-2 の単語単位タガーが決定します。
 二段構成形式については<a href="../advanced/model-file-format.html">モデルファイル形式</a>を
 参照してください。</p>
-<h3 id="add_corpus_with_pos"><a class="header" href="#add_corpus_with_pos"><code>add_corpus_with_pos</code></a></h3>
+<h3 id="segment_with_pos"><a class="header" href="#segment_with_pos"><code>segment_with_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn add_corpus_with_pos(&amp;mut self, corpus: &amp;str)
+</span>pub fn segment_with_pos(&amp;self, sentence: &amp;str) -&gt; Result&lt;Vec&lt;(String, Upos)&gt;&gt;
 <span class="boring">}</span></code></pre>
-<p>POS タグ付きコーパス（<code>word/POS word/POS ...</code>）を Averaged Perceptron の学習データとして追加します。初回呼び出し時に POS 学習器が作成されます。</p>
+<p>stage-1 境界分類器で文を単語に分割し（<code>segment</code> と全く同じ）、二段構成のタグ付け経路で各単語に UPOS タグを付与します。空の文に対しては、空のベクターを持つ <code>Ok</code> を返します。</p>
+<p><strong>エラー</strong>: 二段構成学習器が設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を返します — まず <code>with_two_stage_learner()</code> で Segmenter を作成してください。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
+
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
+let tokens = segmenter.segment_with_pos("これはテストです。")?;
+// [("これ", Upos::PRON), ("は", Upos::ADP), ("テスト", Upos::NOUN),
+//  ("です", Upos::AUX), ("。", Upos::PUNCT)]
+<span class="boring">}</span></code></pre>
 <h3 id="add_corpus_with_pos_writer"><a class="header" href="#add_corpus_with_pos_writer"><code>add_corpus_with_pos_writer</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -399,7 +383,7 @@ AdaBoost 経路の学習器になり（<code>segment</code> は自然に動作�
 where
     F: FnMut(HashSet&lt;String&gt;, SegmentLabel)
 <span class="boring">}</span></code></pre>
-<p>各文字位置（最初の位置を含む）の POS 学習用特徴量を、Segmenter を変更することなくカスタムライターへストリーミングします。これは <code>Extractor::extract_with_pos</code> の基盤となっています。</p>
+<p>POS タグ付きコーパス（<code>word/POS word/POS ...</code>）の文字レベル学習用特徴量を、最初の位置を含めて、Segmenter を変更することなくカスタムライターへストリーミングします。これは <code>Extractor::extract_two_stage</code> が stage-1 境界特徴量を構築する際の基盤となっています。</p>
 
                     </main>
 

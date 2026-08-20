@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -205,11 +205,10 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code></td></tr>
-<tr><td><code>--pos</code></td><td>off</td><td>Enable POS (Part-of-Speech) feature extraction mode. Requires a POS corpus as input</td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--pos</code> or <code>--two-stage</code></td></tr>
-<tr><td><code>--two-stage</code></td><td>off</td><td>Extract <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> training features instead of joint POS features. Requires a POS corpus as input; cannot be combined with <code>--pos</code></td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--two-stage</code></td></tr>
+<tr><td><code>--two-stage</code></td><td>off</td><td>Extract <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> training features. Requires a POS corpus as input</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td>Stage-2 word-feature set for <code>--two-stage</code>: <code>full</code> (best quality), <code>balanced</code>, or <code>fast</code> (best throughput)</td></tr>
-<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code> – see <a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--pos</code> or <code>--two-stage</code></td></tr>
+<tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code> – see <a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--two-stage</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -250,24 +249,16 @@ litsea extract -l ko ./corpus_ko.txt ./features_ko.txt
 <p>Output to stderr on success:</p>
 <pre><code class="language-text">Feature extraction completed successfully.
 </code></pre>
-<h2 id="pos-feature-extraction"><a class="header" href="#pos-feature-extraction">POS Feature Extraction</a></h2>
-<p>When the <code>--pos</code> flag is specified, <code>extract</code> expects a <strong>POS corpus</strong> instead of a plain word-separated corpus. Each line contains words annotated with UPOS tags in the format <code>word/POS</code>:</p>
+<h2 id="two-stage-feature-extraction"><a class="header" href="#two-stage-feature-extraction">Two-Stage Feature Extraction</a></h2>
+<p>When the <code>--two-stage</code> flag is specified, <code>extract</code> expects a <strong>POS
+corpus</strong> instead of a plain word-separated corpus. Each line contains
+words annotated with UPOS tags in the format <code>word/POS</code>:</p>
 <h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
-<h3 id="pos-feature-output-format"><a class="header" href="#pos-feature-output-format">POS Feature Output Format</a></h3>
-<p>In POS mode, the label column uses segment labels (<code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>, <code>O</code>) instead of binary <code>1</code>/<code>-1</code>. Features are again written tab-separated in alphabetically sorted order:</p>
-<pre><code class="language-text">B-PRON	BC1:OO	BC2:OI	BC3:II	BP1:UU	BP2:UU	BQ1:UOO	BQ2:UOI	BQ3:UOO	BQ4:UOI	BW1:B2B1	...
-O	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...
-</code></pre>
-<h3 id="pos-extraction-example"><a class="header" href="#pos-extraction-example">POS Extraction Example</a></h3>
-<pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features.txt
-</code></pre>
-<h2 id="two-stage-feature-extraction"><a class="header" href="#two-stage-feature-extraction">Two-Stage Feature Extraction</a></h2>
-<p>With <code>--two-stage</code>, <code>extract</code> reads the same POS corpus format as <code>--pos</code>
-(<code>word/POS word/POS ...</code>) but writes <strong>three</strong> files derived from
-<code>FEATURES_FILE</code> as a prefix, for the <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage segmentation + POS tagging
+<p><code>extract --two-stage</code> writes <strong>three</strong> files derived from <code>FEATURES_FILE</code>
+as a prefix, for the <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage segmentation + POS tagging
 architecture</a>:</p>
 <div class="table-wrapper">
 <table>
@@ -275,7 +266,7 @@ architecture</a>:</p>
 <tr><th>File</th><th>Content</th></tr>
 </thead>
 <tbody>
-<tr><td><code>{FEATURES_FILE}.stage1</code></td><td>Boundary features, one row per character position, label <code>B</code> or <code>O</code> (the same feature templates as <code>--pos</code>)</td></tr>
+<tr><td><code>{FEATURES_FILE}.stage1</code></td><td>Boundary features, one row per character position, label <code>B</code> or <code>O</code> (the same character-level feature templates as plain extraction, emitted at every position including the first)</td></tr>
 <tr><td><code>{FEATURES_FILE}.stage2</code></td><td>Word-level features, one row per word, label a UPOS tag; which templates are written is controlled by <code>--stage2-features</code></td></tr>
 <tr><td><code>{FEATURES_FILE}.lexicon</code></td><td>The candidate-tag lexicon: <code>surface\tTAG:count[,TAG:count...]</code>, most-frequent-first</td></tr>
 </tbody>

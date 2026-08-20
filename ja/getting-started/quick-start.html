@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -198,20 +198,14 @@
 <pre><code class="language-sh">echo "한국어 단어 분할 테스트입니다." | litsea segment -l korean ./models/korean.model
 </code></pre>
 <h3 id="品詞推定付き分割"><a class="header" href="#品詞推定付き分割">品詞推定付き分割</a></h3>
-<p>Litsea は POS モデルを使うことで、単語分割と品詞推定を同時に行うことができます。<code>segment</code> コマンドに <code>--pos</code> フラグを追加します:</p>
+<p>Litsea は<a href="../algorithm/two-stage-tagging.html">二段構成</a>モデルを使って、単語分割と品詞推定を行うことができます。<code>segment</code> コマンドに <code>--pos</code> フラグを追加します:</p>
 <pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_pos.model
+  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
 </code></pre>
 <p>出力:</p>
 <pre><code class="language-text">今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 </code></pre>
 <p>各トークンには <a href="https://universaldependencies.org/u/pos/">Universal POS（UPOS）</a> タグが付与されます。</p>
-<h3 id="二段構成の品詞推定付き分割"><a class="header" href="#二段構成の品詞推定付き分割">二段構成の品詞推定付き分割</a></h3>
-<p>Litsea には、より高速な<a href="../algorithm/two-stage-tagging.html">二段構成</a>の品詞推定アーキテクチャも同梱されています。CLI はファイルからモデルの種類を自動判定するため、コマンドはモデルファイル名以外は上の joint の例と同じです:</p>
-<pre><code class="language-sh">echo "今日はいい天気ですね。" \
-  | litsea segment --pos -l japanese ./models/japanese_two_stage.model
-</code></pre>
-<p>出力の形式は joint の例と同じです。新規に使う場合は<a href="../pre-trained-models.html#モデルの選択">事前学習済みモデル</a>で推奨されている二段構成モデルの利用を検討してください。</p>
 <h2 id="ライブラリ-クイックスタート"><a class="header" href="#ライブラリ-クイックスタート">ライブラリ クイックスタート</a></h2>
 <p>モデルを読み込みテキストを分割する最小限の Rust プログラムです:</p>
 <pre class="playground"><code class="language-rust">use std::path::Path;
@@ -236,20 +230,20 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
     Ok(())
 }</code></pre>
 <h3 id="ライブラリでの品詞推定付き分割"><a class="header" href="#ライブラリでの品詞推定付き分割">ライブラリでの品詞推定付き分割</a></h3>
-<p>品詞推定付きモデルを読み込み、単語分割と品詞推定を同時に行う最小限の Rust プログラムです:</p>
+<p>POS モデルを読み込み、品詞タグ付きでテキストを分割する最小限の Rust プログラムです:</p>
 <pre class="playground"><code class="language-rust">use std::path::Path;
 
 use litsea::language::Language;
-use litsea::perceptron::AveragedPerceptron;
 use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
-    // Load the pre-trained POS model
-    let mut pos_learner = AveragedPerceptron::new();
-    pos_learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+    // Load the pre-trained two-stage POS model
+    let mut learner = TwoStageLearner::new();
+    learner.load_model_from_path(Path::new("./models/japanese_two_stage.model"))?;
 
     // Create a segmenter with POS support
-    let segmenter = Segmenter::with_pos_learner(Language::Japanese, pos_learner);
+    let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner);
 
     // Segment text with POS tags
     let tokens = segmenter.segment_with_pos("今日はいい天気ですね。")?;

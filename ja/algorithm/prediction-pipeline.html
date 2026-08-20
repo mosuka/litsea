@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -263,10 +263,9 @@ scatter-add する</li>
 エントリ（<code>B3</code>…<code>E3</code>）は Unicode スカラー範囲の直上のコードにマップされます。</p>
 <h3 id="コンパイル済みスコアリングテーブル"><a class="header" href="#コンパイル済みスコアリングテーブル">コンパイル済みスコアリングテーブル</a></h3>
 <p>特徴テンプレートは宣言的なテーブル（<code>packed_model::TEMPLATES</code>）として一度だけ
-定義され、そこから 4 つの消費者が導出されます: 学習・抽出で使用される
+定義され、そこから 3 つの消費者が導出されます: 学習・抽出で使用される
 文字列ライター、モデルの各特徴量文字列を整数キーへ変換するロード時パーサ、
-2 パススコアラーのテーブル群、そしてパーサとスコアラーの多クラス版である
-POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）です。コンパイルは
+そして 2 パススコアラーのテーブル群です。コンパイルは
 <code>Segmenter::with_learner</code> で先行して行われ、学習器が変更されると
 （<code>learner_mut()</code> / <code>add_corpus</code>）無効化され、次の <code>segment()</code> 呼び出しで遅延
 再構築されます。</p>
@@ -285,8 +284,8 @@ POS 用テーブル（<code>packed_pos_model::PackedPosModel</code>、後述）�
 <p>セグメンタの言語では生成し得ないモデル特徴量（例: 日本語セグメンタにおける
 韓国語の文字種コード）はすべてのテーブルから除外されます。それらはスコアリング時に
 到達不能なので、スコアには影響しません。</p>
-<p>このテーブルとその4つの消費者がカバーするのは、文字レベル（stage-1・AdaBoost・
-joint）の特徴量セットのみです。<a href="two-stage-tagging.html">二段構成の品詞タグ付け</a>の
+<p>このテーブルとその3つの消費者がカバーするのは、文字レベル（stage-1・AdaBoost）の
+特徴量セットのみです。<a href="two-stage-tagging.html">二段構成の品詞タグ付け</a>の
 stage-2 単語タガーは、これとは別の並行する宣言的テーブル（<code>litsea::word_features</code>、
 23個の単語レベルテンプレート）から、専用のランタイム
 <code>packed_two_stage::PackedTwoStageModel</code> へコンパイルされます – テンプレート
@@ -299,52 +298,17 @@ stage-2 単語タガーは、これとは別の並行する宣言的テーブル
 ストレス文字列・実テキストコーパス）は無変更で通過しており、将来のモデルで
 スコアが 0 近傍の knife-edge に乗った場合の検出網としてテストスイートに
 残されています。</p>
-<h2 id="単語分割と品詞タグ付けの同時実行segment_with_pos"><a class="header" href="#単語分割と品詞タグ付けの同時実行segment_with_pos">単語分割と品詞タグ付けの同時実行（<code>segment_with_pos</code>）</a></h2>
-<p><code>segment_with_pos</code> は、AdaBoost の代わりに Averaged Perceptron を使用して
-同じ 2 パスのパイプラインを実行します（issue #143）。パーセプトロンの重みは
-分割用テーブルの多クラス版（<code>packed_pos_model::PackedPosModel</code>）へ一度だけ
-コンパイルされ、AdaBoost のテーブルと並んでキャッシュされ、
-<code>pos_learner_mut()</code> / <code>add_corpus_with_pos()</code> で無効化されます。推論時に
-特徴量文字列は一切構築されません:</p>
-<ol>
-<li><strong>静的パス</strong> – <code>segment()</code> と同様に、位置ごとのマージ済み <code>UW</code> probe
-1 回、隣接ペアごとのマージ済み <code>BW</code> probe 1 回、<code>WC</code> の gather、
-<code>UC</code>/<code>BC</code>/<code>TC</code> の scatter ツインブロックを <code>n x n_classes</code> の
-スコア行列に累積します。パーセプトロンの更新は正解/予測クラスのペアしか
-触らないため、特徴量あたりの非ゼロクラスは平均約 3 個であり、
-ハッシュテーブル系ファミリーはスパースな <code>(クラス, 重み)</code> 行を格納します。</li>
-<li><strong>逐次パス</strong> – 各位置で、タグ依存の 16 個の密行を静的スコア行の上に
-加算し、argmax クラスを取ります（先勝ちの strictly-greater。
-<code>AveragedPerceptron</code> の予測と同一のタイブレーク）。presence ビットセットに
-より、モデルに存在しない特徴量の行は重みテーブルに触れることなく
-スキップされます。予測クラスは事前にパース済みの <code>SegmentLabel</code>
-（<code>B-&lt;POS&gt;</code> または <code>O</code>）へ直接引かれ、文字ごとのラベル文字列パースは
-ありません。</li>
-<li><code>segment()</code> と異なり、判定は<strong>最初の文字位置</strong>（<code>lo = 3</code>）から始まります:
-そのラベルが最初の単語の品詞を決定します。#100 以降、POS 学習
-パイプラインもこの位置を出力するため、学習と推論は対称になります
-（境界（AdaBoost）パイプラインは、最初の位置のラベルが自明であるため、
-依然としてこの位置をスキップします）。</li>
-<li><code>B-&lt;POS&gt;</code> ラベルは現在の単語を確定させ、その品詞を持つ新しい単語を
-開始します。<code>O</code> は現在の単語を延長します。単語は入力のバイトオフセット
-から 1 単語 1 回の正確なサイズのアロケーションで生成されます。</li>
-</ol>
-<p>文字列キーのパスは test-only（<code>segment_with_pos_reference</code>）として
-完全一致差分テストのオラクルに残されており、全同梱 POS モデル・ストレス
-文字列・実テキストコーパスで出力乖離ゼロが計測されています –
-<code>segment()</code> と同じ保証網です。</p>
-<h3 id="二段構成モードは異なる経路をたどる"><a class="header" href="#二段構成モードは異なる経路をたどる">二段構成モードは異なる経路をたどる</a></h3>
-<p>ここまでの説明は、Segmenter が joint（<code>AveragedPerceptron</code>）POS 学習器で
-構築された場合の <code>segment_with_pos</code> についてのものです。代わりに
+<h2 id="単語分割と品詞タグ付けsegment_with_pos"><a class="header" href="#単語分割と品詞タグ付けsegment_with_pos">単語分割と品詞タグ付け（<code>segment_with_pos</code>）</a></h2>
+<p><code>segment_with_pos</code> は
 <a href="../litsea/segmenter.html#with_two_stage_learner"><code>with_two_stage_learner</code></a>
-で構築された場合、<code>segment_with_pos</code> は<strong>まず</strong>二段構成学習器の有無を確認し、
-設定されていれば上記の packed-perceptron 経路を一切実行しません: 通常の
+で構築された Segmenter を必要とします（issue #147）。上記の通常の
 <code>segment()</code> の境界検出経路で分割し、その結果得られた各単語を
 <code>packed_two_stage::PackedTwoStageModel::tag_words</code> でタグ付けします –
 候補タグ語彙表の参照に加え、曖昧な既知単語にはマスク付き argmax、未知語には
-全クラス argmax のフォールバックを使用します。このパイプラインの詳細と、
-なぜ上記の文字単位の多クラス採点より高速なのかについては、
-<a href="two-stage-tagging.html">二段構成 vs Joint タグ付け</a>を参照してください。</p>
+全クラス argmax のフォールバックを使用します。したがって POS レイヤーが
+文字単位の採点を追加することは一切ありません。このパイプラインの詳細と
+コストモデルについては、<a href="two-stage-tagging.html">二段構成タグ付け</a>を
+参照してください。</p>
 <h2 id="学習と予測の比較"><a class="header" href="#学習と予測の比較">学習と予測の比較</a></h2>
 <div class="table-wrapper">
 <table>

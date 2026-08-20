@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -270,26 +270,31 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 
     Ok(())
 }</code></pre>
-<h2 id="postrainer"><a class="header" href="#postrainer">PosTrainer</a></h2>
-<p><code>PosTrainer</code> is the POS-model counterpart of <code>Trainer</code>: it trains an
-<strong>Averaged Perceptron</strong> for joint word segmentation and POS tagging from a
-POS features file (produced by <code>litsea extract --pos</code>).</p>
-<h3 id="postrainernew"><a class="header" href="#postrainernew"><code>PosTrainer::new</code></a></h3>
+<h2 id="perceptrontrainer"><a class="header" href="#perceptrontrainer">PerceptronTrainer</a></h2>
+<p><code>PerceptronTrainer</code> is the generic Averaged Perceptron counterpart of
+<code>Trainer</code>: it trains a multiclass <strong>Averaged Perceptron</strong> over opaque
+string labels from a features file (<code>litsea train --perceptron</code>). Its main
+use is training the 2-class (<code>B</code>/<code>O</code>) boundary perceptron that the collapse
+recipe (see <a href="../pre-trained-models.html#training-procedure">Pre-trained
+Models</a>) turns into the
+bundled AdaBoost-format segmentation models.</p>
+<h3 id="perceptrontrainernew"><a class="header" href="#perceptrontrainernew"><code>PerceptronTrainer::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn new(num_epochs: usize, features_path: &amp;Path) -&gt; litsea::Result&lt;Self&gt;
 <span class="boring">}</span></code></pre>
-<p>Reads the features file (each line is <code>label\tfeature1\tfeature2\t...</code>, where
-labels are <code>SegmentLabel</code> strings such as <code>B-NOUN</code> or <code>O</code>) and registers the
-training instances.</p>
-<h3 id="postrainerload_model"><a class="header" href="#postrainerload_model"><code>PosTrainer::load_model</code></a></h3>
+<p>Reads the features file (each line is <code>label\tfeature1\tfeature2\t...</code>,
+where labels are opaque strings, e.g. the boundary labels <code>B</code>/<code>O</code>) and
+registers the training instances.</p>
+<h3 id="perceptrontrainerload_model"><a class="header" href="#perceptrontrainerload_model"><code>PerceptronTrainer::load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub async fn load_model(&amp;mut self, model_uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>Loads an existing POS model for incremental training. Classes already
-registered from the training data are merged with the model’s classes.</p>
-<h3 id="postrainertrain"><a class="header" href="#postrainertrain"><code>PosTrainer::train</code></a></h3>
+<p>Loads an existing perceptron model for incremental training. Classes
+already registered from the training data are merged with the model’s
+classes.</p>
+<h3 id="perceptrontrainertrain"><a class="header" href="#perceptrontrainertrain"><code>PerceptronTrainer::train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(
@@ -304,13 +309,13 @@ flag enables graceful interruption, like <code>Trainer::train</code>.</p>
 <pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
-use litsea::trainer::PosTrainer;
+use litsea::trainer::PerceptronTrainer;
 
 #[tokio::main]
 async fn main() -&gt; litsea::Result&lt;()&gt; {
-    let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
+    let mut trainer = PerceptronTrainer::new(10, Path::new("./features.txt"))?;
     let running = AtomicBool::new(true);
-    let metrics = trainer.train(&amp;running, Path::new("./japanese_pos.model"))?;
+    let metrics = trainer.train(&amp;running, Path::new("./perceptron.model"))?;
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }</code></pre>
@@ -363,7 +368,7 @@ let trainer = TwoStageTrainer::new(
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;TwoStageMetrics&gt;
 <span class="boring">}</span></code></pre>
-<p>Unlike <code>Trainer::train</code> and <code>PosTrainer::train</code>, this method takes <code>self</code>
+<p>Unlike <code>Trainer::train</code> and <code>PerceptronTrainer::train</code>, this method takes <code>self</code>
 by value (it consumes the trainer). It trains both stages as Averaged
 Perceptrons for <code>num_epochs</code> epochs each, collapses stage 1 to AdaBoost
 weights, assembles the two stages with the lexicon into a
@@ -396,8 +401,9 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 <p>The in-sample metrics of a <code>TwoStageTrainer::train</code> run. <code>stage1</code> measures
 the boundary classifier over its two classes (<code>B</code>/<code>O</code>); <code>stage2</code> measures
 the word-level tagger over the UPOS tag classes. Both fields are
-<code>MulticlassMetrics</code> – the same type <a href="#postrainer"><code>PosTrainer::train</code></a>
-returns above, exposing accuracy plus macro-averaged precision and recall.</p>
+<code>MulticlassMetrics</code> – the same type
+<a href="#perceptrontrainer"><code>PerceptronTrainer::train</code></a> returns above, exposing
+accuracy plus macro-averaged precision and recall.</p>
 
                     </main>
 

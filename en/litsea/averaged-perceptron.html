@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="averaged-perceptron"><a class="header" href="#averaged-perceptron">Averaged Perceptron</a></h1>
-<p>The <code>AveragedPerceptron</code> struct implements multiclass classification for joint word segmentation and POS tagging.</p>
+<p>The <code>AveragedPerceptron</code> struct implements multiclass classification over opaque string labels. It is the training-side learner behind both stages of the two-stage POS architecture and the bundled segmentation models’ collapse recipe (<code>litsea train --perceptron</code>).</p>
 <h2 id="definition"><a class="header" href="#definition">Definition</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -294,7 +294,7 @@ flushed. Returns an error if no classes are registered (an empty model).</p>
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
 
-learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+learner.load_model_from_path(Path::new("./perceptron.model"))?;
 <span class="boring">}</span></code></pre>
 <h3 id="load_model_from_reader"><a class="header" href="#load_model_from_reader"><code>load_model_from_reader</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -309,14 +309,14 @@ learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
 <span class="boring">}</span></code></pre>
 <p>Loads model weights from a URI. Supports the following URI schemes:</p>
 <ul>
-<li>Local file path: <code>./models/japanese_pos.model</code></li>
+<li>Local file path: <code>./perceptron.model</code></li>
 <li>File URI: <code>file:///path/to/model</code></li>
 <li>HTTP: <code>http://example.com/model</code> (requires the <code>remote_model</code> feature)</li>
 <li>HTTPS: <code>https://example.com/model</code> (requires the <code>remote_model</code> feature)</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>learner.load_model("https://example.com/models/japanese_pos.model").await?;
+</span>learner.load_model("https://example.com/models/perceptron.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="evaluation"><a class="header" href="#evaluation">Evaluation</a></h2>
 <h3 id="metrics"><a class="header" href="#metrics"><code>metrics</code></a></h3>

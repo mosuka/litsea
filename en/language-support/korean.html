@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -268,16 +268,12 @@ sequential scoring pass entirely. See <a href="../pre-trained-models.html#tag-fr
 Models</a>.</p>
 <p>Held-out metrics are computed on the original spaced text with space tokens
 excluded from scoring.</p>
-<h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
-<ul>
-<li><strong>Algorithm</strong>: Averaged Perceptron (joint segmentation + POS tagging)</li>
-<li><strong>Details</strong>: see <a href="../pre-trained-models.html#korean_posmodel">Pre-trained Models</a></li>
-</ul>
 <h3 id="korean_two_stagemodel"><a class="header" href="#korean_two_stagemodel">korean_two_stage.model</a></h3>
 <ul>
-<li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (faster than the joint model, same output shape)</li>
+<li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
+classifier plus a word-level tagger with a candidate-tag lexicon)</li>
 <li><strong>Note</strong>: unlike <code>korean.model</code> above, this model is trained on the
-<em>unspaced</em> <code>word/POS</code> corpus (the same protocol as <code>korean_pos.model</code>),
+<em>unspaced</em> <code>word/POS</code> corpus,
 not the space-preserving protocol described on this page</li>
 <li><strong>Details</strong>: see <a href="../pre-trained-models.html#korean_two_stagemodel">Pre-trained Models</a></li>
 </ul>

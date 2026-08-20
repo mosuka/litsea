@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -270,21 +270,21 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 
     Ok(())
 }</code></pre>
-<h2 id="postrainer"><a class="header" href="#postrainer">PosTrainer</a></h2>
-<p><code>PosTrainer</code> は <code>Trainer</code> の POS モデル版です。POS 特徴量ファイル（<code>litsea extract --pos</code> で生成）から、単語分割と品詞タグ付けを同時に行うための <strong>Averaged Perceptron</strong> を学習します。</p>
-<h3 id="postrainernew"><a class="header" href="#postrainernew"><code>PosTrainer::new</code></a></h3>
+<h2 id="perceptrontrainer"><a class="header" href="#perceptrontrainer">PerceptronTrainer</a></h2>
+<p><code>PerceptronTrainer</code> は <code>Trainer</code> の汎用 Averaged Perceptron 版です。特徴量ファイルから、不透明な文字列ラベルに対する多クラスの <strong>Averaged Perceptron</strong> を学習します（<code>litsea train --perceptron</code>）。主な用途は、畳み込みレシピ（<a href="../pre-trained-models.html#学習手順">事前学習済みモデル</a>を参照）が同梱の AdaBoost 形式分割モデルへ変換する、2 クラス（<code>B</code>/<code>O</code>）境界パーセプトロンの学習です。</p>
+<h3 id="perceptrontrainernew"><a class="header" href="#perceptrontrainernew"><code>PerceptronTrainer::new</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn new(num_epochs: usize, features_path: &amp;Path) -&gt; litsea::Result&lt;Self&gt;
 <span class="boring">}</span></code></pre>
-<p>特徴量ファイル（各行が <code>label\tfeature1\tfeature2\t...</code> の形式で、ラベルは <code>B-NOUN</code> や <code>O</code> のような <code>SegmentLabel</code> 文字列）を読み込み、学習インスタンスを登録します。</p>
-<h3 id="postrainerload_model"><a class="header" href="#postrainerload_model"><code>PosTrainer::load_model</code></a></h3>
+<p>特徴量ファイル（各行が <code>label\tfeature1\tfeature2\t...</code> の形式で、ラベルは不透明な文字列。例: 境界ラベル <code>B</code>/<code>O</code>）を読み込み、学習インスタンスを登録します。</p>
+<h3 id="perceptrontrainerload_model"><a class="header" href="#perceptrontrainerload_model"><code>PerceptronTrainer::load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub async fn load_model(&amp;mut self, model_uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>既存の POS モデルを読み込み、増分学習を行います。学習データからすでに登録済みのクラスは、モデルのクラスとマージされます。</p>
-<h3 id="postrainertrain"><a class="header" href="#postrainertrain"><code>PosTrainer::train</code></a></h3>
+<p>既存のパーセプトロンモデルを読み込み、増分学習を行います。学習データからすでに登録済みのクラスは、モデルのクラスとマージされます。</p>
+<h3 id="perceptrontrainertrain"><a class="header" href="#perceptrontrainertrain"><code>PerceptronTrainer::train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(
@@ -297,13 +297,13 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 <pre class="playground"><code class="language-rust">use std::sync::atomic::AtomicBool;
 use std::path::Path;
 
-use litsea::trainer::PosTrainer;
+use litsea::trainer::PerceptronTrainer;
 
 #[tokio::main]
 async fn main() -&gt; litsea::Result&lt;()&gt; {
-    let mut trainer = PosTrainer::new(10, Path::new("./features_pos.txt"))?;
+    let mut trainer = PerceptronTrainer::new(10, Path::new("./features.txt"))?;
     let running = AtomicBool::new(true);
-    let metrics = trainer.train(&amp;running, Path::new("./japanese_pos.model"))?;
+    let metrics = trainer.train(&amp;running, Path::new("./perceptron.model"))?;
     println!("Accuracy: {:.2}%", metrics.accuracy);
     Ok(())
 }</code></pre>
@@ -355,7 +355,7 @@ let trainer = TwoStageTrainer::new(
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;TwoStageMetrics&gt;
 <span class="boring">}</span></code></pre>
-<p><code>Trainer::train</code> や <code>PosTrainer::train</code> と異なり、このメソッドは <code>self</code> を
+<p><code>Trainer::train</code> や <code>PerceptronTrainer::train</code> と異なり、このメソッドは <code>self</code> を
 値として受け取ります（Trainer を消費します）。両ステージを Averaged
 Perceptron として <code>num_epochs</code> エポック分学習し、stage 1 を AdaBoost の
 重みへ畳み込み、語彙表とともに 2 つのステージを <code>litsea-two-stage v1</code>
@@ -388,7 +388,7 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 <p><code>TwoStageTrainer::train</code> の実行結果である in-sample メトリクスです。
 <code>stage1</code> は境界分類器の 2 クラス（<code>B</code>/<code>O</code>）に対するメトリクス、<code>stage2</code> は
 単語単位のタガーの UPOS タグクラスに対するメトリクスです。どちらのフィールドも
-<code>MulticlassMetrics</code> 型で、<a href="#postrainer"><code>PosTrainer::train</code></a>（上記）が返すものと
+<code>MulticlassMetrics</code> 型で、<a href="#perceptrontrainer"><code>PerceptronTrainer::train</code></a>（上記）が返すものと
 同じ型であり、正解率とマクロ平均の適合率・再現率を保持します。</p>
 
                     </main>

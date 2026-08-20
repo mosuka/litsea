@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a451f517.js";
+            window.path_to_searchindex_js = "../searchindex-302c6a5b.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-72f19d1d.js"></script>
+        <script src="../toc-2cf72791.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -222,13 +222,10 @@
 <tbody>
 <tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
-<tr><td><code>japanese-pos</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-two-stage</code></td><td>japanese_two_stage.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
-<tr><td><code>korean-pos</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>korean-two-stage</code></td><td>korean_two_stage.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>chinese</code></td><td>chinese.model</td><td>rulin_waishi.txt</td></tr>
-<tr><td><code>chinese-pos</code></td><td>chinese_pos.model</td><td>rulin_waishi.txt</td></tr>
 <tr><td><code>chinese-two-stage</code></td><td>chinese_two_stage.model</td><td>rulin_waishi.txt</td></tr>
 </tbody>
 </table>
@@ -287,8 +284,8 @@ chars/sec は CLI のスレッドスケーリングについて何も語りま�
 スケーリングを報告する際は、スレッド数を明記し、後述のペア計測の規律で
 測定してください。</p>
 <h3 id="実行間のばらつき"><a class="header" href="#実行間のばらつき">実行間のばらつき</a></h3>
-<p>本ドキュメントに掲載している数値（<a href="../algorithm/two-stage-tagging.html">二段構成 vs Joint タグ付け</a>や
-<a href="../pre-trained-models.html">事前学習済みモデル</a>ページの二段構成 vs joint の比較を含む）は、
+<p>本ドキュメントに掲載している数値（<a href="../algorithm/two-stage-tagging.html">二段構成タグ付け</a>や
+<a href="../pre-trained-models.html">事前学習済みモデル</a>ページのスループット数値を含む）は、
 専用のアイドルなベンチマーク用ハードウェアではなく、本プロジェクトの開発機で
 計測しています。同一ビルドで <code>external_corpus</code> を 3 回連続実行したところ、
 個々のベンチ ID で 10〜20% の振れ幅が見られました – 1 回の実行を精密な数値と

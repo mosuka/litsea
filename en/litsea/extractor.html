@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-606bda11.js";
+            window.path_to_searchindex_js = "../searchindex-a7d6fc36.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-4bbd3799.js"></script>
+        <script src="../toc-5b909ab7.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -282,31 +282,6 @@ The bundled <code>korean.model</code> is trained this way; see <a href="../pre-t
 Models</a> for the
 measured per-language quality/speed trade-off. These back the CLI’s
 <code>extract --tag-free</code>.</p>
-<h3 id="extract_with_pos"><a class="header" href="#extract_with_pos"><code>extract_with_pos</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn extract_with_pos(
-    &amp;self,
-    corpus_path: &amp;Path,
-    features_path: &amp;Path,
-) -&gt; litsea::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>Reads a POS-tagged corpus (<code>word/POS word/POS ...</code>, one sentence per line,
-POS tags from the UPOS tagset) and writes POS training features. Each output
-line is <code>label\tfeature1\tfeature2\t...</code> where the label is a <code>SegmentLabel</code>
-string (<code>B-&lt;POS&gt;</code> for a word-initial character, <code>O</code> for a continuation).
-Unlike the boundary pipeline, the first character position of each sentence
-is also emitted, because <code>segment_with_pos</code> predicts there to derive the
-first word’s POS.</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::path::Path;
-
-extractor.extract_with_pos(
-    Path::new("./pos_corpus.txt"),
-    Path::new("./features_pos.txt"),
-)?;
-<span class="boring">}</span></code></pre>
 <h3 id="extract_two_stage"><a class="header" href="#extract_two_stage"><code>extract_two_stage</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -317,13 +292,15 @@ extractor.extract_with_pos(
     feature_set: TwoStageFeatureSet,
 ) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>Reads a POS-tagged corpus (<code>word/POS word/POS ...</code>, the same format as
-<code>extract_with_pos</code>) in a single pass and writes the three files consumed by
+<p>Reads a POS-tagged corpus (<code>word/POS word/POS ...</code>, one sentence per
+line, POS tags from the UPOS tagset) in a single pass and writes the three
+files consumed by
 <a href="trainer.html#twostagetrainer"><code>TwoStageTrainer</code></a>, used to train a <a href="../algorithm/two-stage-tagging.html">two-stage
 model</a>, from <code>output_prefix</code>:</p>
 <ul>
 <li><code>{output_prefix}.stage1</code> – boundary features (<code>label\tfeature1\t...</code>,
-label <code>B</code> or <code>O</code>), using the same feature templates as <code>extract_with_pos</code></li>
+label <code>B</code> or <code>O</code>), using the same character-level feature templates as
+plain extraction, emitted at every position including the first</li>
 <li><code>{output_prefix}.stage2</code> – word-level features (<code>label\tfeature1\t...</code>,
 label a UPOS tag), using the templates selected by <code>feature_set</code> (see
 <a href="#twostagefeatureset"><code>TwoStageFeatureSet</code></a> below)</li>
