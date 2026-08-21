@@ -31,7 +31,7 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | モデルとゴールドコーパスの言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | 単語分割と品詞推定を同時に評価します。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --pos`）が必要です。ゴールド形式は下記の `--format` と組み合わせて選択します |
-| `--format <FORMAT>` | `space` | ゴールドコーパスの形式。`--pos` なしの場合: `space`（スペース区切りトークン）または `tsv`（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。`--pos` ありの場合: `space` は `"word/POS word/POS ..."`（二段構成の学習コーパス形式、無空白）を、`tsv` はタブ区切りの `"word/POS"` トークン（トークンは空白文字も可）を選択します（issue #196。韓国語・英語のようにスペース区切りで書かれる言語の実運用精度を測るための形式です。二段構成の学習パイプライン自体には空白保持のバリアントがないため） |
+| `--format <FORMAT>` | `space` | ゴールドコーパスの形式。`--pos` なしの場合: `space`（スペース区切りトークン）または `tsv`（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。`--pos` ありの場合: `space` は `"word/POS word/POS ..."`（二段構成の学習コーパス形式、無空白）を、`tsv` はタブ区切りの `"word/POS"` トークン（トークンは空白文字も可）を選択します（issue #196/#198。韓国語・英語の二段構成モデルが現在学習に使っている空白保持形式であり、これらの言語では学習時と実際の入力の双方に一致するプロトコルです） |
 
 ## メトリクス
 
@@ -75,10 +75,11 @@ litsea evaluate -l english --format tsv models/english.model resources/eval/engl
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 ```
 
-韓国語・英語では、`--pos` 単体は二段構成の学習コーパス自体のプロトコル
-（無空白）をそのまま再現しますが、`--pos --format tsv` を `*_pos_spaced.tsv`
-のゴールドに対して使うと、実際のスペース付き入力での実運用精度を測定
-できます — 2 つの数値は互いに比較できません
+韓国語・英語では、`--pos` 単体は #198 以前に二段構成モデルが学習に使っていた
+空白非保持プロトコルを再現します。現在のモデルの品質を測るには、
+`--pos --format tsv` を `*_pos_spaced.tsv` のゴールドに対して実行してください
+— 学習時のプロトコルと実際のスペース付き入力の双方に一致します。2 つの数値は
+互いに比較できません
 （[事前学習済みモデル](../pre-trained-models.md#english_posmodel) 参照）:
 
 ```sh

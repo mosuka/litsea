@@ -136,46 +136,38 @@ tokens excluded from scoring.
   classifier plus a word-level tagger with a candidate-tag lexicon)
 - **Stage-2 feature set**: `full` (chosen by a dev-split sweep over
   fast/balanced/full; full gave the best tagged-word accuracy), 50 epochs
-- **Word F1 (held-out, unspaced protocol)**: 70.33%
-- **Tagged Word F1 (held-out, unspaced protocol)**: 65.83%
-- **Word F1 (held-out, real-world/spaced)**: 77.55%
-- **Tagged Word F1 (held-out, real-world/spaced)**: 69.89%
-- **File size**: ~3.6 MB
+- **Word F1 (held-out)**: 98.30%
+- **Tagged Word F1 (held-out)**: 90.55%
+- **File size**: ~3.1 MB
 - **Details**: see [Pre-trained Models](../pre-trained-models.md#english_posmodel)
 
-> **This model's segmentation quality is substantially lower than
-> `english.model`'s, and this is expected, not a bug.** Like
-> `korean_pos.model`, this model is *trained* on the *unspaced* `word/POS`
-> corpus (the two-stage POS pipeline has no space-preserving variant). The
-> "unspaced protocol" row above scores the model the same way it was
-> trained, so it is not a train/inference mismatch; the "real-world/spaced"
-> row (issue #196) instead reconstructs the model's actual spaced input
-> from a space-preserving POS gold (`litsea evaluate --pos --format tsv`
-> against `resources/eval/english_ewt_test_pos_spaced.tsv`) and measures
-> what `segment --pos` really produces on natural text, without retraining.
-> Real-world quality (77.55%) is meaningfully better than the
-> unspaced-protocol number suggests, but still well short of
-> `english.model`'s 98.31%.
+> **This model is trained on the same space-preserving corpus as
+> `english.model`** (issue #198), so its Word F1 (98.30%) essentially
+> matches `english.model`'s 98.31% — the two-stage stage-1 classifier is
+> now as good at finding English word boundaries as the dedicated
+> segmentation model.
 >
-> The remaining gap comes from a real difference between English and
-> Korean, not an implementation defect: `korean_pos.model`'s real-world
-> Word F1 (94.01%) sits only 5.9pt below `korean.model`'s 99.91%, while
-> `english_pos.model`'s real-world Word F1 sits 20.8pt below
-> `english.model`'s 98.31% -- roughly 3.5x the cost. Korean is
-> agglutinative, so its particles and verb endings leave strong
-> character-level cues for word boundaries even with every space removed;
-> English orthography carries almost no such sub-word signal -- a sequence
-> like `"thecatsatonthemat"` gives a classifier little to work with -- so
-> training on unspaced text costs English much more real-world quality
-> than it costs Korean. At inference the model receives real, spaced text,
-> and spaces are re-emitted as their own tokens (tagged by the stage-2
-> fallback); the golden test in `litsea/tests/golden.rs` pins this actual,
-> imperfect real-world behavior. What issue #196 added is a way to
-> *measure* quality on real spaced input, not a way to *train* on it --
-> combining the space-preserving TSV protocol with two-stage POS training
-> would still need a new corpus format and `Extractor`/`Segmenter` changes
-> the pipeline does not currently support, and remains a possible
-> follow-up.
+> That was not always true, and the history is worth knowing if you are
+> comparing against older numbers. The two-stage pipeline originally
+> trained on an unspaced concatenation of the `word/POS` corpus, throwing
+> away the spaces English text actually contains. That model scored 70.33%
+> on the same unspaced protocol and 77.55% on real spaced input — it
+> merged `a test` into a single token, for instance. Switching the
+> training corpus gained **+20.8pt Word F1 and +20.7pt tagged-word F1**,
+> and made tagging ~3.6x faster (2.05M → 7.32M chars/s).
+>
+> The unspaced corpus caused two separate train/inference mismatches.
+> Stage 1 never saw the spaces that mark nearly every English word
+> boundary. Stage 2's context features (`L*`/`R*`/`cl*`/`cr*`) were hit
+> too: at inference a word's neighbour is usually a space, but during
+> unspaced training it was the next word's character. Both now match what
+> `segment --pos` computes.
+>
+> Spaces are re-emitted as their own tokens and tagged `X` — the corpus
+> gives whitespace a single-candidate lexicon entry, so the packed model
+> takes its fixed-tag path rather than guessing with the classifier (the
+> pre-#198 model returned `PUNCT`/`PART`/`AUX` for different spaces in one
+> sentence). The golden test in `litsea/tests/golden.rs` pins this.
 
 ## Example
 

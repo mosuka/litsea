@@ -62,7 +62,7 @@ bash scripts/corpus_udtreebank.sh -s "$conllu_file" en_corpus.tsv
 
 英語に特有の点として、`-s` は複合語トークン（`don't` のような短縮形。CoNLL-U では 2 つの単語行にまたがる範囲行として表現されます）も処理します: 範囲に属する単語同士は間に空白トークンを挟まずに連結され、範囲自体の `SpaceAfter` アノテーションは最後の構成単語の後に適用されます。詳細は[英語](../language-support/english.md#空白保持学習space-preserving-training)を参照してください。
 
-TSV コーパスからの特徴量抽出には `litsea extract --format tsv` を使用します。`-s` フラグは `-p` と併用できません（POS パイプラインには TSV バリアントがありません）。
+TSV コーパスからの特徴量抽出には `litsea extract --format tsv` を使用します。`-s` は `-p` と併用でき、`単語/品詞` トークンの空白保持 TSV を出力します -- これがスペース区切りの言語における二段構成 POS の学習コーパスであり（issue #198）、`litsea extract --pos --format tsv` で読み込みます。
 
 ## 品詞推定用コーパス
 

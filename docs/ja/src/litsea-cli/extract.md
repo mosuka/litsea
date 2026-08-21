@@ -20,7 +20,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
-| `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`tsv` は `--pos` と併用できません |
+| `--format <FORMAT>` | `space` | コーパスの形式: `space`（スペース区切りの単語）または `tsv`（タブ区切りのトークン。トークンは空白文字そのものでもよく、元の空白を保持できます）。`--pos` と併用でき（issue #198）、空白保持の `word/POS` コーパスから二段構成の特徴量を抽出できます |
 | `--pos` | off | [二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)の学習用特徴量を抽出します。入力には品詞付きコーパスが必要です |
 | `--stage2-features <SET>` | `fast` | `--pos` 用の stage-2 単語特徴セット: `full`（品質最優先）、`balanced`、`fast`（速度最優先） |
 | `--tag-free` | オフ | 16 個のタグ依存特徴量テンプレート（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`）を除外し、学習されるモデルを pointwise にして `segment()` の逐次スコアリングパスをスキップ可能にする（issue #183。同梱の `korean.model`/`english.model` で使用 -- 言語別の品質・速度トレードオフは[タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)を参照）。`--format tsv` と併用可。`--pos` とは併用不可 |
@@ -105,3 +105,33 @@ Feature extraction completed successfully.
 litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 # ./pos_features.stage1, .stage2, .lexicon を書き出す
 ```
+
+### 空白保持の品詞付きコーパス（`--pos --format tsv`）
+
+スペース区切りの言語では、`--pos` と `--format tsv` を併用します（issue #198）。
+このときコーパスは `単語/品詞` トークンのタブ区切りリストとなり、トークンとして
+`/品詞` サフィックスを持たない空白文字そのものを含められます。これは
+`corpus_udtreebank.sh -p -s` が出力する形式です:
+
+```text
+I/PRON	 	do/AUX	n't/PART	 	know/VERB	./PUNCT
+```
+
+```sh
+bash scripts/corpus_udtreebank.sh -p -s "$conllu_file" ./pos_corpus.tsv
+litsea extract --pos --format tsv -l english --stage2-features full ./pos_corpus.tsv ./pos_features
+```
+
+同梱の `korean_pos.model` と `english_pos.model` はこの方法で学習しています。
+代わりに空白なしのコーパスで学習すると、held-out の単語 F1 は韓国語で約 5.9
+ポイント、英語で約 20.8 ポイント低下します。stage-1 がほとんどの語境界を示す
+スペースを一度も目にせず、stage-2 のコンテキスト特徴量も推論時とは異なる隣接
+要素を見ることになるためです。
+
+空白トークンには stage-2 の学習行が与えられません -- スペース付きコーパスでは
+トークンの約 43% を占め、退化した 1 クラス（`X`）の学習になってしまうためです
+-- が、語彙表エントリは与えられます。これにより候補が1つだけになり、モデルの
+固定タグのパスを通じて決定的にタグ付けされ、分類器を完全にスキップできます。
+
+日本語と中国語では素の `--pos` を使用してください: これらのテキストにはスペースが
+なく、保持すべき空白が存在しません。

@@ -321,6 +321,48 @@ fn test_extract_tsv_format() {
     assert!(has_space_feature, "expected a UW feature containing the space character");
 }
 
+/// Pins `extract --pos --format tsv` (issue #198): a space-preserving POS
+/// corpus produces stage-1 rows covering the spaces, no stage-2 row for the
+/// space token, and a lexicon entry recording it.
+#[test]
+fn test_extract_pos_tsv_format() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let corpus = dir.path().join("corpus_pos.tsv");
+    std::fs::write(&corpus, "나는/PRON\t \t봄/NOUN\t./PUNCT\n").expect("write corpus");
+    let prefix = dir.path().join("features");
+
+    let output = run_litsea(
+        &[
+            "extract",
+            "--pos",
+            "-l",
+            "korean",
+            "--format",
+            "tsv",
+            corpus.to_str().unwrap(),
+            prefix.to_str().unwrap(),
+        ],
+        None,
+    );
+    assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+    let stage1 = std::fs::read_to_string(dir.path().join("features.stage1")).expect("stage1");
+    let stage2 = std::fs::read_to_string(dir.path().join("features.stage2")).expect("stage2");
+    let lexicon = std::fs::read_to_string(dir.path().join("features.lexicon")).expect("lexicon");
+
+    // "나는 봄." = 5 chars including the space; the POS pipeline emits a row
+    // at every position including the first.
+    assert_eq!(stage1.lines().count(), 5);
+    // One stage-2 row per non-whitespace word (나는 / 봄 / .), not per token.
+    assert_eq!(stage2.lines().count(), 3, "the space token must not get a stage-2 row");
+    // The space is still recorded in the lexicon, as a single-candidate
+    // entry so the packed model tags it without the classifier.
+    assert!(
+        lexicon.lines().any(|l| l.starts_with(" \t")),
+        "lexicon should record the space surface: {lexicon:?}"
+    );
+}
+
 /// Pins the evaluate subcommand: known model + tiny gold corpus must print
 /// the metrics block with plausible percentages.
 #[test]

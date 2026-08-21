@@ -41,7 +41,10 @@ struct ExtractArgs {
     /// Extract two-stage POS training features (issue #147) from a
     /// POS-tagged corpus (format: "word/POS word/POS ...") instead: writes
     /// {features_file}.stage1 (boundary features), .stage2 (word-level
-    /// features), and .lexicon. Cannot be combined with --format tsv.
+    /// features), and .lexicon. With --format tsv the corpus is instead a
+    /// space-preserving TSV of "word/POS" tokens (issue #198), so the model
+    /// trains on the spacing its input actually has -- use this for
+    /// space-delimited languages such as Korean and English.
     #[arg(long)]
     pos: bool,
 
@@ -202,12 +205,13 @@ struct CommandArgs {
 /// word boundaries come from the corpus itself) and writes the extracted
 /// features to the output file. With `--pos` the corpus is
 /// POS-tagged and three files (boundary, word-level, and lexicon) are
-/// written via `extract_two_stage` (issue #147); otherwise each line is
-/// space-separated words, or tab-separated tokens with `--format tsv` (a
-/// token may be a literal space, preserving the original spacing; not
-/// supported with `--pos`). `--tag-free` (boundary pipeline only,
-/// composable with `--format tsv`) drops the 16 tag-dependent templates so
-/// the trained model is pointwise (issue #183).
+/// written via `extract_two_stage` (issue #147), or via
+/// `extract_two_stage_tsv` when combined with `--format tsv` (issue #198);
+/// otherwise each line is space-separated words, or tab-separated tokens
+/// with `--format tsv` (a token may be a literal space, preserving the
+/// original spacing). `--tag-free` (boundary pipeline only, composable with
+/// `--format tsv`) drops the 16 tag-dependent templates so the trained model
+/// is pointwise (issue #183).
 ///
 /// # Arguments
 /// * `args` - The arguments for the extract command [`ExtractArgs`].
@@ -222,10 +226,14 @@ fn extract(args: ExtractArgs) -> Result<(), Box<dyn Error>> {
         // two-stage POS pipeline uses its own label/feature scheme.
         return Err("--tag-free cannot be combined with --pos".into());
     }
-    if args.pos {
-        if args.format == "tsv" {
-            return Err("--pos cannot be combined with --format tsv".into());
-        }
+    if args.pos && args.format == "tsv" {
+        // Space-preserving two-stage POS corpus (issue #198).
+        extractor.extract_two_stage_tsv(
+            args.corpus_file.as_path(),
+            args.features_file.as_path(),
+            args.stage2_features,
+        )?;
+    } else if args.pos {
         extractor.extract_two_stage(
             args.corpus_file.as_path(),
             args.features_file.as_path(),

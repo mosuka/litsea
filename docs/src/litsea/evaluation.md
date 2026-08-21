@@ -79,9 +79,9 @@ pipeline's rule), defaulting to `Upos::X` for missing or unparsable tags.
 With `tsv = true`, a literal space token has no `/POS` suffix and always
 gets `Upos::X`, but this is harmless -- whitespace tokens are excluded
 from tagged-word scoring by content, not by their assigned tag. This
-supports measuring a two-stage POS model's real-world quality on
-space-delimited languages (issue #196), whose training corpus itself has
-no space-preserving variant.
+is the gold format for space-delimited languages' two-stage POS models,
+which since issue #198 are also *trained* on this same space-preserving
+corpus.
 
 ## Example
 

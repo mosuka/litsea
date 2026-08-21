@@ -66,7 +66,7 @@ litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.
 入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
 空白文字そのもの（`" "`）を含められます。出力される特徴量ファイルの形式は既定の
 `extract` と同一で、コーパスの解析方法のみが異なります。`--format tsv` は
-`--pos` と併用できません。
+`--pos` とも併用できます（issue #198。後述の[二段構成の特徴量抽出](#二段構成の特徴量抽出)を参照）。
 
 ## 二段構成の特徴量抽出
 
@@ -94,7 +94,7 @@ litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 | `<FEATURES_PREFIX>.lexicon` | 候補タグ語彙表（`surface\tTAG:count[,TAG:count...]`、出現頻度の高い順） |
 
 `litsea train --pos` は同じプレフィックスから3ファイルすべてを読み込みます。
-`--pos` は `--format tsv` と併用できません。
+コーパスが `corpus_udtreebank.sh -p -s` の出力する空白保持の `word/POS` TSV である場合は `--format tsv` を併用してください（issue #198）-- 同梱の韓国語・英語の二段構成モデルが学習に使っているプロトコルです。
 
 ### `--stage2-features` の選び方
 

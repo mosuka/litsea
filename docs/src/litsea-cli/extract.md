@@ -20,7 +20,7 @@ litsea extract [OPTIONS] <CORPUS_FILE> <FEATURES_FILE>
 | Option | Default | Description |
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
-| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). `tsv` cannot be combined with `--pos` |
+| `--format <FORMAT>` | `space` | Corpus format: `space` (space-separated words) or `tsv` (tab-separated tokens; a token may be a literal space, preserving the original spacing). Combines with `--pos` (issue #198) to extract two-stage features from a space-preserving `word/POS` corpus |
 | `--pos` | off | Extract [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) training features. Requires a POS corpus as input |
 | `--stage2-features <SET>` | `fast` | Stage-2 word-feature set for `--pos`: `full` (best quality), `balanced`, or `fast` (best throughput) |
 | `--tag-free` | off | Exclude the 16 tag-dependent feature templates (`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`) so the trained model is pointwise and `segment()` skips its sequential scoring pass (issue #183; used for the bundled `korean.model`/`english.model` -- see [Tag-Free (Pointwise) Models](../pre-trained-models.md#tag-free-pointwise-models) for the per-language quality/speed trade-off). Composable with `--format tsv`; cannot be combined with `--pos` |
@@ -113,3 +113,34 @@ Pass the same prefix to `litsea train --pos`:
 litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 # writes ./pos_features.stage1, .stage2, .lexicon
 ```
+
+### Space-Preserving POS Corpus (`--pos --format tsv`)
+
+For a space-delimited language, combine `--pos` with `--format tsv`
+(issue #198). The corpus is then a tab-separated list of `word/POS`
+tokens in which a token may be a literal space carrying no `/POS` suffix
+— the format `corpus_udtreebank.sh -p -s` emits:
+
+```text
+I/PRON	 	do/AUX	n't/PART	 	know/VERB	./PUNCT
+```
+
+```sh
+bash scripts/corpus_udtreebank.sh -p -s "$conllu_file" ./pos_corpus.tsv
+litsea extract --pos --format tsv -l english --stage2-features full ./pos_corpus.tsv ./pos_features
+```
+
+This is how the bundled `korean_pos.model` and `english_pos.model` are
+trained. Training on the unspaced corpus instead costs Korean ~5.9pt and
+English ~20.8pt of held-out Word F1, because stage 1 never sees the spaces
+that mark most word boundaries and stage 2's context features see
+different neighbours than they will at inference.
+
+Whitespace tokens get no stage-2 row — they are ~43% of tokens in a
+spaced corpus and would train one degenerate `X` class — but they do get a
+lexicon entry, which makes them single-candidate and therefore tagged
+deterministically through the model's fixed-tag path, skipping the
+classifier entirely.
+
+Japanese and Chinese should use plain `--pos`: their text has no spaces,
+so there is no spacing to preserve.

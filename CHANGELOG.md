@@ -40,6 +40,27 @@
   (**breaking**, matching `parse_gold_line`'s existing shape) to support
   the new gold format.
 
+- The two-stage POS pipeline can train on a space-preserving corpus
+  (`litsea extract --pos --format tsv`, issue #198), and the bundled
+  Korean and English POS models are retrained on it. Until now stage 1
+  trained on an unspaced concatenation of the `word/POS` corpus, throwing
+  away the spaces those languages' input actually contains; that also
+  meant stage 2's context features (`L*`/`R*`/`cl*`/`cr*`) saw different
+  neighbours during training than at inference. Both mismatches are gone,
+  and held-out quality on real spaced input improves sharply:
+  `korean_pos.model` 94.01% -> **99.88%** Word F1 (83.20% -> **93.95%**
+  tagged), `english_pos.model` 77.55% -> **98.30%** Word F1 (69.89% ->
+  **90.55%** tagged) -- within 0.03pt and 0.01pt of the dedicated
+  `korean.model` / `english.model` segmentation models. English tagging is
+  also ~3.6x faster (2.05M -> 7.32M chars/s), because whitespace now gets
+  a single-candidate lexicon entry and ~43% of tokens skip the stage-2
+  classifier through the fixed-tag path. Retraining re-chose Korean's
+  stage-2 feature set (`balanced` -> `full`) and epoch count (50 -> 20)
+  from a dev-split sweep. Japanese and Chinese are unchanged: their text
+  has no spaces, so the space-separated corpus already matched their real
+  input. New API: `Extractor::extract_two_stage_tsv` and
+  `Segmenter::add_corpus_tsv_with_pos_writer` (both additive).
+
 ### Changed (breaking)
 
 - The joint POS tagging architecture is removed; two-stage (#147) is now
