@@ -4,6 +4,26 @@
 
 ### Added
 
+- New crate `litsea-binding-core` (#201): the FFI-independent logic shared
+  by the upcoming language bindings (#200) -- Python, Node.js, PHP, Ruby,
+  and WebAssembly. It provides `CoreSegmenter` (segmentation and POS
+  tagging, single and batch, over a shared `Arc<Segmenter>` with a
+  `Mutex<SegmentBuffer>`), model loading that detects the model kind from
+  the file itself via `ModelKind::detect` (so bindings need no `--pos`-style
+  flag, and a remote model is fetched only once), `TokenView` with exact
+  byte offsets for both segmentation and POS output, `CoreExtractor` /
+  `CoreTrainer` / `CorePerceptronTrainer` / `CoreTwoStageTrainer` driven by
+  an explicit `CancelToken` (the crate never installs a signal handler, as
+  the CLI's `ctrlc` handler is process-global), and `CoreError` /
+  `ErrorKind` categories that each binding maps onto one native exception
+  hierarchy. Builds for `wasm32-unknown-unknown`, where training and the
+  blocking loaders are compiled out.
+- `litsea::model_io::read_model_bytes` is now public. It resolves a model
+  URI (path, `file://`, or `http(s)://` with `remote_model`) to raw bytes,
+  which callers need in order to inspect a model before choosing a learner;
+  `litsea-binding-core` uses it to detect the model kind without fetching a
+  remote model twice.
+
 - English language support (#194): `Language::English` (`"english"` /
   `"en"`), plus bundled `models/english.model` (tag-free segmentation,
   trained on UD English-EWT's space-preserving TSV corpus, held-out Word

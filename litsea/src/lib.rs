@@ -22,7 +22,7 @@ pub mod evaluation;
 pub mod extractor;
 pub mod language;
 pub mod metrics;
-mod model_io;
+pub mod model_io;
 mod packed_model;
 mod packed_two_stage;
 pub mod perceptron;

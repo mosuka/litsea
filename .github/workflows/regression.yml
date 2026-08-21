@@ -116,3 +116,12 @@ jobs:
 
       - name: Check wasm32 target
         run: cargo check -p litsea --target wasm32-unknown-unknown --no-default-features
+
+      - name: Check litsea-binding-core without default features
+        run: cargo check -p litsea-binding-core --no-default-features
+
+      - name: Check litsea-binding-core on wasm32
+        # The binding core must build for wasm32 so that the WebAssembly
+        # binding can depend on it; training and the blocking loaders are
+        # compiled out there.
+        run: cargo check -p litsea-binding-core --target wasm32-unknown-unknown --no-default-features

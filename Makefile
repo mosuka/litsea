@@ -1,4 +1,5 @@
 LITSEA_VERSION ?= $(shell cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea") | .version')
+LITSEA_BINDING_CORE_VERSION ?= $(shell cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea-binding-core") | .version')
 LITSEA_CLI_VERSION ?= $(shell cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea-cli") | .version')
 
 USER_AGENT ?= $(shell curl --version | head -n1 | awk '{print $1"/"$2}')
@@ -26,6 +27,10 @@ test: ## Test the project
 build: ## Build the project
 	cargo build --release
 
+check-wasm: ## Check the wasm32 build (litsea and the binding core)
+	cargo check -p litsea --target wasm32-unknown-unknown --no-default-features
+	cargo check -p litsea-binding-core --target wasm32-unknown-unknown --no-default-features
+
 bench: ## Benchmark the project
 	cargo bench --bench bench
 
@@ -36,6 +41,10 @@ tag: ## Make a new tag for the current version
 publish: ## Publish the crate to crates.io
 ifeq ($(shell curl -s -XGET -H "User-Agent: $(USER_AGENT) ($(USER)@$(HOSTNAME))" https://crates.io/api/v1/crates/litsea | jq -r 'select(.versions != null) | .versions[].num' 2>/dev/null | grep -Fx "$(LITSEA_VERSION)"),)
 	(cd litsea && cargo package && cargo publish)
+	sleep 10
+endif
+ifeq ($(shell curl -s -XGET -H "User-Agent: $(USER_AGENT) ($(USER)@$(HOSTNAME))" https://crates.io/api/v1/crates/litsea-binding-core | jq -r 'select(.versions != null) | .versions[].num' 2>/dev/null | grep -Fx "$(LITSEA_BINDING_CORE_VERSION)"),)
+	(cd litsea-binding-core && cargo package && cargo publish)
 	sleep 10
 endif
 ifeq ($(shell curl -s -XGET -H "User-Agent: $(USER_AGENT) ($(USER)@$(HOSTNAME))" https://crates.io/api/v1/crates/litsea-cli | jq -r 'select(.versions != null) | .versions[].num' 2>/dev/null | grep -Fx "$(LITSEA_CLI_VERSION)"),)

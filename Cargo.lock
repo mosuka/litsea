@@ -805,6 +805,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "litsea-binding-core"
+version = "0.12.0"
+dependencies = [
+ "litsea",
+ "tempfile",
+ "thiserror 2.0.20",
+ "tokio",
+]
+
+[[package]]
 name = "litsea-cli"
 version = "0.12.0"
 dependencies = [

@@ -41,8 +41,11 @@ graph LR
 | `litsea::metrics` | `BinaryMetrics`, `MulticlassMetrics` | Evaluation metrics (in-sample) |
 | `litsea::evaluation` | `PosMetrics`, `SegmentationMetrics` | Held-out evaluation against a gold corpus |
 | `litsea::two_stage` | `ModelKind`, `TwoStageFeatureSet`, `TwoStageLearner` | Two-stage model container and model-kind detection |
+| `litsea::model_io` | `read_model_bytes` | Resolves a model URI (path, `file://`, `http(s)://`) to raw bytes |
 
 All primary types are also re-exported at the crate root, so `use litsea::Segmenter;` works as a shorthand for `use litsea::segmenter::Segmenter;`.
+
+The learners resolve their own URIs, so `model_io::read_model_bytes` is rarely needed directly. It is public for callers that must inspect a model before choosing a learner — `litsea-binding-core` reads the bytes once, detects the kind with `ModelKind::detect`, and feeds the same bytes to `load_model_from_reader`, which avoids downloading a remote model twice.
 
 ## Quick Example
 

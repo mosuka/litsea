@@ -226,6 +226,21 @@ jobs:
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
 
+      - name: Publish litsea-binding-core
+        run: |
+          LITSEA_BINDING_CORE_VERSION=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea-binding-core") | .version')
+          LITSEA_BINDING_CORE_VERSIONS=$(curl -s -XGET https://crates.io/api/v1/crates/litsea-binding-core | jq -r 'select(.versions != null) | .versions[].num' 2>/dev/null)
+          if echo "${LITSEA_BINDING_CORE_VERSIONS}" | tr ' ' '\n' | grep -qFx "${LITSEA_BINDING_CORE_VERSION}"; then
+            echo "litsea-binding-core ${LITSEA_BINDING_CORE_VERSION} has already been published"
+          else
+            pushd litsea-binding-core
+            cargo publish
+            popd
+          fi
+          sleep 20
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
+
       - name: Publish litsea-cli
         run: |
           LITSEA_CLI_VERSION=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name=="litsea-cli") | .version')

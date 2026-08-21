@@ -49,6 +49,11 @@
   - [segment](litsea-cli/segment.md)
   - [evaluate](litsea-cli/evaluate.md)
 
+# Bindings
+
+- [Language Bindings](bindings.md)
+  - [litsea-binding-core](bindings/binding-core.md)
+
 # Training Guide
 
 - [Training Guide](training-guide.md)
