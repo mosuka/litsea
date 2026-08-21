@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-eea037c4.js";
+            window.path_to_searchindex_js = "searchindex-d883fab3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f9e282e4.js"></script>
+        <script src="toc-85ec5467.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -2182,10 +2182,12 @@ litsea = "0.12.0"
 <tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>Evaluation metrics (in-sample)</td></tr>
 <tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>Held-out evaluation against a gold corpus</td></tr>
 <tr><td><code>litsea::two_stage</code></td><td><code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>Two-stage model container and model-kind detection</td></tr>
+<tr><td><code>litsea::model_io</code></td><td><code>read_model_bytes</code></td><td>Resolves a model URI (path, <code>file://</code>, <code>http(s)://</code>) to raw bytes</td></tr>
 </tbody>
 </table>
 </div>
 <p>All primary types are also re-exported at the crate root, so <code>use litsea::Segmenter;</code> works as a shorthand for <code>use litsea::segmenter::Segmenter;</code>.</p>
+<p>The learners resolve their own URIs, so <code>model_io::read_model_bytes</code> is rarely needed directly. It is public for callers that must inspect a model before choosing a learner — <code>litsea-binding-core</code> reads the bytes once, detects the kind with <code>ModelKind::detect</code>, and feeds the same bytes to <code>load_model_from_reader</code>, which avoids downloading a remote model twice.</p>
 <h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;
 
@@ -4179,6 +4181,188 @@ published numbers (see
   Boundary Recall: 98.56%
   Boundary F1: 98.59%
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="language-bindings"><a class="header" href="#language-bindings">Language Bindings</a></h1>
+<p>Litsea is a Rust library, but it is also usable from other languages. The bindings live in this repository as workspace members, so they are versioned and released together with <code>litsea</code> itself.</p>
+<h2 id="crates"><a class="header" href="#crates">Crates</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Crate</th><th>Target runtime</th><th>FFI stack</th><th>Status</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#litsea-binding-core"><code>litsea-binding-core</code></a></td><td>(shared, no FFI)</td><td>—</td><td>Available</td></tr>
+<tr><td><code>litsea-python</code></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/202">#202</a>)</td></tr>
+<tr><td><code>litsea-nodejs</code></td><td>Node.js 20+</td><td>napi-rs</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/203">#203</a>)</td></tr>
+<tr><td><code>litsea-php</code></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/204">#204</a>)</td></tr>
+<tr><td><code>litsea-ruby</code></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/205">#205</a>)</td></tr>
+<tr><td><code>litsea-wasm</code></td><td>Browser / Deno</td><td>wasm-bindgen</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/206">#206</a>)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="design-principles-1"><a class="header" href="#design-principles-1">Design principles</a></h2>
+<p>These apply to every binding.</p>
+<h3 id="models-are-never-embedded"><a class="header" href="#models-are-never-embedded">Models are never embedded</a></h3>
+<p>A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a <code>file://</code> path, or an <code>http(s)://</code> URL. The bundled models range from 84 KB to 8 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.</p>
+<p>See <a href="#pre-trained-models-4">Pre-trained Models</a> for where to get a model.</p>
+<h3 id="the-model-kind-is-detected-not-declared"><a class="header" href="#the-model-kind-is-detected-not-declared">The model kind is detected, not declared</a></h3>
+<p>The CLI needs <code>--pos</code> to know whether it is loading a segmentation model or a two-stage POS model. Bindings do not: they read the model bytes once and dispatch on the detected kind, so <code>has_pos</code> is a property of the loaded model rather than something the caller has to get right.</p>
+<h3 id="cancellation-is-explicit"><a class="header" href="#cancellation-is-explicit">Cancellation is explicit</a></h3>
+<p>Training can run for a long time, and <code>litsea</code>’s trainers stop early when their <code>running</code> flag is cleared. The CLI drives that flag from a Ctrl-C handler, but a library must not install one: signal handling is process-global and the host language usually owns it already. Bindings therefore expose a cancellation token that the caller triggers.</p>
+<h3 id="shared-logic-lives-in-one-crate"><a class="header" href="#shared-logic-lives-in-one-crate">Shared logic lives in one crate</a></h3>
+<p>Everything that is not FFI-specific — language-name parsing, model loading and kind detection, token offsets, trainer orchestration, error categories — lives in <a href="#litsea-binding-core"><code>litsea-binding-core</code></a>. Each binding only maps that surface onto its host language’s types and exception model.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="litsea-binding-core"><a class="header" href="#litsea-binding-core">litsea-binding-core</a></h1>
+<p><code>litsea-binding-core</code> holds the FFI-independent logic shared by every Litsea language binding. It depends only on <code>litsea</code> (plus Tokio on native targets, for the blocking wrappers) and never on PyO3, napi, ext-php-rs, magnus, or wasm-bindgen, so it can be unit-tested without any host-language toolchain.</p>
+<h2 id="installation-2"><a class="header" href="#installation-2">Installation</a></h2>
+<pre><code class="language-toml">[dependencies]
+litsea-binding-core = "0.12.0"
+</code></pre>
+<h2 id="module-map-1"><a class="header" href="#module-map-1">Module Map</a></h2>
+<pre><code class="language-mermaid">graph LR
+    A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, read_model_file, read_model_uri"]
+    E["litsea_binding_core::token"] --- F["TokenView"]
+    G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
+    I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
+    K["litsea_binding_core::cancel"] --- L["CancelToken"]
+    M["litsea_binding_core::error"] --- N["CoreError, ErrorKind, CoreResult"]
+    O["litsea_binding_core::runtime"] --- P["block_on"]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Module</th><th>Primary Types</th><th>Purpose</th></tr>
+</thead>
+<tbody>
+<tr><td><code>segmenter</code></td><td><code>CoreSegmenter</code></td><td>Segmentation and POS tagging, single and batch, with a reusable buffer</td></tr>
+<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code></td><td>Model loading and model-kind detection</td></tr>
+<tr><td><code>token</code></td><td><code>TokenView</code></td><td>Token with surface, byte offsets, and optional UPOS tag</td></tr>
+<tr><td><code>language</code></td><td><code>SUPPORTED_LANGUAGES</code>, <code>parse_language</code></td><td>Language-name parsing and enumeration</td></tr>
+<tr><td><code>trainer</code></td><td><code>CoreExtractor</code>, <code>CoreTrainer</code>, <code>CorePerceptronTrainer</code>, <code>CoreTwoStageTrainer</code></td><td>Feature extraction and training (native targets only)</td></tr>
+<tr><td><code>cancel</code></td><td><code>CancelToken</code></td><td>Cooperative cancellation of training</td></tr>
+<tr><td><code>error</code></td><td><code>CoreError</code>, <code>ErrorKind</code>, <code>CoreResult</code></td><td>Error categories the bindings map to exceptions</td></tr>
+<tr><td><code>runtime</code></td><td><code>block_on</code></td><td>Runs the async model loader from synchronous hosts (native targets only)</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="segmentation"><a class="header" href="#segmentation">Segmentation</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::Language;
+use litsea_binding_core::CoreSegmenter;
+
+let segmenter = CoreSegmenter::from_path(Language::Japanese, "models/japanese.model".as_ref())?;
+
+assert_eq!(
+    segmenter.segment("すもももももももものうち"),
+    vec!["すもも", "も", "もも", "も", "もも", "の", "うち"]
+);
+<span class="boring">}</span></code></pre>
+<p><code>CoreSegmenter</code> holds an <code>Arc&lt;Segmenter&gt;</code> plus a <code>Mutex&lt;SegmentBuffer&gt;</code>. <code>Segmenter</code> is <code>Send + Sync</code> and a segmenter built from a loaded model has its packed tables already compiled, so concurrent <code>segment</code> calls take only an internal read lock; the mutex protects the scratch buffer alone. One instance can therefore be shared across threads and reused indefinitely, which is what the bindings do.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Method</th><th>Returns</th></tr>
+</thead>
+<tbody>
+<tr><td><code>segment(text)</code></td><td><code>Vec&lt;String&gt;</code></td></tr>
+<tr><td><code>segment_batch(texts)</code></td><td><code>Vec&lt;Vec&lt;String&gt;&gt;</code>, reusing one buffer</td></tr>
+<tr><td><code>segment_tokens(text)</code></td><td><code>Vec&lt;TokenView&gt;</code> with byte offsets, <code>pos</code> unset</td></tr>
+<tr><td><code>segment_with_pos(text)</code></td><td><code>CoreResult&lt;Vec&lt;TokenView&gt;&gt;</code> with byte offsets and UPOS tags</td></tr>
+<tr><td><code>segment_with_pos_batch(texts)</code></td><td><code>CoreResult&lt;Vec&lt;Vec&lt;TokenView&gt;&gt;&gt;</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Byte offsets are exact: tokens tile the input without gaps or overlaps, so <code>&amp;text[token.byte_start..token.byte_end] == token.surface</code> holds for every token, including for space-preserving languages such as Korean and English.</p>
+<p>Note that <code>segment_with_pos_batch</code> cannot amortize allocations the way <code>segment_batch</code> does — <code>litsea</code> has no buffer-reusing variant of <code>segment_with_pos</code>.</p>
+<h2 id="model-loading-1"><a class="header" href="#model-loading-1">Model loading</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Constructor</th><th>Availability</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CoreSegmenter::from_bytes(language, bytes)</code></td><td>Everywhere, including wasm32</td></tr>
+<tr><td><code>CoreSegmenter::from_path(language, path)</code></td><td>Native targets</td></tr>
+<tr><td><code>CoreSegmenter::from_uri(language, uri).await</code></td><td>Everywhere (<code>http(s)://</code> needs the <code>remote_model</code> feature)</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_blocking(language, uri)</code></td><td>Native targets</td></tr>
+</tbody>
+</table>
+</div>
+<p>All of them go through <code>build_segmenter</code>, which decides what to build from the model file itself:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Detected kind</th><th>Result</th></tr>
+</thead>
+<tbody>
+<tr><td>Two-stage model (<code>litsea-two-stage v1</code>)</td><td>POS-capable segmenter, <code>has_pos() == true</code></td></tr>
+<tr><td>AdaBoost-format model</td><td>Segmentation-only segmenter, <code>has_pos() == false</code></td></tr>
+<tr><td>Joint POS model (legacy)</td><td><code>ErrorKind::Model</code> error explaining that joint models were removed</td></tr>
+</tbody>
+</table>
+</div>
+<p>Because the bytes are read once and then dispatched, a remote model is downloaded a single time.</p>
+<h2 id="errors"><a class="header" href="#errors">Errors</a></h2>
+<p><code>CoreError</code> carries an <code>ErrorKind</code> plus a message. The kinds are stable strings intended to be surfaced to the host language.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Kind</th><th><code>as_str()</code></th><th>Raised when</th></tr>
+</thead>
+<tbody>
+<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>Unknown language name, unknown feature set, unusable trainer</td></tr>
+<tr><td><code>Model</code></td><td><code>model</code></td><td>Failed download, or a model of the wrong kind</td></tr>
+<tr><td><code>Io</code></td><td><code>io</code></td><td>A file could not be read or written</td></tr>
+<tr><td><code>Parse</code></td><td><code>parse</code></td><td>Malformed model or training data</td></tr>
+<tr><td><code>Unsupported</code></td><td><code>unsupported</code></td><td>The scheme or operation is unavailable in this build</td></tr>
+<tr><td><code>PosUnavailable</code></td><td><code>pos_unavailable</code></td><td>POS tagging requested from a segmentation-only model</td></tr>
+<tr><td><code>Runtime</code></td><td><code>runtime</code></td><td>Anything else</td></tr>
+</tbody>
+</table>
+</div>
+<p>The set does not change when the <code>remote_model</code> feature is toggled, so a binding’s exception hierarchy stays fixed.</p>
+<h2 id="training-1"><a class="header" href="#training-1">Training</a></h2>
+<p>Available on native targets only; feature extraction and training are file-based.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::Language;
+use litsea_binding_core::{CancelToken, CoreExtractor, CoreTrainer, CorpusFormat};
+
+CoreExtractor::new(Language::Japanese).extract(
+    "corpus.txt".as_ref(),
+    "features.txt".as_ref(),
+    CorpusFormat::PlainText,
+    false, // tag_free
+)?;
+
+let metrics = CoreTrainer::new(0.01, 10_000, "features.txt".as_ref())?
+    .train(&amp;CancelToken::new(), "japanese.model".as_ref())?;
+println!("accuracy: {:.2}%", metrics.accuracy);
+<span class="boring">}</span></code></pre>
+<p><code>CoreTwoStageTrainer</code> mirrors the CLI’s <code>train --pos</code> flow. It can only be used once, because <code>litsea</code>’s <code>TwoStageTrainer::train</code> consumes the trainer (stage 1 is collapsed into an AdaBoost model and cannot be retrained in place); a second call returns an <code>InvalidArgument</code> error, and <code>is_available()</code> reports the state.</p>
+<h3 id="cancellation-semantics"><a class="header" href="#cancellation-semantics">Cancellation semantics</a></h3>
+<p>Cancelling is cooperative and is <strong>not</strong> an error:</p>
+<ul>
+<li>the trainer stops at its next check point,</li>
+<li>the partially trained model is still written to the destination path,</li>
+<li>and its metrics are returned normally.</li>
+</ul>
+<p>Checks happen once per boosting iteration for AdaBoost training, and once per epoch and per instance for perceptron training, so perceptron training reacts far faster. <code>CancelToken</code> clones share one flag, so a token handed to a background thread can stop training that another thread is driving.</p>
+<h2 id="platform-support"><a class="header" href="#platform-support">Platform support</a></h2>
+<p>On <code>wasm32-unknown-unknown</code>, <code>trainer</code>, <code>runtime</code>, <code>read_model_file</code>, and <code>CoreSegmenter::from_path</code> are compiled out — wasm32 has no filesystem and no blocking runtime. WASM callers fetch the model bytes in JavaScript and use <code>CoreSegmenter::from_bytes</code>.</p>
+<h2 id="features"><a class="header" href="#features">Features</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>Default</th><th>Effect</th></tr>
+</thead>
+<tbody>
+<tr><td><code>remote_model</code></td><td>off</td><td>Enables <code>litsea/remote_model</code>, so <code>http(s)://</code> model URIs resolve</td></tr>
+</tbody>
+</table>
+</div>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="training-guide"><a class="header" href="#training-guide">Training Guide</a></h1>
 <p>This guide walks you through training custom word segmentation and POS tagging models with Litsea.</p>

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09f4af7.js";
+            window.path_to_searchindex_js = "searchindex-f94d6dc5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b6b82e2c.js"></script>
+        <script src="toc-8ebe88ff.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -1962,10 +1962,12 @@ litsea = "0.12.0"
 <tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>学習結果の評価指標(in-sample)</td></tr>
 <tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>gold コーパスに対する held-out 評価</td></tr>
 <tr><td><code>litsea::two_stage</code></td><td><code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>二段構成モデルのコンテナとモデル種別の判定</td></tr>
+<tr><td><code>litsea::model_io</code></td><td><code>read_model_bytes</code></td><td>モデル URI（パス・<code>file://</code>・<code>http(s)://</code>）をバイト列へ解決する</td></tr>
 </tbody>
 </table>
 </div>
 <p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::Segmenter;</code> は <code>use litsea::segmenter::Segmenter;</code> の短縮形として使えます。</p>
+<p>各学習器は自身で URI を解決するため、<code>model_io::read_model_bytes</code> を直接使う場面はほとんどありません。これが公開されているのは、学習器を選ぶ前にモデルの中身を確認する必要がある呼び出し側のためです。<code>litsea-binding-core</code> はこれでバイト列を 1 度読み、<code>ModelKind::detect</code> で種別を判定し、同じバイト列を <code>load_model_from_reader</code> に渡すことで、リモートモデルを 2 回ダウンロードすることを避けています。</p>
 <h2 id="クイックスタート-1"><a class="header" href="#クイックスタート-1">クイックスタート</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;
 
@@ -3860,6 +3862,188 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
   Boundary Recall: 98.56%
   Boundary F1: 98.59%
 </code></pre>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="言語バインディング"><a class="header" href="#言語バインディング">言語バインディング</a></h1>
+<p>Litsea は Rust のライブラリですが、他の言語からも利用できます。バインディングは本リポジトリのワークスペースメンバーとして管理されており、<code>litsea</code> 本体と同じバージョンでリリースされます。</p>
+<h2 id="クレート一覧"><a class="header" href="#クレート一覧">クレート一覧</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>クレート</th><th>対象ランタイム</th><th>FFI スタック</th><th>状態</th></tr>
+</thead>
+<tbody>
+<tr><td><a href="#litsea-binding-core"><code>litsea-binding-core</code></a></td><td>（共通・FFI 非依存）</td><td>—</td><td>提供済み</td></tr>
+<tr><td><code>litsea-python</code></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/202">#202</a>）</td></tr>
+<tr><td><code>litsea-nodejs</code></td><td>Node.js 20+</td><td>napi-rs</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/203">#203</a>）</td></tr>
+<tr><td><code>litsea-php</code></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/204">#204</a>）</td></tr>
+<tr><td><code>litsea-ruby</code></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/205">#205</a>）</td></tr>
+<tr><td><code>litsea-wasm</code></td><td>ブラウザ / Deno</td><td>wasm-bindgen</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/206">#206</a>）</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="設計方針"><a class="header" href="#設計方針">設計方針</a></h2>
+<p>以下はすべてのバインディングに共通します。</p>
+<h3 id="モデルは同梱しない"><a class="header" href="#モデルは同梱しない">モデルは同梱しない</a></h3>
+<p>バインディングのパッケージにはコードのみを含めます。モデルは呼び出し側がバイト列・ファイルパス・<code>file://</code> パス・<code>http(s)://</code> URL のいずれかで渡します。同梱モデルは 1 つあたり 84KB〜8MB あり、4 言語分を埋め込むと wheel や npm パッケージが 20MB を超えてしまうためです。外部に置くことで、バインディングを再公開せずにモデルだけを更新できるという利点もあります。</p>
+<p>モデルの入手方法は<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照してください。</p>
+<h3 id="モデル種別は宣言ではなく判定する"><a class="header" href="#モデル種別は宣言ではなく判定する">モデル種別は宣言ではなく判定する</a></h3>
+<p>CLI では、分割モデルと二段構成 POS モデルのどちらを読み込むかを <code>--pos</code> で指定する必要があります。バインディングではこれが不要です。モデルのバイト列を 1 度だけ読んで種別を判定するため、<code>has_pos</code> は「呼び出し側が正しく指定すべき情報」ではなく「読み込んだモデルの性質」になります。</p>
+<h3 id="キャンセルは明示的に行う"><a class="header" href="#キャンセルは明示的に行う">キャンセルは明示的に行う</a></h3>
+<p>学習は長時間かかることがあり、<code>litsea</code> のトレーナは <code>running</code> フラグが倒されると早期終了します。CLI はこのフラグを Ctrl-C ハンドラから操作していますが、ライブラリが同じことをしてはいけません。シグナルハンドラはプロセス全体で 1 つしか登録できず、ホスト言語が既に握っているのが普通だからです。そのためバインディングは、呼び出し側が操作するキャンセルトークンを提供します。</p>
+<h3 id="共通ロジックは-1-つのクレートに集約する"><a class="header" href="#共通ロジックは-1-つのクレートに集約する">共通ロジックは 1 つのクレートに集約する</a></h3>
+<p>FFI に依存しない処理（言語名のパース、モデル読み込みと種別判定、トークンのバイトオフセット、学習の呼び出し、エラー分類）はすべて <a href="#litsea-binding-core"><code>litsea-binding-core</code></a> に置きます。各バインディングは、その API をホスト言語の型と例外モデルに写像するだけです。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="litsea-binding-core"><a class="header" href="#litsea-binding-core">litsea-binding-core</a></h1>
+<p><code>litsea-binding-core</code> は、各言語バインディングが共有する FFI 非依存のロジックをまとめたクレートです。依存先は <code>litsea</code>（およびネイティブターゲットではブロッキング用の Tokio）のみで、PyO3・napi・ext-php-rs・magnus・wasm-bindgen には一切依存しません。そのため、ホスト言語のツールチェーンなしでユニットテストできます。</p>
+<h2 id="インストール-2"><a class="header" href="#インストール-2">インストール</a></h2>
+<pre><code class="language-toml">[dependencies]
+litsea-binding-core = "0.12.0"
+</code></pre>
+<h2 id="モジュール構成-1"><a class="header" href="#モジュール構成-1">モジュール構成</a></h2>
+<pre><code class="language-mermaid">graph LR
+    A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, read_model_file, read_model_uri"]
+    E["litsea_binding_core::token"] --- F["TokenView"]
+    G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
+    I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
+    K["litsea_binding_core::cancel"] --- L["CancelToken"]
+    M["litsea_binding_core::error"] --- N["CoreError, ErrorKind, CoreResult"]
+    O["litsea_binding_core::runtime"] --- P["block_on"]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>モジュール</th><th>主な型</th><th>役割</th></tr>
+</thead>
+<tbody>
+<tr><td><code>segmenter</code></td><td><code>CoreSegmenter</code></td><td>分割と POS タグ付け（単発・バッチ）。バッファを再利用する</td></tr>
+<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code></td><td>モデルの読み込みと種別判定</td></tr>
+<tr><td><code>token</code></td><td><code>TokenView</code></td><td>表層形・バイトオフセット・UPOS タグ（任意）を持つトークン</td></tr>
+<tr><td><code>language</code></td><td><code>SUPPORTED_LANGUAGES</code>, <code>parse_language</code></td><td>言語名のパースと列挙</td></tr>
+<tr><td><code>trainer</code></td><td><code>CoreExtractor</code>, <code>CoreTrainer</code>, <code>CorePerceptronTrainer</code>, <code>CoreTwoStageTrainer</code></td><td>特徴量抽出と学習（ネイティブターゲットのみ）</td></tr>
+<tr><td><code>cancel</code></td><td><code>CancelToken</code></td><td>学習の協調的キャンセル</td></tr>
+<tr><td><code>error</code></td><td><code>CoreError</code>, <code>ErrorKind</code>, <code>CoreResult</code></td><td>各言語の例外へ写像するためのエラー分類</td></tr>
+<tr><td><code>runtime</code></td><td><code>block_on</code></td><td>同期ホストから非同期モデルローダを呼ぶ（ネイティブターゲットのみ）</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="分割"><a class="header" href="#分割">分割</a></h2>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::Language;
+use litsea_binding_core::CoreSegmenter;
+
+let segmenter = CoreSegmenter::from_path(Language::Japanese, "models/japanese.model".as_ref())?;
+
+assert_eq!(
+    segmenter.segment("すもももももももものうち"),
+    vec!["すもも", "も", "もも", "も", "もも", "の", "うち"]
+);
+<span class="boring">}</span></code></pre>
+<p><code>CoreSegmenter</code> は <code>Arc&lt;Segmenter&gt;</code> と <code>Mutex&lt;SegmentBuffer&gt;</code> を保持します。<code>Segmenter</code> は <code>Send + Sync</code> であり、モデル読み込み済みのインスタンスは packed テーブルが構築済みのため、並行した <code>segment</code> 呼び出しは内部の read ロックしか取りません。ミューテックスが保護するのはスクラッチバッファだけです。したがって 1 つのインスタンスをスレッド間で共有し、継続的に再利用できます（各バインディングはそのように使います）。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>メソッド</th><th>戻り値</th></tr>
+</thead>
+<tbody>
+<tr><td><code>segment(text)</code></td><td><code>Vec&lt;String&gt;</code></td></tr>
+<tr><td><code>segment_batch(texts)</code></td><td><code>Vec&lt;Vec&lt;String&gt;&gt;</code>（バッファを 1 つ再利用）</td></tr>
+<tr><td><code>segment_tokens(text)</code></td><td>バイトオフセット付き <code>Vec&lt;TokenView&gt;</code>（<code>pos</code> は未設定）</td></tr>
+<tr><td><code>segment_with_pos(text)</code></td><td>バイトオフセットと UPOS タグ付き <code>CoreResult&lt;Vec&lt;TokenView&gt;&gt;</code></td></tr>
+<tr><td><code>segment_with_pos_batch(texts)</code></td><td><code>CoreResult&lt;Vec&lt;Vec&lt;TokenView&gt;&gt;&gt;</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>バイトオフセットは厳密です。トークンは入力を隙間も重複もなく覆うため、すべてのトークンについて <code>&amp;text[token.byte_start..token.byte_end] == token.surface</code> が成り立ちます。空白を保持する韓国語・英語でも同様です。</p>
+<p>なお <code>segment_with_pos_batch</code> は <code>segment_batch</code> のようにアロケーションを償却できません。<code>litsea</code> に <code>segment_with_pos</code> のバッファ再利用版が存在しないためです。</p>
+<h2 id="モデルの読み込み-1"><a class="header" href="#モデルの読み込み-1">モデルの読み込み</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>コンストラクタ</th><th>利用可否</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CoreSegmenter::from_bytes(language, bytes)</code></td><td>wasm32 を含むすべての環境</td></tr>
+<tr><td><code>CoreSegmenter::from_path(language, path)</code></td><td>ネイティブターゲット</td></tr>
+<tr><td><code>CoreSegmenter::from_uri(language, uri).await</code></td><td>すべての環境（<code>http(s)://</code> は <code>remote_model</code> feature が必要）</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_blocking(language, uri)</code></td><td>ネイティブターゲット</td></tr>
+</tbody>
+</table>
+</div>
+<p>いずれも <code>build_segmenter</code> を経由し、モデルファイル自身から何を構築するかを決定します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>判定された種別</th><th>結果</th></tr>
+</thead>
+<tbody>
+<tr><td>二段構成モデル（<code>litsea-two-stage v1</code>）</td><td>POS 対応セグメンタ、<code>has_pos() == true</code></td></tr>
+<tr><td>AdaBoost 形式モデル</td><td>分割専用セグメンタ、<code>has_pos() == false</code></td></tr>
+<tr><td>joint POS モデル（旧形式）</td><td>joint モデルが削除済みであることを説明する <code>ErrorKind::Model</code> エラー</td></tr>
+</tbody>
+</table>
+</div>
+<p>バイト列を 1 度読んでから分岐するため、リモートモデルのダウンロードは 1 回で済みます。</p>
+<h2 id="エラー"><a class="header" href="#エラー">エラー</a></h2>
+<p><code>CoreError</code> は <code>ErrorKind</code> とメッセージを持ちます。種別は安定した文字列で、ホスト言語へそのまま公開することを想定しています。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>種別</th><th><code>as_str()</code></th><th>発生条件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ</td></tr>
+<tr><td><code>Model</code></td><td><code>model</code></td><td>ダウンロード失敗、または種別の異なるモデル</td></tr>
+<tr><td><code>Io</code></td><td><code>io</code></td><td>ファイルの読み書き失敗</td></tr>
+<tr><td><code>Parse</code></td><td><code>parse</code></td><td>モデルまたは学習データの形式不正</td></tr>
+<tr><td><code>Unsupported</code></td><td><code>unsupported</code></td><td>このビルドでは利用できないスキームや操作</td></tr>
+<tr><td><code>PosUnavailable</code></td><td><code>pos_unavailable</code></td><td>分割専用モデルに対して POS タグ付けを要求した</td></tr>
+<tr><td><code>Runtime</code></td><td><code>runtime</code></td><td>上記以外</td></tr>
+</tbody>
+</table>
+</div>
+<p>この一覧は <code>remote_model</code> feature の有無で変化しないため、バインディング側の例外階層は固定できます。</p>
+<h2 id="学習-1"><a class="header" href="#学習-1">学習</a></h2>
+<p>ネイティブターゲットのみで利用できます。特徴量抽出と学習はファイル入出力を前提としているためです。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::Language;
+use litsea_binding_core::{CancelToken, CoreExtractor, CoreTrainer, CorpusFormat};
+
+CoreExtractor::new(Language::Japanese).extract(
+    "corpus.txt".as_ref(),
+    "features.txt".as_ref(),
+    CorpusFormat::PlainText,
+    false, // tag_free
+)?;
+
+let metrics = CoreTrainer::new(0.01, 10_000, "features.txt".as_ref())?
+    .train(&amp;CancelToken::new(), "japanese.model".as_ref())?;
+println!("accuracy: {:.2}%", metrics.accuracy);
+<span class="boring">}</span></code></pre>
+<p><code>CoreTwoStageTrainer</code> は CLI の <code>train --pos</code> に対応します。<code>litsea</code> の <code>TwoStageTrainer::train</code> がトレーナを消費する（stage 1 は AdaBoost モデルへ collapse されるため、その場での再学習ができない）ため、このトレーナは 1 度しか使えません。2 回目の呼び出しは <code>InvalidArgument</code> エラーを返し、<code>is_available()</code> で状態を確認できます。</p>
+<h3 id="キャンセルの挙動"><a class="header" href="#キャンセルの挙動">キャンセルの挙動</a></h3>
+<p>キャンセルは協調的であり、<strong>エラーではありません</strong>。</p>
+<ul>
+<li>トレーナは次のチェックポイントで停止し、</li>
+<li>部分的に学習されたモデルは指定パスへ保存され、</li>
+<li>メトリクスが通常どおり返されます。</li>
+</ul>
+<p>チェックは AdaBoost 学習ではブースティング反復ごと、パーセプトロン学習ではエポックごと・インスタンスごとに行われるため、パーセプトロン学習の方が反応がはるかに速くなります。<code>CancelToken</code> のクローンは同じフラグを共有するので、バックグラウンドスレッドに渡したトークンから、別スレッドが実行中の学習を停止できます。</p>
+<h2 id="プラットフォームサポート"><a class="header" href="#プラットフォームサポート">プラットフォームサポート</a></h2>
+<p><code>wasm32-unknown-unknown</code> では <code>trainer</code>・<code>runtime</code>・<code>read_model_file</code>・<code>CoreSegmenter::from_path</code> はコンパイル対象から外れます。wasm32 にはファイルシステムもブロッキングランタイムも存在しないためです。WASM から使う場合は、JavaScript 側でモデルのバイト列を取得し <code>CoreSegmenter::from_bytes</code> に渡してください。</p>
+<h2 id="feature"><a class="header" href="#feature">Feature</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>既定</th><th>効果</th></tr>
+</thead>
+<tbody>
+<tr><td><code>remote_model</code></td><td>無効</td><td><code>litsea/remote_model</code> を有効化し、<code>http(s)://</code> のモデル URI を解決できるようにする</td></tr>
+</tbody>
+</table>
+</div>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>

@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-eea037c4.js";
+            window.path_to_searchindex_js = "searchindex-d883fab3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-f9e282e4.js"></script>
+        <script src="toc-85ec5467.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -218,10 +218,12 @@ litsea = "0.12.0"
 <tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>Evaluation metrics (in-sample)</td></tr>
 <tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>Held-out evaluation against a gold corpus</td></tr>
 <tr><td><code>litsea::two_stage</code></td><td><code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>Two-stage model container and model-kind detection</td></tr>
+<tr><td><code>litsea::model_io</code></td><td><code>read_model_bytes</code></td><td>Resolves a model URI (path, <code>file://</code>, <code>http(s)://</code>) to raw bytes</td></tr>
 </tbody>
 </table>
 </div>
 <p>All primary types are also re-exported at the crate root, so <code>use litsea::Segmenter;</code> works as a shorthand for <code>use litsea::segmenter::Segmenter;</code>.</p>
+<p>The learners resolve their own URIs, so <code>model_io::read_model_bytes</code> is rarely needed directly. It is public for callers that must inspect a model before choosing a learner — <code>litsea-binding-core</code> reads the bytes once, detects the kind with <code>ModelKind::detect</code>, and feeds the same bytes to <code>load_model_from_reader</code>, which avoids downloading a remote model twice.</p>
 <h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;
 

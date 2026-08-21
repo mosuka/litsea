@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Averaged Perceptron - Litsea ドキュメント</title>
+        <title>litsea-binding-core - Litsea ドキュメント</title>
 
 
         <!-- Custom HTML head -->
@@ -146,7 +146,7 @@
                         <a href="https://github.com/mosuka/litsea" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/mosuka/litsea/edit/main/docs/ja/src/litsea/averaged-perceptron.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/mosuka/litsea/edit/main/docs/ja/src/bindings/binding-core.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,164 +180,167 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="averaged-perceptron"><a class="header" href="#averaged-perceptron">Averaged Perceptron</a></h1>
-<p><code>AveragedPerceptron</code> 構造体は、不透明な文字列ラベルに対する多クラス分類を実装しています。二段構成品詞推定アーキテクチャの両ステージと、同梱分割モデルの畳み込みレシピ（<code>litsea train --perceptron</code>）の学習側の学習器です。</p>
-<h2 id="定義"><a class="header" href="#定義">定義</a></h2>
+                        <h1 id="litsea-binding-core"><a class="header" href="#litsea-binding-core">litsea-binding-core</a></h1>
+<p><code>litsea-binding-core</code> は、各言語バインディングが共有する FFI 非依存のロジックをまとめたクレートです。依存先は <code>litsea</code>（およびネイティブターゲットではブロッキング用の Tokio）のみで、PyO3・napi・ext-php-rs・magnus・wasm-bindgen には一切依存しません。そのため、ホスト言語のツールチェーンなしでユニットテストできます。</p>
+<h2 id="インストール"><a class="header" href="#インストール">インストール</a></h2>
+<pre><code class="language-toml">[dependencies]
+litsea-binding-core = "0.12.0"
+</code></pre>
+<h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
+<pre><code class="language-mermaid">graph LR
+    A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, read_model_file, read_model_uri"]
+    E["litsea_binding_core::token"] --- F["TokenView"]
+    G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
+    I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
+    K["litsea_binding_core::cancel"] --- L["CancelToken"]
+    M["litsea_binding_core::error"] --- N["CoreError, ErrorKind, CoreResult"]
+    O["litsea_binding_core::runtime"] --- P["block_on"]
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>モジュール</th><th>主な型</th><th>役割</th></tr>
+</thead>
+<tbody>
+<tr><td><code>segmenter</code></td><td><code>CoreSegmenter</code></td><td>分割と POS タグ付け（単発・バッチ）。バッファを再利用する</td></tr>
+<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code></td><td>モデルの読み込みと種別判定</td></tr>
+<tr><td><code>token</code></td><td><code>TokenView</code></td><td>表層形・バイトオフセット・UPOS タグ（任意）を持つトークン</td></tr>
+<tr><td><code>language</code></td><td><code>SUPPORTED_LANGUAGES</code>, <code>parse_language</code></td><td>言語名のパースと列挙</td></tr>
+<tr><td><code>trainer</code></td><td><code>CoreExtractor</code>, <code>CoreTrainer</code>, <code>CorePerceptronTrainer</code>, <code>CoreTwoStageTrainer</code></td><td>特徴量抽出と学習（ネイティブターゲットのみ）</td></tr>
+<tr><td><code>cancel</code></td><td><code>CancelToken</code></td><td>学習の協調的キャンセル</td></tr>
+<tr><td><code>error</code></td><td><code>CoreError</code>, <code>ErrorKind</code>, <code>CoreResult</code></td><td>各言語の例外へ写像するためのエラー分類</td></tr>
+<tr><td><code>runtime</code></td><td><code>block_on</code></td><td>同期ホストから非同期モデルローダを呼ぶ（ネイティブターゲットのみ）</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="分割"><a class="header" href="#分割">分割</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct AveragedPerceptron {
-    // internal fields: slots (feature -&gt; per-class weights + averaging state), step, classes, instances
-}
-<span class="boring">}</span></code></pre>
-<h2 id="コンストラクタ"><a class="header" href="#コンストラクタ">コンストラクタ</a></h2>
-<h3 id="averagedperceptronnew"><a class="header" href="#averagedperceptronnew"><code>AveragedPerceptron::new</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn new() -&gt; Self
-<span class="boring">}</span></code></pre>
-<p>新しい Averaged Perceptron インスタンスを作成します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use litsea::perceptron::AveragedPerceptron;
+</span>use litsea::Language;
+use litsea_binding_core::CoreSegmenter;
 
-let mut learner = AveragedPerceptron::new();
-<span class="boring">}</span></code></pre>
-<h2 id="インスタンスの追加"><a class="header" href="#インスタンスの追加">インスタンスの追加</a></h2>
-<h3 id="add_instance"><a class="header" href="#add_instance"><code>add_instance</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn add_instance(&amp;mut self, features: HashSet&lt;String&gt;, label: String)
-<span class="boring">}</span></code></pre>
-<p>特徴量セットとラベルを持つ学習インスタンスを追加します。未知のクラスは自動的に登録されます。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
-use litsea::perceptron::AveragedPerceptron;
+let segmenter = CoreSegmenter::from_path(Language::Japanese, "models/japanese.model".as_ref())?;
 
-let mut learner = AveragedPerceptron::new();
-let mut feats = HashSet::new();
-feats.insert("UW4:猫".to_string());
-feats.insert("UC4:H".to_string());
-learner.add_instance(feats, "B-NOUN".to_string());
+assert_eq!(
+    segmenter.segment("すもももももももものうち"),
+    vec!["すもも", "も", "もも", "も", "もも", "の", "うち"]
+);
 <span class="boring">}</span></code></pre>
+<p><code>CoreSegmenter</code> は <code>Arc&lt;Segmenter&gt;</code> と <code>Mutex&lt;SegmentBuffer&gt;</code> を保持します。<code>Segmenter</code> は <code>Send + Sync</code> であり、モデル読み込み済みのインスタンスは packed テーブルが構築済みのため、並行した <code>segment</code> 呼び出しは内部の read ロックしか取りません。ミューテックスが保護するのはスクラッチバッファだけです。したがって 1 つのインスタンスをスレッド間で共有し、継続的に再利用できます（各バインディングはそのように使います）。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>メソッド</th><th>戻り値</th></tr>
+</thead>
+<tbody>
+<tr><td><code>segment(text)</code></td><td><code>Vec&lt;String&gt;</code></td></tr>
+<tr><td><code>segment_batch(texts)</code></td><td><code>Vec&lt;Vec&lt;String&gt;&gt;</code>（バッファを 1 つ再利用）</td></tr>
+<tr><td><code>segment_tokens(text)</code></td><td>バイトオフセット付き <code>Vec&lt;TokenView&gt;</code>（<code>pos</code> は未設定）</td></tr>
+<tr><td><code>segment_with_pos(text)</code></td><td>バイトオフセットと UPOS タグ付き <code>CoreResult&lt;Vec&lt;TokenView&gt;&gt;</code></td></tr>
+<tr><td><code>segment_with_pos_batch(texts)</code></td><td><code>CoreResult&lt;Vec&lt;Vec&lt;TokenView&gt;&gt;&gt;</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>バイトオフセットは厳密です。トークンは入力を隙間も重複もなく覆うため、すべてのトークンについて <code>&amp;text[token.byte_start..token.byte_end] == token.surface</code> が成り立ちます。空白を保持する韓国語・英語でも同様です。</p>
+<p>なお <code>segment_with_pos_batch</code> は <code>segment_batch</code> のようにアロケーションを償却できません。<code>litsea</code> に <code>segment_with_pos</code> のバッファ再利用版が存在しないためです。</p>
+<h2 id="モデルの読み込み"><a class="header" href="#モデルの読み込み">モデルの読み込み</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>コンストラクタ</th><th>利用可否</th></tr>
+</thead>
+<tbody>
+<tr><td><code>CoreSegmenter::from_bytes(language, bytes)</code></td><td>wasm32 を含むすべての環境</td></tr>
+<tr><td><code>CoreSegmenter::from_path(language, path)</code></td><td>ネイティブターゲット</td></tr>
+<tr><td><code>CoreSegmenter::from_uri(language, uri).await</code></td><td>すべての環境（<code>http(s)://</code> は <code>remote_model</code> feature が必要）</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_blocking(language, uri)</code></td><td>ネイティブターゲット</td></tr>
+</tbody>
+</table>
+</div>
+<p>いずれも <code>build_segmenter</code> を経由し、モデルファイル自身から何を構築するかを決定します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>判定された種別</th><th>結果</th></tr>
+</thead>
+<tbody>
+<tr><td>二段構成モデル（<code>litsea-two-stage v1</code>）</td><td>POS 対応セグメンタ、<code>has_pos() == true</code></td></tr>
+<tr><td>AdaBoost 形式モデル</td><td>分割専用セグメンタ、<code>has_pos() == false</code></td></tr>
+<tr><td>joint POS モデル（旧形式）</td><td>joint モデルが削除済みであることを説明する <code>ErrorKind::Model</code> エラー</td></tr>
+</tbody>
+</table>
+</div>
+<p>バイト列を 1 度読んでから分岐するため、リモートモデルのダウンロードは 1 回で済みます。</p>
+<h2 id="エラー"><a class="header" href="#エラー">エラー</a></h2>
+<p><code>CoreError</code> は <code>ErrorKind</code> とメッセージを持ちます。種別は安定した文字列で、ホスト言語へそのまま公開することを想定しています。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>種別</th><th><code>as_str()</code></th><th>発生条件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ</td></tr>
+<tr><td><code>Model</code></td><td><code>model</code></td><td>ダウンロード失敗、または種別の異なるモデル</td></tr>
+<tr><td><code>Io</code></td><td><code>io</code></td><td>ファイルの読み書き失敗</td></tr>
+<tr><td><code>Parse</code></td><td><code>parse</code></td><td>モデルまたは学習データの形式不正</td></tr>
+<tr><td><code>Unsupported</code></td><td><code>unsupported</code></td><td>このビルドでは利用できないスキームや操作</td></tr>
+<tr><td><code>PosUnavailable</code></td><td><code>pos_unavailable</code></td><td>分割専用モデルに対して POS タグ付けを要求した</td></tr>
+<tr><td><code>Runtime</code></td><td><code>runtime</code></td><td>上記以外</td></tr>
+</tbody>
+</table>
+</div>
+<p>この一覧は <code>remote_model</code> feature の有無で変化しないため、バインディング側の例外階層は固定できます。</p>
 <h2 id="学習"><a class="header" href="#学習">学習</a></h2>
-<h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
+<p>ネイティブターゲットのみで利用できます。特徴量抽出と学習はファイル入出力を前提としているためです。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub fn train(&amp;mut self, num_epochs: usize, running: &amp;AtomicBool)
-<span class="boring">}</span></code></pre>
-<p>指定されたエポック数でモデルを学習します。<code>running</code> を <code>false</code> に設定すると早期終了します。学習終了時に重みの平均化が自動的に行われます。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::sync::atomic::AtomicBool;
+</span>use litsea::Language;
+use litsea_binding_core::{CancelToken, CoreExtractor, CoreTrainer, CorpusFormat};
 
-let running = AtomicBool::new(true);
-learner.train(10, &amp;running);
-<span class="boring">}</span></code></pre>
-<h2 id="予測"><a class="header" href="#予測">予測</a></h2>
-<h3 id="predict"><a class="header" href="#predict"><code>predict</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn predict(&amp;self, features: &amp;HashSet&lt;String&gt;) -&gt; String
-<span class="boring">}</span></code></pre>
-<p>与えられた特徴量セットに対してラベルを予測します。各クラスのスコアを計算し、最大スコアのクラス名を返します。クラスが未登録の場合は空文字列を返します。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::collections::HashSet;
+CoreExtractor::new(Language::Japanese).extract(
+    "corpus.txt".as_ref(),
+    "features.txt".as_ref(),
+    CorpusFormat::PlainText,
+    false, // tag_free
+)?;
 
-let mut attrs = HashSet::new();
-attrs.insert("UW4:は".to_string());
-attrs.insert("UC4:I".to_string());
-// ... more features
-
-let label = learner.predict(&amp;attrs);
-// label == "B-ADP", "O", etc.
+let metrics = CoreTrainer::new(0.01, 10_000, "features.txt".as_ref())?
+    .train(&amp;CancelToken::new(), "japanese.model".as_ref())?;
+println!("accuracy: {:.2}%", metrics.accuracy);
 <span class="boring">}</span></code></pre>
-<h2 id="アクセサ"><a class="header" href="#アクセサ">アクセサ</a></h2>
-<h3 id="classes"><a class="header" href="#classes"><code>classes</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn classes(&amp;self) -&gt; &amp;[String]
-<span class="boring">}</span></code></pre>
-<p>登録されているクラス名を、格納順（重みベクトルのインデックスや <code>predict</code> の argmax タイブレーク〔先勝ちの strictly-greater〕で使われる並び）で返します。クラスが未登録の場合は空です。二段構成モデルへの畳み込み手順（<a href="../pre-trained-models.html#学習手順">事前学習済みモデル</a>を参照）や、packed 二段構成ランタイムで使用されています。</p>
-<h2 id="モデルの入出力"><a class="header" href="#モデルの入出力">モデルの入出力</a></h2>
-<h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn save_model(&amp;self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>モデルをファイルに保存します。モデルが空の場合はエラーを返します。</p>
-<h3 id="save_model_to_writer"><a class="header" href="#save_model_to_writer"><code>save_model_to_writer</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn save_model_to_writer&lt;W: Write&gt;(&amp;self, writer: &amp;mut W) -&gt; litsea::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p><code>save_model</code> と同じテキスト形式で、任意のライターへモデルを書き込みます。<code>save_model</code> はこのメソッドに処理を委譲しています。ファイルパスを経由せずにモデルをより大きなファイルの一部として埋め込めるよう公開されています – <a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成モデル形式</a>は、これを使って stage-2 の単語タガーを直接埋め込んでいます。ライターはフラッシュされません。クラスが未登録の場合（空のモデル）はエラーを返します。</p>
-<h3 id="load_model_from_path"><a class="header" href="#load_model_from_path"><code>load_model_from_path</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>ローカルファイルからモデルの重みを同期的に読み込みます。ローカルファイルにはこのメソッドが推奨されます – 非同期ランタイムは不要です。</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use std::path::Path;
-
-learner.load_model_from_path(Path::new("./perceptron.model"))?;
-<span class="boring">}</span></code></pre>
-<h3 id="load_model_from_reader"><a class="header" href="#load_model_from_reader"><code>load_model_from_reader</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>メモリ上のバッファや既に開いているファイルなど、任意の <code>BufRead</code> ソースからモデルの重みを読み込みます。</p>
-<h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub async fn load_model(&amp;mut self, uri: &amp;str) -&gt; litsea::Result&lt;()&gt;
-<span class="boring">}</span></code></pre>
-<p>URI からモデルを読み込みます。以下の形式に対応しています:</p>
+<p><code>CoreTwoStageTrainer</code> は CLI の <code>train --pos</code> に対応します。<code>litsea</code> の <code>TwoStageTrainer::train</code> がトレーナを消費する（stage 1 は AdaBoost モデルへ collapse されるため、その場での再学習ができない）ため、このトレーナは 1 度しか使えません。2 回目の呼び出しは <code>InvalidArgument</code> エラーを返し、<code>is_available()</code> で状態を確認できます。</p>
+<h3 id="キャンセルの挙動"><a class="header" href="#キャンセルの挙動">キャンセルの挙動</a></h3>
+<p>キャンセルは協調的であり、<strong>エラーではありません</strong>。</p>
 <ul>
-<li>ローカルファイルパス: <code>./perceptron.model</code></li>
-<li>File URI: <code>file:///path/to/model</code></li>
-<li>HTTP: <code>http://example.com/model</code>（<code>remote_model</code> フィーチャーが必要）</li>
-<li>HTTPS: <code>https://example.com/model</code>（<code>remote_model</code> フィーチャーが必要）</li>
+<li>トレーナは次のチェックポイントで停止し、</li>
+<li>部分的に学習されたモデルは指定パスへ保存され、</li>
+<li>メトリクスが通常どおり返されます。</li>
 </ul>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>learner.load_model("https://example.com/models/perceptron.model").await?;
-<span class="boring">}</span></code></pre>
-<h2 id="評価"><a class="header" href="#評価">評価</a></h2>
-<h3 id="metrics"><a class="header" href="#metrics"><code>metrics</code></a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub fn metrics(&amp;self) -&gt; MulticlassMetrics
-<span class="boring">}</span></code></pre>
-<p>学習データに対する評価メトリクスを算出します。</p>
-<h2 id="multiclassmetrics"><a class="header" href="#multiclassmetrics">MulticlassMetrics</a></h2>
-<p><code>litsea::metrics</code> で定義されています（<code>litsea::MulticlassMetrics</code> としても再エクスポートされます）:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>pub struct MulticlassMetrics {
-    pub accuracy: f64,                            // Overall accuracy in percentage
-    pub macro_precision: f64,                     // Macro-averaged precision in percentage
-    pub macro_recall: f64,                        // Macro-averaged recall in percentage
-    pub num_instances: usize,                     // Number of instances
-    pub correct_per_class: HashMap&lt;String, usize&gt;,   // Correct count per class
-    pub predicted_per_class: HashMap&lt;String, usize&gt;,  // Predicted count per class
-    pub gold_per_class: HashMap&lt;String, usize&gt;,       // Gold label count per class
-}
-<span class="boring">}</span></code></pre>
+<p>チェックは AdaBoost 学習ではブースティング反復ごと、パーセプトロン学習ではエポックごと・インスタンスごとに行われるため、パーセプトロン学習の方が反応がはるかに速くなります。<code>CancelToken</code> のクローンは同じフラグを共有するので、バックグラウンドスレッドに渡したトークンから、別スレッドが実行中の学習を停止できます。</p>
+<h2 id="プラットフォームサポート"><a class="header" href="#プラットフォームサポート">プラットフォームサポート</a></h2>
+<p><code>wasm32-unknown-unknown</code> では <code>trainer</code>・<code>runtime</code>・<code>read_model_file</code>・<code>CoreSegmenter::from_path</code> はコンパイル対象から外れます。wasm32 にはファイルシステムもブロッキングランタイムも存在しないためです。WASM から使う場合は、JavaScript 側でモデルのバイト列を取得し <code>CoreSegmenter::from_bytes</code> に渡してください。</p>
+<h2 id="feature"><a class="header" href="#feature">Feature</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Feature</th><th>既定</th><th>効果</th></tr>
+</thead>
+<tbody>
+<tr><td><code>remote_model</code></td><td>無効</td><td><code>litsea/remote_model</code> を有効化し、<code>http(s)://</code> のモデル URI を解決できるようにする</td></tr>
+</tbody>
+</table>
+</div>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../litsea/adaboost.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../bindings.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../litsea/upos.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../training-guide.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -347,11 +350,11 @@ learner.load_model_from_path(Path::new("./perceptron.model"))?;
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../litsea/adaboost.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../bindings.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../litsea/upos.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../training-guide.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

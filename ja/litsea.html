@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a09f4af7.js";
+            window.path_to_searchindex_js = "searchindex-f94d6dc5.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-b6b82e2c.js"></script>
+        <script src="toc-8ebe88ff.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -218,10 +218,12 @@ litsea = "0.12.0"
 <tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>学習結果の評価指標(in-sample)</td></tr>
 <tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>gold コーパスに対する held-out 評価</td></tr>
 <tr><td><code>litsea::two_stage</code></td><td><code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>二段構成モデルのコンテナとモデル種別の判定</td></tr>
+<tr><td><code>litsea::model_io</code></td><td><code>read_model_bytes</code></td><td>モデル URI（パス・<code>file://</code>・<code>http(s)://</code>）をバイト列へ解決する</td></tr>
 </tbody>
 </table>
 </div>
 <p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::Segmenter;</code> は <code>use litsea::segmenter::Segmenter;</code> の短縮形として使えます。</p>
+<p>各学習器は自身で URI を解決するため、<code>model_io::read_model_bytes</code> を直接使う場面はほとんどありません。これが公開されているのは、学習器を選ぶ前にモデルの中身を確認する必要がある呼び出し側のためです。<code>litsea-binding-core</code> はこれでバイト列を 1 度読み、<code>ModelKind::detect</code> で種別を判定し、同じバイト列を <code>load_model_from_reader</code> に渡すことで、リモートモデルを 2 回ダウンロードすることを避けています。</p>
 <h2 id="クイックスタート"><a class="header" href="#クイックスタート">クイックスタート</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;
 
