@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["litsea", "litsea-cli"]
+members = ["litsea", "litsea-cli", "litsea-binding-core"]
 
 # CPU-bound hot loops (feature-template scoring per character) benefit from
 # cross-codegen-unit inlining; thin LTO + a single codegen unit trades
@@ -40,3 +40,4 @@ criterion = { version = "0.8.2", default-features = false, features = [
 ] }
 
 litsea = { version = "0.12.0", path = "./litsea" }
+litsea-binding-core = { version = "0.12.0", path = "./litsea-binding-core" }

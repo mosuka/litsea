@@ -1,0 +1,32 @@
+[package]
+name = "litsea-binding-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Shared FFI-independent helpers for the Litsea language bindings."
+documentation = "https://docs.rs/litsea-binding-core"
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+keywords = ["word", "segmentation", "nlp", "binding"]
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+litsea.workspace = true
+thiserror.workspace = true
+
+# Training and the blocking wrappers need a filesystem and a blocking
+# runtime, neither of which wasm32 has; both are compiled out there, so the
+# runtime dependency is scoped to native targets only.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+tokio.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+tempfile.workspace = true
+
+[features]
+# Local model loading only by default, matching the `litsea` crate; enable
+# `remote_model` for `http(s)://` model URIs.
+default = []
+remote_model = ["litsea/remote_model"]

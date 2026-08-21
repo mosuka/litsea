@@ -38,7 +38,30 @@ impl FromStr for ModelScheme {
 /// - a plain filesystem path (not supported on wasm32)
 /// - `file://<path>` (not supported on wasm32)
 /// - `http://` / `https://` URLs (requires the `remote_model` feature)
-pub(crate) async fn read_model_bytes(uri: &str) -> Result<Vec<u8>> {
+///
+/// Learners resolve their own URIs through this function
+/// (`AdaBoost::load_model`, `TwoStageLearner::load_model`,
+/// `AveragedPerceptron::load_model`), so callers rarely need it directly.
+/// It is public for callers that must inspect the bytes before choosing a
+/// learner — the language bindings detect the model kind with
+/// [`ModelKind::detect`](crate::two_stage::ModelKind::detect) and then feed
+/// the same bytes to `load_model_from_reader`, which avoids fetching a
+/// remote model twice.
+///
+/// # Arguments
+/// * `uri` - The model URI: a filesystem path, a `file://` path, or an
+///   `http(s)://` URL.
+///
+/// # Returns
+/// The raw model bytes.
+///
+/// # Errors
+/// Returns [`LitseaError::InvalidInput`] for an unknown URI scheme,
+/// [`LitseaError::Unsupported`] when the scheme is unavailable in this build
+/// or environment (`http(s)://` without the `remote_model` feature, or any
+/// filesystem path on wasm32), an I/O error if a local file cannot be read,
+/// or `LitseaError::Download` if a remote fetch fails.
+pub async fn read_model_bytes(uri: &str) -> Result<Vec<u8>> {
     let Some((scheme_str, rest)) = uri.split_once("://") else {
         return read_file_bytes(uri);
     };

@@ -41,8 +41,11 @@ graph LR
 | `litsea::metrics` | `BinaryMetrics`, `MulticlassMetrics` | 学習結果の評価指標(in-sample) |
 | `litsea::evaluation` | `PosMetrics`, `SegmentationMetrics` | gold コーパスに対する held-out 評価 |
 | `litsea::two_stage` | `ModelKind`, `TwoStageFeatureSet`, `TwoStageLearner` | 二段構成モデルのコンテナとモデル種別の判定 |
+| `litsea::model_io` | `read_model_bytes` | モデル URI（パス・`file://`・`http(s)://`）をバイト列へ解決する |
 
 主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::Segmenter;` は `use litsea::segmenter::Segmenter;` の短縮形として使えます。
+
+各学習器は自身で URI を解決するため、`model_io::read_model_bytes` を直接使う場面はほとんどありません。これが公開されているのは、学習器を選ぶ前にモデルの中身を確認する必要がある呼び出し側のためです。`litsea-binding-core` はこれでバイト列を 1 度読み、`ModelKind::detect` で種別を判定し、同じバイト列を `load_model_from_reader` に渡すことで、リモートモデルを 2 回ダウンロードすることを避けています。
 
 ## クイックスタート
 
