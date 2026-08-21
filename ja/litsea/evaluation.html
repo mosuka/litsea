@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
+            window.path_to_searchindex_js = "../searchindex-a09f4af7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -252,8 +252,10 @@ pub fn parse_gold_pos_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;(String, Upos
 <code>/POS</code> サフィックスがなく常に <code>Upos::X</code> になりますが、これは無害です –
 空白トークンはタグ付きスコアリングから内容によって除外され、割り当てられた
 タグでは判定しません。これは二段構成 POS モデルの実運用精度を、スペース
-区切りで書かれる言語（学習コーパス自体に空白保持のバリアントがない）で
-測定するための仕組みです（issue #196）。</p>
+区切りで書かれる言語で測定するための仕組みです（issue #196）。韓国語・英語の
+二段構成モデルは現在この空白保持コーパスで学習しているため（issue #198）、
+これらの言語ではこの形式が学習時と実際の入力の双方に一致するプロトコルに
+なっています。</p>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

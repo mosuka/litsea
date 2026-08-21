@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
+            window.path_to_searchindex_js = "../searchindex-eea037c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -251,9 +251,9 @@ pipeline’s rule), defaulting to <code>Upos::X</code> for missing or unparsable
 With <code>tsv = true</code>, a literal space token has no <code>/POS</code> suffix and always
 gets <code>Upos::X</code>, but this is harmless – whitespace tokens are excluded
 from tagged-word scoring by content, not by their assigned tag. This
-supports measuring a two-stage POS model’s real-world quality on
-space-delimited languages (issue #196), whose training corpus itself has
-no space-preserving variant.</p>
+is the gold format for space-delimited languages’ two-stage POS models,
+which since issue #198 are also <em>trained</em> on this same space-preserving
+corpus.</p>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

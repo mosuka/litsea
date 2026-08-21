@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
+            window.path_to_searchindex_js = "../searchindex-a09f4af7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -234,16 +234,16 @@ AdaBoost のスカラー重みへ畳み込み、剪定なし（4,794 特徴量�
 <li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）</li>
 <li><strong>stage-2 特徴量セット</strong>: <code>full</code>（dev split での fast/balanced/full の
 スイープにより選定 – full がタグ付き単語の精度で最良だった）、50 エポック</li>
-<li><strong>単語 F1（held-out、空白非保持プロトコル）</strong>: 70.33%</li>
-<li><strong>タグ付き単語 F1（held-out、空白非保持プロトコル）</strong>: 65.83%</li>
-<li><strong>単語 F1（held-out、実運用/スペース付き）</strong>: 77.55%</li>
-<li><strong>タグ付き単語 F1（held-out、実運用/スペース付き）</strong>: 69.89%</li>
-<li><strong>ファイルサイズ</strong>: 約 3.6 MB</li>
+<li><strong>単語 F1（held-out）</strong>: 98.30%</li>
+<li><strong>タグ付き単語 F1（held-out）</strong>: 90.55%</li>
+<li><strong>ファイルサイズ</strong>: 約 3.1 MB</li>
 <li><strong>詳細</strong>: <a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a>を参照</li>
 </ul>
 <blockquote>
-<p><strong>このモデルの分割品質は <code>english.model</code> より大幅に低くなっていますが、これは想定内でありバグではありません。</strong> <code>korean_pos.model</code> と同様に、このモデルは<em>空白なし</em>の <code>word/POS</code> コーパスで<strong>学習</strong>されています（二段構成 POS パイプラインには空白保持バリアントが存在しません）。上記の「空白非保持プロトコル」の行は学習時と同じ方法でモデルを採点したものなので、学習と推論の不一致ではありません。一方「実運用/スペース付き」の行（issue #196）は、空白保持 POS ゴールド（<code>litsea evaluate --pos --format tsv</code> を <code>resources/eval/english_ewt_test_pos_spaced.tsv</code> に対して実行）からモデルの実際のスペース付き入力を復元し、<code>segment --pos</code> が自然なテキストに対して実際に何を出力するかを、再学習なしで測定したものです。実運用品質（77.55%）は空白非保持プロトコルの数値が示唆するよりも明確に良好ですが、それでも <code>english.model</code> の 98.31% には遠く及びません。</p>
-<p>残る差は実装上の欠陥ではなく、英語と韓国語の実際の違いに起因します: <code>korean_pos.model</code> の実運用単語 F1（94.01%）は <code>korean.model</code> の 99.91% よりわずか 5.9 ポイント低いだけですが、<code>english_pos.model</code> の実運用単語 F1 は <code>english.model</code> の 98.31% より 20.8 ポイント低く、コストは約 3.5 倍です。韓国語は膠着語であるため、助詞や語尾がスペースをすべて取り除いても語境界について強い文字レベルの手がかりを残します。英語の正書法にはそうしたサブワードレベルのシグナルがほとんど存在せず – <code>"thecatsatonthemat"</code> のような文字列はほとんど手がかりを分類器に与えません – そのため空白なしテキストでの学習は、韓国語よりはるかに大きな実運用品質のコストを英語に課します。推論時にはモデルは実際の空白付きテキストを受け取り、スペースは独立したトークンとして再出力されます（stage-2 のフォールバックによりタグ付けされます）。<code>litsea/tests/golden.rs</code> の golden テストは、この実際の（完璧ではない）実運用時の挙動を固定しています。issue #196 が追加したのは実運用の空白付き入力での品質を<strong>測定</strong>する手段であり、それで<strong>学習</strong>できるようになったわけではありません – 空白保持 TSV プロトコルと二段構成 POS 学習を組み合わせるには、パイプラインが現時点でサポートしていない新しいコーパス形式と <code>Extractor</code>/<code>Segmenter</code> 側の変更が依然として必要で、今後の課題として残っています。</p>
+<p><strong>このモデルは <code>english.model</code> と同じ空白保持コーパスで学習しています</strong>（issue #198）。そのため単語 F1（98.30%）は <code>english.model</code> の 98.31% とほぼ一致します – 二段構成の stage-1 分類器は、専用の分割モデルと同等に英語の語境界を見つけられるようになりました。</p>
+<p>ただし最初からそうだったわけではないため、古い数値と比較する場合はこの経緯を知っておくと役立ちます。二段構成パイプラインは当初、<code>word/POS</code> コーパスを空白なしで連結したもので学習しており、英語のテキストが実際に含んでいるスペースを捨てていました。そのモデルは同じ空白非保持プロトコルで 70.33%、実際のスペース付き入力では 77.55% でした – 例えば <code>a test</code> を1つのトークンに結合してしまう、といった具合です。学習コーパスを切り替えたことで<strong>単語 F1 で +20.8 ポイント、タグ付き単語 F1 で +20.7 ポイント</strong>を獲得し、タグ付けも約 3.6 倍高速になりました（2.05M → 7.32M chars/s）。</p>
+<p>空白なしコーパスは、学習と推論の不一致を 2 つ同時に引き起こしていました。まず stage-1 は、英語のほぼすべての語境界を示すスペースを一度も目にしていませんでした。stage-2 のコンテキスト特徴量（<code>L*</code>/<code>R*</code>/<code>cl*</code>/<code>cr*</code>）も同様です: 推論時には単語の隣は通常スペースですが、空白なし学習では次の単語の文字でした。現在はどちらも <code>segment --pos</code> が計算するものと一致します。</p>
+<p>スペースは独立したトークンとして再出力され、<code>X</code> としてタグ付けされます – コーパスが空白文字に候補1つだけの語彙表エントリを与えるため、packed モデルは分類器で推測するのではなく固定タグのパスを通ります（#198 以前のモデルは、同じ文の中の異なるスペースに対して <code>PUNCT</code>/<code>PART</code>/<code>AUX</code> を返していました）。<code>litsea/tests/golden.rs</code> の golden テストがこの挙動を固定しています。</p>
 </blockquote>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model

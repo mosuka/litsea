@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
+            window.path_to_searchindex_js = "../searchindex-a09f4af7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -228,7 +228,7 @@ litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.
 <p>入力はタブ区切りのコーパス（1行1文、トークンをタブで区切る）で、トークンとして
 空白文字そのもの（<code>" "</code>）を含められます。出力される特徴量ファイルの形式は既定の
 <code>extract</code> と同一で、コーパスの解析方法のみが異なります。<code>--format tsv</code> は
-<code>--pos</code> と併用できません。</p>
+<code>--pos</code> とも併用できます（issue #198。後述の<a href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a>を参照）。</p>
 <h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
 <p><a href="../algorithm/two-stage-tagging.html">二段構成の品詞タグ付け</a>（issue #147）用には、
 <code>--pos</code> を使用します:</p>
@@ -253,7 +253,7 @@ litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.
 </table>
 </div>
 <p><code>litsea train --pos</code> は同じプレフィックスから3ファイルすべてを読み込みます。
-<code>--pos</code> は <code>--format tsv</code> と併用できません。</p>
+コーパスが <code>corpus_udtreebank.sh -p -s</code> の出力する空白保持の <code>word/POS</code> TSV である場合は <code>--format tsv</code> を併用してください（issue #198）– 同梱の韓国語・英語の二段構成モデルが学習に使っているプロトコルです。</p>
 <h3 id="--stage2-features-の選び方"><a class="header" href="#--stage2-features-の選び方"><code>--stage2-features</code> の選び方</a></h3>
 <p><code>--stage2-features</code> は <code>&lt;FEATURES_PREFIX&gt;.stage2</code> に書き出す stage-2 の単語単位
 テンプレート（<a href="../algorithm/feature-extraction.html#単語単位の特徴量テンプレート二段構成">単語単位の特徴量テンプレート（二段構成）</a>を参照）を選択し、

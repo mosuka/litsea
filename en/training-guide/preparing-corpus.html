@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
+            window.path_to_searchindex_js = "../searchindex-eea037c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -240,8 +240,9 @@ last member word. See
 <a href="../language-support/english.html#space-preserving-training">English</a> for
 the details.</p>
 <p>Extract features from a TSV corpus with <code>litsea extract --format tsv</code>. The
-<code>-s</code> flag cannot be combined with <code>-p</code> (the POS pipeline has no TSV
-variant).</p>
+<code>-s</code> combines with <code>-p</code> to emit a space-preserving TSV of <code>word/POS</code>
+tokens — the two-stage POS training corpus for space-delimited languages
+(issue #198), consumed by <code>litsea extract --pos --format tsv</code>.</p>
 <h2 id="corpus-for-pos-tagging"><a class="header" href="#corpus-for-pos-tagging">Corpus for POS Tagging</a></h2>
 <p>For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.</p>
 <h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>

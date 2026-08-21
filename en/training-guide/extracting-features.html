@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
+            window.path_to_searchindex_js = "../searchindex-eea037c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -227,8 +227,9 @@ litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.
 <p>The input is a tab-separated corpus (one sentence per line, tokens
 separated by tabs) in which a token may be a literal space character
 (<code>" "</code>). The output feature file format is identical to the default
-<code>extract</code>; only the corpus parsing differs. <code>--format tsv</code> cannot be
-combined with <code>--pos</code>.</p>
+<code>extract</code>; only the corpus parsing differs. <code>--format tsv</code> also combines
+with <code>--pos</code> – see <a href="#two-stage-feature-extraction">Two-Stage Feature
+Extraction</a> below.</p>
 <h2 id="two-stage-feature-extraction"><a class="header" href="#two-stage-feature-extraction">Two-Stage Feature Extraction</a></h2>
 <p>For <a href="../algorithm/two-stage-tagging.html">two-stage POS tagging</a> (issue #147),
 use <code>--pos</code>:</p>
@@ -253,7 +254,7 @@ use <code>--pos</code>:</p>
 </table>
 </div>
 <p><code>litsea train --pos</code> reads all three files back from the same
-prefix. <code>--pos</code> cannot be combined with <code>--format tsv</code>.</p>
+prefix. Combine with <code>--format tsv</code> (issue #198) when the corpus is the space-preserving <code>word/POS</code> TSV that <code>corpus_udtreebank.sh -p -s</code> emits — the protocol the bundled Korean and English two-stage models are trained on.</p>
 <h3 id="choosing---stage2-features"><a class="header" href="#choosing---stage2-features">Choosing <code>--stage2-features</code></a></h3>
 <p><code>--stage2-features</code> selects which stage-2 word-level templates (see
 <a href="../algorithm/feature-extraction.html#word-level-feature-templates-two-stage">Word-Level Feature Templates</a>)

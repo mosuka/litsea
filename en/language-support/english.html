@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
+            window.path_to_searchindex_js = "../searchindex-eea037c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -302,46 +302,36 @@ tokens excluded from scoring.</p>
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
 <li><strong>Stage-2 feature set</strong>: <code>full</code> (chosen by a dev-split sweep over
 fast/balanced/full; full gave the best tagged-word accuracy), 50 epochs</li>
-<li><strong>Word F1 (held-out, unspaced protocol)</strong>: 70.33%</li>
-<li><strong>Tagged Word F1 (held-out, unspaced protocol)</strong>: 65.83%</li>
-<li><strong>Word F1 (held-out, real-world/spaced)</strong>: 77.55%</li>
-<li><strong>Tagged Word F1 (held-out, real-world/spaced)</strong>: 69.89%</li>
-<li><strong>File size</strong>: ~3.6 MB</li>
+<li><strong>Word F1 (held-out)</strong>: 98.30%</li>
+<li><strong>Tagged Word F1 (held-out)</strong>: 90.55%</li>
+<li><strong>File size</strong>: ~3.1 MB</li>
 <li><strong>Details</strong>: see <a href="../pre-trained-models.html#english_posmodel">Pre-trained Models</a></li>
 </ul>
 <blockquote>
-<p><strong>This model’s segmentation quality is substantially lower than
-<code>english.model</code>’s, and this is expected, not a bug.</strong> Like
-<code>korean_pos.model</code>, this model is <em>trained</em> on the <em>unspaced</em> <code>word/POS</code>
-corpus (the two-stage POS pipeline has no space-preserving variant). The
-“unspaced protocol” row above scores the model the same way it was
-trained, so it is not a train/inference mismatch; the “real-world/spaced”
-row (issue #196) instead reconstructs the model’s actual spaced input
-from a space-preserving POS gold (<code>litsea evaluate --pos --format tsv</code>
-against <code>resources/eval/english_ewt_test_pos_spaced.tsv</code>) and measures
-what <code>segment --pos</code> really produces on natural text, without retraining.
-Real-world quality (77.55%) is meaningfully better than the
-unspaced-protocol number suggests, but still well short of
-<code>english.model</code>’s 98.31%.</p>
-<p>The remaining gap comes from a real difference between English and
-Korean, not an implementation defect: <code>korean_pos.model</code>’s real-world
-Word F1 (94.01%) sits only 5.9pt below <code>korean.model</code>’s 99.91%, while
-<code>english_pos.model</code>’s real-world Word F1 sits 20.8pt below
-<code>english.model</code>’s 98.31% – roughly 3.5x the cost. Korean is
-agglutinative, so its particles and verb endings leave strong
-character-level cues for word boundaries even with every space removed;
-English orthography carries almost no such sub-word signal – a sequence
-like <code>"thecatsatonthemat"</code> gives a classifier little to work with – so
-training on unspaced text costs English much more real-world quality
-than it costs Korean. At inference the model receives real, spaced text,
-and spaces are re-emitted as their own tokens (tagged by the stage-2
-fallback); the golden test in <code>litsea/tests/golden.rs</code> pins this actual,
-imperfect real-world behavior. What issue #196 added is a way to
-<em>measure</em> quality on real spaced input, not a way to <em>train</em> on it –
-combining the space-preserving TSV protocol with two-stage POS training
-would still need a new corpus format and <code>Extractor</code>/<code>Segmenter</code> changes
-the pipeline does not currently support, and remains a possible
-follow-up.</p>
+<p><strong>This model is trained on the same space-preserving corpus as
+<code>english.model</code></strong> (issue #198), so its Word F1 (98.30%) essentially
+matches <code>english.model</code>’s 98.31% — the two-stage stage-1 classifier is
+now as good at finding English word boundaries as the dedicated
+segmentation model.</p>
+<p>That was not always true, and the history is worth knowing if you are
+comparing against older numbers. The two-stage pipeline originally
+trained on an unspaced concatenation of the <code>word/POS</code> corpus, throwing
+away the spaces English text actually contains. That model scored 70.33%
+on the same unspaced protocol and 77.55% on real spaced input — it
+merged <code>a test</code> into a single token, for instance. Switching the
+training corpus gained <strong>+20.8pt Word F1 and +20.7pt tagged-word F1</strong>,
+and made tagging ~3.6x faster (2.05M → 7.32M chars/s).</p>
+<p>The unspaced corpus caused two separate train/inference mismatches.
+Stage 1 never saw the spaces that mark nearly every English word
+boundary. Stage 2’s context features (<code>L*</code>/<code>R*</code>/<code>cl*</code>/<code>cr*</code>) were hit
+too: at inference a word’s neighbour is usually a space, but during
+unspaced training it was the next word’s character. Both now match what
+<code>segment --pos</code> computes.</p>
+<p>Spaces are re-emitted as their own tokens and tagged <code>X</code> — the corpus
+gives whitespace a single-candidate lexicon entry, so the packed model
+takes its fixed-tag path rather than guessing with the classifier (the
+pre-#198 model returned <code>PUNCT</code>/<code>PART</code>/<code>AUX</code> for different spaces in one
+sentence). The golden test in <code>litsea/tests/golden.rs</code> pins this.</p>
 </blockquote>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model

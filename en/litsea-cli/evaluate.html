@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
+            window.path_to_searchindex_js = "../searchindex-eea037c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -216,7 +216,7 @@ train the model — the bundled files in <code>resources/eval/</code> are the UD
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language of the model and gold corpus. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Evaluate segmentation + POS tagging. Requires a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>). Combines with <code>--format</code> below to select the gold format</td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format. Without <code>--pos</code>: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). With <code>--pos</code>: <code>space</code> selects <code>"word/POS word/POS ..."</code> (the two-stage training corpus format, unspaced) and <code>tsv</code> selects tab-separated <code>"word/POS"</code> tokens where a token may also be a literal space (issue #196; for measuring real-world quality on space-delimited languages, since the two-stage training pipeline itself has no space-preserving variant)</td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format. Without <code>--pos</code>: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). With <code>--pos</code>: <code>space</code> selects <code>"word/POS word/POS ..."</code> (the two-stage training corpus format, unspaced) and <code>tsv</code> selects tab-separated <code>"word/POS"</code> tokens where a token may also be a literal space (issues #196/#198; the space-preserving format the Korean and English two-stage models are now trained on, so for those languages this is the protocol that matches both training and real input)</td></tr>
 </tbody>
 </table>
 </div>
@@ -264,14 +264,17 @@ litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 </code></pre>
-<p>For Korean and English, <code>--pos</code> alone reproduces the two-stage training
-corpus’s own (unspaced) protocol; <code>--pos --format tsv</code> against the
-<code>*_pos_spaced.tsv</code> gold instead measures real-world quality on natural,
-spaced input – the two numbers are not comparable to each other (see
-<a href="../pre-trained-models.html#english_posmodel">Pre-trained Models</a>):</p>
-<pre><code class="language-sh">litsea evaluate --pos -l english models/english_pos.model resources/eval/english_ewt_test_pos.txt
+<p>The Korean and English two-stage models are trained on the
+space-preserving corpus (issue #198), so evaluate them with <code>--pos --format tsv</code> against the <code>*_pos_spaced.tsv</code> gold – that protocol matches
+both their training and the spaced text <code>segment --pos</code> receives in
+practice:</p>
+<pre><code class="language-sh">litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
 litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 </code></pre>
+<p>The <code>*_pos.txt</code> gold for those two languages measures the unspaced
+protocol they used before #198; it is kept only for reproducing the older
+published numbers (see
+<a href="../pre-trained-models.html#english_posmodel">Pre-trained Models</a>).</p>
 <p>Output:</p>
 <pre><code class="language-text">Evaluation Metrics:
   Sentences: 543

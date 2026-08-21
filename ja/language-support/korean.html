@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-944a0cec.js";
+            window.path_to_searchindex_js = "../searchindex-a09f4af7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-b6b82e2c.js"></script>
@@ -253,15 +253,18 @@
 <h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
 <ul>
 <li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）</li>
-<li><strong>注記</strong>: 上記の <code>korean.model</code> とは異なり、このモデルは空白非保持の
-<code>word/POS</code> コーパスで<strong>学習</strong>されており、このページで説明している空白保持
-プロトコルは使用していません。held-out 品質は 2 通りで報告しています:
-空白非保持プロトコルの数値（単語 F1 83.24%、学習時と同じ方法で測定）と、
-自然なスペース付き入力で測定した実運用の数値（単語 F1 94.01%、issue #196）
-– どちらも<strong>同じモデル</strong>の測定値であり、2 つの異なるモデルではありません。
-約 11 ポイントの差が、韓国語における空白非保持学習プロトコルの実際のコスト
-です。空白がないと境界の手がかりがより少ない言語でこの差がどれほど大きく
-なるかは<a href="english.html#english_posmodel">英語</a>を参照してください</li>
+<li><strong>単語 F1（held-out）</strong>: 99.88%</li>
+<li><strong>タグ付き単語 F1（held-out）</strong>: 93.95%</li>
+<li><strong>注記</strong>: このモデルは <code>korean.model</code> と<strong>同じ空白保持コーパス</strong>で学習して
+います（issue #198）。そのため単語 F1 は <code>korean.model</code> の 99.91% との差が
+0.03 ポイントに留まります。#198 以前は二段構成パイプラインが空白非保持の
+<code>word/POS</code> コーパスで学習しており、実際のスペース付き入力では 94.01% でした。
+プロトコルを切り替えたことで、単語 F1 は +5.9 ポイント、タグ付き単語 F1 は
++10.8 ポイント向上しています。スペースは独立したトークンとして再出力され、
+分類器による推測ではなく候補1つだけの語彙表エントリを通じて決定的に <code>X</code> と
+タグ付けされます。英語の正書法は空白がないと境界の手がかりがはるかに少ない
+ため、同じ変更が 20 ポイント以上の効果をもたらしています。詳しくは
+<a href="english.html#english_posmodel">英語</a>を参照してください</li>
 <li><strong>詳細</strong>: <a href="../pre-trained-models.html#korean_posmodel">事前学習済みモデル</a>を参照</li>
 </ul>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>

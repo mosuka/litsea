@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
+            window.path_to_searchindex_js = "../searchindex-eea037c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -205,7 +205,7 @@
 </thead>
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
-<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). <code>tsv</code> cannot be combined with <code>--pos</code></td></tr>
+<tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Corpus format: <code>space</code> (space-separated words) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, preserving the original spacing). Combines with <code>--pos</code> (issue #198) to extract two-stage features from a space-preserving <code>word/POS</code> corpus</td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Extract <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> training features. Requires a POS corpus as input</td></tr>
 <tr><td><code>--stage2-features &lt;SET&gt;</code></td><td><code>fast</code></td><td>Stage-2 word-feature set for <code>--pos</code>: <code>full</code> (best quality), <code>balanced</code>, or <code>fast</code> (best throughput)</td></tr>
 <tr><td><code>--tag-free</code></td><td>off</td><td>Exclude the 16 tag-dependent feature templates (<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>) so the trained model is pointwise and <code>segment()</code> skips its sequential scoring pass (issue #183; used for the bundled <code>korean.model</code>/<code>english.model</code> – see <a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise) Models</a> for the per-language quality/speed trade-off). Composable with <code>--format tsv</code>; cannot be combined with <code>--pos</code></td></tr>
@@ -281,6 +281,28 @@ architecture</a>:</p>
 <pre><code class="language-sh">litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 # writes ./pos_features.stage1, .stage2, .lexicon
 </code></pre>
+<h3 id="space-preserving-pos-corpus---pos---format-tsv"><a class="header" href="#space-preserving-pos-corpus---pos---format-tsv">Space-Preserving POS Corpus (<code>--pos --format tsv</code>)</a></h3>
+<p>For a space-delimited language, combine <code>--pos</code> with <code>--format tsv</code>
+(issue #198). The corpus is then a tab-separated list of <code>word/POS</code>
+tokens in which a token may be a literal space carrying no <code>/POS</code> suffix
+— the format <code>corpus_udtreebank.sh -p -s</code> emits:</p>
+<pre><code class="language-text">I/PRON	 	do/AUX	n't/PART	 	know/VERB	./PUNCT
+</code></pre>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -p -s "$conllu_file" ./pos_corpus.tsv
+litsea extract --pos --format tsv -l english --stage2-features full ./pos_corpus.tsv ./pos_features
+</code></pre>
+<p>This is how the bundled <code>korean_pos.model</code> and <code>english_pos.model</code> are
+trained. Training on the unspaced corpus instead costs Korean ~5.9pt and
+English ~20.8pt of held-out Word F1, because stage 1 never sees the spaces
+that mark most word boundaries and stage 2’s context features see
+different neighbours than they will at inference.</p>
+<p>Whitespace tokens get no stage-2 row — they are ~43% of tokens in a
+spaced corpus and would train one degenerate <code>X</code> class — but they do get a
+lexicon entry, which makes them single-candidate and therefore tagged
+deterministically through the model’s fixed-tag path, skipping the
+classifier entirely.</p>
+<p>Japanese and Chinese should use plain <code>--pos</code>: their text has no spaces,
+so there is no spacing to preserve.</p>
 
                     </main>
 

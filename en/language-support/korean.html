@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
+            window.path_to_searchindex_js = "../searchindex-eea037c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -272,16 +272,18 @@ excluded from scoring.</p>
 <ul>
 <li><strong>Algorithm</strong>: two-stage segmentation + POS tagging (a binary boundary
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
-<li><strong>Note</strong>: unlike <code>korean.model</code> above, this model is <em>trained</em> on the
-<em>unspaced</em> <code>word/POS</code> corpus, not the space-preserving protocol
-described on this page. Held-out quality is reported two ways: the
-unspaced-protocol number (83.24% Word F1, matching how the model was
-trained) and a real-world number measured on natural spaced input
-(94.01% Word F1, issue #196) – both score the same model, not two
-different models. The ~11pt gap is the real cost of the unspaced
-training protocol for Korean; see <a href="english.html#english_posmodel">English</a>
-for how much larger this gap is for a language whose orthography
-carries less boundary signal without spaces</li>
+<li><strong>Word F1 (held-out)</strong>: 99.88%</li>
+<li><strong>Tagged Word F1 (held-out)</strong>: 93.95%</li>
+<li><strong>Note</strong>: this model is trained on the <strong>same space-preserving corpus</strong>
+as <code>korean.model</code> (issue #198), so its Word F1 sits 0.03pt from
+<code>korean.model</code>’s 99.91%. Until #198 the two-stage pipeline trained on
+the unspaced <code>word/POS</code> corpus and scored 94.01% on real spaced input;
+switching protocols gained +5.9pt Word F1 and +10.8pt tagged-word F1.
+Spaces are re-emitted as their own tokens tagged <code>X</code>, deterministically,
+via a single-candidate lexicon entry rather than a classifier guess.
+See <a href="english.html#english_posmodel">English</a>, where the same change was
+worth over 20pt because English orthography carries far less boundary
+signal without spaces</li>
 <li><strong>Details</strong>: see <a href="../pre-trained-models.html#korean_posmodel">Pre-trained Models</a></li>
 </ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>

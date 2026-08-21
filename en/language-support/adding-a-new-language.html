@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-d193d7c5.js";
+            window.path_to_searchindex_js = "../searchindex-eea037c4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-f9e282e4.js"></script>
@@ -360,19 +360,25 @@ litsea train --pos --num-epochs 50 pos_features models/english_pos.model
 same way as the epoch sweep above; the three bundled languages that use
 this path each picked a different winner (see <a href="../algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">Choosing a stage-2 feature
 set</a>).</p>
-<p><strong>Known limitation for space-preserving-protocol languages</strong>: the
-two-stage extractor’s corpus format has no space-preserving variant (<code>-p</code>
-and <code>-s</code> are mutually exclusive), so <code>english_pos.model</code> is trained (and
-evaluated) on the <em>unspaced</em> <code>word/POS</code> corpus, unlike <code>english.model</code>
-itself. Whether this matters in practice depends on the language: Korean
-stays close to its space-preserving numbers (99.90% unspaced vs. 99.91%
-spaced) because its agglutinative morphology leaves strong boundary cues
-even with spaces removed, while English’s gap is large (70.33% unspaced
-vs. 98.31% spaced) because English orthography carries almost no such
-signal. Measure this gap for your language rather than assuming it will
-be small, and document it prominently if it is not – see
-<a href="english.html#english_posmodel">English</a> for the fully worked example of
-how to explain a large gap like this to users.</p>
+<p><strong>For a space-delimited language, train two-stage on the space-preserving
+corpus too</strong> (issue #198). Generate it with <code>corpus_udtreebank.sh -p -s</code>
+and extract with <code>--pos --format tsv</code>:</p>
+<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -p -s "$conllu_file" pos_corpus.tsv
+litsea extract --pos --format tsv -l english --stage2-features full pos_corpus.tsv pos_features
+</code></pre>
+<p>This matters far more than it might look. Training on an unspaced
+concatenation costs Korean ~5.9pt of Word F1 and English ~20.8pt, because
+it creates two train/inference mismatches at once: stage 1 never sees the
+spaces that mark most word boundaries, and stage 2’s context features
+(<code>L*</code>/<code>R*</code>/<code>cl*</code>/<code>cr*</code>) see a different neighbour during training than at
+inference. Whitespace tokens get no stage-2 row (they would be ~43% of
+rows for one degenerate class) but do get a lexicon entry, which makes
+them single-candidate and therefore tagged deterministically through the
+packed model’s fixed-tag path — also skipping the classifier for ~43% of
+tokens, which is a throughput win.</p>
+<p>For a language written without spaces (Japanese, Chinese), use the plain
+<code>-p</code> corpus: there is no spacing to preserve, and the space-separated
+format already matches the real input.</p>
 <h2 id="step-9-add-held-out-evaluation-gold-files"><a class="header" href="#step-9-add-held-out-evaluation-gold-files">Step 9: Add Held-out Evaluation Gold Files</a></h2>
 <p>Generate held-out gold data from the treebank’s <strong>test</strong> split (touched
 only after your dev-split sweeps are done) and add it under
