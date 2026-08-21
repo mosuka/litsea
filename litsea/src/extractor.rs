@@ -213,6 +213,72 @@ impl Extractor {
         output_prefix: &Path,
         feature_set: TwoStageFeatureSet,
     ) -> Result<()> {
+        self.extract_two_stage_impl(corpus_path, output_prefix, feature_set, false)
+    }
+
+    /// Tab-separated variant of
+    /// [`extract_two_stage`](Self::extract_two_stage) (issue #198): the
+    /// corpus is a **space-preserving TSV** of `word/POS` tokens, where a
+    /// token may be a literal space `" "` carrying no `/POS` suffix (the
+    /// format `scripts/corpus_udtreebank.sh -p -s` emits).
+    ///
+    /// This is the POS-pipeline counterpart of
+    /// [`extract_tsv`](Self::extract_tsv). For space-delimited languages
+    /// (Korean, English) it removes two train/inference mismatches at once:
+    /// stage 1 now sees the space characters that mark most word boundaries,
+    /// and stage 2's context features (`L*`/`R*`/`cl*`/`cr*`) now see the
+    /// same neighbouring spaces that
+    /// [`crate::segmenter::Segmenter::segment_with_pos`] puts in front of
+    /// them at inference.
+    ///
+    /// Whitespace tokens get **no stage-2 row** — they are ~43% of tokens in
+    /// a spaced corpus and would form one degenerate [`Upos::X`] class,
+    /// distorting the in-sample stage-2 metrics — but they **do** get a
+    /// lexicon entry, and they **do** advance the character offset so
+    /// neighbouring words' context features include the space. The
+    /// resulting single-candidate `" "` lexicon entry makes the packed model
+    /// tag every space deterministically through its fixed-tag path, without
+    /// invoking the stage-2 classifier.
+    ///
+    /// # Arguments
+    /// * `corpus_path` - The path to the tab-separated POS-tagged corpus file.
+    /// * `output_prefix` - Base path for the three output files; see
+    ///   [`extract_two_stage`](Self::extract_two_stage).
+    /// * `feature_set` - Which stage-2 word templates to write; see
+    ///   [`TwoStageFeatureSet`].
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an I/O error if the corpus file cannot be opened or read, or
+    /// if any output file cannot be created or written.
+    pub fn extract_two_stage_tsv(
+        &self,
+        corpus_path: &Path,
+        output_prefix: &Path,
+        feature_set: TwoStageFeatureSet,
+    ) -> Result<()> {
+        self.extract_two_stage_impl(corpus_path, output_prefix, feature_set, true)
+    }
+
+    /// Shared implementation behind
+    /// [`extract_two_stage`](Self::extract_two_stage) and
+    /// [`extract_two_stage_tsv`](Self::extract_two_stage_tsv).
+    ///
+    /// Each corpus line is parsed **twice** — once by the segmenter for
+    /// stage-1 character features, once here for stage-2 word features and
+    /// the lexicon. Both parses are driven by this single `tsv` flag on
+    /// purpose: if they disagreed on the separator, the stage-1 training
+    /// text and the stage-2 character offsets would silently desync, with
+    /// nothing to catch it.
+    fn extract_two_stage_impl(
+        &self,
+        corpus_path: &Path,
+        output_prefix: &Path,
+        feature_set: TwoStageFeatureSet,
+        tsv: bool,
+    ) -> Result<()> {
         let segmenter = &self.segmenter;
         let language = segmenter.language();
         let (stage1_path, stage2_path, lexicon_path) = two_stage_paths(output_prefix);
@@ -235,21 +301,26 @@ impl Extractor {
             // Stage 1: character-level attribute generation over the
             // POS-tagged corpus, with the label collapsed to the boundary
             // class.
-            segmenter.add_corpus_with_pos_writer(line, |attrs, label| {
+            let collect_stage1 = |attrs, label| {
                 let boundary = match label {
                     SegmentLabel::B(_) => "B",
                     SegmentLabel::O => "O",
                 };
                 stage1_rows.push(Self::format_row(attrs, boundary));
-            });
+            };
+            if tsv {
+                segmenter.add_corpus_tsv_with_pos_writer(line, collect_stage1);
+            } else {
+                segmenter.add_corpus_with_pos_writer(line, collect_stage1);
+            }
             for row in stage1_rows.drain(..) {
                 writeln!(stage1_out, "{}", row)?;
             }
 
             // Stage 2 + lexicon: one row per word, keyed by its UPOS tag.
-            // The two-stage training corpus is always the space-separated
-            // "word/POS word/POS ..." format (no TSV variant, issue #196).
-            let tokens = parse_gold_pos_line(line, false);
+            // Parsed with the same separator stage 1 just used, so `sent`
+            // and the offsets below match the stage-1 training text exactly.
+            let tokens = parse_gold_pos_line(line, tsv);
             let sent: Vec<char> = tokens.iter().flat_map(|(w, _)| w.chars()).collect();
             let type_ids: Vec<u8> = sent.iter().map(|&c| language.char_type_id(c)).collect();
             let mut start = 0usize;
@@ -259,17 +330,28 @@ impl Extractor {
                     continue;
                 }
                 let end = start + wlen;
-                stage2_feats.clear();
-                write_word_features(
-                    language,
-                    &sent,
-                    &type_ids,
-                    start,
-                    end,
-                    |tid| feature_set.includes(tid),
-                    &mut |f| stage2_feats.push(f),
-                );
-                writeln!(stage2_out, "{}\t{}", tag, stage2_feats.join("\t"))?;
+                // A whitespace token (only reachable from the TSV corpus of
+                // issue #198) gets no stage-2 row: such tokens are ~43% of a
+                // spaced corpus and would train one degenerate Upos::X class,
+                // distorting the in-sample stage-2 metrics. It still gets a
+                // lexicon entry -- a single-candidate `" "` entry makes the
+                // packed model tag spaces through its fixed-tag path, without
+                // the classifier -- and it still advances `start`, so the
+                // neighbouring words' context features contain the space, the
+                // way they do at inference.
+                if !surface.chars().all(char::is_whitespace) {
+                    stage2_feats.clear();
+                    write_word_features(
+                        language,
+                        &sent,
+                        &type_ids,
+                        start,
+                        end,
+                        |tid| feature_set.includes(tid),
+                        &mut |f| stage2_feats.push(f),
+                    );
+                    writeln!(stage2_out, "{}\t{}", tag, stage2_feats.join("\t"))?;
+                }
                 *lexicon.entry(surface.clone()).or_default().entry(*tag).or_insert(0) += 1;
                 start = end;
             }
@@ -587,6 +669,113 @@ mod tests {
         assert_eq!(entries.get("は"), Some(&"PART:1"));
         assert_eq!(entries.get("も"), Some(&"PART:1"));
         assert_eq!(entries.get("です"), Some(&"AUX:1"));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_two_stage_tsv() -> Result<()> {
+        use std::collections::HashMap;
+
+        // Space-preserving POS corpus (issue #198): tab-separated
+        // "word/POS" tokens, with literal-space tokens carrying no /POS.
+        // "I do n't know ." with spaces after "I" and "n't".
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "I/PRON\t \tdo/AUX\tn't/PART\t \tknow/VERB\t./PUNCT")?;
+        corpus_file.as_file().sync_all()?;
+
+        let dir = tempfile::tempdir()?;
+        let prefix = dir.path().join("out");
+
+        let extractor = Extractor::new(crate::language::Language::English);
+        extractor.extract_two_stage_tsv(corpus_file.path(), &prefix, TwoStageFeatureSet::Fast)?;
+
+        let mut stage1 = String::new();
+        File::open(dir.path().join("out.stage1"))?.read_to_string(&mut stage1)?;
+        let mut stage2 = String::new();
+        File::open(dir.path().join("out.stage2"))?.read_to_string(&mut stage2)?;
+        let mut lexicon = String::new();
+        File::open(dir.path().join("out.lexicon"))?.read_to_string(&mut lexicon)?;
+
+        // Stage 1: one row per character of the *spaced* sentence
+        // "I do n't know." -- 13 characters, the two spaces included. This
+        // is the whole point of the TSV variant: the spaces reach stage 1.
+        assert_eq!(stage1.lines().count(), 13);
+
+        // Stage 2: one row per *non-whitespace* word (5), not per token (7).
+        let stage2_lines: Vec<&str> = stage2.lines().collect();
+        assert_eq!(stage2_lines.len(), 5, "whitespace tokens must not get a stage-2 row");
+        let tags: Vec<&str> = stage2_lines.iter().map(|l| l.split('\t').next().unwrap()).collect();
+        assert_eq!(tags, vec!["PRON", "AUX", "PART", "VERB", "PUNCT"]);
+
+        // Offsets must advance across the skipped whitespace tokens, so a
+        // word following a space sees that space in its left context (and a
+        // word preceding one sees it on the right) -- matching what
+        // segment_with_pos computes at inference. "do" is preceded by a
+        // space and "n't" is followed by one.
+        let feats_of = |tag: &str| -> Vec<String> {
+            let line = stage2_lines.iter().find(|l| l.starts_with(&format!("{tag}\t"))).unwrap();
+            line.split('\t').skip(1).map(str::to_string).collect()
+        };
+        assert!(
+            feats_of("AUX").iter().any(|f| f == "L1: "),
+            "the word after a space must have the space as its left context: {:?}",
+            feats_of("AUX")
+        );
+        assert!(
+            feats_of("PART").iter().any(|f| f == "R1: "),
+            "the word before a space must have the space as its right context: {:?}",
+            feats_of("PART")
+        );
+
+        // Lexicon: whitespace *is* recorded, as a single-candidate entry, so
+        // the packed model tags spaces through its fixed-tag path instead of
+        // falling back to a full-argmax guess.
+        let mut entries: HashMap<&str, &str> = HashMap::new();
+        for line in lexicon.lines() {
+            let (surface, tags) = line.split_once('\t').unwrap();
+            entries.insert(surface, tags);
+        }
+        assert_eq!(entries.get(" "), Some(&"X:2"), "lexicon must record the space surface");
+        assert_eq!(entries.get("do"), Some(&"AUX:1"));
+        assert_eq!(entries.get("n't"), Some(&"PART:1"));
+        assert_eq!(entries.len(), 6);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_two_stage_space_and_tsv_agree_without_spaces() -> Result<()> {
+        // A TSV corpus whose tokens contain no literal spaces must extract
+        // exactly like the equivalent space-separated corpus: the two
+        // variants differ only in the separator, never in what they compute.
+        let mut space_corpus = NamedTempFile::new()?;
+        writeln!(space_corpus, "これ/PRON は/PART テスト/NOUN 。/PUNCT")?;
+        space_corpus.as_file().sync_all()?;
+        let mut tsv_corpus = NamedTempFile::new()?;
+        writeln!(tsv_corpus, "これ/PRON\tは/PART\tテスト/NOUN\t。/PUNCT")?;
+        tsv_corpus.as_file().sync_all()?;
+
+        let dir = tempfile::tempdir()?;
+        let extractor = Extractor::default();
+        extractor.extract_two_stage(
+            space_corpus.path(),
+            &dir.path().join("space"),
+            TwoStageFeatureSet::Full,
+        )?;
+        extractor.extract_two_stage_tsv(
+            tsv_corpus.path(),
+            &dir.path().join("tsv"),
+            TwoStageFeatureSet::Full,
+        )?;
+
+        for suffix in ["stage1", "stage2", "lexicon"] {
+            let mut a = String::new();
+            File::open(dir.path().join(format!("space.{suffix}")))?.read_to_string(&mut a)?;
+            let mut b = String::new();
+            File::open(dir.path().join(format!("tsv.{suffix}")))?.read_to_string(&mut b)?;
+            assert_eq!(a, b, "{suffix} diverged between the space and TSV variants");
+        }
 
         Ok(())
     }

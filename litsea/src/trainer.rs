@@ -685,4 +685,59 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn test_two_stage_trainer_end_to_end_tsv() -> Result<()> {
+        use crate::extractor::Extractor;
+        use crate::language::Language;
+        use crate::segmenter::Segmenter;
+        use crate::two_stage::{TwoStageFeatureSet, TwoStageLearner};
+
+        // Space-preserving POS corpus (issue #198): the `" "` lexicon
+        // surface must survive extraction, training, save, and load, and
+        // must come back as a deterministic tag at inference rather than a
+        // full-argmax guess.
+        let mut corpus_file = NamedTempFile::new()?;
+        writeln!(corpus_file, "I/PRON\t \tdo/AUX\tn't/PART\t \tknow/VERB\t./PUNCT")?;
+        writeln!(corpus_file, "I/PRON\t \tdo/AUX\t \tknow/VERB\t./PUNCT")?;
+        writeln!(corpus_file, "we/PRON\t \tknow/VERB\t./PUNCT")?;
+        corpus_file.as_file().sync_all()?;
+
+        let dir = tempfile::tempdir()?;
+        let prefix = dir.path().join("features");
+        Extractor::new(Language::English).extract_two_stage_tsv(
+            corpus_file.path(),
+            &prefix,
+            TwoStageFeatureSet::Fast,
+        )?;
+
+        let trainer = TwoStageTrainer::new(5, 0.99, &prefix)?;
+        let model_path = dir.path().join("model.two-stage");
+        let running = AtomicBool::new(true);
+        let metrics = trainer.train(&running, &model_path)?;
+        assert!(metrics.stage1.num_instances > 0);
+        assert!(metrics.stage2.num_instances > 0);
+
+        let mut learner = TwoStageLearner::new();
+        learner.load_model_from_path(&model_path)?;
+        // The space surface round-trips through the on-disk lexicon, as a
+        // single candidate so the packed model's fixed-tag path applies.
+        let space_entry = learner
+            .lexicon_entry(" ")
+            .expect("the lexicon must keep the space surface across save/load");
+        assert_eq!(space_entry.len(), 1, "space should have exactly one candidate tag");
+        assert_eq!(space_entry[0].0, crate::upos::Upos::X);
+
+        let segmenter = Segmenter::with_two_stage_learner(Language::English, learner);
+        let tagged = segmenter.segment_with_pos("I do n't know.")?;
+        let text: String = tagged.iter().map(|(w, _)| w.as_str()).collect();
+        assert_eq!(text, "I do n't know.", "segment_with_pos must tile the input exactly");
+        // Every whitespace token is tagged deterministically via the
+        // single-candidate lexicon entry, not by the stage-2 classifier.
+        for (word, tag) in tagged.iter().filter(|(w, _)| w.chars().all(char::is_whitespace)) {
+            assert_eq!(*tag, crate::upos::Upos::X, "space {word:?} should be tagged X");
+        }
+
+        Ok(())
+    }
 }

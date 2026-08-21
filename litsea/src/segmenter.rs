@@ -401,13 +401,19 @@ impl Segmenter {
     /// (whose label carries the first word's POS; see
     /// [`segment_with_pos`](Self::segment_with_pos)).
     ///
-    /// Corpus format: "word/POS word/POS ..."
-    /// Example: "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT"
-    fn process_corpus_with_pos<F>(&self, corpus: &str, callback: F)
+    /// `sep` selects the token separator: `' '` for the classic
+    /// "word/POS word/POS ..." corpus, `'\t'` for the space-preserving TSV
+    /// corpus (issue #198), where a token may be a literal space `" "` and
+    /// therefore carries no `/POS` suffix (it gets [`Upos::X`], which the
+    /// two-stage extractor discards along with every other POS when it
+    /// collapses stage-1 labels to `B`/`O`).
+    ///
+    /// Example (`sep = ' '`): "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT"
+    fn process_corpus_with_pos<F>(&self, corpus: &str, sep: char, callback: F)
     where
         F: FnMut(HashSet<String>, SegmentLabel),
     {
-        let tokens = corpus.split(' ').map(|token| {
+        let tokens = corpus.split(sep).map(|token| {
             // Parse "word/POS" (no slash means the POS defaults to X)
             let (word, pos) = match token.rfind('/') {
                 Some(idx) => (&token[..idx], token[idx + 1..].parse().unwrap_or(Upos::X)),
@@ -558,7 +564,34 @@ impl Segmenter {
     where
         F: FnMut(HashSet<String>, SegmentLabel),
     {
-        self.process_corpus_with_pos(corpus, writer);
+        self.process_corpus_with_pos(corpus, ' ', writer);
+    }
+
+    /// Tab-separated variant of
+    /// [`add_corpus_with_pos_writer`](Self::add_corpus_with_pos_writer)
+    /// (issue #198).
+    ///
+    /// Tokens are separated by tabs and a token may be a literal space
+    /// `" "`, so the training text preserves the original spacing of the
+    /// sentence — the POS-pipeline counterpart of
+    /// [`add_corpus_tsv_with_writer`](Self::add_corpus_tsv_with_writer).
+    /// For space-delimited languages (Korean, English) this is what lets a
+    /// two-stage model learn from the space characters its input actually
+    /// contains, instead of from an unspaced concatenation it never sees at
+    /// inference.
+    ///
+    /// A literal-space token has no `/POS` suffix and is therefore labeled
+    /// `B(`[`Upos::X`]`)`; the two-stage extractor collapses every stage-1
+    /// label to `B`/`O`, so the tag on a space is inert there.
+    ///
+    /// # Arguments
+    /// * `corpus` - A tab-separated POS-tagged corpus ("word/POS\tword/POS\t..." format)
+    /// * `writer` - A closure receiving the attribute set and SegmentLabel for each character position
+    pub fn add_corpus_tsv_with_pos_writer<F>(&self, corpus: &str, writer: F)
+    where
+        F: FnMut(HashSet<String>, SegmentLabel),
+    {
+        self.process_corpus_with_pos(corpus, '\t', writer);
     }
 
     /// Segments a sentence into words.
@@ -1401,6 +1434,40 @@ mod tests {
         // Check the B-AUX label
         let b_aux = collected.iter().find(|(_, l)| *l == SegmentLabel::B(Upos::AUX));
         assert!(b_aux.is_some());
+    }
+
+    #[test]
+    fn test_add_corpus_tsv_with_pos_writer() {
+        // Space-preserving POS corpus (issue #198): the literal-space token
+        // becomes one B-labeled position of its own, and the space character
+        // reaches the training text so neighbouring positions see it.
+        let segmenter = Segmenter::new(Language::English);
+        let corpus = "do/AUX\t \tit/PRON";
+        let mut collected = Vec::new();
+
+        segmenter.add_corpus_tsv_with_pos_writer(corpus, |attrs, label| {
+            collected.push((attrs, label));
+        });
+
+        // "do it" has 5 characters, the space included: d=B-AUX, o=O,
+        // " "=B-X, i=B-PRON, t=O.
+        assert_eq!(collected.len(), 5);
+        assert_eq!(collected[0].1, SegmentLabel::B(Upos::AUX));
+        // The space token has no /POS suffix, so it is labeled B-X; the
+        // two-stage extractor collapses every stage-1 label to B/O, making
+        // the tag itself inert there.
+        assert_eq!(collected[2].1, SegmentLabel::B(Upos::X));
+        assert_eq!(collected[3].1, SegmentLabel::B(Upos::PRON));
+
+        let boundary_count = collected.iter().filter(|(_, l)| l.is_boundary()).count();
+        assert_eq!(boundary_count, 3); // "do", the space, and "it"
+
+        // The space character must be visible in the feature context -- this
+        // is the whole reason the TSV variant exists.
+        assert!(
+            collected.iter().any(|(attrs, _)| attrs.contains("UW4: ")),
+            "the space character must reach the training features"
+        );
     }
 
     #[test]

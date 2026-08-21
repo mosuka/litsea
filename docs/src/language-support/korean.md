@@ -94,16 +94,18 @@ excluded from scoring.
 
 - **Algorithm**: two-stage segmentation + POS tagging (a binary boundary
   classifier plus a word-level tagger with a candidate-tag lexicon)
-- **Note**: unlike `korean.model` above, this model is *trained* on the
-  *unspaced* `word/POS` corpus, not the space-preserving protocol
-  described on this page. Held-out quality is reported two ways: the
-  unspaced-protocol number (83.24% Word F1, matching how the model was
-  trained) and a real-world number measured on natural spaced input
-  (94.01% Word F1, issue #196) -- both score the same model, not two
-  different models. The ~11pt gap is the real cost of the unspaced
-  training protocol for Korean; see [English](english.md#english_posmodel)
-  for how much larger this gap is for a language whose orthography
-  carries less boundary signal without spaces
+- **Word F1 (held-out)**: 99.88%
+- **Tagged Word F1 (held-out)**: 93.95%
+- **Note**: this model is trained on the **same space-preserving corpus**
+  as `korean.model` (issue #198), so its Word F1 sits 0.03pt from
+  `korean.model`'s 99.91%. Until #198 the two-stage pipeline trained on
+  the unspaced `word/POS` corpus and scored 94.01% on real spaced input;
+  switching protocols gained +5.9pt Word F1 and +10.8pt tagged-word F1.
+  Spaces are re-emitted as their own tokens tagged `X`, deterministically,
+  via a single-candidate lexicon entry rather than a classifier guess.
+  See [English](english.md#english_posmodel), where the same change was
+  worth over 20pt because English orthography carries far less boundary
+  signal without spaces
 - **Details**: see [Pre-trained Models](../pre-trained-models.md#korean_posmodel)
 
 ## Example

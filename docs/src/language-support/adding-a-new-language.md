@@ -210,19 +210,29 @@ same way as the epoch sweep above; the three bundled languages that use
 this path each picked a different winner (see [Choosing a stage-2 feature
 set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set)).
 
-**Known limitation for space-preserving-protocol languages**: the
-two-stage extractor's corpus format has no space-preserving variant (`-p`
-and `-s` are mutually exclusive), so `english_pos.model` is trained (and
-evaluated) on the *unspaced* `word/POS` corpus, unlike `english.model`
-itself. Whether this matters in practice depends on the language: Korean
-stays close to its space-preserving numbers (99.90% unspaced vs. 99.91%
-spaced) because its agglutinative morphology leaves strong boundary cues
-even with spaces removed, while English's gap is large (70.33% unspaced
-vs. 98.31% spaced) because English orthography carries almost no such
-signal. Measure this gap for your language rather than assuming it will
-be small, and document it prominently if it is not -- see
-[English](english.md#english_posmodel) for the fully worked example of
-how to explain a large gap like this to users.
+**For a space-delimited language, train two-stage on the space-preserving
+corpus too** (issue #198). Generate it with `corpus_udtreebank.sh -p -s`
+and extract with `--pos --format tsv`:
+
+```sh
+bash scripts/corpus_udtreebank.sh -p -s "$conllu_file" pos_corpus.tsv
+litsea extract --pos --format tsv -l english --stage2-features full pos_corpus.tsv pos_features
+```
+
+This matters far more than it might look. Training on an unspaced
+concatenation costs Korean ~5.9pt of Word F1 and English ~20.8pt, because
+it creates two train/inference mismatches at once: stage 1 never sees the
+spaces that mark most word boundaries, and stage 2's context features
+(`L*`/`R*`/`cl*`/`cr*`) see a different neighbour during training than at
+inference. Whitespace tokens get no stage-2 row (they would be ~43% of
+rows for one degenerate class) but do get a lexicon entry, which makes
+them single-candidate and therefore tagged deterministically through the
+packed model's fixed-tag path — also skipping the classifier for ~43% of
+tokens, which is a throughput win.
+
+For a language written without spaces (Japanese, Chinese), use the plain
+`-p` corpus: there is no spacing to preserve, and the space-separated
+format already matches the real input.
 
 ## Step 9: Add Held-out Evaluation Gold Files
 

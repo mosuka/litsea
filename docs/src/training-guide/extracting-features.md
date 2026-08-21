@@ -65,8 +65,9 @@ litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.
 The input is a tab-separated corpus (one sentence per line, tokens
 separated by tabs) in which a token may be a literal space character
 (`" "`). The output feature file format is identical to the default
-`extract`; only the corpus parsing differs. `--format tsv` cannot be
-combined with `--pos`.
+`extract`; only the corpus parsing differs. `--format tsv` also combines
+with `--pos` -- see [Two-Stage Feature
+Extraction](#two-stage-feature-extraction) below.
 
 ## Two-Stage Feature Extraction
 
@@ -94,7 +95,7 @@ litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 | `<FEATURES_PREFIX>.lexicon` | The candidate-tag lexicon (`surface\tTAG:count[,TAG:count...]`, most-frequent-first) |
 
 `litsea train --pos` reads all three files back from the same
-prefix. `--pos` cannot be combined with `--format tsv`.
+prefix. Combine with `--format tsv` (issue #198) when the corpus is the space-preserving `word/POS` TSV that `corpus_udtreebank.sh -p -s` emits — the protocol the bundled Korean and English two-stage models are trained on.
 
 ### Choosing `--stage2-features`
 

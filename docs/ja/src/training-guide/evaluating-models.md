@@ -77,30 +77,29 @@ litsea evaluate -l english --format tsv models/english.model resources/eval/engl
 ```
 
 コマンドリファレンスは [evaluate](../litsea-cli/evaluate.md) を参照して
-ください。POS モデルは `*_gsd_test_pos.txt` / `english_ewt_test_pos.txt`
-ファイルに対して `--pos` で評価し、その held-out の数値は
-[事前学習済みモデル](../pre-trained-models.md)に記載しています。なお、
-韓国語と英語の POS ゴールドは POS パイプラインの慣例（空白トークンなし）に
-従うため、上のセグメンテーション行とは異なり、空白なしのテキストで
-評価します -- 英語ではこれが韓国語よりもはるかに大きな品質差を生みます。
-理由は[事前学習済みモデル](../pre-trained-models.md#english_posmodel)を
-参照してください。
+ください。POS モデルは `--pos` で評価し、その held-out の数値は
+[事前学習済みモデル](../pre-trained-models.md)に記載しています。
 
-韓国語・英語では、`--pos --format tsv` を第 2 の空白保持ゴールドファイルに
-対して実行することで、上記の空白非保持プロトコルではなく、自然なスペース付き
-入力での実運用精度を測定できます（issue #196）:
+どのゴールドファイルを使うかはモデルの学習方法によって決まり、2 つの
+グループで異なります:
 
 ```sh
+# 日本語・中国語: 実際のテキストにスペースがないため、スペース区切りの
+# `word/POS` ゴールドがそのまま実運用のプロトコルになります。
+litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+
+# 韓国語・英語: 空白保持コーパスで学習しているため（issue #198）、
+# --format tsv で空白保持の POS ゴールドに対して評価します。
 litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
 litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 ```
 
-これはモデルの再学習や変更を一切行いません -- ゴールドからモデルの実際の
-スペース付き入力を復元し、`evaluate -l korean --format tsv` が素の分割評価で
-既に行っているのと同じ方法で通常通り採点します。各言語の
-[事前学習済みモデル](../pre-trained-models.md)の POS モデルカードに記載した
-2 つの行（「空白非保持プロトコル」と「実運用/スペース付き」）は、**同じ
-モデル**を 2 通りの方法で評価したものであり、2 つの異なるモデルではありません。
+韓国語・英語向けの `*_test_pos.txt` ファイル（空白トークンなし）も引き続き
+同梱しています。これらは #198 以前にこれらのモデルが学習していた*空白非保持*
+プロトコルを測定するものなので、以前公開していた数値を再現する用途にのみ
+有用です -- 現在の品質を測るには、上記の `*_pos_spaced.tsv` ゴールドを
+使用してください。こちらはモデルの学習方法と、`segment --pos` が実際に
+受け取る入力の双方に一致します。
 
 ## モデル品質の改善
 

@@ -327,25 +327,29 @@ fn golden_segment_with_pos_chinese_two_stage() {
 
 #[test]
 fn golden_segment_with_pos_korean_two_stage() {
-    // Note: korean_pos.model is trained on the unspaced `word/POS`
-    // corpus, not the space-preserving TSV corpus korean.model uses.
-    // Inference still receives the spaced text as-is, so spaces surface as
-    // their own tokens here.
+    // korean_pos.model is trained on the space-preserving TSV corpus
+    // (issue #198), the same protocol korean.model uses, so stage 1 sees
+    // the inter-eojeol spaces its input actually carries. Spaces surface as
+    // their own tokens and are tagged `X` deterministically: the corpus
+    // gives them a single-candidate lexicon entry, so the packed model
+    // takes its fixed-tag path instead of guessing with the classifier
+    // (before #198 the same spaces came back as `PUNCT` -- full-argmax
+    // noise, not a decision).
     let segmenter = two_stage_segmenter(Language::Korean, "korean_pos.model");
     assert_segment_with_pos(
         &segmenter,
         &[
             (
                 "이것은 테스트입니다.",
-                &[("이것은", "PRON"), (" ", "PUNCT"), ("테스트입니다", "VERB"), (".", "PUNCT")],
+                &[("이것은", "PRON"), (" ", "X"), ("테스트입니다", "VERB"), (".", "PUNCT")],
             ),
             (
                 "나는 고양이를 좋아한다.",
                 &[
                     ("나는", "PRON"),
-                    (" ", "PUNCT"),
+                    (" ", "X"),
                     ("고양이를", "NOUN"),
-                    (" ", "PUNCT"),
+                    (" ", "X"),
                     ("좋아한다", "VERB"),
                     (".", "PUNCT"),
                 ],
@@ -354,18 +358,15 @@ fn golden_segment_with_pos_korean_two_stage() {
                 "한국어 형태소 분석기.",
                 &[
                     ("한국어", "NOUN"),
-                    (" ", "PUNCT"),
+                    (" ", "X"),
                     ("형태소", "NOUN"),
-                    (" ", "PUNCT"),
+                    (" ", "X"),
                     ("분석기", "NOUN"),
                     (".", "PUNCT"),
                 ],
             ),
             ("글", &[("글", "NOUN")]),
-            (
-                "2024년 봄.",
-                &[("2024년", "NOUN"), (" ", "PUNCT"), ("봄", "NOUN"), (".", "PUNCT")],
-            ),
+            ("2024년 봄.", &[("2024년", "NOUN"), (" ", "X"), ("봄", "NOUN"), (".", "PUNCT")]),
         ],
     );
     assert!(segmenter.segment_with_pos("").expect("two-stage learner is set").is_empty());
@@ -373,18 +374,18 @@ fn golden_segment_with_pos_korean_two_stage() {
 
 #[test]
 fn golden_segment_with_pos_english_two_stage() {
-    // english_pos.model is trained on the unspaced `word/POS` corpus (the
-    // two-stage POS pipeline has no space-preserving variant, same as
-    // Korean). Unlike Korean, English orthography carries almost no
-    // sub-word signal for segmenting a string with no spaces (Korean's
-    // agglutinative particles/endings do), so the stage-1 boundary
-    // classifier scores far worse in this unspaced setting than
-    // english.model does on real spaced input: held-out Word F1 on the UD
-    // English-EWT test split (also evaluated unspaced, matching training)
-    // is ~70.3%, vs. english.model's ~98.3%. Inference still receives the
-    // spaced text as-is, so this pins the actual (imperfect) real-world
-    // behavior rather than an idealized one -- see docs/src/language-support/
-    // english.md for the full caveat and numbers.
+    // english_pos.model is trained on the space-preserving TSV corpus
+    // (issue #198), so stage 1 sees the spaces English text actually
+    // carries. Before that it trained on an unspaced concatenation and
+    // scored ~70.3% held-out Word F1, badly mis-segmenting real input --
+    // this very test used to pin "a test" merged into one ADV token. It now
+    // reaches 98.30%, essentially matching english.model's 98.31%.
+    //
+    // Spaces come back tagged `X` deterministically: the corpus gives them a
+    // single-candidate lexicon entry, so the packed model takes its
+    // fixed-tag path rather than guessing with the classifier (the old
+    // model returned `PUNCT`/`PART`/`AUX` for different spaces in the same
+    // sentence -- full-argmax noise).
     let segmenter = two_stage_segmenter(Language::English, "english_pos.model");
     assert_segment_with_pos(
         &segmenter,
@@ -392,11 +393,13 @@ fn golden_segment_with_pos_english_two_stage() {
             (
                 "This is a test.",
                 &[
-                    ("This", "DET"),
-                    (" ", "PUNCT"),
+                    ("This", "PRON"),
+                    (" ", "X"),
                     ("is", "AUX"),
-                    (" ", "PART"),
-                    ("a test", "ADV"),
+                    (" ", "X"),
+                    ("a", "DET"),
+                    (" ", "X"),
+                    ("test", "NOUN"),
                     (".", "PUNCT"),
                 ],
             ),
@@ -404,10 +407,10 @@ fn golden_segment_with_pos_english_two_stage() {
                 "I don't know.",
                 &[
                     ("I", "PRON"),
-                    (" ", "AUX"),
+                    (" ", "X"),
                     ("do", "AUX"),
                     ("n't", "PART"),
-                    (" ", "AUX"),
+                    (" ", "X"),
                     ("know", "VERB"),
                     (".", "PUNCT"),
                 ],

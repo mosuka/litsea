@@ -15,13 +15,15 @@ these files are held-out for them).
 | `korean_gsd_test_pos_spaced.tsv` | space-preserving TSV of `word/POS` tokens | UD_Korean-GSD `ko_gsd-ud-test.conllu` |
 | `english_ewt_test_pos_spaced.tsv` | space-preserving TSV of `word/POS` tokens | UD_English-EWT `en_ewt-ud-test.conllu` |
 
-The `*_pos_spaced.tsv` files (issue #196) measure a two-stage POS model's
-real-world quality on natural, spaced input via `litsea evaluate --pos
---format tsv`, as opposed to the unspaced protocol the `*_gsd_test_pos.txt`
-/ `english_ewt_test_pos.txt` files above measure (matching how the
-two-stage models are actually trained). Space tokens in the `_spaced.tsv`
-files carry no `/POS` suffix -- CoNLL-U has no UPOS annotation for
-whitespace, and they are excluded from scoring regardless (see
+The `*_pos_spaced.tsv` files evaluate the Korean and English two-stage POS
+models via `litsea evaluate --pos --format tsv`. Since issue #198 those
+models are also *trained* on this space-preserving protocol, so these are
+the gold files that match both their training and their real input -- use
+them for current quality. The `*_gsd_test_pos.txt` / `english_ewt_test_pos.txt`
+files measure the older unspaced protocol and are kept for reproducing
+previously published numbers. Space tokens in the `_spaced.tsv` files
+carry no `/POS` suffix -- CoNLL-U has no UPOS annotation for whitespace,
+and they are excluded from scoring regardless (see
 [Pre-trained Models](../../docs/src/pre-trained-models.md#korean_posmodel)).
 Japanese and Chinese don't need an equivalent: their real text has no
 spaces, so their existing `*_gsd_test_pos.txt` already represents
@@ -48,4 +50,6 @@ bash scripts/corpus_udtreebank.sh -p <ud>/ja_gsd-ud-test.conllu resources/eval/j
 # (likewise -p for zh / ko / en, the latter writing english_ewt_test_pos.txt)
 bash scripts/corpus_udtreebank.sh -p -s <ud>/ko_gsd-ud-test.conllu resources/eval/korean_gsd_test_pos_spaced.tsv
 bash scripts/corpus_udtreebank.sh -p -s <ud>/en_ewt-ud-test.conllu resources/eval/english_ewt_test_pos_spaced.tsv
+# The same -p -s mode produces the *training* corpora for these two
+# models; run it over the train split instead (issue #198).
 ```

@@ -75,8 +75,9 @@ last member word. See
 the details.
 
 Extract features from a TSV corpus with `litsea extract --format tsv`. The
-`-s` flag cannot be combined with `-p` (the POS pipeline has no TSV
-variant).
+`-s` combines with `-p` to emit a space-preserving TSV of `word/POS`
+tokens — the two-stage POS training corpus for space-delimited languages
+(issue #198), consumed by `litsea extract --pos --format tsv`.
 
 ## Corpus for POS Tagging
 

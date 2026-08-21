@@ -56,10 +56,8 @@ limits.
 |----------|---------|-----------|------------|
 | Japanese | 96.78% | 92.95% | 4.38M chars/s |
 | Chinese | 90.82% | 82.29% | 3.38M chars/s |
-| Korean (unspaced protocol) | 83.24% | 78.86% | 4.54M chars/s |
-| Korean (real-world/spaced) | 94.01% | 83.20% | -- |
-| English (unspaced protocol) | 70.33% | 65.83% | 2.05M chars/s |
-| English (real-world/spaced) | 77.55% | 69.89% | -- |
+| Korean | 99.88% | 93.95% | 4.21M chars/s |
+| English | 98.30% | 90.55% | 7.32M chars/s |
 
 Two observations worth keeping in mind:
 
@@ -67,40 +65,56 @@ Two observations worth keeping in mind:
   known word's candidates to what was actually observed removes most
   opportunities to pick an implausible tag, which offsets scoring a
   smaller feature set per word.
-- **Throughput varies by lexicon coverage.** Korean's 34.5% held-out
+- **Throughput varies by lexicon coverage.** Korean's high held-out
   unknown-word rate means a larger share of its words pay stage 2's
   full-class fallback rather than the cheap dominance-skip or
-  candidate-masked paths.
+  candidate-masked paths. English sits at the other extreme since #198:
+  ~43% of its tokens are spaces, every one of which is a
+  single-candidate lexicon hit that skips the classifier entirely.
 
-**Japanese and Chinese have no "unspaced protocol" vs. "real-world" split**
-because their real text has no spaces to begin with -- the single row
-above already *is* their real-world number. Korean and English are
-space-delimited languages evaluated on two different protocols: the
-"unspaced protocol" row measures the model on the same unspaced text it
-was trained on (not a train/inference mismatch -- `evaluate --pos` scores
-it consistently either way); the "real-world/spaced" row (issue #196)
-reconstructs the model's actual spaced input from a space-preserving POS
-gold and measures what `segment --pos` really produces, without changing
-training. Both rows are the *same model* -- these two-stage POS models are
-trained on unspaced text regardless of protocol shown, since the two-stage
-training pipeline itself has no space-preserving corpus format yet.
+### Corpus protocol matters more than anything else here (issue #198)
 
-**English's Word F1 is much lower than Korean's, and this is not a bug.**
-The clearest apples-to-apples comparison is each language's real-world
-two-stage number against its own dedicated space-preserving *segmentation*
-model -- the ceiling a model trained directly on spaced text reaches for
-that language: Korean's real-world POS quality (94.01%) sits only 5.9pt
-below `korean.model`'s 99.91%, while English's (77.55%) sits 20.8pt below
-`english.model`'s 98.31%. Both `korean_pos.model` and `english_pos.model`
-are trained on unspaced text (the two-stage pipeline has no
-space-preserving corpus format), so this gap is the cost of that unspaced
-training protocol -- and it is roughly 3.5x larger for English than for
-Korean, because Korean's agglutinative particles and verb endings leave
-much stronger boundary cues even with spaces removed than English
-orthography does. See
-[English](../language-support/english.md#english_posmodel) and
-[Pre-trained Models](../pre-trained-models.md#english_posmodel) for the
-full explanation.
+The stage-1 classifier is only as good as the text it trained on. Until
+issue #198 the two-stage extractor read a space-separated `word/POS`
+corpus and reconstructed each sentence by concatenating word forms with
+**no separator** — correct for Japanese and Chinese, whose real text has
+no spaces, but for Korean and English it threw away the single strongest
+boundary signal their input carries.
+
+Training on the space-preserving corpus instead (`extract --pos --format
+tsv`) moved both languages onto their dedicated segmentation models'
+level:
+
+| Language | Word F1 before | Word F1 after | Tagged F1 before | Tagged F1 after |
+|----------|----------------|---------------|------------------|-----------------|
+| Korean | 94.01% | **99.88%** | 83.20% | **93.95%** |
+| English | 77.55% | **98.30%** | 69.89% | **90.55%** |
+
+(The "before" column is the real-world/spaced measurement from issue #196,
+not the unspaced-protocol figure, so it is an apples-to-apples comparison
+of what a user actually got.) Korean now sits 0.03pt from `korean.model`'s
+99.91% and English 0.01pt from `english.model`'s 98.31%.
+
+The unspaced corpus caused **two** distinct train/inference mismatches,
+and both are now fixed:
+
+1. **Stage 1** never saw the space characters that mark most word
+   boundaries in these languages.
+2. **Stage 2** was affected too, less obviously: its context features
+   (`L1`-`L3` / `R1`-`R3` and `cl1`-`cl3` / `cr1`-`cr3`) read the
+   surrounding characters, and at inference a word's neighbour is usually
+   a space — but in unspaced training it was the next word's character
+   instead. Since spaces are ~43% of tokens, essentially every word was
+   affected.
+
+Whitespace tokens get no stage-2 training row (they would be ~43% of rows
+for one degenerate `X` class) but do get a lexicon entry, which makes them
+single-candidate and therefore tagged `X` through the fixed-tag path
+without invoking the classifier — deterministic, and cheaper than the
+full-argmax guess the previous models fell back to.
+
+Japanese and Chinese are unaffected by all of this: their text has no
+spaces, so the space-separated corpus already matched their real input.
 
 ## Choosing a stage-2 feature set
 
@@ -113,18 +127,22 @@ the bundled models.
 
 | Feature set | Chinese Tagged F1 | Korean Tagged F1 | English Tagged F1 |
 |-------------|-----|-----|-----|
-| `fast` (default) | 81.33% | 77.42% | 64.88% |
-| `balanced` | 82.29% | 78.86% | 64.82% |
-| `full` | 82.96% | 78.88% | 65.70% |
+| `fast` (default) | 81.33% | 90.62% | 88.68% |
+| `balanced` | 82.29% | 92.95% | 88.66% |
+| `full` | 82.96% | **93.33%** | **90.43%** |
+
+(Korean and English were re-swept on the space-preserving corpus for issue #198; those two columns are dev-split figures from that sweep, while the
+Chinese column predates it. Korean's winner moved from `balanced` to
+`full` as a result.)
 
 For Japanese, `fast` alone reaches 92.95% tagged F1, so the bundled
 `japanese_pos.model` uses it. For Chinese, `balanced` gives most of
 `full`'s gain (82.29% vs. 82.96%) at meaningfully better throughput, so
-`chinese_pos.model` uses `balanced` rather than `full`. For Korean,
-`full` adds essentially nothing over `balanced` (78.88% vs. 78.86%), so
-`korean_pos.model` also uses `balanced`. For English, `full` is the clear
-winner by a full point over the other two (65.70% vs. ~64.8%), so
-`english_pos.model` uses `full`. Retraining with a different
+`chinese_pos.model` uses `balanced` rather than `full`. For Korean and
+English on the space-preserving corpus, `full` is the clear winner
+(Korean 93.33% vs. 92.95% for `balanced`; English 90.43% vs. ~88.7% for
+either alternative), so both `korean_pos.model` and `english_pos.model`
+use `full`. Retraining with a different
 set is a matter of re-running `extract --pos --stage2-features
 <set>` + `train --pos`; there is no need to change any other part of
 the pipeline.

@@ -83,30 +83,29 @@ litsea evaluate -l english --format tsv models/english.model resources/eval/engl
 ```
 
 See [evaluate](../litsea-cli/evaluate.md) for the command reference. POS
-models are evaluated with `--pos` against the `*_gsd_test_pos.txt` /
-`english_ewt_test_pos.txt` files; their held-out figures are listed in
-[Pre-trained Models](../pre-trained-models.md). Note the Korean and
-English POS gold follow the POS pipeline's convention (no space tokens),
-so unlike the segmentation rows above they are evaluated on unspaced text
--- for English this produces a much larger quality gap than for Korean,
-see [Pre-trained Models](../pre-trained-models.md#english_posmodel) for
-why.
+models are evaluated with `--pos`; their held-out figures are listed in
+[Pre-trained Models](../pre-trained-models.md).
 
-For Korean and English, `--pos --format tsv` against a second,
-space-preserving gold file additionally measures real-world quality on
-natural spaced input (issue #196), instead of the unspaced protocol above:
+Which gold file to use depends on how the model was trained, and the two
+groups differ:
 
 ```sh
+# Japanese / Chinese: real text has no spaces, so the space-separated
+# `word/POS` gold is also the real-world protocol.
+litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+
+# Korean / English: trained on the space-preserving corpus (issue #198),
+# so evaluate against the space-preserving POS gold with --format tsv.
 litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
 litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 ```
 
-This does not retrain or otherwise change the model -- it reconstructs the
-model's actual spaced input from gold and scores it normally, the same way
-`evaluate -l korean --format tsv` already does for plain segmentation. The
-two rows shown in each language's [Pre-trained Models](../pre-trained-models.md)
-POS model card ("unspaced protocol" vs. "real-world/spaced") are the same
-model evaluated two different ways, not two different models.
+The `*_test_pos.txt` files (no space tokens) are still present for Korean
+and English. They measure the *unspaced* protocol those models were
+trained on before #198, so they are useful only for reproducing the older
+published numbers -- for current quality, use the `*_pos_spaced.tsv` gold
+above, which matches both how the models train and what `segment --pos`
+receives in practice.
 
 ## Improving Model Quality
 
