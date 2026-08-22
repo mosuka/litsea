@@ -75,7 +75,7 @@ It falls back to a plain fetch when Cache Storage is unavailable (an insecure co
 | | Why |
 |---|---|
 | No `fromUri` | reqwest's wasm backend cannot build with Litsea's timeouts; fetch in JS instead |
-| No training | `Extractor` and the trainers are path-based, and wasm32 has no filesystem — tracked in [#218](https://github.com/mosuka/litsea/issues/218) |
+| No training | A deliberate scope decision ([#221](https://github.com/mosuka/litsea/issues/221)), not a technical limit: `litsea` has filesystem-free extract/train APIs since [#218](https://github.com/mosuka/litsea/issues/218). A browser tab would hold the corpus, its features, and the model at once, and `lindera-wasm` does not train either |
 | No `CancelToken` | With no training there is nothing to cancel |
 
 ## Errors

@@ -75,7 +75,7 @@ Cache Storage が使えない環境（非セキュアコンテキストなど）
 | | 理由 |
 |---|---|
 | `fromUri` なし | reqwest の wasm バックエンドが Litsea のタイムアウト設定でビルドできない。JS 側で fetch する |
-| 学習なし | `Extractor` とトレーナはパス前提で、wasm32 にファイルシステムが無い（コア側の in-memory API は [#218](https://github.com/mosuka/litsea/issues/218) で追跡） |
+| 学習なし | 技術的な制約ではなく方針判断（[#221](https://github.com/mosuka/litsea/issues/221)）。[#218](https://github.com/mosuka/litsea/issues/218) 以降 `litsea` にはファイルシステム非依存の extract/train API があるが、ブラウザのタブがコーパス・特徴量・モデルを同時に抱えることになり、参照実装の `lindera-wasm` も学習を持たない |
 | `CancelToken` なし | 学習が無い以上、キャンセル対象が存在しない |
 
 ## エラー

@@ -51,10 +51,17 @@ new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.
 | 無い機能 | 理由 |
 |---------|------|
 | `fromUri` | `cargo check --target wasm32-unknown-unknown --features remote_model` が失敗する。reqwest の wasm バックエンドには `connect_timeout` が無く、`litsea::model_io` はそれを設定しているため。代わりにページ側で fetch する（キャッシュ・CORS・進捗の制御もページ側に残る） |
-| 学習 | `Extractor` とトレーナはパス前提で、wasm32 にファイルシステムが無い。`litsea-binding-core` も wasm32 では trainer モジュールをコンパイル対象外にしている |
+| 学習 | 技術的な制約ではなく方針判断。下記を参照 |
 | `CancelToken` | 学習が無い以上、キャンセル対象が存在しない |
 
-ブラウザでの学習には `litsea` 本体に in-memory な extract/train API が必要です。`Segmenter::add_corpus_with_writer` は既にファイルシステム非依存で特徴量を書き出せるため実現可能ですが、コアライブラリ側の作業として [#218](https://github.com/mosuka/litsea/issues/218) で追跡します。
+### 学習を提供しない理由
+
+[#218](https://github.com/mosuka/litsea/issues/218) で `litsea` にファイルシステム非依存の extract/train API が入り、wasm32 でもコンパイルできるため、このバインディングでも学習を公開すること自体は可能です。それでも提供しないのは次の 2 点によります（[#221](https://github.com/mosuka/litsea/issues/221)）。
+
+- **ブラウザは学習を行う場所として適さない。** タブがコーパス・そこから抽出した特徴量（コーパスよりかなり大きい）・モデルを同時に保持することになります。API の形を決めるにはまずそのメモリ実測が必要で、実用的なコーパス規模では成立しないという結論も十分あり得ます。
+- **参照実装も持たない。** `lindera-python`・`lindera-nodejs`・`lindera-php`・`lindera-ruby` はいずれもトレーナを備えますが、`lindera-wasm` は備えていません。litsea のバインディング群もこの形に揃えています。
+
+学習は CLI かネイティブバインディングで行い、生成したモデルをここで読み込んでください。
 
 ## メモリ
 

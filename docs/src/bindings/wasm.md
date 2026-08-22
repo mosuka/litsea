@@ -51,10 +51,17 @@ This is the most constrained of the five bindings, and each gap was measured rat
 | Missing | Why |
 |---------|-----|
 | `fromUri` | `cargo check --target wasm32-unknown-unknown --features remote_model` fails: reqwest's wasm backend has no `connect_timeout`, which `litsea::model_io` sets. The page fetches the model instead — which also keeps caching, CORS, and progress under its control. |
-| Training | `Extractor` and the trainers are path-based, and wasm32 has no filesystem. `litsea-binding-core` already compiles its trainer module out there. |
+| Training | A deliberate scope decision, not a technical limit — see below. |
 | `CancelToken` | With no training there is nothing to cancel. |
 
-Training in the browser would need in-memory extract/train APIs in `litsea` itself — `Segmenter::add_corpus_with_writer` already streams features without touching the filesystem, so it is feasible as core-library work. That is tracked in [#218](https://github.com/mosuka/litsea/issues/218).
+### Why there is no training
+
+`litsea` gained filesystem-free extract/train APIs in [#218](https://github.com/mosuka/litsea/issues/218), and they compile for `wasm32-unknown-unknown`, so this binding *could* expose training. It does not, for two reasons ([#221](https://github.com/mosuka/litsea/issues/221)):
+
+- **A browser is not where training belongs.** A tab would hold the corpus, the features extracted from it (much larger than the corpus), and the model at once. Deciding the API shape would have required measuring that first, and the measurement could well have concluded it is impractical at any useful corpus size.
+- **The reference implementation does not either.** `lindera-python`, `lindera-nodejs`, `lindera-php`, and `lindera-ruby` all ship a trainer; `lindera-wasm` ships none. Litsea's bindings match that shape.
+
+Train with the CLI or one of the native bindings, and load the resulting model here.
 
 ## Memory
 
