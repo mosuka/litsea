@@ -163,6 +163,43 @@ jobs:
         # so a diff here means someone changed the API without rebuilding.
         run: git diff --exit-code litsea-nodejs/index.js litsea-nodejs/index.d.ts
 
+  test-litsea-php:
+    name: Test litsea-php
+    needs: [format]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ["8.1", "8.3", "8.5"]
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-php-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          tools: composer
+
+      - name: Run PHP test
+        run: make test-litsea-php
+
+      - name: Run PHP lint
+        run: make lint-litsea-php
+
   feature-check:
     name: Feature check
     needs: [format]

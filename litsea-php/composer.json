@@ -1,0 +1,22 @@
+{
+  "name": "litsea/litsea",
+  "description": "PHP binding for Litsea, a compact word segmentation and POS tagging library (no embedded models)",
+  "type": "php-ext",
+  "license": "MIT",
+  "homepage": "https://github.com/mosuka/litsea",
+  "keywords": ["word", "segmentation", "tokenizer", "pos", "nlp"],
+  "require": {
+    "php": ">=8.1"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.5 || ^11.0 || ^12.0"
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Litsea\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  }
+}

@@ -55,6 +55,7 @@
   - [litsea-binding-core](bindings/binding-core.md)
   - [Python](bindings/python.md)
   - [Node.js](bindings/nodejs.md)
+  - [PHP](bindings/php.md)
 
 # Training Guide
 
