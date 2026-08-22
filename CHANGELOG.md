@@ -5,8 +5,9 @@
 ### Added
 
 - In-memory extraction and training APIs (#218), so the whole pipeline can
-  run without a filesystem -- what `litsea-wasm` (#206) needs before it can
-  train in a browser. Every path-based method gained a twin: `Extractor`'s
+  run without a filesystem -- for embedders that have none, or that already
+  hold the corpus in memory. (The WebAssembly binding deliberately still
+  does not train; see #221.) Every path-based method gained a twin: `Extractor`'s
   six `extract*` methods gained `*_to_writer` forms (the two-stage one
   writing its three outputs to three writers), `Trainer` /
   `PerceptronTrainer` / `TwoStageTrainer` gained `from_features`

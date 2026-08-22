@@ -9,8 +9,12 @@
 //! - **No `fromUri`.** reqwest's wasm backend cannot build with the timeouts
 //!   `litsea::model_io` sets, so the page fetches the model and passes the
 //!   bytes to [`Segmenter::from_bytes`].
-//! - **No training.** `litsea`'s extractor and trainers are path-based, and
-//!   wasm32 has no filesystem.
+//! - **No training**, by choice rather than by necessity. `litsea` gained
+//!   filesystem-free extract/train APIs in #218, so this binding *could*
+//!   train; it does not, because a browser is not where training belongs -
+//!   a tab would hold the corpus, its features (much larger), and the model
+//!   at once - and because the reference implementation this binding set
+//!   follows, `lindera-wasm`, does not train either (#221).
 //!
 //! ```js
 //! import init, { Segmenter } from 'litsea-wasm'
