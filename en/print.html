@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-469b3681.js";
+            window.path_to_searchindex_js = "searchindex-a460bb5c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -4880,12 +4880,18 @@ new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.
 </thead>
 <tbody>
 <tr><td><code>fromUri</code></td><td><code>cargo check --target wasm32-unknown-unknown --features remote_model</code> fails: reqwest’s wasm backend has no <code>connect_timeout</code>, which <code>litsea::model_io</code> sets. The page fetches the model instead — which also keeps caching, CORS, and progress under its control.</td></tr>
-<tr><td>Training</td><td><code>Extractor</code> and the trainers are path-based, and wasm32 has no filesystem. <code>litsea-binding-core</code> already compiles its trainer module out there.</td></tr>
+<tr><td>Training</td><td>A deliberate scope decision, not a technical limit — see below.</td></tr>
 <tr><td><code>CancelToken</code></td><td>With no training there is nothing to cancel.</td></tr>
 </tbody>
 </table>
 </div>
-<p>Training in the browser would need in-memory extract/train APIs in <code>litsea</code> itself — <code>Segmenter::add_corpus_with_writer</code> already streams features without touching the filesystem, so it is feasible as core-library work. That is tracked in <a href="https://github.com/mosuka/litsea/issues/218">#218</a>.</p>
+<h3 id="why-there-is-no-training"><a class="header" href="#why-there-is-no-training">Why there is no training</a></h3>
+<p><code>litsea</code> gained filesystem-free extract/train APIs in <a href="https://github.com/mosuka/litsea/issues/218">#218</a>, and they compile for <code>wasm32-unknown-unknown</code>, so this binding <em>could</em> expose training. It does not, for two reasons (<a href="https://github.com/mosuka/litsea/issues/221">#221</a>):</p>
+<ul>
+<li><strong>A browser is not where training belongs.</strong> A tab would hold the corpus, the features extracted from it (much larger than the corpus), and the model at once. Deciding the API shape would have required measuring that first, and the measurement could well have concluded it is impractical at any useful corpus size.</li>
+<li><strong>The reference implementation does not either.</strong> <code>lindera-python</code>, <code>lindera-nodejs</code>, <code>lindera-php</code>, and <code>lindera-ruby</code> all ship a trainer; <code>lindera-wasm</code> ships none. Litsea’s bindings match that shape.</li>
+</ul>
+<p>Train with the CLI or one of the native bindings, and load the resulting model here.</p>
 <h2 id="memory"><a class="header" href="#memory">Memory</a></h2>
 <p><code>Segmenter</code> holds the compiled model, which is several megabytes for a POS model, and WebAssembly objects are <strong>not</strong> garbage collected. Call <code>free()</code> when one is no longer needed.</p>
 <h2 id="caching-models"><a class="header" href="#caching-models">Caching models</a></h2>

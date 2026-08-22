@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5816e435.js";
+            window.path_to_searchindex_js = "searchindex-6d696789.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -4561,12 +4561,18 @@ new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.
 </thead>
 <tbody>
 <tr><td><code>fromUri</code></td><td><code>cargo check --target wasm32-unknown-unknown --features remote_model</code> が失敗する。reqwest の wasm バックエンドには <code>connect_timeout</code> が無く、<code>litsea::model_io</code> はそれを設定しているため。代わりにページ側で fetch する（キャッシュ・CORS・進捗の制御もページ側に残る）</td></tr>
-<tr><td>学習</td><td><code>Extractor</code> とトレーナはパス前提で、wasm32 にファイルシステムが無い。<code>litsea-binding-core</code> も wasm32 では trainer モジュールをコンパイル対象外にしている</td></tr>
+<tr><td>学習</td><td>技術的な制約ではなく方針判断。下記を参照</td></tr>
 <tr><td><code>CancelToken</code></td><td>学習が無い以上、キャンセル対象が存在しない</td></tr>
 </tbody>
 </table>
 </div>
-<p>ブラウザでの学習には <code>litsea</code> 本体に in-memory な extract/train API が必要です。<code>Segmenter::add_corpus_with_writer</code> は既にファイルシステム非依存で特徴量を書き出せるため実現可能ですが、コアライブラリ側の作業として <a href="https://github.com/mosuka/litsea/issues/218">#218</a> で追跡します。</p>
+<h3 id="学習を提供しない理由"><a class="header" href="#学習を提供しない理由">学習を提供しない理由</a></h3>
+<p><a href="https://github.com/mosuka/litsea/issues/218">#218</a> で <code>litsea</code> にファイルシステム非依存の extract/train API が入り、wasm32 でもコンパイルできるため、このバインディングでも学習を公開すること自体は可能です。それでも提供しないのは次の 2 点によります（<a href="https://github.com/mosuka/litsea/issues/221">#221</a>）。</p>
+<ul>
+<li><strong>ブラウザは学習を行う場所として適さない。</strong> タブがコーパス・そこから抽出した特徴量（コーパスよりかなり大きい）・モデルを同時に保持することになります。API の形を決めるにはまずそのメモリ実測が必要で、実用的なコーパス規模では成立しないという結論も十分あり得ます。</li>
+<li><strong>参照実装も持たない。</strong> <code>lindera-python</code>・<code>lindera-nodejs</code>・<code>lindera-php</code>・<code>lindera-ruby</code> はいずれもトレーナを備えますが、<code>lindera-wasm</code> は備えていません。litsea のバインディング群もこの形に揃えています。</li>
+</ul>
+<p>学習は CLI かネイティブバインディングで行い、生成したモデルをここで読み込んでください。</p>
 <h2 id="メモリ"><a class="header" href="#メモリ">メモリ</a></h2>
 <p><code>Segmenter</code> はコンパイル済みモデル（POS モデルなら数 MB）を保持し、WebAssembly のオブジェクトは <strong>GC されません</strong>。不要になったら <code>free()</code> を呼んでください。</p>
 <h2 id="モデルのキャッシュ"><a class="header" href="#モデルのキャッシュ">モデルのキャッシュ</a></h2>
