@@ -4,6 +4,22 @@
 
 ### Added
 
+- New crate `litsea-php` (#204): the PHP binding for PHP 8.1+, built with
+  ext-php-rs and distributed on Packagist as `litsea/litsea` (source plus
+  build instructions -- a PHP extension is built against a specific PHP ABI,
+  so there is no prebuilt package). Exposes `Litsea\\Segmenter`
+  (`open` / `fromBytes` / `fromUri`, `segment`, `segmentBatch`,
+  `segmentTokens`, `segmentWithPos`, `segmentWithPosBatch`), `Litsea\\Token`,
+  and the training pipeline, with an exception hierarchy rooted at
+  `Litsea\\LitseaException` that mirrors the Python binding's. ext-php-rs
+  renames methods and properties to camelCase, so the PHP surface reads as
+  `segmentWithPos()` and `$metrics->numInstances`. Byte offsets work directly
+  with `substr()`, since PHP strings are byte strings. **Cancellation is
+  pre-call only here**: a PHP request is single-threaded and `pcntl` handlers
+  cannot interrupt a blocking native call, so unlike Python (GIL release) and
+  Node.js (worker thread) there is no in-flight cancellation -- documented in
+  the README and the docs. The extension embeds no models.
+
 - New crate `litsea-nodejs` (#203): the Node.js binding, published to npm as
   `litsea` with prebuilt binaries for Linux, macOS, and Windows on x64 and
   arm64 (Node.js 20+). Built with napi-rs 3. `Segmenter.open` /

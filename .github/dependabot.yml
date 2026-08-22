@@ -49,6 +49,20 @@ updates:
           - "minor"
           - "patch"
 
+  - package-ecosystem: "composer"
+    directory: "/litsea-php"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      # Same batching rationale as the cargo ecosystem above.
+      composer-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

@@ -28,3 +28,7 @@ dist/
 *.node
 node_modules/
 package-lock.json
+# Composer dev dependencies of the litsea-php binding
+vendor/
+composer.lock
+.phpunit.cache/

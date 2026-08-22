@@ -1,0 +1,22 @@
+[package]
+name = "litsea-php"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "PHP binding for Litsea."
+documentation = "https://docs.rs/litsea-php"
+homepage.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["word", "segmentation", "nlp", "php", "binding"]
+categories.workspace = true
+license.workspace = true
+
+[lib]
+name = "litsea_php"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+litsea.workspace = true
+litsea-binding-core = { workspace = true, features = ["remote_model"] }
+ext-php-rs = "0.15.15"

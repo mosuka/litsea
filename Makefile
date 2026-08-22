@@ -20,7 +20,7 @@ help: ## Show help
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-24s %s\n", $$1, $$2}'
 
-clean: clean-litsea-python clean-litsea-nodejs ## Clean the project
+clean: clean-litsea-python clean-litsea-nodejs clean-litsea-php ## Clean the project
 	cargo clean
 
 clean-litsea-python: ## Clean litsea-python build artifacts
@@ -63,6 +63,20 @@ test-litsea-nodejs: ## Test litsea-nodejs (Rust unit tests + node --test)
 lint-litsea-nodejs: ## Lint litsea-nodejs (clippy)
 	cargo clippy -p litsea-nodejs --all-targets -- -D warnings
 
+clean-litsea-php: ## Clean litsea-php build artifacts
+	rm -rf litsea-php/vendor
+	rm -f litsea-php/composer.lock
+
+test-litsea-php: ## Test litsea-php (Rust unit tests + PHPUnit)
+	cargo test -p litsea-php --lib
+	cargo build -p litsea-php
+	cd litsea-php && composer install --quiet --no-interaction && \
+		LIB=$$(find ../target/debug -maxdepth 1 \( -name 'liblitsea_php.so' -o -name 'liblitsea_php.dylib' \) | head -1) && \
+		php -d extension=$$LIB vendor/bin/phpunit
+
+lint-litsea-php: ## Lint litsea-php (clippy)
+	cargo clippy -p litsea-php --all-targets -- -D warnings
+
 lint-litsea-python: setup-venv ## Lint litsea-python (clippy + ruff + mypy)
 	cargo clippy -p litsea-python --all-targets -- -D warnings
 	cd litsea-python && $(abspath $(PYTHON_VENV_DIR))/bin/ruff check python/ tests/ examples/
@@ -73,6 +87,9 @@ build: ## Build the project
 
 build-litsea-python: setup-venv ## Build a release wheel for litsea-python
 	cd litsea-python && VIRTUAL_ENV=$(abspath $(PYTHON_VENV_DIR)) $(abspath $(MATURIN)) build --release --out dist
+
+build-litsea-php: ## Build litsea-php (release)
+	cargo build -p litsea-php --release
 
 build-litsea-nodejs: ## Build litsea-nodejs (release)
 	cd litsea-nodejs && npm install --silent --no-audit --no-fund && npx napi build --platform --release -p litsea-nodejs
