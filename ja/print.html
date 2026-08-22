@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-e80ed753.js";
+            window.path_to_searchindex_js = "searchindex-5816e435.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -2339,6 +2339,47 @@ extractor.extract_two_stage(
     TwoStageFeatureSet::Fast,
 )?;
 <span class="boring">}</span></code></pre>
+<h2 id="in-memory-での抽出"><a class="header" href="#in-memory-での抽出">in-memory での抽出</a></h2>
+<p><code>extract*</code> の各メソッドには <code>*_to_writer</code> の対応版があり、コーパスを文字列で受け取り、特徴量行を任意の <code>Write</code> へ書き出します。ファイルシステムのない環境（WebAssembly）や、コーパスが既にメモリ上にある場合のためのものです。出力はパス版とバイト単位で一致します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>パス版</th><th>in-memory 版</th></tr>
+</thead>
+<tbody>
+<tr><td><code>extract(corpus_path, features_path)</code></td><td><code>extract_to_writer(corpus, writer)</code></td></tr>
+<tr><td><code>extract_tsv</code></td><td><code>extract_tsv_to_writer</code></td></tr>
+<tr><td><code>extract_tag_free</code></td><td><code>extract_tag_free_to_writer</code></td></tr>
+<tr><td><code>extract_tsv_tag_free</code></td><td><code>extract_tsv_tag_free_to_writer</code></td></tr>
+<tr><td><code>extract_two_stage(corpus_path, prefix, feature_set)</code></td><td><code>extract_two_stage_to_writers(corpus, stage1, stage2, lexicon, feature_set)</code></td></tr>
+<tr><td><code>extract_two_stage_tsv</code></td><td><code>extract_two_stage_tsv_to_writers</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{Extractor, Language};
+
+let extractor = Extractor::new(Language::Japanese);
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+extractor.extract_to_writer(corpus, &amp;mut features)?;
+<span class="boring">}</span></code></pre>
+<p>二段構成版は、パス版が <code>{prefix}.stage1</code>・<code>.stage2</code>・<code>.lexicon</code> に書き出す 3 つの出力をそのまま writer へ書きます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let (mut stage1, mut stage2, mut lexicon) = (Vec::new(), Vec::new(), Vec::new());
+extractor.extract_two_stage_to_writers(
+    corpus,
+    &amp;mut stage1,
+    &amp;mut stage2,
+    &amp;mut lexicon,
+    TwoStageFeatureSet::Fast,
+)?;
+<span class="boring">}</span></code></pre>
+<p>結果は <a href="#in-memory-での学習"><code>TwoStageTrainer::from_features</code></a> に渡せます。</p>
+<p>パス版は <code>wasm32-unknown-unknown</code> では利用できません（ファイルシステムが無いため）。<code>*_to_writer</code> 版はすべてのターゲットで利用できます。</p>
 <h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2567,6 +2608,54 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 単語単位のタガーの UPOS タグクラスに対するメトリクスです。どちらのフィールドも
 <code>MulticlassMetrics</code> 型で、<a href="#perceptrontrainer"><code>PerceptronTrainer::train</code></a>（上記）が返すものと
 同じ型であり、正解率とマクロ平均の適合率・再現率を保持します。</p>
+<h2 id="in-memory-での学習"><a class="header" href="#in-memory-での学習">in-memory での学習</a></h2>
+<p>各トレーナには、パス版のコンストラクタと <code>train</code> に対応する in-memory 版があります。これによりファイルシステムなしでパイプライン全体を実行できます（パス版がコンパイル対象外になる <code>wasm32-unknown-unknown</code> など）。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>パス版</th><th>in-memory 版</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Trainer::new(threshold, iterations, features_path)</code></td><td><code>Trainer::from_features(threshold, iterations, features)</code></td></tr>
+<tr><td><code>PerceptronTrainer::new(epochs, features_path)</code></td><td><code>PerceptronTrainer::from_features(epochs, features)</code></td></tr>
+<tr><td><code>TwoStageTrainer::new(epochs, dominance, prefix)</code></td><td><code>TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)</code></td></tr>
+<tr><td><code>train(running, model_path)</code></td><td><code>train_to_writer(running, writer)</code></td></tr>
+<tr><td><code>load_model(uri).await</code></td><td><code>load_model_from_reader(reader)</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{Extractor, Language, Trainer};
+use std::sync::atomic::AtomicBool;
+
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+Extractor::new(Language::Japanese).extract_to_writer(corpus, &amp;mut features)?;
+let features = String::from_utf8(features).expect("features are UTF-8");
+
+let mut model = Vec::new();
+let metrics = Trainer::from_features(0.01, 10_000, &amp;features)?
+    .train_to_writer(&amp;AtomicBool::new(true), &amp;mut model)?;
+<span class="boring">}</span></code></pre>
+<p>特徴量を reader ではなく <code>&amp;str</code> で受け取るのは、<code>AdaBoost</code> が特徴量を 2 回走査するためです（1 回目で特徴量の語彙を構築し、2 回目でそれに対するインスタンスを構築する）。</p>
+<p>両経路は<strong>バイト単位で同一のモデル</strong>を生成し、それをクレートのテストが検証しています。</p>
+<h3 id="分割モデルを直接学習する"><a class="header" href="#分割モデルを直接学習する">分割モデルを直接学習する</a></h3>
+<p>AdaBoost のパイプラインでは、特徴量ファイルを経由せずに学習器の API だけで完結します。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{AdaBoost, Language, Segmenter};
+
+let mut learner = AdaBoost::new(0.01, 10_000);
+let segmenter = Segmenter::new(Language::Japanese);
+segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+learner.train(&amp;AtomicBool::new(true));
+learner.save_model_to_writer(&amp;mut model)?;
+<span class="boring">}</span></code></pre>
+<p>新規の学習器であればこれは等価です。ただし<strong>読み込み済みモデルからの追加学習では等価になりません</strong>。<code>Trainer</code> の 2 パス経路は各インスタンスのブースティング重みを既存モデルから算出しますが、<code>add_instance</code> はすべて <code>1.0</code> から始めます。</p>
+<h3 id="再現性"><a class="header" href="#再現性">再現性</a></h3>
+<p>学習は入力だけの関数です。同じ特徴量から 2 回学習すれば同じモデルになります。これは <code>AveragedPerceptron::add_instance</code> が特徴量をソートして保持するためです。<code>HashSet</code> の反復順は集合ごとに異なり、パーセプトロンの更新は順序に依存するため、これ以前は同一プロセス内の 2 回の学習が一致しないことがありました。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="adaboost"><a class="header" href="#adaboost">AdaBoost</a></h1>
 <p><code>AdaBoost</code> 構造体は、単語境界検出のための二値分類を実装しています。</p>

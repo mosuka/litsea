@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e80ed753.js";
+            window.path_to_searchindex_js = "../searchindex-5816e435.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -306,6 +306,47 @@ extractor.extract_two_stage(
     TwoStageFeatureSet::Fast,
 )?;
 <span class="boring">}</span></code></pre>
+<h2 id="in-memory-での抽出"><a class="header" href="#in-memory-での抽出">in-memory での抽出</a></h2>
+<p><code>extract*</code> の各メソッドには <code>*_to_writer</code> の対応版があり、コーパスを文字列で受け取り、特徴量行を任意の <code>Write</code> へ書き出します。ファイルシステムのない環境（WebAssembly）や、コーパスが既にメモリ上にある場合のためのものです。出力はパス版とバイト単位で一致します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>パス版</th><th>in-memory 版</th></tr>
+</thead>
+<tbody>
+<tr><td><code>extract(corpus_path, features_path)</code></td><td><code>extract_to_writer(corpus, writer)</code></td></tr>
+<tr><td><code>extract_tsv</code></td><td><code>extract_tsv_to_writer</code></td></tr>
+<tr><td><code>extract_tag_free</code></td><td><code>extract_tag_free_to_writer</code></td></tr>
+<tr><td><code>extract_tsv_tag_free</code></td><td><code>extract_tsv_tag_free_to_writer</code></td></tr>
+<tr><td><code>extract_two_stage(corpus_path, prefix, feature_set)</code></td><td><code>extract_two_stage_to_writers(corpus, stage1, stage2, lexicon, feature_set)</code></td></tr>
+<tr><td><code>extract_two_stage_tsv</code></td><td><code>extract_two_stage_tsv_to_writers</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{Extractor, Language};
+
+let extractor = Extractor::new(Language::Japanese);
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+extractor.extract_to_writer(corpus, &amp;mut features)?;
+<span class="boring">}</span></code></pre>
+<p>二段構成版は、パス版が <code>{prefix}.stage1</code>・<code>.stage2</code>・<code>.lexicon</code> に書き出す 3 つの出力をそのまま writer へ書きます。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let (mut stage1, mut stage2, mut lexicon) = (Vec::new(), Vec::new(), Vec::new());
+extractor.extract_two_stage_to_writers(
+    corpus,
+    &amp;mut stage1,
+    &amp;mut stage2,
+    &amp;mut lexicon,
+    TwoStageFeatureSet::Fast,
+)?;
+<span class="boring">}</span></code></pre>
+<p>結果は <a href="trainer.html#in-memory-での学習"><code>TwoStageTrainer::from_features</code></a> に渡せます。</p>
+<p>パス版は <code>wasm32-unknown-unknown</code> では利用できません（ファイルシステムが無いため）。<code>*_to_writer</code> 版はすべてのターゲットで利用できます。</p>
 <h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

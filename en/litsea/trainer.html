@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59e0e6b9.js";
+            window.path_to_searchindex_js = "../searchindex-469b3681.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -404,6 +404,54 @@ the word-level tagger over the UPOS tag classes. Both fields are
 <code>MulticlassMetrics</code> – the same type
 <a href="#perceptrontrainer"><code>PerceptronTrainer::train</code></a> returns above, exposing
 accuracy plus macro-averaged precision and recall.</p>
+<h2 id="in-memory-training"><a class="header" href="#in-memory-training">In-memory training</a></h2>
+<p>Each trainer has an in-memory counterpart to its path-based constructor and <code>train</code>, so the whole pipeline can run without a filesystem — on <code>wasm32-unknown-unknown</code>, for instance, where the path-based methods are compiled out.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Path-based</th><th>In-memory</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Trainer::new(threshold, iterations, features_path)</code></td><td><code>Trainer::from_features(threshold, iterations, features)</code></td></tr>
+<tr><td><code>PerceptronTrainer::new(epochs, features_path)</code></td><td><code>PerceptronTrainer::from_features(epochs, features)</code></td></tr>
+<tr><td><code>TwoStageTrainer::new(epochs, dominance, prefix)</code></td><td><code>TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)</code></td></tr>
+<tr><td><code>train(running, model_path)</code></td><td><code>train_to_writer(running, writer)</code></td></tr>
+<tr><td><code>load_model(uri).await</code></td><td><code>load_model_from_reader(reader)</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{Extractor, Language, Trainer};
+use std::sync::atomic::AtomicBool;
+
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+Extractor::new(Language::Japanese).extract_to_writer(corpus, &amp;mut features)?;
+let features = String::from_utf8(features).expect("features are UTF-8");
+
+let mut model = Vec::new();
+let metrics = Trainer::from_features(0.01, 10_000, &amp;features)?
+    .train_to_writer(&amp;AtomicBool::new(true), &amp;mut model)?;
+<span class="boring">}</span></code></pre>
+<p>The features arrive as a <code>&amp;str</code> rather than a reader because <code>AdaBoost</code> scans them twice: once to build the feature vocabulary, once to build the instances against it.</p>
+<p>Both routes produce <strong>the same model, byte for byte</strong>, which the crate’s tests assert.</p>
+<h3 id="training-the-segmentation-model-directly"><a class="header" href="#training-the-segmentation-model-directly">Training the segmentation model directly</a></h3>
+<p>For the AdaBoost pipeline the learner’s own API is enough, without going through a features file at all:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{AdaBoost, Language, Segmenter};
+
+let mut learner = AdaBoost::new(0.01, 10_000);
+let segmenter = Segmenter::new(Language::Japanese);
+segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+learner.train(&amp;AtomicBool::new(true));
+learner.save_model_to_writer(&amp;mut model)?;
+<span class="boring">}</span></code></pre>
+<p>This is equivalent for a fresh learner. It is <strong>not</strong> equivalent when continuing from a loaded model: <code>Trainer</code>’s two-pass route seeds each instance’s boosting weight from the existing model, while <code>add_instance</code> starts every instance at <code>1.0</code>.</p>
+<h3 id="reproducibility"><a class="header" href="#reproducibility">Reproducibility</a></h3>
+<p>A training run is a function of its input: the same features trained twice produce the same model. This holds because <code>AveragedPerceptron::add_instance</code> stores its features sorted — <code>HashSet</code> iteration order varies between sets, and perceptron updates are order-sensitive, so before that two runs in one process could disagree.</p>
 
                     </main>
 

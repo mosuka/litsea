@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-59e0e6b9.js";
+            window.path_to_searchindex_js = "../searchindex-469b3681.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -322,6 +322,47 @@ extractor.extract_two_stage(
     TwoStageFeatureSet::Fast,
 )?;
 <span class="boring">}</span></code></pre>
+<h2 id="in-memory-extraction"><a class="header" href="#in-memory-extraction">In-memory extraction</a></h2>
+<p>Every <code>extract*</code> method has a <code>*_to_writer</code> twin that takes the corpus as a string and writes the feature rows to any <code>Write</code>, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Path-based</th><th>In-memory</th></tr>
+</thead>
+<tbody>
+<tr><td><code>extract(corpus_path, features_path)</code></td><td><code>extract_to_writer(corpus, writer)</code></td></tr>
+<tr><td><code>extract_tsv</code></td><td><code>extract_tsv_to_writer</code></td></tr>
+<tr><td><code>extract_tag_free</code></td><td><code>extract_tag_free_to_writer</code></td></tr>
+<tr><td><code>extract_tsv_tag_free</code></td><td><code>extract_tsv_tag_free_to_writer</code></td></tr>
+<tr><td><code>extract_two_stage(corpus_path, prefix, feature_set)</code></td><td><code>extract_two_stage_to_writers(corpus, stage1, stage2, lexicon, feature_set)</code></td></tr>
+<tr><td><code>extract_two_stage_tsv</code></td><td><code>extract_two_stage_tsv_to_writers</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{Extractor, Language};
+
+let extractor = Extractor::new(Language::Japanese);
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+extractor.extract_to_writer(corpus, &amp;mut features)?;
+<span class="boring">}</span></code></pre>
+<p>The two-stage variant writes the three outputs that the path version puts in <code>{prefix}.stage1</code>, <code>.stage2</code>, and <code>.lexicon</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let (mut stage1, mut stage2, mut lexicon) = (Vec::new(), Vec::new(), Vec::new());
+extractor.extract_two_stage_to_writers(
+    corpus,
+    &amp;mut stage1,
+    &amp;mut stage2,
+    &amp;mut lexicon,
+    TwoStageFeatureSet::Fast,
+)?;
+<span class="boring">}</span></code></pre>
+<p>Feed the result to <a href="trainer.html#in-memory-training"><code>TwoStageTrainer::from_features</code></a>.</p>
+<p>The path-based methods are unavailable on <code>wasm32-unknown-unknown</code>, which has no filesystem; the <code>*_to_writer</code> twins compile everywhere.</p>
 <h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

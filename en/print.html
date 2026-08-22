@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-59e0e6b9.js";
+            window.path_to_searchindex_js = "searchindex-469b3681.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -2605,6 +2605,47 @@ extractor.extract_two_stage(
     TwoStageFeatureSet::Fast,
 )?;
 <span class="boring">}</span></code></pre>
+<h2 id="in-memory-extraction"><a class="header" href="#in-memory-extraction">In-memory extraction</a></h2>
+<p>Every <code>extract*</code> method has a <code>*_to_writer</code> twin that takes the corpus as a string and writes the feature rows to any <code>Write</code>, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Path-based</th><th>In-memory</th></tr>
+</thead>
+<tbody>
+<tr><td><code>extract(corpus_path, features_path)</code></td><td><code>extract_to_writer(corpus, writer)</code></td></tr>
+<tr><td><code>extract_tsv</code></td><td><code>extract_tsv_to_writer</code></td></tr>
+<tr><td><code>extract_tag_free</code></td><td><code>extract_tag_free_to_writer</code></td></tr>
+<tr><td><code>extract_tsv_tag_free</code></td><td><code>extract_tsv_tag_free_to_writer</code></td></tr>
+<tr><td><code>extract_two_stage(corpus_path, prefix, feature_set)</code></td><td><code>extract_two_stage_to_writers(corpus, stage1, stage2, lexicon, feature_set)</code></td></tr>
+<tr><td><code>extract_two_stage_tsv</code></td><td><code>extract_two_stage_tsv_to_writers</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{Extractor, Language};
+
+let extractor = Extractor::new(Language::Japanese);
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+extractor.extract_to_writer(corpus, &amp;mut features)?;
+<span class="boring">}</span></code></pre>
+<p>The two-stage variant writes the three outputs that the path version puts in <code>{prefix}.stage1</code>, <code>.stage2</code>, and <code>.lexicon</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let (mut stage1, mut stage2, mut lexicon) = (Vec::new(), Vec::new(), Vec::new());
+extractor.extract_two_stage_to_writers(
+    corpus,
+    &amp;mut stage1,
+    &amp;mut stage2,
+    &amp;mut lexicon,
+    TwoStageFeatureSet::Fast,
+)?;
+<span class="boring">}</span></code></pre>
+<p>Feed the result to <a href="#in-memory-training"><code>TwoStageTrainer::from_features</code></a>.</p>
+<p>The path-based methods are unavailable on <code>wasm32-unknown-unknown</code>, which has no filesystem; the <code>*_to_writer</code> twins compile everywhere.</p>
 <h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2855,6 +2896,54 @@ the word-level tagger over the UPOS tag classes. Both fields are
 <code>MulticlassMetrics</code> – the same type
 <a href="#perceptrontrainer"><code>PerceptronTrainer::train</code></a> returns above, exposing
 accuracy plus macro-averaged precision and recall.</p>
+<h2 id="in-memory-training"><a class="header" href="#in-memory-training">In-memory training</a></h2>
+<p>Each trainer has an in-memory counterpart to its path-based constructor and <code>train</code>, so the whole pipeline can run without a filesystem — on <code>wasm32-unknown-unknown</code>, for instance, where the path-based methods are compiled out.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Path-based</th><th>In-memory</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Trainer::new(threshold, iterations, features_path)</code></td><td><code>Trainer::from_features(threshold, iterations, features)</code></td></tr>
+<tr><td><code>PerceptronTrainer::new(epochs, features_path)</code></td><td><code>PerceptronTrainer::from_features(epochs, features)</code></td></tr>
+<tr><td><code>TwoStageTrainer::new(epochs, dominance, prefix)</code></td><td><code>TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)</code></td></tr>
+<tr><td><code>train(running, model_path)</code></td><td><code>train_to_writer(running, writer)</code></td></tr>
+<tr><td><code>load_model(uri).await</code></td><td><code>load_model_from_reader(reader)</code></td></tr>
+</tbody>
+</table>
+</div>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{Extractor, Language, Trainer};
+use std::sync::atomic::AtomicBool;
+
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+Extractor::new(Language::Japanese).extract_to_writer(corpus, &amp;mut features)?;
+let features = String::from_utf8(features).expect("features are UTF-8");
+
+let mut model = Vec::new();
+let metrics = Trainer::from_features(0.01, 10_000, &amp;features)?
+    .train_to_writer(&amp;AtomicBool::new(true), &amp;mut model)?;
+<span class="boring">}</span></code></pre>
+<p>The features arrive as a <code>&amp;str</code> rather than a reader because <code>AdaBoost</code> scans them twice: once to build the feature vocabulary, once to build the instances against it.</p>
+<p>Both routes produce <strong>the same model, byte for byte</strong>, which the crate’s tests assert.</p>
+<h3 id="training-the-segmentation-model-directly"><a class="header" href="#training-the-segmentation-model-directly">Training the segmentation model directly</a></h3>
+<p>For the AdaBoost pipeline the learner’s own API is enough, without going through a features file at all:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use litsea::{AdaBoost, Language, Segmenter};
+
+let mut learner = AdaBoost::new(0.01, 10_000);
+let segmenter = Segmenter::new(Language::Japanese);
+segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+learner.train(&amp;AtomicBool::new(true));
+learner.save_model_to_writer(&amp;mut model)?;
+<span class="boring">}</span></code></pre>
+<p>This is equivalent for a fresh learner. It is <strong>not</strong> equivalent when continuing from a loaded model: <code>Trainer</code>’s two-pass route seeds each instance’s boosting weight from the existing model, while <code>add_instance</code> starts every instance at <code>1.0</code>.</p>
+<h3 id="reproducibility"><a class="header" href="#reproducibility">Reproducibility</a></h3>
+<p>A training run is a function of its input: the same features trained twice produce the same model. This holds because <code>AveragedPerceptron::add_instance</code> stores its features sorted — <code>HashSet</code> iteration order varies between sets, and perceptron updates are order-sensitive, so before that two runs in one process could disagree.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="adaboost"><a class="header" href="#adaboost">AdaBoost</a></h1>
 <p>The <code>AdaBoost</code> struct implements binary classification for word boundary detection.</p>
