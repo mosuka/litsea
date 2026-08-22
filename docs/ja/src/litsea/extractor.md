@@ -143,6 +143,46 @@ extractor.extract_two_stage(
 )?;
 ```
 
+## in-memory での抽出
+
+`extract*` の各メソッドには `*_to_writer` の対応版があり、コーパスを文字列で受け取り、特徴量行を任意の `Write` へ書き出します。ファイルシステムのない環境（WebAssembly）や、コーパスが既にメモリ上にある場合のためのものです。出力はパス版とバイト単位で一致します。
+
+| パス版 | in-memory 版 |
+|--------|-------------|
+| `extract(corpus_path, features_path)` | `extract_to_writer(corpus, writer)` |
+| `extract_tsv` | `extract_tsv_to_writer` |
+| `extract_tag_free` | `extract_tag_free_to_writer` |
+| `extract_tsv_tag_free` | `extract_tsv_tag_free_to_writer` |
+| `extract_two_stage(corpus_path, prefix, feature_set)` | `extract_two_stage_to_writers(corpus, stage1, stage2, lexicon, feature_set)` |
+| `extract_two_stage_tsv` | `extract_two_stage_tsv_to_writers` |
+
+```rust
+use litsea::{Extractor, Language};
+
+let extractor = Extractor::new(Language::Japanese);
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+extractor.extract_to_writer(corpus, &mut features)?;
+```
+
+二段構成版は、パス版が `{prefix}.stage1`・`.stage2`・`.lexicon` に書き出す 3 つの出力をそのまま writer へ書きます。
+
+```rust
+let (mut stage1, mut stage2, mut lexicon) = (Vec::new(), Vec::new(), Vec::new());
+extractor.extract_two_stage_to_writers(
+    corpus,
+    &mut stage1,
+    &mut stage2,
+    &mut lexicon,
+    TwoStageFeatureSet::Fast,
+)?;
+```
+
+結果は [`TwoStageTrainer::from_features`](trainer.md#in-memory-での学習) に渡せます。
+
+パス版は `wasm32-unknown-unknown` では利用できません（ファイルシステムが無いため）。`*_to_writer` 版はすべてのターゲットで利用できます。
+
 ## TwoStageFeatureSet
 
 ```rust

@@ -15,9 +15,15 @@
 
 use std::collections::{BTreeMap, HashSet};
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{BufRead, Write};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
+
+// Only the path-based initializers read through it, and they are compiled
+// out on wasm32. (`save_model` still takes a path on every target; leaving
+// that surface alone keeps this change scoped to the training pipeline.)
+#[cfg(not(target_arch = "wasm32"))]
+use std::io::BufReader;
 
 // Internal maps use FxHashMap: the keys are internally generated feature
 // strings (no HashDoS exposure). The packed scoring pipeline does zero
@@ -30,6 +36,46 @@ use crate::error::{LitseaError, Result};
 use crate::metrics::BinaryMetrics;
 
 type Label = i8;
+
+/// Accumulator for the feature-vocabulary pass over a features file.
+///
+/// The pass is shared by the path-based and in-memory entry points, which
+/// differ only in where the lines come from: the former streams them from a
+/// file (a real corpus's features run to hundreds of megabytes), the latter
+/// walks a `&str`.
+#[derive(Default)]
+struct FeaturePass {
+    /// Feature name to initial weight. A `BTreeMap` so the keys end up
+    /// sorted, which keeps the bias bucket (the empty string) at index 0.
+    map: BTreeMap<String, f64>,
+    /// Total number of feature occurrences, used to reserve the instance
+    /// buffer.
+    buf_size: usize,
+    /// Number of instances (non-blank lines).
+    num_instances: usize,
+}
+
+impl FeaturePass {
+    /// Records one `label\tfeature...` line.
+    ///
+    /// # Arguments
+    /// * `line`: The line to observe; blank lines are skipped.
+    fn observe(&mut self, line: &str) {
+        if line.is_empty() {
+            return;
+        }
+        let mut parts = line.split('\t');
+        // The first column is the label; the rest are features. Empty
+        // tokens are skipped ("" is the reserved bias-bucket name).
+        let _label = parts.next();
+        for h in parts.filter(|h| !h.is_empty()) {
+            self.map.entry(h.to_string()).or_insert(0.0);
+            self.buf_size += 1;
+        }
+
+        self.num_instances += 1;
+    }
+}
 
 /// AdaBoost binary classifier used for word-boundary prediction.
 ///
@@ -166,31 +212,63 @@ impl AdaBoost {
     /// keeps its reserved slot at index 0.
     /// The model is initialized with zeros for each feature.
     /// The number of instances is counted to ensure that the model can handle the data efficiently.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn initialize_features(&mut self, filename: &Path) -> Result<()> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
-        let mut map = BTreeMap::new(); // sorted keys: "" (the bias) sorts first
+        let mut state = FeaturePass::default();
 
-        let mut buf_size = 0;
-        self.num_instances = 0;
-
+        // Streamed line by line rather than slurped: a features file for a
+        // real corpus can be hundreds of megabytes.
         for line in reader.lines() {
-            let line = line?;
-            // Skip blank lines.
-            if line.is_empty() {
-                continue;
-            }
-            let mut parts = line.split('\t');
-            // The first column is the label; the rest are features. Empty
-            // tokens are skipped ("" is the reserved bias-bucket name).
-            let _label = parts.next();
-            for h in parts.filter(|h| !h.is_empty()) {
-                map.entry(h.to_string()).or_insert(0.0);
-                buf_size += 1;
-            }
-
-            self.num_instances += 1;
+            state.observe(&line?);
         }
+
+        self.finish_features(state)
+    }
+
+    /// Initializes the model's features from a features file's contents.
+    ///
+    /// The in-memory counterpart of
+    /// [`initialize_features`](Self::initialize_features), for callers with
+    /// no filesystem (WebAssembly) or with the features already in memory.
+    ///
+    /// # Arguments
+    /// * `features`: The contents of a features file (`label\tfeature...`
+    ///   lines).
+    ///
+    /// # Returns
+    /// A result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns [`LitseaError::InvalidData`] if the content contains no real
+    /// (non-bias) feature.
+    pub fn initialize_features_from_str(&mut self, features: &str) -> Result<()> {
+        let mut state = FeaturePass::default();
+        for line in features.lines() {
+            state.observe(line);
+        }
+
+        self.finish_features(state)
+    }
+
+    /// Installs the vocabulary a feature pass collected.
+    ///
+    /// # Arguments
+    /// * `pass`: The collected feature names and counts.
+    ///
+    /// # Returns
+    /// A result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns [`LitseaError::InvalidData`] if no real feature was seen.
+    fn finish_features(&mut self, pass: FeaturePass) -> Result<()> {
+        let FeaturePass {
+            mut map,
+            buf_size,
+            num_instances,
+        } = pass;
+        self.num_instances = num_instances;
 
         // The bias term (empty string key) is always present.
         map.insert("".to_string(), 0.0);
@@ -239,45 +317,89 @@ impl AdaBoost {
     /// It calculates the score for each instance from the current model
     /// weights (the model itself is only read, never modified here).
     /// The instance weights are initialized based on the label and score.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn initialize_instances(&mut self, filename: &Path) -> Result<()> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
         let bias = self.bias();
 
+        // Streamed for the same reason as `initialize_features`.
         for line in reader.lines() {
-            let line = line?;
-            // Skip blank lines (consistent with initialize_features).
-            if line.is_empty() {
-                continue;
-            }
-            let mut parts = line.split('\t');
-            let label: Label = parts
-                .next()
-                .ok_or_else(|| {
-                    LitseaError::InvalidData("Missing label in instance line".to_string())
-                })?
-                .parse()
-                .map_err(|e| LitseaError::InvalidData(format!("Invalid label: {}", e)))?;
-            self.labels.push(label);
-
-            let start = self.instances_buf.len();
-            let mut score = bias;
-
-            // Empty tokens are skipped: "" is the bias-bucket name and must
-            // never be treated as an instance feature.
-            for h in parts.filter(|h| !h.is_empty()) {
-                if let Some(&pos) = self.feature_index.get(h) {
-                    self.instances_buf.push(pos);
-                    score += self.model[pos];
-                }
-            }
-
-            let end = self.instances_buf.len();
-            // Sort feature indices so that binary_search in train() works correctly.
-            self.instances_buf[start..end].sort_unstable();
-            self.instances.push((start, end));
-            self.instance_weights.push((-2.0 * label as f64 * score).exp());
+            self.ingest_instance_line(&line?, bias)?;
         }
+
+        Ok(())
+    }
+
+    /// Initializes the instances from a features file's contents.
+    ///
+    /// The in-memory counterpart of
+    /// [`initialize_instances`](Self::initialize_instances). Must be called
+    /// after [`initialize_features_from_str`](Self::initialize_features_from_str)
+    /// on the **same** content, because it depends on the feature index that
+    /// pass builds - which is also why the features arrive as a `&str`
+    /// rather than a reader: the content is scanned twice.
+    ///
+    /// # Arguments
+    /// * `features`: The contents of a features file.
+    ///
+    /// # Returns
+    /// A result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns [`LitseaError::InvalidData`] if a line is missing its label or
+    /// the label cannot be parsed as an `i8`.
+    pub fn initialize_instances_from_str(&mut self, features: &str) -> Result<()> {
+        let bias = self.bias();
+        for line in features.lines() {
+            self.ingest_instance_line(line, bias)?;
+        }
+
+        Ok(())
+    }
+
+    /// Adds one `label\tfeature...` line to the instance set.
+    ///
+    /// # Arguments
+    /// * `line`: The line to ingest; blank lines are skipped.
+    /// * `bias`: The model's bias, read once by the caller.
+    ///
+    /// # Returns
+    /// A result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns [`LitseaError::InvalidData`] if the line is missing its label
+    /// or the label cannot be parsed as an `i8`.
+    fn ingest_instance_line(&mut self, line: &str, bias: f64) -> Result<()> {
+        // Skip blank lines (consistent with initialize_features).
+        if line.is_empty() {
+            return Ok(());
+        }
+        let mut parts = line.split('\t');
+        let label: Label = parts
+            .next()
+            .ok_or_else(|| LitseaError::InvalidData("Missing label in instance line".to_string()))?
+            .parse()
+            .map_err(|e| LitseaError::InvalidData(format!("Invalid label: {}", e)))?;
+        self.labels.push(label);
+
+        let start = self.instances_buf.len();
+        let mut score = bias;
+
+        // Empty tokens are skipped: "" is the bias-bucket name and must
+        // never be treated as an instance feature.
+        for h in parts.filter(|h| !h.is_empty()) {
+            if let Some(&pos) = self.feature_index.get(h) {
+                self.instances_buf.push(pos);
+                score += self.model[pos];
+            }
+        }
+
+        let end = self.instances_buf.len();
+        // Sort feature indices so that binary_search in train() works correctly.
+        self.instances_buf[start..end].sort_unstable();
+        self.instances.push((start, end));
+        self.instance_weights.push((-2.0 * label as f64 * score).exp());
 
         Ok(())
     }

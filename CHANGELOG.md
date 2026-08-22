@@ -4,6 +4,21 @@
 
 ### Added
 
+- In-memory extraction and training APIs (#218), so the whole pipeline can
+  run without a filesystem -- what `litsea-wasm` (#206) needs before it can
+  train in a browser. Every path-based method gained a twin: `Extractor`'s
+  six `extract*` methods gained `*_to_writer` forms (the two-stage one
+  writing its three outputs to three writers), `Trainer` /
+  `PerceptronTrainer` / `TwoStageTrainer` gained `from_features`
+  constructors and `train_to_writer`, `Trainer` and `PerceptronTrainer`
+  gained `load_model_from_reader`, and `AdaBoost` gained
+  `initialize_features_from_str` / `initialize_instances_from_str`. Features
+  are taken as `&str` rather than a reader because `AdaBoost` scans them
+  twice. The in-memory route produces byte-identical output to the path
+  route, which the tests assert; the path methods are now thin wrappers over
+  the in-memory ones and are compiled out on `wasm32-unknown-unknown`, where
+  the twins still work.
+
 - New crate `litsea-wasm` (#206): the WebAssembly binding for browsers, Deno,
   and bundlers, built with wasm-bindgen and published to npm as
   `litsea-wasm` (the Node.js binding keeps the short `litsea` name). The
@@ -158,6 +173,17 @@
   `Segmenter::add_corpus_tsv_with_pos_writer` (both additive).
 
 ### Fixed
+
+- Training is now reproducible: the same features trained twice produce the
+  same model. `AveragedPerceptron::add_instance` stored its features in
+  `HashSet` iteration order, which varies between sets, and perceptron
+  updates are order-sensitive -- so two-stage training (and the collapse
+  recipe behind the bundled segmentation models) produced a different model
+  on every run, even from identical input. The features are now stored
+  sorted. Found while adding the in-memory APIs (#218), whose
+  "both routes produce the same model" test was flaky until this was fixed.
+  Inference is unaffected, and the bundled models are unchanged; only future
+  training runs differ.
 
 - `litsea` no longer warns about an unused `BufReader` import when built for
   `wasm32-unknown-unknown`: only `load_model_from_path` uses it, and that is

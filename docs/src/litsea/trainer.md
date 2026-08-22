@@ -261,3 +261,54 @@ the word-level tagger over the UPOS tag classes. Both fields are
 `MulticlassMetrics` -- the same type
 [`PerceptronTrainer::train`](#perceptrontrainer) returns above, exposing
 accuracy plus macro-averaged precision and recall.
+
+## In-memory training
+
+Each trainer has an in-memory counterpart to its path-based constructor and `train`, so the whole pipeline can run without a filesystem — on `wasm32-unknown-unknown`, for instance, where the path-based methods are compiled out.
+
+| Path-based | In-memory |
+|------------|-----------|
+| `Trainer::new(threshold, iterations, features_path)` | `Trainer::from_features(threshold, iterations, features)` |
+| `PerceptronTrainer::new(epochs, features_path)` | `PerceptronTrainer::from_features(epochs, features)` |
+| `TwoStageTrainer::new(epochs, dominance, prefix)` | `TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)` |
+| `train(running, model_path)` | `train_to_writer(running, writer)` |
+| `load_model(uri).await` | `load_model_from_reader(reader)` |
+
+```rust
+use litsea::{Extractor, Language, Trainer};
+use std::sync::atomic::AtomicBool;
+
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+Extractor::new(Language::Japanese).extract_to_writer(corpus, &mut features)?;
+let features = String::from_utf8(features).expect("features are UTF-8");
+
+let mut model = Vec::new();
+let metrics = Trainer::from_features(0.01, 10_000, &features)?
+    .train_to_writer(&AtomicBool::new(true), &mut model)?;
+```
+
+The features arrive as a `&str` rather than a reader because `AdaBoost` scans them twice: once to build the feature vocabulary, once to build the instances against it.
+
+Both routes produce **the same model, byte for byte**, which the crate's tests assert.
+
+### Training the segmentation model directly
+
+For the AdaBoost pipeline the learner's own API is enough, without going through a features file at all:
+
+```rust
+use litsea::{AdaBoost, Language, Segmenter};
+
+let mut learner = AdaBoost::new(0.01, 10_000);
+let segmenter = Segmenter::new(Language::Japanese);
+segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+learner.train(&AtomicBool::new(true));
+learner.save_model_to_writer(&mut model)?;
+```
+
+This is equivalent for a fresh learner. It is **not** equivalent when continuing from a loaded model: `Trainer`'s two-pass route seeds each instance's boosting weight from the existing model, while `add_instance` starts every instance at `1.0`.
+
+### Reproducibility
+
+A training run is a function of its input: the same features trained twice produce the same model. This holds because `AveragedPerceptron::add_instance` stores its features sorted — `HashSet` iteration order varies between sets, and perceptron updates are order-sensitive, so before that two runs in one process could disagree.

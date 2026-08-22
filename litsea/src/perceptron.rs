@@ -142,12 +142,20 @@ impl AveragedPerceptron {
 
     /// Adds a training instance.
     ///
+    /// Features are stored sorted. `HashSet` iteration order varies between
+    /// sets (each carries its own random state), and perceptron updates are
+    /// order-sensitive, so storing them in arrival order made training
+    /// non-reproducible: the same features trained twice in one process
+    /// produced different models. Sorting here makes a training run a
+    /// function of its input alone.
+    ///
     /// # Arguments
     /// * `features` - The feature set
     /// * `label` - The gold label
     pub fn add_instance(&mut self, features: HashSet<String>, label: String) {
         self.ensure_class(&label);
-        let feats: Vec<String> = features.into_iter().collect();
+        let mut feats: Vec<String> = features.into_iter().collect();
+        feats.sort_unstable();
         self.instances.push((feats, label));
     }
 

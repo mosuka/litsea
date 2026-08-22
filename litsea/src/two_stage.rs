@@ -53,7 +53,10 @@
 use std::fmt;
 use std::fs::File;
 use std::io::{BufRead, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
+// Only `two_stage_paths` needs it, and that is compiled out on wasm32.
+#[cfg(not(target_arch = "wasm32"))]
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use rustc_hash::FxHashMap;
@@ -147,6 +150,7 @@ pub(crate) type LexiconEntry = Vec<(Upos, u32)>;
 /// `{prefix}.stage1`, `{prefix}.stage2`, `{prefix}.lexicon`. Shared by
 /// [`crate::extractor::Extractor::extract_two_stage`] (which writes them)
 /// and [`crate::trainer::TwoStageTrainer::new`] (which reads them).
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) fn two_stage_paths(prefix: &Path) -> (PathBuf, PathBuf, PathBuf) {
     let base = prefix.display();
     (
