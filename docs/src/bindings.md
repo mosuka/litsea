@@ -8,7 +8,7 @@ Litsea is a Rust library, but it is also usable from other languages. The bindin
 |-------|----------------|-----------|--------|
 | [`litsea-binding-core`](bindings/binding-core.md) | (shared, no FFI) | — | Available |
 | [`litsea-python`](bindings/python.md) | Python 3.10+ | PyO3 + maturin | Available |
-| `litsea-nodejs` | Node.js 20+ | napi-rs | Planned ([#203](https://github.com/mosuka/litsea/issues/203)) |
+| [`litsea-nodejs`](bindings/nodejs.md) | Node.js 20+ | napi-rs | Available |
 | `litsea-php` | PHP 8.1+ | ext-php-rs | Planned ([#204](https://github.com/mosuka/litsea/issues/204)) |
 | `litsea-ruby` | Ruby 3.1+ | magnus + rb-sys | Planned ([#205](https://github.com/mosuka/litsea/issues/205)) |
 | `litsea-wasm` | Browser / Deno | wasm-bindgen | Planned ([#206](https://github.com/mosuka/litsea/issues/206)) |

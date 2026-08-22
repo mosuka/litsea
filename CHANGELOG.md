@@ -4,6 +4,18 @@
 
 ### Added
 
+- New crate `litsea-nodejs` (#203): the Node.js binding, published to npm as
+  `litsea` with prebuilt binaries for Linux, macOS, and Windows on x64 and
+  arm64 (Node.js 20+). Built with napi-rs 3. `Segmenter.open` /
+  `fromBytes` are synchronous; `fromUri`, `Extractor.extract*`, and every
+  `train` return promises backed by `AsyncTask`, so the work runs on
+  libuv's threadpool and the event loop keeps turning -- which is what lets
+  a `CancelToken` stop a training run that is already in flight. Errors
+  carry `err.code` (`invalid_argument`, `pos_unavailable`, ...) on both the
+  thrown and the rejected path. Byte offsets on tokens are exact; note they
+  are byte offsets, not UTF-16 indices. TypeScript definitions are generated
+  by napi-rs and committed. The package embeds no models.
+
 - New crate `litsea-python` (#202): the Python binding, published to PyPI
   as `litsea`. Built with PyO3 0.29 + maturin against the stable ABI
   (`abi3-py310`), so one wheel per platform covers Python 3.10+. It exposes

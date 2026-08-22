@@ -1,0 +1,25 @@
+[package]
+name = "litsea-nodejs"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Node.js binding for Litsea."
+documentation = "https://docs.rs/litsea-nodejs"
+homepage.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["word", "segmentation", "nlp", "nodejs", "binding"]
+categories.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+litsea.workspace = true
+litsea-binding-core = { workspace = true, features = ["remote_model"] }
+napi = { version = "3.12.2", features = ["napi8"] }
+napi-derive = "3.6.3"
+
+[build-dependencies]
+napi-build = "2.4.1"

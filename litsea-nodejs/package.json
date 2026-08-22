@@ -1,0 +1,65 @@
+{
+  "name": "litsea",
+  "version": "0.12.0",
+  "description": "Node.js binding for Litsea, a compact word segmentation and POS tagging library (no embedded models)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.js",
+      "default": "./index.js"
+    }
+  },
+  "engines": {
+    "node": ">= 20"
+  },
+  "napi": {
+    "binaryName": "litsea",
+    "package": {
+      "name": "litsea"
+    },
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-pc-windows-msvc",
+      "aarch64-pc-windows-msvc"
+    ]
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "napi build --platform --release -p litsea-nodejs",
+    "build:debug": "napi build --platform -p litsea-nodejs",
+    "artifacts": "napi artifacts",
+    "test": "node --test tests/test-*.mjs"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mosuka/litsea.git"
+  },
+  "homepage": "https://github.com/mosuka/litsea",
+  "bugs": {
+    "url": "https://github.com/mosuka/litsea/issues"
+  },
+  "keywords": [
+    "word",
+    "segmentation",
+    "tokenizer",
+    "pos",
+    "nlp",
+    "japanese",
+    "chinese",
+    "korean",
+    "english"
+  ],
+  "devDependencies": {
+    "@napi-rs/cli": "^3.0.0"
+  }
+}
