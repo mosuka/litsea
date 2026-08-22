@@ -247,3 +247,54 @@ pub struct TwoStageMetrics {
 単語単位のタガーの UPOS タグクラスに対するメトリクスです。どちらのフィールドも
 `MulticlassMetrics` 型で、[`PerceptronTrainer::train`](#perceptrontrainer)（上記）が返すものと
 同じ型であり、正解率とマクロ平均の適合率・再現率を保持します。
+
+## in-memory での学習
+
+各トレーナには、パス版のコンストラクタと `train` に対応する in-memory 版があります。これによりファイルシステムなしでパイプライン全体を実行できます（パス版がコンパイル対象外になる `wasm32-unknown-unknown` など）。
+
+| パス版 | in-memory 版 |
+|--------|-------------|
+| `Trainer::new(threshold, iterations, features_path)` | `Trainer::from_features(threshold, iterations, features)` |
+| `PerceptronTrainer::new(epochs, features_path)` | `PerceptronTrainer::from_features(epochs, features)` |
+| `TwoStageTrainer::new(epochs, dominance, prefix)` | `TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)` |
+| `train(running, model_path)` | `train_to_writer(running, writer)` |
+| `load_model(uri).await` | `load_model_from_reader(reader)` |
+
+```rust
+use litsea::{Extractor, Language, Trainer};
+use std::sync::atomic::AtomicBool;
+
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+Extractor::new(Language::Japanese).extract_to_writer(corpus, &mut features)?;
+let features = String::from_utf8(features).expect("features are UTF-8");
+
+let mut model = Vec::new();
+let metrics = Trainer::from_features(0.01, 10_000, &features)?
+    .train_to_writer(&AtomicBool::new(true), &mut model)?;
+```
+
+特徴量を reader ではなく `&str` で受け取るのは、`AdaBoost` が特徴量を 2 回走査するためです（1 回目で特徴量の語彙を構築し、2 回目でそれに対するインスタンスを構築する）。
+
+両経路は**バイト単位で同一のモデル**を生成し、それをクレートのテストが検証しています。
+
+### 分割モデルを直接学習する
+
+AdaBoost のパイプラインでは、特徴量ファイルを経由せずに学習器の API だけで完結します。
+
+```rust
+use litsea::{AdaBoost, Language, Segmenter};
+
+let mut learner = AdaBoost::new(0.01, 10_000);
+let segmenter = Segmenter::new(Language::Japanese);
+segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+learner.train(&AtomicBool::new(true));
+learner.save_model_to_writer(&mut model)?;
+```
+
+新規の学習器であればこれは等価です。ただし**読み込み済みモデルからの追加学習では等価になりません**。`Trainer` の 2 パス経路は各インスタンスのブースティング重みを既存モデルから算出しますが、`add_instance` はすべて `1.0` から始めます。
+
+### 再現性
+
+学習は入力だけの関数です。同じ特徴量から 2 回学習すれば同じモデルになります。これは `AveragedPerceptron::add_instance` が特徴量をソートして保持するためです。`HashSet` の反復順は集合ごとに異なり、パーセプトロンの更新は順序に依存するため、これ以前は同一プロセス内の 2 回の学習が一致しないことがありました。

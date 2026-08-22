@@ -10,8 +10,15 @@
 
 use std::collections::HashSet;
 use std::fmt;
+use std::io::Write;
+
+// The path-based entry points are compiled out on wasm32, which has no
+// filesystem; the `*_to_writer` twins work everywhere.
+#[cfg(not(target_arch = "wasm32"))]
 use std::fs::File;
-use std::io::{self, BufRead, Write};
+#[cfg(not(target_arch = "wasm32"))]
+use std::io::{self, BufRead};
+#[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
 
 use rustc_hash::FxHashMap;
@@ -20,7 +27,10 @@ use crate::error::Result;
 use crate::evaluation::parse_gold_pos_line;
 use crate::language::Language;
 use crate::segmenter::Segmenter;
-use crate::two_stage::{TwoStageFeatureSet, sort_lexicon_entry, two_stage_paths, write_lexicon};
+use crate::two_stage::{TwoStageFeatureSet, sort_lexicon_entry, write_lexicon};
+// Only the path-based two-stage extractor derives the three file names.
+#[cfg(not(target_arch = "wasm32"))]
+use crate::two_stage::two_stage_paths;
 use crate::upos::{SegmentLabel, Upos};
 use crate::word_features::write_word_features;
 
@@ -45,6 +55,52 @@ impl Default for Extractor {
     fn default() -> Self {
         Self::new(Language::default())
     }
+}
+
+/// Accumulates the surface-to-tag counts that become the lexicon file.
+///
+/// Kept in memory for the whole corpus (as it always has been) and
+/// serialized once at the end, so the path-based and in-memory extractors
+/// share both the accumulation and the ordering rules.
+#[derive(Default)]
+struct LexiconCounts {
+    /// Surface form to per-tag occurrence counts.
+    counts: FxHashMap<String, FxHashMap<Upos, u32>>,
+}
+
+impl LexiconCounts {
+    /// Records one occurrence of a surface with a tag.
+    ///
+    /// # Arguments
+    /// * `surface` - The word's surface form.
+    /// * `tag` - Its UPOS tag.
+    fn observe(&mut self, surface: &str, tag: Upos) {
+        *self.counts.entry(surface.to_string()).or_default().entry(tag).or_insert(0) += 1;
+    }
+
+    /// Converts the counts into the sorted form the lexicon file stores.
+    ///
+    /// # Returns
+    /// Each surface's tags, most frequent first (ties by tag name).
+    fn finish(self) -> FxHashMap<String, Vec<(Upos, u32)>> {
+        self.counts
+            .into_iter()
+            .map(|(surface, counts)| {
+                let mut entry: Vec<(Upos, u32)> = counts.into_iter().collect();
+                sort_lexicon_entry(&mut entry);
+                (surface, entry)
+            })
+            .collect()
+    }
+}
+
+/// Scratch buffers reused across corpus lines by the two-stage extractor.
+#[derive(Default)]
+struct TwoStageLineState {
+    /// Formatted stage-1 rows for the current line.
+    stage1_rows: Vec<String>,
+    /// Stage-2 word features for the current word.
+    stage2_feats: Vec<String>,
 }
 
 impl Extractor {
@@ -80,9 +136,34 @@ impl Extractor {
     /// # Errors
     /// Returns an I/O error if the corpus file cannot be opened or read, or
     /// if the features file cannot be created or written.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn extract(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_with_writer(line, |attrs, label| {
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
+    }
+
+    /// Extracts boundary-classification features from an in-memory corpus to a writer.
+    ///
+    /// The in-memory counterpart of [`extract`](Self::extract), for
+    /// callers with no filesystem (WebAssembly) or with the corpus already
+    /// in memory. The output is byte-identical.
+    ///
+    /// # Arguments
+    /// * `corpus` - The corpus contents, one sentence per line.
+    /// * `writer` - Where to write the `label\tfeature...` rows.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if the writer fails.
+    pub fn extract_to_writer<W: Write>(&self, corpus: &str, writer: &mut W) -> Result<()> {
+        let segmenter = &self.segmenter;
+        Self::write_features_to_writer(corpus, writer, |line, rows| {
             segmenter.add_corpus_with_writer(line, |attrs, label| {
                 rows.push(Self::format_row(attrs, label));
             });
@@ -110,9 +191,34 @@ impl Extractor {
     /// # Errors
     /// Returns an error if the corpus file cannot be read or the features
     /// file cannot be created or written to.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn extract_tsv(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_tsv_with_writer(line, |attrs, label| {
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
+    }
+
+    /// Extracts boundary-classification features from a TSV corpus from an in-memory corpus to a writer.
+    ///
+    /// The in-memory counterpart of [`extract_tsv`](Self::extract_tsv), for
+    /// callers with no filesystem (WebAssembly) or with the corpus already
+    /// in memory. The output is byte-identical.
+    ///
+    /// # Arguments
+    /// * `corpus` - The corpus contents, one sentence per line.
+    /// * `writer` - Where to write the `label\tfeature...` rows.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if the writer fails.
+    pub fn extract_tsv_to_writer<W: Write>(&self, corpus: &str, writer: &mut W) -> Result<()> {
+        let segmenter = &self.segmenter;
+        Self::write_features_to_writer(corpus, writer, |line, rows| {
             segmenter.add_corpus_tsv_with_writer(line, |attrs, label| {
                 rows.push(Self::format_row(attrs, label));
             });
@@ -142,9 +248,35 @@ impl Extractor {
     /// # Errors
     /// Returns an I/O error if the corpus file cannot be opened or read, or
     /// if the features file cannot be created or written.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn extract_tag_free(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_with_writer(line, |mut attrs, label| {
+                attrs.retain(|a| !crate::packed_model::is_tag_dependent_feature(a));
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
+    }
+
+    /// Extracts tag-free boundary-classification features from an in-memory corpus to a writer.
+    ///
+    /// The in-memory counterpart of [`extract_tag_free`](Self::extract_tag_free), for
+    /// callers with no filesystem (WebAssembly) or with the corpus already
+    /// in memory. The output is byte-identical.
+    ///
+    /// # Arguments
+    /// * `corpus` - The corpus contents, one sentence per line.
+    /// * `writer` - Where to write the `label\tfeature...` rows.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if the writer fails.
+    pub fn extract_tag_free_to_writer<W: Write>(&self, corpus: &str, writer: &mut W) -> Result<()> {
+        let segmenter = &self.segmenter;
+        Self::write_features_to_writer(corpus, writer, |line, rows| {
             segmenter.add_corpus_with_writer(line, |mut attrs, label| {
                 attrs.retain(|a| !crate::packed_model::is_tag_dependent_feature(a));
                 rows.push(Self::format_row(attrs, label));
@@ -167,9 +299,39 @@ impl Extractor {
     /// # Errors
     /// Returns an I/O error if the corpus file cannot be opened or read, or
     /// if the features file cannot be created or written.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn extract_tsv_tag_free(&self, corpus_path: &Path, features_path: &Path) -> Result<()> {
         let segmenter = &self.segmenter;
         Self::write_features(corpus_path, features_path, |line, rows| {
+            segmenter.add_corpus_tsv_with_writer(line, |mut attrs, label| {
+                attrs.retain(|a| !crate::packed_model::is_tag_dependent_feature(a));
+                rows.push(Self::format_row(attrs, label));
+            });
+        })
+    }
+
+    /// Extracts tag-free boundary-classification features from a TSV corpus from an in-memory corpus to a writer.
+    ///
+    /// The in-memory counterpart of [`extract_tsv_tag_free`](Self::extract_tsv_tag_free), for
+    /// callers with no filesystem (WebAssembly) or with the corpus already
+    /// in memory. The output is byte-identical.
+    ///
+    /// # Arguments
+    /// * `corpus` - The corpus contents, one sentence per line.
+    /// * `writer` - Where to write the `label\tfeature...` rows.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if the writer fails.
+    pub fn extract_tsv_tag_free_to_writer<W: Write>(
+        &self,
+        corpus: &str,
+        writer: &mut W,
+    ) -> Result<()> {
+        let segmenter = &self.segmenter;
+        Self::write_features_to_writer(corpus, writer, |line, rows| {
             segmenter.add_corpus_tsv_with_writer(line, |mut attrs, label| {
                 attrs.retain(|a| !crate::packed_model::is_tag_dependent_feature(a));
                 rows.push(Self::format_row(attrs, label));
@@ -207,6 +369,7 @@ impl Extractor {
     /// # Errors
     /// Returns an I/O error if the corpus file cannot be opened or read, or
     /// if any output file cannot be created or written.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn extract_two_stage(
         &self,
         corpus_path: &Path,
@@ -214,6 +377,48 @@ impl Extractor {
         feature_set: TwoStageFeatureSet,
     ) -> Result<()> {
         self.extract_two_stage_impl(corpus_path, output_prefix, feature_set, false)
+    }
+
+    /// Extracts two-stage features from an in-memory corpus to three writers.
+    ///
+    /// The in-memory counterpart of [`extract_two_stage`](Self::extract_two_stage): instead of
+    /// `{prefix}.stage1` / `.stage2` / `.lexicon`, the three outputs go to
+    /// the writers given here, byte for byte the same. Feed them to
+    /// [`TwoStageTrainer::from_features`](crate::trainer::TwoStageTrainer::from_features).
+    ///
+    /// # Arguments
+    /// * `corpus` - The corpus contents, one sentence per line.
+    /// * `stage1_out` - Where to write the stage-1 (`B`/`O`) rows.
+    /// * `stage2_out` - Where to write the stage-2 (UPOS) rows.
+    /// * `lexicon_out` - Where to write the lexicon.
+    /// * `feature_set` - Which stage-2 word templates to write.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if any writer fails.
+    pub fn extract_two_stage_to_writers<W1, W2, W3>(
+        &self,
+        corpus: &str,
+        stage1_out: &mut W1,
+        stage2_out: &mut W2,
+        lexicon_out: &mut W3,
+        feature_set: TwoStageFeatureSet,
+    ) -> Result<()>
+    where
+        W1: Write,
+        W2: Write,
+        W3: Write,
+    {
+        self.extract_two_stage_to_writers_impl(
+            corpus,
+            stage1_out,
+            stage2_out,
+            lexicon_out,
+            feature_set,
+            false,
+        )
     }
 
     /// Tab-separated variant of
@@ -253,6 +458,7 @@ impl Extractor {
     /// # Errors
     /// Returns an I/O error if the corpus file cannot be opened or read, or
     /// if any output file cannot be created or written.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn extract_two_stage_tsv(
         &self,
         corpus_path: &Path,
@@ -260,6 +466,48 @@ impl Extractor {
         feature_set: TwoStageFeatureSet,
     ) -> Result<()> {
         self.extract_two_stage_impl(corpus_path, output_prefix, feature_set, true)
+    }
+
+    /// Extracts two-stage features from a space-preserving TSV corpus from an in-memory corpus to three writers.
+    ///
+    /// The in-memory counterpart of [`extract_two_stage_tsv`](Self::extract_two_stage_tsv): instead of
+    /// `{prefix}.stage1` / `.stage2` / `.lexicon`, the three outputs go to
+    /// the writers given here, byte for byte the same. Feed them to
+    /// [`TwoStageTrainer::from_features`](crate::trainer::TwoStageTrainer::from_features).
+    ///
+    /// # Arguments
+    /// * `corpus` - The corpus contents, one sentence per line.
+    /// * `stage1_out` - Where to write the stage-1 (`B`/`O`) rows.
+    /// * `stage2_out` - Where to write the stage-2 (UPOS) rows.
+    /// * `lexicon_out` - Where to write the lexicon.
+    /// * `feature_set` - Which stage-2 word templates to write.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if any writer fails.
+    pub fn extract_two_stage_tsv_to_writers<W1, W2, W3>(
+        &self,
+        corpus: &str,
+        stage1_out: &mut W1,
+        stage2_out: &mut W2,
+        lexicon_out: &mut W3,
+        feature_set: TwoStageFeatureSet,
+    ) -> Result<()>
+    where
+        W1: Write,
+        W2: Write,
+        W3: Write,
+    {
+        self.extract_two_stage_to_writers_impl(
+            corpus,
+            stage1_out,
+            stage2_out,
+            lexicon_out,
+            feature_set,
+            true,
+        )
     }
 
     /// Shared implementation behind
@@ -272,6 +520,7 @@ impl Extractor {
     /// purpose: if they disagreed on the separator, the stage-1 training
     /// text and the stage-2 character offsets would silently desync, with
     /// nothing to catch it.
+    #[cfg(not(target_arch = "wasm32"))]
     fn extract_two_stage_impl(
         &self,
         corpus_path: &Path,
@@ -279,97 +528,181 @@ impl Extractor {
         feature_set: TwoStageFeatureSet,
         tsv: bool,
     ) -> Result<()> {
-        let segmenter = &self.segmenter;
-        let language = segmenter.language();
         let (stage1_path, stage2_path, lexicon_path) = two_stage_paths(output_prefix);
 
+        // The corpus is streamed line by line; only the lexicon is
+        // accumulated in memory, as it always has been.
         let corpus_file = File::open(corpus_path)?;
         let corpus = io::BufReader::new(corpus_file);
         let mut stage1_out = io::BufWriter::new(File::create(stage1_path)?);
         let mut stage2_out = io::BufWriter::new(File::create(stage2_path)?);
-        let mut lexicon: FxHashMap<String, FxHashMap<Upos, u32>> = FxHashMap::default();
+        let mut lexicon = LexiconCounts::default();
 
-        let mut stage1_rows: Vec<String> = Vec::new();
-        let mut stage2_feats: Vec<String> = Vec::new();
+        let mut state = TwoStageLineState::default();
         for line in corpus.lines() {
             let line = line?;
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-
-            // Stage 1: character-level attribute generation over the
-            // POS-tagged corpus, with the label collapsed to the boundary
-            // class.
-            let collect_stage1 = |attrs, label| {
-                let boundary = match label {
-                    SegmentLabel::B(_) => "B",
-                    SegmentLabel::O => "O",
-                };
-                stage1_rows.push(Self::format_row(attrs, boundary));
-            };
-            if tsv {
-                segmenter.add_corpus_tsv_with_pos_writer(line, collect_stage1);
-            } else {
-                segmenter.add_corpus_with_pos_writer(line, collect_stage1);
-            }
-            for row in stage1_rows.drain(..) {
-                writeln!(stage1_out, "{}", row)?;
-            }
-
-            // Stage 2 + lexicon: one row per word, keyed by its UPOS tag.
-            // Parsed with the same separator stage 1 just used, so `sent`
-            // and the offsets below match the stage-1 training text exactly.
-            let tokens = parse_gold_pos_line(line, tsv);
-            let sent: Vec<char> = tokens.iter().flat_map(|(w, _)| w.chars()).collect();
-            let type_ids: Vec<u8> = sent.iter().map(|&c| language.char_type_id(c)).collect();
-            let mut start = 0usize;
-            for (surface, tag) in &tokens {
-                let wlen = surface.chars().count();
-                if wlen == 0 {
-                    continue;
-                }
-                let end = start + wlen;
-                // A whitespace token (only reachable from the TSV corpus of
-                // issue #198) gets no stage-2 row: such tokens are ~43% of a
-                // spaced corpus and would train one degenerate Upos::X class,
-                // distorting the in-sample stage-2 metrics. It still gets a
-                // lexicon entry -- a single-candidate `" "` entry makes the
-                // packed model tag spaces through its fixed-tag path, without
-                // the classifier -- and it still advances `start`, so the
-                // neighbouring words' context features contain the space, the
-                // way they do at inference.
-                if !surface.chars().all(char::is_whitespace) {
-                    stage2_feats.clear();
-                    write_word_features(
-                        language,
-                        &sent,
-                        &type_ids,
-                        start,
-                        end,
-                        |tid| feature_set.includes(tid),
-                        &mut |f| stage2_feats.push(f),
-                    );
-                    writeln!(stage2_out, "{}\t{}", tag, stage2_feats.join("\t"))?;
-                }
-                *lexicon.entry(surface.clone()).or_default().entry(*tag).or_insert(0) += 1;
-                start = end;
-            }
+            self.extract_two_stage_line(
+                line.trim(),
+                &mut stage1_out,
+                &mut stage2_out,
+                &mut lexicon,
+                &mut state,
+                feature_set,
+                tsv,
+            )?;
         }
         stage1_out.flush()?;
         stage2_out.flush()?;
 
-        let lexicon: FxHashMap<String, Vec<(Upos, u32)>> = lexicon
-            .into_iter()
-            .map(|(surface, counts)| {
-                let mut entry: Vec<(Upos, u32)> = counts.into_iter().collect();
-                sort_lexicon_entry(&mut entry);
-                (surface, entry)
-            })
-            .collect();
         let mut lexicon_out = io::BufWriter::new(File::create(lexicon_path)?);
-        write_lexicon(&lexicon, &mut lexicon_out)?;
+        write_lexicon(&lexicon.finish(), &mut lexicon_out)?;
         lexicon_out.flush()?;
+
+        Ok(())
+    }
+
+    /// Extracts two-stage features from an in-memory corpus to three writers.
+    ///
+    /// The in-memory counterpart of `extract_two_stage_impl`.
+    ///
+    /// # Arguments
+    /// * `corpus` - The corpus contents, one sentence per line.
+    /// * `stage1_out` - Where to write the stage-1 (`B`/`O`) rows.
+    /// * `stage2_out` - Where to write the stage-2 (UPOS) rows.
+    /// * `lexicon_out` - Where to write the lexicon.
+    /// * `feature_set` - Which stage-2 word templates to write.
+    /// * `tsv` - Whether the corpus is in the space-preserving TSV format.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if any writer fails.
+    fn extract_two_stage_to_writers_impl<W1, W2, W3>(
+        &self,
+        corpus: &str,
+        stage1_out: &mut W1,
+        stage2_out: &mut W2,
+        lexicon_out: &mut W3,
+        feature_set: TwoStageFeatureSet,
+        tsv: bool,
+    ) -> Result<()>
+    where
+        W1: Write,
+        W2: Write,
+        W3: Write,
+    {
+        let mut lexicon = LexiconCounts::default();
+        let mut state = TwoStageLineState::default();
+
+        for line in corpus.lines() {
+            self.extract_two_stage_line(
+                line.trim(),
+                stage1_out,
+                stage2_out,
+                &mut lexicon,
+                &mut state,
+                feature_set,
+                tsv,
+            )?;
+        }
+
+        write_lexicon(&lexicon.finish(), lexicon_out)
+    }
+
+    /// Processes one corpus line of the two-stage pipeline.
+    ///
+    /// # Arguments
+    /// * `line` - The trimmed sentence; blank lines are skipped.
+    /// * `stage1_out` - Where to write the stage-1 rows.
+    /// * `stage2_out` - Where to write the stage-2 rows.
+    /// * `lexicon` - The lexicon counts accumulated so far.
+    /// * `state` - Reusable scratch buffers.
+    /// * `feature_set` - Which stage-2 word templates to write.
+    /// * `tsv` - Whether the corpus is in the space-preserving TSV format.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if a writer fails.
+    #[allow(clippy::too_many_arguments)]
+    fn extract_two_stage_line<W1, W2>(
+        &self,
+        line: &str,
+        stage1_out: &mut W1,
+        stage2_out: &mut W2,
+        lexicon: &mut LexiconCounts,
+        state: &mut TwoStageLineState,
+        feature_set: TwoStageFeatureSet,
+        tsv: bool,
+    ) -> Result<()>
+    where
+        W1: Write,
+        W2: Write,
+    {
+        if line.is_empty() {
+            return Ok(());
+        }
+
+        let segmenter = &self.segmenter;
+        let language = segmenter.language();
+        let TwoStageLineState {
+            stage1_rows,
+            stage2_feats,
+        } = state;
+
+        // Stage 1: character-level attribute generation over the POS-tagged
+        // corpus, with the label collapsed to the boundary class.
+        let collect_stage1 = |attrs, label| {
+            let boundary = match label {
+                SegmentLabel::B(_) => "B",
+                SegmentLabel::O => "O",
+            };
+            stage1_rows.push(Self::format_row(attrs, boundary));
+        };
+        if tsv {
+            segmenter.add_corpus_tsv_with_pos_writer(line, collect_stage1);
+        } else {
+            segmenter.add_corpus_with_pos_writer(line, collect_stage1);
+        }
+        for row in stage1_rows.drain(..) {
+            writeln!(stage1_out, "{}", row)?;
+        }
+
+        // Stage 2 + lexicon: one row per word, keyed by its UPOS tag.
+        // Parsed with the same separator stage 1 just used, so `sent` and
+        // the offsets below match the stage-1 training text exactly.
+        let tokens = parse_gold_pos_line(line, tsv);
+        let sent: Vec<char> = tokens.iter().flat_map(|(w, _)| w.chars()).collect();
+        let type_ids: Vec<u8> = sent.iter().map(|&c| language.char_type_id(c)).collect();
+        let mut start = 0usize;
+        for (surface, tag) in &tokens {
+            let wlen = surface.chars().count();
+            if wlen == 0 {
+                continue;
+            }
+            let end = start + wlen;
+            // Whitespace tokens get no stage-2 row (they would form one
+            // degenerate class and distort the in-sample metrics) but do get
+            // a lexicon entry, and do advance the offset so neighbouring
+            // words' context features include the space.
+            if !surface.chars().all(char::is_whitespace) {
+                stage2_feats.clear();
+                write_word_features(
+                    language,
+                    &sent,
+                    &type_ids,
+                    start,
+                    end,
+                    |tid| feature_set.includes(tid),
+                    &mut |f| stage2_feats.push(f),
+                );
+                writeln!(stage2_out, "{}\t{}", tag, stage2_feats.join("\t"))?;
+            }
+            lexicon.observe(surface, *tag);
+            start = end;
+        }
 
         Ok(())
     }
@@ -377,6 +710,7 @@ impl Extractor {
     /// Shared extraction pipeline: reads the corpus line by line, lets
     /// `process_line` convert each non-empty line into formatted feature rows,
     /// and writes the rows to the features file.
+    #[cfg(not(target_arch = "wasm32"))]
     fn write_features<P>(
         corpus_path: &Path,
         features_path: &Path,
@@ -385,8 +719,9 @@ impl Extractor {
     where
         P: FnMut(&str, &mut Vec<String>),
     {
-        // Read sentences from the corpus file.
-        // Each line is treated as a separate sentence.
+        // Read sentences from the corpus file, one line per sentence. The
+        // corpus is streamed rather than slurped: a real one (a Wikipedia
+        // dump, say) does not fit comfortably in memory.
         let corpus_file = File::open(corpus_path)?;
         let corpus = io::BufReader::new(corpus_file);
 
@@ -397,14 +732,76 @@ impl Extractor {
         let mut rows: Vec<String> = Vec::new();
         for line in corpus.lines() {
             let line = line?;
-            let line = line.trim();
-            if line.is_empty() {
-                continue;
-            }
-            process_line(line, &mut rows);
-            for row in rows.drain(..) {
-                writeln!(features, "{}", row)?;
-            }
+            Self::write_feature_line(line.trim(), &mut features, &mut rows, &mut process_line)?;
+        }
+
+        // Flushed explicitly so a write error surfaces here rather than
+        // being swallowed by `BufWriter`'s drop.
+        features.flush()?;
+
+        Ok(())
+    }
+
+    /// Writes the features of an in-memory corpus to a writer.
+    ///
+    /// The in-memory counterpart of [`write_features`](Self::write_features).
+    ///
+    /// # Arguments
+    /// * `corpus` - The corpus contents, one sentence per line.
+    /// * `writer` - Where to write the feature rows.
+    /// * `process_line` - Turns one sentence into feature rows.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if the writer fails.
+    fn write_features_to_writer<W, P>(
+        corpus: &str,
+        writer: &mut W,
+        mut process_line: P,
+    ) -> Result<()>
+    where
+        W: Write,
+        P: FnMut(&str, &mut Vec<String>),
+    {
+        let mut rows: Vec<String> = Vec::new();
+        for line in corpus.lines() {
+            Self::write_feature_line(line.trim(), writer, &mut rows, &mut process_line)?;
+        }
+
+        Ok(())
+    }
+
+    /// Turns one corpus line into feature rows and writes them.
+    ///
+    /// # Arguments
+    /// * `line` - The trimmed sentence; blank lines are skipped.
+    /// * `writer` - Where to write the feature rows.
+    /// * `rows` - Scratch buffer, drained on every call.
+    /// * `process_line` - Turns the sentence into feature rows.
+    ///
+    /// # Returns
+    /// Returns a Result indicating success or failure.
+    ///
+    /// # Errors
+    /// Returns an error if the writer fails.
+    fn write_feature_line<W, P>(
+        line: &str,
+        writer: &mut W,
+        rows: &mut Vec<String>,
+        process_line: &mut P,
+    ) -> Result<()>
+    where
+        W: Write,
+        P: FnMut(&str, &mut Vec<String>),
+    {
+        if line.is_empty() {
+            return Ok(());
+        }
+        process_line(line, rows);
+        for row in rows.drain(..) {
+            writeln!(writer, "{}", row)?;
         }
 
         Ok(())

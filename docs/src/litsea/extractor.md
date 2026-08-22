@@ -159,6 +159,46 @@ extractor.extract_two_stage(
 )?;
 ```
 
+## In-memory extraction
+
+Every `extract*` method has a `*_to_writer` twin that takes the corpus as a string and writes the feature rows to any `Write`, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method.
+
+| Path-based | In-memory |
+|------------|-----------|
+| `extract(corpus_path, features_path)` | `extract_to_writer(corpus, writer)` |
+| `extract_tsv` | `extract_tsv_to_writer` |
+| `extract_tag_free` | `extract_tag_free_to_writer` |
+| `extract_tsv_tag_free` | `extract_tsv_tag_free_to_writer` |
+| `extract_two_stage(corpus_path, prefix, feature_set)` | `extract_two_stage_to_writers(corpus, stage1, stage2, lexicon, feature_set)` |
+| `extract_two_stage_tsv` | `extract_two_stage_tsv_to_writers` |
+
+```rust
+use litsea::{Extractor, Language};
+
+let extractor = Extractor::new(Language::Japanese);
+let corpus = "これ は テスト です 。\n";
+
+let mut features = Vec::new();
+extractor.extract_to_writer(corpus, &mut features)?;
+```
+
+The two-stage variant writes the three outputs that the path version puts in `{prefix}.stage1`, `.stage2`, and `.lexicon`:
+
+```rust
+let (mut stage1, mut stage2, mut lexicon) = (Vec::new(), Vec::new(), Vec::new());
+extractor.extract_two_stage_to_writers(
+    corpus,
+    &mut stage1,
+    &mut stage2,
+    &mut lexicon,
+    TwoStageFeatureSet::Fast,
+)?;
+```
+
+Feed the result to [`TwoStageTrainer::from_features`](trainer.md#in-memory-training).
+
+The path-based methods are unavailable on `wasm32-unknown-unknown`, which has no filesystem; the `*_to_writer` twins compile everywhere.
+
 ## TwoStageFeatureSet
 
 ```rust
