@@ -9,6 +9,28 @@ Litsea is an extremely compact word segmentation and POS (Part-of-Speech) taggin
 - **Multilingual Support** for Japanese, Korean, Chinese, and English
 - **Backward Compatible** — existing segmentation-only workflows continue to work as before
 
+## Language bindings
+
+Litsea is usable from other languages through bindings that live in this repository:
+
+| Package | Language | Status |
+|---------|----------|--------|
+| [`litsea-python`](litsea-python/README.md) (PyPI: `litsea`) | Python 3.10+ | Available |
+| `litsea-nodejs` | Node.js | Planned ([#203](https://github.com/mosuka/litsea/issues/203)) |
+| `litsea-php` | PHP | Planned ([#204](https://github.com/mosuka/litsea/issues/204)) |
+| `litsea-ruby` | Ruby | Planned ([#205](https://github.com/mosuka/litsea/issues/205)) |
+| `litsea-wasm` | WebAssembly | Planned ([#206](https://github.com/mosuka/litsea/issues/206)) |
+
+Bindings ship code only; models are supplied by the caller as a path, bytes, or URL. `litsea-binding-core` holds the logic they share.
+
+```python
+from litsea import Language, Segmenter
+
+seg = Segmenter.open(Language.JAPANESE, "models/japanese.model")
+seg.segment("これはテストです。")
+# ['これ', 'は', 'テスト', 'です', '。']
+```
+
 There is a small plant called Litsea cubeba (Aomoji) in the same camphoraceae family as Lindera (Kuromoji). This is the origin of the name Litsea.
 
 ## How to build Litsea

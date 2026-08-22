@@ -1,0 +1,48 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "litsea"
+description = "Python binding for Litsea, a compact word segmentation and POS tagging library (no embedded models)"
+authors = [{ name = "Minoru Osuka", email = "minoru.osuka@gmail.com" }]
+license = { text = "MIT" }
+readme = "README.md"
+keywords = ["word", "segmentation", "pos", "tagging", "nlp"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Text Processing :: Linguistic",
+]
+requires-python = ">=3.10"
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/mosuka/litsea"
+Repository = "https://github.com/mosuka/litsea"
+Documentation = "https://mosuka.github.io/litsea/"
+
+[tool.maturin]
+# Mixed layout: the compiled extension is `litsea._litsea`, and the Python
+# package in `python/litsea` re-exports it alongside the type stubs.
+module-name = "litsea._litsea"
+python-source = "python"
+# `extension-module` is passed here rather than declared in Cargo.toml, so
+# plain `cargo test` still links against an interpreter.
+features = ["pyo3/extension-module"]
+
+[dependency-groups]
+dev = ["maturin>=1.7,<2.0", "pytest>=8.0", "mypy>=1.10", "ruff>=0.6"]
+
+[tool.ruff]
+line-length = 119
+
+[tool.mypy]
+python_version = "3.10"
+strict = true

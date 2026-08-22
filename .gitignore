@@ -13,3 +13,15 @@ CLAUDE.md
 
 .tmp
 data/
+
+# Python virtualenv and build artifacts of the litsea-python binding
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+# compiled extension modules produced by `maturin develop`
+*.so
+*.pyd
+*.dylib

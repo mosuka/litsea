@@ -20,3 +20,25 @@ updates:
         update-types:
           - "minor"
           - "patch"
+
+  - package-ecosystem: "pip"
+    directory: "/litsea-python"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      # Same batching rationale as the cargo ecosystem above.
+      pip-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"

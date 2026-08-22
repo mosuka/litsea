@@ -4,6 +4,21 @@
 
 ### Added
 
+- New crate `litsea-python` (#202): the Python binding, published to PyPI
+  as `litsea`. Built with PyO3 0.29 + maturin against the stable ABI
+  (`abi3-py310`), so one wheel per platform covers Python 3.10+. It exposes
+  `Segmenter` (`open` / `from_bytes` / `from_uri`, `segment`,
+  `segment_batch`, `segment_tokens`, `segment_with_pos`,
+  `segment_with_pos_batch`), `Language` / `Upos` / `Token`, the training
+  pipeline (`Extractor`, `Trainer`, `PerceptronTrainer`, `TwoStageTrainer`)
+  with an explicit `CancelToken`, and an exception hierarchy rooted at
+  `LitseaError`. The model kind is detected from the file, so there is no
+  `--pos`-style flag; language arguments accept a `Language` member or its
+  name (`"ja"`, `"japanese"`). `segment_batch`, `segment_with_pos_batch`,
+  `extract`, and every `train` release the GIL, so training can be cancelled
+  from another thread. Ships type stubs and `py.typed`. The package embeds
+  no models: supply one by path, bytes, or URL.
+
 - New crate `litsea-binding-core` (#201): the FFI-independent logic shared
   by the upcoming language bindings (#200) -- Python, Node.js, PHP, Ruby,
   and WebAssembly. It provides `CoreSegmenter` (segmentation and POS
