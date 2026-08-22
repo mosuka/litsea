@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5da4b409.js";
+            window.path_to_searchindex_js = "searchindex-509a4c21.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-354464d4.js"></script>
+        <script src="toc-cea5244b.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -3875,7 +3875,7 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
 <tr><td><a href="#litsea-binding-core"><code>litsea-binding-core</code></a></td><td>（共通・FFI 非依存）</td><td>—</td><td>提供済み</td></tr>
 <tr><td><a href="#python"><code>litsea-python</code></a></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>提供済み</td></tr>
 <tr><td><a href="#nodejs"><code>litsea-nodejs</code></a></td><td>Node.js 20+</td><td>napi-rs</td><td>提供済み</td></tr>
-<tr><td><code>litsea-php</code></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/204">#204</a>）</td></tr>
+<tr><td><a href="#php"><code>litsea-php</code></a></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>提供済み</td></tr>
 <tr><td><code>litsea-ruby</code></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/205">#205</a>）</td></tr>
 <tr><td><code>litsea-wasm</code></td><td>ブラウザ / Deno</td><td>wasm-bindgen</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/206">#206</a>）</td></tr>
 </tbody>
@@ -4245,6 +4245,100 @@ make lint-litsea-nodejs    # clippy
 make build-litsea-nodejs   # リリースビルド
 </code></pre>
 <p><code>index.js</code> と <code>index.d.ts</code> は <code>napi build</code> が生成したものをコミットしており、CI で再生成して内容が古い場合は失敗させます。パリティテストは <code>litsea</code> CLI をビルドし、その出力とバインディングの出力を突き合わせます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="php"><a class="header" href="#php">PHP</a></h1>
+<p><code>litsea-php</code> は <a href="https://github.com/davidcole1340/ext-php-rs">ext-php-rs</a> を用いて Litsea を PHP 8.1 以降へ公開するバインディングです。Packagist では <code>litsea/litsea</code> として配布します。</p>
+<h2 id="インストール-5"><a class="header" href="#インストール-5">インストール</a></h2>
+<p>PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトです。PyPI や npm と異なりビルド済みパッケージの配布はなく、自分でビルドして有効化します。</p>
+<pre><code class="language-sh">cargo build --release -p litsea-php
+php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
+</code></pre>
+<p>常時読み込む場合は <code>php.ini</code> に <code>extension=/path/to/liblitsea_php.so</code> を追記します。ビルドには Rust ツールチェーンと libclang が必要です。</p>
+<h2 id="モデルの入手-2"><a class="header" href="#モデルの入手-2">モデルの入手</a></h2>
+<p>拡張にモデルは含まれません。<a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> から取得してパスを渡してください（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）。モデル自身が種別を持つため、フラグの指定は不要で、読み込んだモデルで何ができるかは <code>hasPos()</code> が示します。</p>
+<h2 id="分割-3"><a class="header" href="#分割-3">分割</a></h2>
+<pre><code class="language-php">use Litsea\Segmenter;
+
+$seg = Segmenter::open('japanese', 'models/japanese.model');
+
+$seg-&gt;segment('これはテストです。');
+// ['これ', 'は', 'テスト', 'です', '。']
+</code></pre>
+<p>言語名と ISO 639-1 コードのどちらも使えます（<code>'ja'</code> / <code>'japanese'</code>）。</p>
+<p>空白区切りの言語では空白自体が 1 トークンとして返るため、トークンを連結すると常に入力が復元されます。</p>
+<pre><code class="language-php">Segmenter::open('ko', 'models/korean.model')-&gt;segment('안녕하세요 반갑습니다');
+// ['안녕하세요', ' ', '반갑습니다']
+</code></pre>
+<h2 id="pos-タグ付け-2"><a class="header" href="#pos-タグ付け-2">POS タグ付け</a></h2>
+<pre><code class="language-php">$seg = Segmenter::open('japanese', 'models/japanese_pos.model');
+
+foreach ($seg-&gt;segmentWithPos('これはテストです。') as $token) {
+    printf("%s\t%s\t[%d:%d]\n", $token-&gt;surface, $token-&gt;pos, $token-&gt;start, $token-&gt;end);
+}
+// これ    PRON    [0:6]
+// は      ADP     [6:9]
+// テスト  NOUN    [9:18]
+// です    AUX     [18:24]
+// 。      PUNCT   [24:27]
+</code></pre>
+<p><code>start</code> と <code>end</code> はバイトオフセットで、PHP の文字列はバイト列です。そのため <code>substr($text, $token-&gt;start, $token-&gt;end - $token-&gt;start)</code> がそのまま表層形を返します（JavaScript のようなエンコーディングを意識した切り出しは不要です）。</p>
+<h2 id="api-2"><a class="header" href="#api-2">API</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>呼び出し</th><th>戻り値</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Segmenter::open($language, $path)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Segmenter::fromBytes($language, $contents)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Segmenter::fromUri($language, $uri)</code></td><td>セグメンタ（ダウンロードはブロッキング）</td></tr>
+<tr><td><code>segment($text)</code></td><td><code>string[]</code></td></tr>
+<tr><td><code>segmentBatch($texts)</code></td><td><code>string[][]</code></td></tr>
+<tr><td><code>segmentTokens($text)</code></td><td>バイトオフセット付き <code>Token[]</code></td></tr>
+<tr><td><code>segmentWithPos($text)</code></td><td>タグとオフセット付き <code>Token[]</code></td></tr>
+<tr><td><code>segmentWithPosBatch($texts)</code></td><td><code>Token[][]</code></td></tr>
+<tr><td><code>(new Extractor($language))-&gt;extract(...)</code></td><td><code>void</code></td></tr>
+<tr><td><code>(new Extractor($language))-&gt;extractTwoStage(...)</code></td><td><code>void</code></td></tr>
+<tr><td><code>(new Trainer($threshold, $iterations, $features))-&gt;train($model, $cancel?)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>(new PerceptronTrainer($epochs, $features))-&gt;train($model, $cancel?)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>(new TwoStageTrainer($epochs, $prefix, $dominance?))-&gt;train($model, $cancel?)</code></td><td><code>TwoStageMetrics</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>ext-php-rs はメソッドとプロパティを camelCase に変換するため、PHP 側では <code>segmentWithPos()</code>・<code>hasPos()</code>・<code>$metrics-&gt;numInstances</code> となります。</p>
+<h2 id="キャンセルは呼び出し前のみ有効"><a class="header" href="#キャンセルは呼び出し前のみ有効">キャンセルは呼び出し前のみ有効</a></h2>
+<p>ここが他のバインディングと唯一異なる点です。これはバインディング側の不足ではなく、ホスト言語の性質です。</p>
+<p>Python バインディングは GIL を解放し、Node.js バインディングは学習をワーカースレッドで実行するため、どちらも実行中の学習を停止できます。PHP のリクエストはシングルスレッドであり、<code>pcntl</code> のシグナルハンドラはブロッキング中のネイティブ呼び出しを中断できないため、<strong><code>train()</code> の実行中に PHP のコードは一切動きません</strong>。したがって <code>CancelToken</code> は、呼び出し前にキャンセルした場合のみ効果があります。</p>
+<pre><code class="language-php">$cancel = new Litsea\CancelToken();
+$cancel-&gt;cancel();
+
+$metrics = (new Litsea\Trainer(0.01, 100000, 'features.txt'))-&gt;train('japanese.model', $cancel);
+</code></pre>
+<p>キャンセルは<strong>エラーではありません</strong>。次のチェックポイントで停止し、部分的に学習されたモデルを保存してメトリクスを返します。</p>
+<p>すべての処理がブロッキングであるため、学習は Web リクエストではなく CLI SAPI から実行してください。</p>
+<h2 id="エラー-3"><a class="header" href="#エラー-3">エラー</a></h2>
+<p>すべての例外は <code>Litsea\LitseaException</code> を継承するため、1 つの <code>catch</code> で捕捉できます（Python バインディングと同じ階層です）。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>例外</th><th>発生条件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Litsea\InvalidArgumentException</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ</td></tr>
+<tr><td><code>Litsea\ModelException</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
+<tr><td><code>Litsea\IoException</code></td><td>ファイルの読み書き失敗</td></tr>
+<tr><td><code>Litsea\ParseException</code></td><td>モデルまたは学習データの形式不正</td></tr>
+<tr><td><code>Litsea\UnsupportedException</code></td><td>このビルドでは利用できないスキームや操作</td></tr>
+<tr><td><code>Litsea\PosUnavailableException</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="開発-2"><a class="header" href="#開発-2">開発</a></h2>
+<pre><code class="language-sh">make test-litsea-php    # cargo test + 拡張のビルド + PHPUnit
+make lint-litsea-php    # clippy
+make build-litsea-php   # リリースビルド
+</code></pre>
+<p>パリティテストは <code>litsea</code> CLI をビルドし、その出力とバインディングの出力を突き合わせます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>
