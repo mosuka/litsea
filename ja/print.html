@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-7eccd0f3.js";
+            window.path_to_searchindex_js = "searchindex-e80ed753.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e8b21538.js"></script>
+        <script src="toc-1d4dde61.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -3877,7 +3877,7 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
 <tr><td><a href="#nodejs"><code>litsea-nodejs</code></a></td><td>Node.js 20+</td><td>napi-rs</td><td>提供済み</td></tr>
 <tr><td><a href="#php"><code>litsea-php</code></a></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>提供済み</td></tr>
 <tr><td><a href="#ruby"><code>litsea-ruby</code></a></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>提供済み</td></tr>
-<tr><td><code>litsea-wasm</code></td><td>ブラウザ / Deno</td><td>wasm-bindgen</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/206">#206</a>）</td></tr>
+<tr><td><a href="#webassembly"><code>litsea-wasm</code></a></td><td>ブラウザ / Deno</td><td>wasm-bindgen</td><td>提供済み</td></tr>
 </tbody>
 </table>
 </div>
@@ -4434,6 +4434,82 @@ make build-litsea-ruby   # リリースビルド
 </code></pre>
 <p>有効な Ruby で <code>bundle</code> が使える必要があります。バージョン管理ツールの shim が存在していても、選択中のインタプリタに bundler が無い場合があるため、Makefile がその旨を検出して案内します。パリティテストは <code>litsea</code> CLI をビルドし、その出力とバインディングの出力を突き合わせます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
+<h1 id="webassembly"><a class="header" href="#webassembly">WebAssembly</a></h1>
+<p><code>litsea-wasm</code> は <a href="https://rustwasm.github.io/wasm-bindgen/">wasm-bindgen</a> を用いて、ブラウザ・Deno・各種バンドラで Litsea を動かすバインディングです。npm では <code>litsea-wasm</code> として配布します。</p>
+<p>Node.js ではネイティブバインディングの <a href="#nodejs"><code>litsea</code></a> を使ってください。速度が上で、モデルの学習にも対応しています。</p>
+<h2 id="インストール-7"><a class="header" href="#インストール-7">インストール</a></h2>
+<pre><code class="language-sh">npm install litsea-wasm
+</code></pre>
+<p>モジュールサイズは <strong>178KB（gzip 82KB）</strong>（リリースビルドでの実測値）です。モデルは別途ダウンロードします。</p>
+<h2 id="使い方-5"><a class="header" href="#使い方-5">使い方</a></h2>
+<pre><code class="language-js">import init, { Segmenter } from 'litsea-wasm'
+
+await init()
+
+const bytes = new Uint8Array(await (await fetch('/models/japanese.model')).arrayBuffer())
+const seg = Segmenter.fromBytes('japanese', bytes)
+
+seg.segment('これはテストです。')
+// [ 'これ', 'は', 'テスト', 'です', '。' ]
+
+seg.free()
+</code></pre>
+<p>言語名と ISO 639-1 コードのどちらも使えます。モデルファイル自身が種別を持つため、読み込んだモデルで何ができるかは <code>hasPos</code> が示します。</p>
+<h2 id="pos-タグ付け-4"><a class="header" href="#pos-タグ付け-4">POS タグ付け</a></h2>
+<pre><code class="language-js">seg.segmentWithPos('これはテストです。')
+// [ Token { surface: 'これ', pos: 'PRON', start: 0, end: 6 }, ... ]
+</code></pre>
+<p><code>start</code> と <code>end</code> は UTF-8 での<strong>バイト</strong>オフセットです。JavaScript の文字列インデックスは UTF-16 コードユニットなので、切り出しには <code>TextEncoder</code> / <code>TextDecoder</code> を使ってください。</p>
+<pre><code class="language-js">const bytes = new TextEncoder().encode(text)
+new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.surface
+</code></pre>
+<h2 id="ホストの制約で提供しない機能"><a class="header" href="#ホストの制約で提供しない機能">ホストの制約で提供しない機能</a></h2>
+<p>5 つのバインディングの中で最も制約が強く、いずれも推測ではなく実測に基づいて判断しています。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>無い機能</th><th>理由</th></tr>
+</thead>
+<tbody>
+<tr><td><code>fromUri</code></td><td><code>cargo check --target wasm32-unknown-unknown --features remote_model</code> が失敗する。reqwest の wasm バックエンドには <code>connect_timeout</code> が無く、<code>litsea::model_io</code> はそれを設定しているため。代わりにページ側で fetch する（キャッシュ・CORS・進捗の制御もページ側に残る）</td></tr>
+<tr><td>学習</td><td><code>Extractor</code> とトレーナはパス前提で、wasm32 にファイルシステムが無い。<code>litsea-binding-core</code> も wasm32 では trainer モジュールをコンパイル対象外にしている</td></tr>
+<tr><td><code>CancelToken</code></td><td>学習が無い以上、キャンセル対象が存在しない</td></tr>
+</tbody>
+</table>
+</div>
+<p>ブラウザでの学習には <code>litsea</code> 本体に in-memory な extract/train API が必要です。<code>Segmenter::add_corpus_with_writer</code> は既にファイルシステム非依存で特徴量を書き出せるため実現可能ですが、コアライブラリ側の作業として <a href="https://github.com/mosuka/litsea/issues/218">#218</a> で追跡します。</p>
+<h2 id="メモリ"><a class="header" href="#メモリ">メモリ</a></h2>
+<p><code>Segmenter</code> はコンパイル済みモデル（POS モデルなら数 MB）を保持し、WebAssembly のオブジェクトは <strong>GC されません</strong>。不要になったら <code>free()</code> を呼んでください。</p>
+<h2 id="モデルのキャッシュ"><a class="header" href="#モデルのキャッシュ">モデルのキャッシュ</a></h2>
+<p>モデルは 84KB〜8MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。補助モジュールを同梱しています。</p>
+<pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
+
+const bytes = await fetchModel('/models/japanese.model')
+</code></pre>
+<p>URL をキーに Cache Storage へ保存し、利用できない環境（非セキュアコンテキストなど）では通常の fetch にフォールバックするため、呼び出し側での分岐は不要です。wasm モジュール外の素の JavaScript なので、使わないページには一切コストがかかりません。</p>
+<h2 id="エラー-5"><a class="header" href="#エラー-5">エラー</a></h2>
+<p>すべてのエラーは Node.js バインディングと同じ <code>code</code> を持ち、2 つの JavaScript バインディングで扱いが揃います。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>err.code</code></th><th>発生条件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>invalid_argument</code></td><td>未知の言語名</td></tr>
+<tr><td><code>model</code></td><td>旧 joint POS モデル</td></tr>
+<tr><td><code>parse</code></td><td>モデルの形式不正、または UTF-8 でない</td></tr>
+<tr><td><code>pos_unavailable</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="開発-4"><a class="header" href="#開発-4">開発</a></h2>
+<pre><code class="language-sh">make test-litsea-wasm    # cargo test + ヘッドレスブラウザテスト
+make lint-litsea-wasm    # wasm32 での clippy
+make build-litsea-wasm   # wasm-pack build --target web
+</code></pre>
+<p>ブラウザテストはプロセスを起動できないため、<code>tests/generate_fixtures.sh</code> が先に <code>litsea</code> CLI を実行して出力を書き出し、テストはそれとの一致を検証します。他のバインディングと同じく、正解は常に参照実装が決めます。</p>
+<p>ブラウザは <code>make test-litsea-wasm WASM_BROWSER=chrome</code> で切り替えられます。全テストが成功した直後に <code>PermissionDenied</code> で失敗する場合、<code>PATH</code> 上の geckodriver が snap 制約下にあります（テスト自体は実行済みです）。</p>
+<div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>
 <p>両方のワークフローとも、データソースとして <a href="https://universaldependencies.org/">Universal Dependencies (UD)</a> Treebanks を使用します。</p>
@@ -4564,7 +4640,7 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 <p><code>download_udtreebank.sh</code> の対応言語: <code>ja</code>（日本語、デフォルト）、<code>ko</code>（韓国語）、<code>zh</code>（中国語）、<code>en</code>（英語）。</p>
 <h2 id="wikipedia-ダンプからのコーパス作成"><a class="header" href="#wikipedia-ダンプからのコーパス作成">Wikipedia ダンプからのコーパス作成</a></h2>
 <p>大規模な学習データが必要な場合、Wikipedia の全文ダンプから <code>scripts/corpus_wikidump.sh</code> を使ってコーパスを作成できます。このスクリプトは <a href="https://github.com/mosuka/wicket">wicket</a> でプレーンテキストを抽出し、文章のみをフィルタリングした後、<a href="https://github.com/lindera/lindera">lindera</a> でトークナイズします。</p>
-<h3 id="使い方-5"><a class="header" href="#使い方-5">使い方</a></h3>
+<h3 id="使い方-6"><a class="header" href="#使い方-6">使い方</a></h3>
 <pre><code class="language-sh"># 日本語（デフォルト）
 bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
 

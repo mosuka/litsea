@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>二段構成タグ付け - Litsea ドキュメント</title>
+        <title>WebAssembly - Litsea ドキュメント</title>
 
 
         <!-- Custom HTML head -->
@@ -146,7 +146,7 @@
                         <a href="https://github.com/mosuka/litsea" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/mosuka/litsea/edit/main/docs/ja/src/algorithm/two-stage-tagging.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/mosuka/litsea/edit/main/docs/ja/src/bindings/wasm.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,162 +180,91 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="二段構成タグ付け"><a class="header" href="#二段構成タグ付け">二段構成タグ付け</a></h1>
-<p>Litsea の <code>segment_with_pos()</code> は<strong>二段構成（two-stage）モデル</strong>
-（<code>--pos</code>、<code>Segmenter::with_two_stage_learner</code>、issue #147）に
-支えられています。モデルファイルの <code>litsea-two-stage v1</code> ヘッダがこの形式を
-識別し（<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">モデルファイル形式</a>を参照）、
-メソッドは <code>Vec&lt;(String, Upos)&gt;</code> の単語/タグのペアを返します。</p>
-<h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
-<p>二段構成タグ付けは、文字レベルで POS クラスを採点することは一切ありません:</p>
-<ol>
-<li><strong>stage 1</strong> は二値の境界分類器で分割します – <code>segment()</code> が使うのと
-構造的に同じスカラー重みの AdaBoost 形式なので、同じ速度で動きます。</li>
-<li><strong>stage 2</strong> は stage 1 が確定した<strong>単語ごとに</strong>、学習コーパスから構築した
-候補タグ語彙表と単語単位の分類器でタグ付けします
-（<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">モデルファイル形式</a>を参照）:
-<ul>
-<li>学習時に観測されたタグが 1 個しかない、あるいは最頻タグが学習時の
-出現の <code>dominance</code> 割合以上を占める表層は、<strong>分類器を一切呼ばずに</strong>
-タグ付けされます。</li>
-<li>曖昧な既知表層は、観測された候補タグのみ（マスク付き argmax）に
-絞って採点されます（全 18 クラスではありません）。</li>
-<li>未知の表層は全クラス argmax にフォールバックします。</li>
-</ul>
-</li>
-</ol>
-<p>単語は平均して 1 文字より多くの文字を含み、大半の単語は曖昧でないか
-分類器そのものをスキップするため、stage 2 の総コストは文字単位の多クラス
-採点のごく一部で済みます。これが POS パスを通常の分割とほぼ同じ速さにして
-いる理由です: 歴史的な joint アーキテクチャ（二段構成への一本化に伴い削除）
-は各文字位置ごとに約 18 個の UPOS クラス全てを採点しており、同じコーパスで
-1.8〜2.8 倍遅く動作していました。</p>
-<h2 id="方法論についての注記-十分な学習エポック数を使う"><a class="header" href="#方法論についての注記-十分な学習エポック数を使う">方法論についての注記: 十分な学習エポック数を使う</a></h2>
-<p>二段構成の展開時に行ったエポックスイープ（10〜150 エポック）により、
-モデル品質は旧来のモデルが学習されていた 10 エポック慣習を大きく超えて
-向上し続け、UD GSD 学習セットでは 50 エポック前後でプラトーに達することが
-分かりました。特に stage 1 の境界のみの特徴量は、よりリッチな文字ごとの
-特徴量セットに比べて、同じコーパスで収束するのにより多くのエポックを
-必要とします。<strong>同梱の二段構成モデルは 50 エポックを使用しています</strong>。
-再学習の際、一発の低エポック実行ではこのアーキテクチャの到達可能な品質を
-過小評価することになります。</p>
-<h2 id="実測の品質とスループット"><a class="header" href="#実測の品質とスループット">実測の品質とスループット</a></h2>
-<p>held-out の数値は UD GSD/EWT test split に対する <code>litsea evaluate --pos</code>
-（<a href="../pre-trained-models.html">事前学習済みモデル</a>を参照）です。スループットは
-本プロジェクトの開発機での <code>cargo bench -- external_corpus</code> で、
-専用のアイドルハードウェアではありません。実行間の振れ幅は無視できない
-大きさです – 方法論とその限界については
-<a href="../advanced/benchmarking.html">ベンチマーク</a>を参照してください。</p>
+                        <h1 id="webassembly"><a class="header" href="#webassembly">WebAssembly</a></h1>
+<p><code>litsea-wasm</code> は <a href="https://rustwasm.github.io/wasm-bindgen/">wasm-bindgen</a> を用いて、ブラウザ・Deno・各種バンドラで Litsea を動かすバインディングです。npm では <code>litsea-wasm</code> として配布します。</p>
+<p>Node.js ではネイティブバインディングの <a href="nodejs.html"><code>litsea</code></a> を使ってください。速度が上で、モデルの学習にも対応しています。</p>
+<h2 id="インストール"><a class="header" href="#インストール">インストール</a></h2>
+<pre><code class="language-sh">npm install litsea-wasm
+</code></pre>
+<p>モジュールサイズは <strong>178KB（gzip 82KB）</strong>（リリースビルドでの実測値）です。モデルは別途ダウンロードします。</p>
+<h2 id="使い方"><a class="header" href="#使い方">使い方</a></h2>
+<pre><code class="language-js">import init, { Segmenter } from 'litsea-wasm'
+
+await init()
+
+const bytes = new Uint8Array(await (await fetch('/models/japanese.model')).arrayBuffer())
+const seg = Segmenter.fromBytes('japanese', bytes)
+
+seg.segment('これはテストです。')
+// [ 'これ', 'は', 'テスト', 'です', '。' ]
+
+seg.free()
+</code></pre>
+<p>言語名と ISO 639-1 コードのどちらも使えます。モデルファイル自身が種別を持つため、読み込んだモデルで何ができるかは <code>hasPos</code> が示します。</p>
+<h2 id="pos-タグ付け"><a class="header" href="#pos-タグ付け">POS タグ付け</a></h2>
+<pre><code class="language-js">seg.segmentWithPos('これはテストです。')
+// [ Token { surface: 'これ', pos: 'PRON', start: 0, end: 6 }, ... ]
+</code></pre>
+<p><code>start</code> と <code>end</code> は UTF-8 での<strong>バイト</strong>オフセットです。JavaScript の文字列インデックスは UTF-16 コードユニットなので、切り出しには <code>TextEncoder</code> / <code>TextDecoder</code> を使ってください。</p>
+<pre><code class="language-js">const bytes = new TextEncoder().encode(text)
+new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.surface
+</code></pre>
+<h2 id="ホストの制約で提供しない機能"><a class="header" href="#ホストの制約で提供しない機能">ホストの制約で提供しない機能</a></h2>
+<p>5 つのバインディングの中で最も制約が強く、いずれも推測ではなく実測に基づいて判断しています。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>言語</th><th>Word F1</th><th>Tagged F1</th><th>スループット</th></tr>
+<tr><th>無い機能</th><th>理由</th></tr>
 </thead>
 <tbody>
-<tr><td>日本語</td><td>96.78%</td><td>92.95%</td><td>4.38M chars/s</td></tr>
-<tr><td>中国語</td><td>90.82%</td><td>82.29%</td><td>3.38M chars/s</td></tr>
-<tr><td>韓国語</td><td>99.88%</td><td>93.95%</td><td>4.21M chars/s</td></tr>
-<tr><td>英語</td><td>98.30%</td><td>90.55%</td><td>7.32M chars/s</td></tr>
+<tr><td><code>fromUri</code></td><td><code>cargo check --target wasm32-unknown-unknown --features remote_model</code> が失敗する。reqwest の wasm バックエンドには <code>connect_timeout</code> が無く、<code>litsea::model_io</code> はそれを設定しているため。代わりにページ側で fetch する（キャッシュ・CORS・進捗の制御もページ側に残る）</td></tr>
+<tr><td>学習</td><td><code>Extractor</code> とトレーナはパス前提で、wasm32 にファイルシステムが無い。<code>litsea-binding-core</code> も wasm32 では trainer モジュールをコンパイル対象外にしている</td></tr>
+<tr><td><code>CancelToken</code></td><td>学習が無い以上、キャンセル対象が存在しない</td></tr>
 </tbody>
 </table>
 </div>
-<p>留意すべき 2 つの観察:</p>
-<ul>
-<li><strong>候補タグ制限は実在する品質レバーです。</strong> 既知単語の候補を実際に
-観測されたものに制限することで、分類器がありえないタグを選ぶ機会の
-大半が排除され、単語あたりの特徴量セットが小さいことによる不利を
-補います。</li>
-<li><strong>スループットは語彙表のカバレッジによって変わります。</strong> 韓国語は
-held-out の未知語率が高いため、安価な dominance スキップや
-候補マスクの経路ではなく、stage 2 の全クラスフォールバックを払う
-単語の割合が大きくなります。英語は issue #198 以降その対極にあります:
-トークンの約 43% が空白であり、そのすべてが候補 1 個の語彙表ヒットと
-なって分類器を完全にスキップします。</li>
-</ul>
-<h3 id="ここで最も効くのはコーパスのプロトコルissue-198"><a class="header" href="#ここで最も効くのはコーパスのプロトコルissue-198">ここで最も効くのはコーパスのプロトコル（issue #198）</a></h3>
-<p>stage 1 の分類器は、学習に使ったテキスト以上に良くはなりません。
-issue #198 までは、二段構成の extractor は空白区切りの <code>word/POS</code>
-コーパスを読み込み、各文を単語表層の<strong>区切りなしの連結</strong>として
-復元していました – 実際の文章に空白がない日本語・中国語では正しい
-処理ですが、韓国語・英語では入力が持つ最も強い境界シグナルを
-捨ててしまっていました。</p>
-<p>代わりに空白保持コーパス（<code>extract --pos --format tsv</code>）で学習することで、
-両言語とも専用の分割モデルと同水準に到達しました:</p>
+<p>ブラウザでの学習には <code>litsea</code> 本体に in-memory な extract/train API が必要です。<code>Segmenter::add_corpus_with_writer</code> は既にファイルシステム非依存で特徴量を書き出せるため実現可能ですが、コアライブラリ側の作業として <a href="https://github.com/mosuka/litsea/issues/218">#218</a> で追跡します。</p>
+<h2 id="メモリ"><a class="header" href="#メモリ">メモリ</a></h2>
+<p><code>Segmenter</code> はコンパイル済みモデル（POS モデルなら数 MB）を保持し、WebAssembly のオブジェクトは <strong>GC されません</strong>。不要になったら <code>free()</code> を呼んでください。</p>
+<h2 id="モデルのキャッシュ"><a class="header" href="#モデルのキャッシュ">モデルのキャッシュ</a></h2>
+<p>モデルは 84KB〜8MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。補助モジュールを同梱しています。</p>
+<pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
+
+const bytes = await fetchModel('/models/japanese.model')
+</code></pre>
+<p>URL をキーに Cache Storage へ保存し、利用できない環境（非セキュアコンテキストなど）では通常の fetch にフォールバックするため、呼び出し側での分岐は不要です。wasm モジュール外の素の JavaScript なので、使わないページには一切コストがかかりません。</p>
+<h2 id="エラー"><a class="header" href="#エラー">エラー</a></h2>
+<p>すべてのエラーは Node.js バインディングと同じ <code>code</code> を持ち、2 つの JavaScript バインディングで扱いが揃います。</p>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>言語</th><th>Word F1（変更前）</th><th>Word F1（変更後）</th><th>Tagged F1（変更前）</th><th>Tagged F1（変更後）</th></tr>
+<tr><th><code>err.code</code></th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td>韓国語</td><td>94.01%</td><td><strong>99.88%</strong></td><td>83.20%</td><td><strong>93.95%</strong></td></tr>
-<tr><td>英語</td><td>77.55%</td><td><strong>98.30%</strong></td><td>69.89%</td><td><strong>90.55%</strong></td></tr>
+<tr><td><code>invalid_argument</code></td><td>未知の言語名</td></tr>
+<tr><td><code>model</code></td><td>旧 joint POS モデル</td></tr>
+<tr><td><code>parse</code></td><td>モデルの形式不正、または UTF-8 でない</td></tr>
+<tr><td><code>pos_unavailable</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
 </tbody>
 </table>
 </div>
-<p>（「変更前」の列は issue #196 の実運用/スペース付きの測定値であり、
-空白非保持プロトコルの数値ではありません。したがってユーザーが実際に
-得ていたものどうしの公平な比較になっています。）韓国語はいま
-<code>korean.model</code> の 99.91% との差が 0.03 ポイント、英語は <code>english.model</code>
-の 98.31% との差が 0.01 ポイントです。</p>
-<p>空白非保持コーパスは<strong>2 つ</strong>の異なる学習と推論のミスマッチを
-引き起こしていましたが、どちらも解消されました:</p>
-<ol>
-<li><strong>stage 1</strong> は、これらの言語でほとんどの語境界を示す空白文字を
-一度も見ていませんでした。</li>
-<li><strong>stage 2</strong> も、より分かりにくい形で影響を受けていました: その文脈
-特徴量（<code>L1</code>〜<code>L3</code> / <code>R1</code>〜<code>R3</code> と <code>cl1</code>〜<code>cl3</code> / <code>cr1</code>〜<code>cr3</code>）は
-周囲の文字を参照しますが、推論時に単語の隣は通常空白であるのに対し、
-空白非保持の学習では次の単語の文字になっていました。空白はトークンの
-約 43% を占めるため、事実上すべての単語が影響を受けていました。</li>
-</ol>
-<p>空白トークンには stage 2 の学習行を与えていません（退化した <code>X</code> クラス
-1 個だけで学習行の約 43% を占めてしまうため）が、語彙表エントリは与えて
-います。これにより空白は候補 1 個となり、分類器を呼ばずに固定タグ経路で
-<code>X</code> としてタグ付けされます – 決定的であり、従来のモデルがフォールバック
-していた全クラス argmax の推測よりも安価です。</p>
-<p>日本語・中国語はこの一連の変更の影響を受けません。これらの言語のテキスト
-には空白がなく、空白区切りコーパスは既に実際の入力と一致していたためです。</p>
-<h2 id="stage-2-特徴量セットの選び方"><a class="header" href="#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a></h2>
-<p>stage 2 の単語単位タガーは 3 種類の特徴量セット（<code>litsea extract --pos</code> の <code>--stage2-features</code>。<a href="../training-guide/extracting-features.html">特徴量の抽出</a>を参照）で
-抽出でき、タグ付け品質とスループットをトレードオフできます。分割品質は
-影響を受けません – 分割は stage 1 だけで決まります。以下の数値は
-同梱モデルと同じ 50 エポックでの値です。</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>特徴量セット</th><th>中国語 Tagged F1</th><th>韓国語 Tagged F1</th><th>英語 Tagged F1</th></tr>
-</thead>
-<tbody>
-<tr><td><code>fast</code>（既定）</td><td>81.33%</td><td>90.62%</td><td>88.68%</td></tr>
-<tr><td><code>balanced</code></td><td>82.29%</td><td>92.95%</td><td>88.66%</td></tr>
-<tr><td><code>full</code></td><td>82.96%</td><td><strong>93.33%</strong></td><td><strong>90.43%</strong></td></tr>
-</tbody>
-</table>
-</div>
-<p>（韓国語と英語は issue #198 に伴って空白保持コーパスで再スイープしており、
-この 2 列はそのスイープの dev split の数値です。中国語の列はそれ以前の
-ものです。その結果、韓国語の勝者は <code>balanced</code> から <code>full</code> に変わりました。）</p>
-<p>日本語では <code>fast</code> だけで Tagged F1 92.95% に到達するため、同梱の
-<code>japanese_pos.model</code> はこれを使用しています。
-中国語では <code>balanced</code> が <code>full</code> の伸びの大半（82.29% vs 82.96%）を
-明確に良いスループットで得られるため、<code>chinese_pos.model</code> は
-<code>full</code> ではなく <code>balanced</code> を使用しています。空白保持コーパスでの
-韓国語・英語では <code>full</code> が明確な勝者であるため（韓国語は 93.33% vs
-<code>balanced</code> の 92.95%、英語は 90.43% vs 他の 2 つの約 88.7%）、
-<code>korean_pos.model</code> と <code>english_pos.model</code> はどちらも <code>full</code> を
-使用しています。別の特徴量セットで再学習するには
-<code>extract --pos --stage2-features &lt;set&gt;</code> + <code>train --pos</code> を再実行するだけで、
-パイプラインの他の部分を変更する必要はありません。</p>
+<h2 id="開発"><a class="header" href="#開発">開発</a></h2>
+<pre><code class="language-sh">make test-litsea-wasm    # cargo test + ヘッドレスブラウザテスト
+make lint-litsea-wasm    # wasm32 での clippy
+make build-litsea-wasm   # wasm-pack build --target web
+</code></pre>
+<p>ブラウザテストはプロセスを起動できないため、<code>tests/generate_fixtures.sh</code> が先に <code>litsea</code> CLI を実行して出力を書き出し、テストはそれとの一致を検証します。他のバインディングと同じく、正解は常に参照実装が決めます。</p>
+<p>ブラウザは <code>make test-litsea-wasm WASM_BROWSER=chrome</code> で切り替えられます。全テストが成功した直後に <code>PermissionDenied</code> で失敗する場合、<code>PATH</code> 上の geckodriver が snap 制約下にあります（テスト自体は実行済みです）。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../algorithm/prediction-pipeline.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../bindings/ruby.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../language-support/overview.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../training-guide.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -345,11 +274,11 @@ issue #198 までは、二段構成の extractor は空白区切りの <code>wor
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../algorithm/prediction-pipeline.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../bindings/ruby.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../language-support/overview.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../training-guide.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>
