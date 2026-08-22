@@ -1,6 +1,6 @@
 {
   "name": "litsea",
-  "version": "0.12.0",
+  "version": "0.13.0",
   "description": "Node.js binding for Litsea, a compact word segmentation and POS tagging library (no embedded models)",
   "main": "index.js",
   "types": "index.d.ts",

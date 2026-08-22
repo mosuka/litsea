@@ -2,6 +2,23 @@
 
 Litsea は `models/` ディレクトリに複数の事前学習済みモデルを同梱しています。
 
+## モデルの入手
+
+モデルはリポジトリの [`models/`](https://github.com/mosuka/litsea/tree/main/models) ディレクトリにあります。加えて、各リリースでは 8 つの言語モデルを個別のアセットとして添付しています。
+
+```text
+https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model
+https://github.com/mosuka/litsea/releases/download/<tag>/japanese_pos.model
+...
+```
+
+これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 24MB に対し、1 つあたり 84KB〜8MB）。これにより次の 2 つが可能になります。
+
+- `remote_model` feature を有効にすれば、CLI やライブラリが URL を直接受け取れます: `litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model`
+- `fromUri` を持たない [WebAssembly バインディング](bindings/wasm.md)でも、ページ側で `fetch` してバイト列を `Segmenter.fromBytes` に渡せます
+
+`main` ではなくリリースタグを指定しておくと、デプロイ先のモデル重みが固定されます。モデルはリリース間で再学習されることがあり、held-out スコアもそれに伴って変わります。
+
 ## モデルカタログ
 
 単語分割モデルは、学習コーパスの held-out テスト分割（学習に使用していない文）で

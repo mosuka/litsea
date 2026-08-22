@@ -2,6 +2,23 @@
 
 Litsea ships with several pre-trained models in the `models/` directory.
 
+## Downloading a model
+
+The models live in the [`models/`](https://github.com/mosuka/litsea/tree/main/models) directory of the repository, and each release attaches the eight language models as individual assets:
+
+```text
+https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model
+https://github.com/mosuka/litsea/releases/download/<tag>/japanese_pos.model
+...
+```
+
+Those URLs are stable per release, and small enough to fetch only what you need (84 KB to 8 MB each, rather than 24 MB for all eight). Two consequences:
+
+- With the `remote_model` feature, the CLI and the library take one directly: `litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model`.
+- The [WebAssembly binding](bindings/wasm.md), which has no `fromUri`, can `fetch` one in the page and pass the bytes to `Segmenter.fromBytes`.
+
+Pinning a release tag rather than `main` keeps a deployment on one set of model weights; the models are retrained between releases, and held-out scores move with them.
+
 ## Model Catalog
 
 The word segmentation models are evaluated on the held-out test split of

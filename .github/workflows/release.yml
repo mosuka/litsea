@@ -293,6 +293,9 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         env:
@@ -304,6 +307,22 @@ jobs:
           prerelease: false
           generate_release_notes: true
           make_latest: true
+          # The bundled models, attached uncompressed and individually so
+          # each has a stable download URL: `litsea segment -m <url>` (with
+          # the `remote_model` feature) and the WebAssembly binding's
+          # fetch-then-`fromBytes` flow can point straight at one, and a
+          # caller downloads only the language they need rather than 24 MB.
+          # Listed explicitly rather than globbed, so the legacy
+          # RWCP / JEITA compatibility models stay out.
+          files: |
+            models/chinese.model
+            models/chinese_pos.model
+            models/english.model
+            models/english_pos.model
+            models/japanese.model
+            models/japanese_pos.model
+            models/korean.model
+            models/korean_pos.model
 
   release:
     name: Build
