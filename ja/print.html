@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-509a4c21.js";
+            window.path_to_searchindex_js = "searchindex-7eccd0f3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-cea5244b.js"></script>
+        <script src="toc-e8b21538.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -3876,7 +3876,7 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
 <tr><td><a href="#python"><code>litsea-python</code></a></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>提供済み</td></tr>
 <tr><td><a href="#nodejs"><code>litsea-nodejs</code></a></td><td>Node.js 20+</td><td>napi-rs</td><td>提供済み</td></tr>
 <tr><td><a href="#php"><code>litsea-php</code></a></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>提供済み</td></tr>
-<tr><td><code>litsea-ruby</code></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/205">#205</a>）</td></tr>
+<tr><td><a href="#ruby"><code>litsea-ruby</code></a></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>提供済み</td></tr>
 <tr><td><code>litsea-wasm</code></td><td>ブラウザ / Deno</td><td>wasm-bindgen</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/206">#206</a>）</td></tr>
 </tbody>
 </table>
@@ -4339,6 +4339,100 @@ make lint-litsea-php    # clippy
 make build-litsea-php   # リリースビルド
 </code></pre>
 <p>パリティテストは <code>litsea</code> CLI をビルドし、その出力とバインディングの出力を突き合わせます。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="ruby"><a class="header" href="#ruby">Ruby</a></h1>
+<p><code>litsea-ruby</code> は <a href="https://github.com/matsadler/magnus">magnus</a> と rb-sys を用いて Litsea を Ruby 3.1 以降へ公開するバインディングです。RubyGems では <code>litsea</code> として配布します。</p>
+<h2 id="インストール-6"><a class="header" href="#インストール-6">インストール</a></h2>
+<pre><code class="language-sh">gem install litsea
+</code></pre>
+<p>gem はソース配布で、インストール時に拡張をコンパイルするため Rust ツールチェーンが必要です。</p>
+<h2 id="モデルの入手-3"><a class="header" href="#モデルの入手-3">モデルの入手</a></h2>
+<p>gem にモデルは含まれません。<a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> から取得してパスを渡してください（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）。モデル自身が種別を持つため、フラグの指定は不要で、読み込んだモデルで何ができるかは <code>has_pos?</code> が示します。</p>
+<h2 id="分割-4"><a class="header" href="#分割-4">分割</a></h2>
+<pre><code class="language-ruby">require "litsea"
+
+seg = Litsea::Segmenter.open(:japanese, "models/japanese.model")
+
+seg.segment("これはテストです。")
+# =&gt; ["これ", "は", "テスト", "です", "。"]
+</code></pre>
+<p>言語は Symbol でも String でも指定でき、ISO 639-1 コードも使えます（<code>:ja</code> / <code>"japanese"</code>）。</p>
+<p>空白区切りの言語では空白自体が 1 トークンとして返るため、トークンを連結すると常に入力が復元されます。</p>
+<pre><code class="language-ruby">Litsea::Segmenter.open(:korean, "models/korean.model").segment("안녕하세요 반갑습니다")
+# =&gt; ["안녕하세요", " ", "반갑습니다"]
+</code></pre>
+<h2 id="pos-タグ付け-3"><a class="header" href="#pos-タグ付け-3">POS タグ付け</a></h2>
+<pre><code class="language-ruby">seg = Litsea::Segmenter.open(:japanese, "models/japanese_pos.model")
+
+seg.segment_with_pos("これはテストです。").each do |token|
+  puts "#{token.surface}\t#{token.pos}\t[#{token.start}..#{token.end}]"
+end
+# これ    PRON    [0..6]
+# は      ADP     [6..9]
+# テスト  NOUN    [9..18]
+# です    AUX     [18..24]
+# 。      PUNCT   [24..27]
+</code></pre>
+<p><code>start</code> と <code>end</code> は<strong>バイト</strong>オフセットです。Ruby の <code>String#[]</code> は文字単位なので、切り出しには <code>byteslice</code> を使ってください。</p>
+<pre><code class="language-ruby">text.byteslice(token.start, token.end - token.start)   # == token.surface
+</code></pre>
+<h2 id="api-3"><a class="header" href="#api-3">API</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>呼び出し</th><th>戻り値</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Litsea::Segmenter.open(language, path)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Litsea::Segmenter.from_bytes(language, data)</code></td><td>セグメンタ（バイナリ String も可）</td></tr>
+<tr><td><code>Litsea::Segmenter.from_uri(language, uri)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>#segment(text)</code></td><td><code>Array&lt;String&gt;</code></td></tr>
+<tr><td><code>#segment_batch(texts)</code></td><td><code>Array&lt;Array&lt;String&gt;&gt;</code></td></tr>
+<tr><td><code>#segment_tokens(text)</code></td><td>バイトオフセット付き <code>Array&lt;Litsea::Token&gt;</code></td></tr>
+<tr><td><code>#segment_with_pos(text)</code></td><td>タグとオフセット付き <code>Array&lt;Litsea::Token&gt;</code></td></tr>
+<tr><td><code>#segment_with_pos_batch(texts)</code></td><td><code>Array&lt;Array&lt;Litsea::Token&gt;&gt;</code></td></tr>
+<tr><td><code>Litsea::Extractor.new(language)#extract(...)</code></td><td><code>nil</code></td></tr>
+<tr><td><code>Litsea::Extractor.new(language)#extract_two_stage(...)</code></td><td><code>nil</code></td></tr>
+<tr><td><code>Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel:)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel:)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>Litsea::TwoStageTrainer.new(epochs, prefix, dominance:)#train(model, cancel:)</code></td><td><code>TwoStageMetrics</code></td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="gvl-の解放"><a class="header" href="#gvl-の解放">GVL の解放</a></h2>
+<p>モデルの読み込み・特徴量抽出・学習といった時間のかかる処理は、GVL（Global VM Lock）を解放した状態で実行されます。そのため他の Ruby スレッドが動き続け、キャンセルが意味を持ちます。</p>
+<pre><code class="language-ruby">cancel = Litsea::CancelToken.new
+Thread.new { sleep 60; cancel.cancel }
+
+metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.model", cancel: cancel)
+</code></pre>
+<p>キャンセルは<strong>エラーではありません</strong>。次のチェックポイントで停止し、部分的に学習されたモデルを保存してメトリクスを返します。バインディングはシグナルハンドラを登録しません。</p>
+<p><code>rb_thread_call_without_gvl</code> は magnus も rb-sys もラップしていません（magnus は未バインドの C 関数一覧に挙げており、この関数は rb-sys が生成するバインディングの対象外ヘッダで宣言されています）。そのため本バインディングは <code>src/gvl.rs</code> で自ら宣言し、パニックが C フレームを越えて巻き戻らないよう <code>extern "C"</code> のトランポリンで捕捉しています。この主張は 2 つのテストで担保しています。1 つは学習中に別の Ruby スレッドが動き続けること、もう 1 つは別スレッドからのキャンセルが学習ウィンドウ内に収まることです。GVL 解放を外すと両方とも失敗します。</p>
+<p>1 文の分割は GVL を保持したままです。解放のコストの方が処理そのものより大きいためです。</p>
+<p><code>TwoStageTrainer</code> は 1 度しか使えません。学習時に stage 1 が AdaBoost モデルへ collapse され、トレーナが消費されるためです。状態は <code>available?</code> が示し、2 回目の <code>train</code> は例外を発生させます。</p>
+<h2 id="エラー-4"><a class="header" href="#エラー-4">エラー</a></h2>
+<p>すべてのエラーは <code>Litsea::Error</code> を継承するため、1 つの <code>rescue</code> で捕捉できます（Python・PHP バインディングと同じ階層です）。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>エラー</th><th>発生条件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Litsea::InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ</td></tr>
+<tr><td><code>Litsea::ModelError</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
+<tr><td><code>Litsea::IoError</code></td><td>ファイルの読み書き失敗</td></tr>
+<tr><td><code>Litsea::ParseError</code></td><td>モデルまたは学習データの形式不正</td></tr>
+<tr><td><code>Litsea::UnsupportedError</code></td><td>このビルドでは利用できないスキームや操作</td></tr>
+<tr><td><code>Litsea::PosUnavailableError</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="開発-3"><a class="header" href="#開発-3">開発</a></h2>
+<pre><code class="language-sh">make test-litsea-ruby    # cargo test + rake compile + rake test
+make lint-litsea-ruby    # clippy + rubocop
+make build-litsea-ruby   # リリースビルド
+</code></pre>
+<p>有効な Ruby で <code>bundle</code> が使える必要があります。バージョン管理ツールの shim が存在していても、選択中のインタプリタに bundler が無い場合があるため、Makefile がその旨を検出して案内します。パリティテストは <code>litsea</code> CLI をビルドし、その出力とバインディングの出力を突き合わせます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>
