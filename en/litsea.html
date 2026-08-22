@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a460bb5c.js";
+            window.path_to_searchindex_js = "searchindex-91817a7e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -184,7 +184,7 @@
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.12.0"
+litsea = "0.13.0"
 </code></pre>
 <p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method (for example <code>TwoStageLearner::load_model</code>, which always resolves the model URI through the same async path).</p>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>

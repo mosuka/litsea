@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6d696789.js";
+            window.path_to_searchindex_js = "../searchindex-3b60bd66.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -184,7 +184,7 @@
 <p><code>litsea-binding-core</code> は、各言語バインディングが共有する FFI 非依存のロジックをまとめたクレートです。依存先は <code>litsea</code>（およびネイティブターゲットではブロッキング用の Tokio）のみで、PyO3・napi・ext-php-rs・magnus・wasm-bindgen には一切依存しません。そのため、ホスト言語のツールチェーンなしでユニットテストできます。</p>
 <h2 id="インストール"><a class="header" href="#インストール">インストール</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea-binding-core = "0.12.0"
+litsea-binding-core = "0.13.0"
 </code></pre>
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR

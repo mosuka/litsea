@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-6d696789.js";
+            window.path_to_searchindex_js = "searchindex-3b60bd66.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -182,6 +182,18 @@
                     <main>
                         <h1 id="事前学習済みモデル"><a class="header" href="#事前学習済みモデル">事前学習済みモデル</a></h1>
 <p>Litsea は <code>models/</code> ディレクトリに複数の事前学習済みモデルを同梱しています。</p>
+<h2 id="モデルの入手"><a class="header" href="#モデルの入手">モデルの入手</a></h2>
+<p>モデルはリポジトリの <a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> ディレクトリにあります。加えて、各リリースでは 8 つの言語モデルを個別のアセットとして添付しています。</p>
+<pre><code class="language-text">https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model
+https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese_pos.model
+...
+</code></pre>
+<p>これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 24MB に対し、1 つあたり 84KB〜8MB）。これにより次の 2 つが可能になります。</p>
+<ul>
+<li><code>remote_model</code> feature を有効にすれば、CLI やライブラリが URL を直接受け取れます: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code></li>
+<li><code>fromUri</code> を持たない <a href="bindings/wasm.html">WebAssembly バインディング</a>でも、ページ側で <code>fetch</code> してバイト列を <code>Segmenter.fromBytes</code> に渡せます</li>
+</ul>
+<p><code>main</code> ではなくリリースタグを指定しておくと、デプロイ先のモデル重みが固定されます。モデルはリリース間で再学習されることがあり、held-out スコアもそれに伴って変わります。</p>
 <h2 id="モデルカタログ"><a class="header" href="#モデルカタログ">モデルカタログ</a></h2>
 <p>単語分割モデルは、学習コーパスの held-out テスト分割（学習に使用していない文）で
 評価しています。<strong>単語 F1（Word F1）</strong> は単語の完全一致、<strong>境界 F1（Boundary F1）</strong>

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a460bb5c.js";
+            window.path_to_searchindex_js = "searchindex-91817a7e.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -213,7 +213,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="name-origin"><a class="header" href="#name-origin">Name Origin</a></h2>
 <p>There is a small plant called <em>Litsea cubeba</em> (Aomoji) in the same Lauraceae family as <em>Lindera</em> (Kuromoji). This is the origin of the name <strong>Litsea</strong>.</p>
 <h2 id="current-version"><a class="header" href="#current-version">Current Version</a></h2>
-<p>Litsea v0.12.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
+<p>Litsea v0.13.0 – Rust Edition 2024, minimum Rust version 1.87.</p>
 <h2 id="links"><a class="header" href="#links">Links</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub Repository</a></li>
@@ -253,11 +253,11 @@ cargo build --release
 <h2 id="using-as-a-library"><a class="header" href="#using-as-a-library">Using as a Library</a></h2>
 <p>Add Litsea to your project’s <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.12.0"
+litsea = "0.13.0"
 </code></pre>
 <p>Remote model loading over http(s) is opt-in; enable the <code>remote_model</code>
 feature if you need it:</p>
-<pre><code class="language-toml">litsea = { version = "0.12.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.13.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
 <p><strong>Note:</strong> Loading models from local files (<code>load_model_from_path</code>) is synchronous, so no async runtime is needed. An async runtime such as <code>tokio</code> is only required if you load models over HTTP/HTTPS with the async <code>load_model</code> method (available only when the opt-in <code>remote_model</code> feature is enabled).</p>
@@ -2148,7 +2148,7 @@ mdbook build docs/ja
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation-1"><a class="header" href="#installation-1">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.12.0"
+litsea = "0.13.0"
 </code></pre>
 <p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method (for example <code>TwoStageLearner::load_model</code>, which always resolves the model URI through the same async path).</p>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
@@ -4305,7 +4305,7 @@ published numbers (see
 <p><code>litsea-binding-core</code> holds the FFI-independent logic shared by every Litsea language binding. It depends only on <code>litsea</code> (plus Tokio on native targets, for the blocking wrappers) and never on PyO3, napi, ext-php-rs, magnus, or wasm-bindgen, so it can be unit-tested without any host-language toolchain.</p>
 <h2 id="installation-2"><a class="header" href="#installation-2">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea-binding-core = "0.12.0"
+litsea-binding-core = "0.13.0"
 </code></pre>
 <h2 id="module-map-1"><a class="header" href="#module-map-1">Module Map</a></h2>
 <pre><code class="language-mermaid">graph LR
@@ -5697,7 +5697,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 local loading only, keeping the dependency tree compact). The CLI enables it,
 so <code>litsea segment https://...</code> keeps working out of the box; library users
 need:</p>
-<pre><code class="language-toml">litsea = { version = "0.12.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.13.0", features = ["remote_model"] }
 </code></pre>
 <h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
 <ul>
@@ -5884,6 +5884,18 @@ representative.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="pre-trained-models-4"><a class="header" href="#pre-trained-models-4">Pre-trained Models</a></h1>
 <p>Litsea ships with several pre-trained models in the <code>models/</code> directory.</p>
+<h2 id="downloading-a-model"><a class="header" href="#downloading-a-model">Downloading a model</a></h2>
+<p>The models live in the <a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> directory of the repository, and each release attaches the eight language models as individual assets:</p>
+<pre><code class="language-text">https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model
+https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese_pos.model
+...
+</code></pre>
+<p>Those URLs are stable per release, and small enough to fetch only what you need (84 KB to 8 MB each, rather than 24 MB for all eight). Two consequences:</p>
+<ul>
+<li>With the <code>remote_model</code> feature, the CLI and the library take one directly: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code>.</li>
+<li>The <a href="#webassembly">WebAssembly binding</a>, which has no <code>fromUri</code>, can <code>fetch</code> one in the page and pass the bytes to <code>Segmenter.fromBytes</code>.</li>
+</ul>
+<p>Pinning a release tag rather than <code>main</code> keeps a deployment on one set of model weights; the models are retrained between releases, and held-out scores move with them.</p>
 <h2 id="model-catalog"><a class="header" href="#model-catalog">Model Catalog</a></h2>
 <p>The word segmentation models are evaluated on the held-out test split of
 their training treebank (sentences never seen during training). <strong>Word F1</strong>
