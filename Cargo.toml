@@ -26,7 +26,7 @@ lto = "thin"
 codegen-units = 1
 
 [workspace.package]
-version = "0.12.0"
+version = "0.13.0"
 edition = "2024"
 rust-version = "1.87"
 description = "Litsea is an extremely compact word segmentation and model training tool implemented in Rust."
@@ -53,5 +53,5 @@ criterion = { version = "0.8.2", default-features = false, features = [
     "html_reports",
 ] }
 
-litsea = { version = "0.12.0", path = "./litsea" }
-litsea-binding-core = { version = "0.12.0", path = "./litsea-binding-core" }
+litsea = { version = "0.13.0", path = "./litsea" }
+litsea-binding-core = { version = "0.13.0", path = "./litsea-binding-core" }

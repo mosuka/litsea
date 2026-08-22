@@ -37,7 +37,7 @@ so `litsea segment https://...` keeps working out of the box; library users
 need:
 
 ```toml
-litsea = { version = "0.12.0", features = ["remote_model"] }
+litsea = { version = "0.13.0", features = ["remote_model"] }
 ```
 
 ## Implementation Details

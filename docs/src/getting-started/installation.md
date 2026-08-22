@@ -35,14 +35,14 @@ Add Litsea to your project's `Cargo.toml`:
 
 ```toml
 [dependencies]
-litsea = "0.12.0"
+litsea = "0.13.0"
 ```
 
 Remote model loading over http(s) is opt-in; enable the `remote_model`
 feature if you need it:
 
 ```toml
-litsea = { version = "0.12.0", features = ["remote_model"] }
+litsea = { version = "0.13.0", features = ["remote_model"] }
 ```
 
 > **Note:** Loading models from local files (`load_model_from_path`) is synchronous, so no async runtime is needed. An async runtime such as `tokio` is only required if you load models over HTTP/HTTPS with the async `load_model` method (available only when the opt-in `remote_model` feature is enabled).
