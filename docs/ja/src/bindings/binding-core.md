@@ -43,10 +43,12 @@ use litsea_binding_core::CoreSegmenter;
 let segmenter = CoreSegmenter::from_path(Language::Japanese, "models/japanese.model".as_ref())?;
 
 assert_eq!(
-    segmenter.segment("すもももももももものうち"),
-    vec!["すもも", "も", "もも", "も", "もも", "の", "うち"]
+    segmenter.segment("これはテストです。"),
+    vec!["これ", "は", "テスト", "です", "。"]
 );
 ```
+
+空白区切りの言語では空白自体が 1 トークンとして返るため、トークンを連結すると入力が正確に復元されます。例えば `korean.model` は `"안녕하세요 반갑습니다"` を `["안녕하세요", " ", "반갑습니다"]` に分割します。
 
 `CoreSegmenter` は `Arc<Segmenter>` と `Mutex<SegmentBuffer>` を保持します。`Segmenter` は `Send + Sync` であり、モデル読み込み済みのインスタンスは packed テーブルが構築済みのため、並行した `segment` 呼び出しは内部の read ロックしか取りません。ミューテックスが保護するのはスクラッチバッファだけです。したがって 1 つのインスタンスをスレッド間で共有し、継続的に再利用できます（各バインディングはそのように使います）。
 

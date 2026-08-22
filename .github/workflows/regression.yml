@@ -83,6 +83,45 @@ jobs:
             cargo test --target "${{ matrix.platform.target }}" --all-features
           fi
 
+  test-litsea-python:
+    name: Test litsea-python
+    needs: [format]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-python-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run Python test
+        # Builds the extension with maturin, then runs pytest. The parity
+        # tests build and invoke the CLI themselves, so they compare against
+        # the reference implementation rather than hardcoded expectations.
+        run: make test-litsea-python
+
+      - name: Run Python lint
+        run: make lint-litsea-python
+
   feature-check:
     name: Feature check
     needs: [format]

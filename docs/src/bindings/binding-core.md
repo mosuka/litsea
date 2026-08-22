@@ -43,10 +43,12 @@ use litsea_binding_core::CoreSegmenter;
 let segmenter = CoreSegmenter::from_path(Language::Japanese, "models/japanese.model".as_ref())?;
 
 assert_eq!(
-    segmenter.segment("すもももももももものうち"),
-    vec!["すもも", "も", "もも", "も", "もも", "の", "うち"]
+    segmenter.segment("これはテストです。"),
+    vec!["これ", "は", "テスト", "です", "。"]
 );
 ```
+
+For space-delimited languages the whitespace is returned as its own token, so the tokens still reconstruct the input exactly — `korean.model` splits `"안녕하세요 반갑습니다"` into `["안녕하세요", " ", "반갑습니다"]`.
 
 `CoreSegmenter` holds an `Arc<Segmenter>` plus a `Mutex<SegmentBuffer>`. `Segmenter` is `Send + Sync` and a segmenter built from a loaded model has its packed tables already compiled, so concurrent `segment` calls take only an internal read lock; the mutex protects the scratch buffer alone. One instance can therefore be shared across threads and reused indefinitely, which is what the bindings do.
 

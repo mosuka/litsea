@@ -1,6 +1,11 @@
 [workspace]
 resolver = "3"
-members = ["litsea", "litsea-cli", "litsea-binding-core"]
+members = ["litsea", "litsea-cli", "litsea-binding-core", "litsea-python"]
+# The language bindings are members (so `cargo clippy --workspace` covers
+# them) but not default members: the six-platform regression matrix would
+# otherwise build a Python extension module on runners with no Python
+# development environment. Each binding gets its own CI job instead.
+default-members = ["litsea", "litsea-cli", "litsea-binding-core"]
 
 # CPU-bound hot loops (feature-template scoring per character) benefit from
 # cross-codegen-unit inlining; thin LTO + a single codegen unit trades

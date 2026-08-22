@@ -1,0 +1,30 @@
+[package]
+name = "litsea-python"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Python binding for Litsea."
+documentation = "https://docs.rs/litsea-python"
+homepage.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["word", "segmentation", "nlp", "python", "binding"]
+categories.workspace = true
+license.workspace = true
+
+[lib]
+# The last component of `module-name` in pyproject.toml: the package is a
+# mixed layout, where `python/litsea/__init__.py` re-exports this extension.
+name = "_litsea"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+litsea.workspace = true
+litsea-binding-core = { workspace = true, features = ["remote_model"] }
+# `extension-module` is deliberately NOT enabled here: it is passed by
+# maturin (see `[tool.maturin] features` in pyproject.toml) so that plain
+# `cargo test` / `cargo clippy` still build against a linkable interpreter.
+pyo3 = { version = "0.29.2", features = ["abi3-py310", "generate-import-lib"] }
+
+[dev-dependencies]
+tempfile.workspace = true
