@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["litsea", "litsea-cli", "litsea-binding-core", "litsea-python"]
+members = ["litsea", "litsea-cli", "litsea-binding-core", "litsea-python", "litsea-nodejs"]
 # The language bindings are members (so `cargo clippy --workspace` covers
 # them) but not default members: the six-platform regression matrix would
 # otherwise build a Python extension module on runners with no Python

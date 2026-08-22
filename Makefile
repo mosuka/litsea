@@ -20,7 +20,7 @@ help: ## Show help
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-24s %s\n", $$1, $$2}'
 
-clean: clean-litsea-python ## Clean the project
+clean: clean-litsea-python clean-litsea-nodejs ## Clean the project
 	cargo clean
 
 clean-litsea-python: ## Clean litsea-python build artifacts
@@ -50,6 +50,19 @@ test-litsea-python: setup-venv ## Test litsea-python (Rust unit tests + pytest)
 	cargo test -p litsea-python --lib
 	cd litsea-python && VIRTUAL_ENV=$(abspath $(PYTHON_VENV_DIR)) $(abspath $(MATURIN)) develop --quiet && $(abspath $(PYTEST)) tests/ -v
 
+clean-litsea-nodejs: ## Clean litsea-nodejs build artifacts
+	rm -rf litsea-nodejs/node_modules
+	rm -rf litsea-nodejs/npm
+	rm -f litsea-nodejs/*.node
+	rm -f litsea-nodejs/package-lock.json
+
+test-litsea-nodejs: ## Test litsea-nodejs (Rust unit tests + node --test)
+	cargo test -p litsea-nodejs --lib
+	cd litsea-nodejs && npm install --silent --no-audit --no-fund && npx napi build --platform -p litsea-nodejs && npm test
+
+lint-litsea-nodejs: ## Lint litsea-nodejs (clippy)
+	cargo clippy -p litsea-nodejs --all-targets -- -D warnings
+
 lint-litsea-python: setup-venv ## Lint litsea-python (clippy + ruff + mypy)
 	cargo clippy -p litsea-python --all-targets -- -D warnings
 	cd litsea-python && $(abspath $(PYTHON_VENV_DIR))/bin/ruff check python/ tests/ examples/
@@ -60,6 +73,9 @@ build: ## Build the project
 
 build-litsea-python: setup-venv ## Build a release wheel for litsea-python
 	cd litsea-python && VIRTUAL_ENV=$(abspath $(PYTHON_VENV_DIR)) $(abspath $(MATURIN)) build --release --out dist
+
+build-litsea-nodejs: ## Build litsea-nodejs (release)
+	cd litsea-nodejs && npm install --silent --no-audit --no-fund && npx napi build --platform --release -p litsea-nodejs
 
 check-wasm: ## Check the wasm32 build (litsea and the binding core)
 	cargo check -p litsea --target wasm32-unknown-unknown --no-default-features

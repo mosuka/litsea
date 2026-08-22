@@ -21,7 +21,10 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 dist/
-# compiled extension modules produced by `maturin develop`
+# compiled extension modules produced by `maturin develop` / `napi build`
 *.so
 *.pyd
 *.dylib
+*.node
+node_modules/
+package-lock.json

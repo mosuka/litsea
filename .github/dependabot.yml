@@ -35,6 +35,20 @@ updates:
           - "minor"
           - "patch"
 
+  - package-ecosystem: "npm"
+    directory: "/litsea-nodejs"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      # Same batching rationale as the cargo ecosystem above.
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

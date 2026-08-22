@@ -123,9 +123,50 @@ jobs:
       - name: Run Python lint
         run: make lint-litsea-python
 
+  test-litsea-nodejs:
+    name: Test litsea-nodejs
+    needs: [format]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["20", "22", "24"]
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-nodejs-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Run Node.js test
+        run: make test-litsea-nodejs
+
+      - name: Run Node.js lint
+        run: make lint-litsea-nodejs
+
+      - name: Verify generated entry points are up to date
+        # `napi build` regenerates index.js / index.d.ts; they are committed,
+        # so a diff here means someone changed the API without rebuilding.
+        run: git diff --exit-code litsea-nodejs/index.js litsea-nodejs/index.d.ts
+
   create-release:
     name: Create Release
-    needs: [test, test-litsea-python]
+    needs: [test, test-litsea-python, test-litsea-nodejs]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -361,3 +402,85 @@ jobs:
           args: --non-interactive --skip-existing dist/*
         env:
           MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+
+  build-nodejs-binaries:
+    name: Build addon (${{ matrix.platform.target }})
+    needs: [test-litsea-nodejs]
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: macos-26-intel
+            target: x86_64-apple-darwin
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          - runner: windows-latest
+            target: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.platform.target }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+
+      - name: Build addon
+        working-directory: litsea-nodejs
+        run: |
+          npm install --no-audit --no-fund
+          npx napi build --platform --release --target ${{ matrix.platform.target }} -p litsea-nodejs
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: addon-${{ matrix.platform.target }}
+          path: litsea-nodejs/*.node
+
+  publish-nodejs:
+    name: Publish litsea to npm
+    needs: [build-nodejs-binaries, publish-crates]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download addons
+        uses: actions/download-artifact@v4
+        with:
+          pattern: addon-*
+          merge-multiple: true
+          path: litsea-nodejs/artifacts
+
+      - name: Publish to npm
+        # Requires the NPM_TOKEN repository secret; until it is set this step
+        # fails and the rest of the release is unaffected.
+        working-directory: litsea-nodejs
+        run: |
+          npm install --no-audit --no-fund
+          npx napi create-npm-dirs
+          npx napi artifacts --output-dir artifacts
+          npx napi prepublish --no-gh-release
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

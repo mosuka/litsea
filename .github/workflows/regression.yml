@@ -122,6 +122,47 @@ jobs:
       - name: Run Python lint
         run: make lint-litsea-python
 
+  test-litsea-nodejs:
+    name: Test litsea-nodejs
+    needs: [format]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["20", "22", "24"]
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-nodejs-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Run Node.js test
+        run: make test-litsea-nodejs
+
+      - name: Run Node.js lint
+        run: make lint-litsea-nodejs
+
+      - name: Verify generated entry points are up to date
+        # `napi build` regenerates index.js / index.d.ts; they are committed,
+        # so a diff here means someone changed the API without rebuilding.
+        run: git diff --exit-code litsea-nodejs/index.js litsea-nodejs/index.d.ts
+
   feature-check:
     name: Feature check
     needs: [format]
