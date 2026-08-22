@@ -54,7 +54,7 @@ new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.
 | 学習 | `Extractor` とトレーナはパス前提で、wasm32 にファイルシステムが無い。`litsea-binding-core` も wasm32 では trainer モジュールをコンパイル対象外にしている |
 | `CancelToken` | 学習が無い以上、キャンセル対象が存在しない |
 
-ブラウザでの学習には `litsea` 本体に in-memory な extract/train API が必要です。`Segmenter::add_corpus_with_writer` は既にファイルシステム非依存で特徴量を書き出せるため実現可能ですが、コアライブラリ側の作業として別途追跡します。
+ブラウザでの学習には `litsea` 本体に in-memory な extract/train API が必要です。`Segmenter::add_corpus_with_writer` は既にファイルシステム非依存で特徴量を書き出せるため実現可能ですが、コアライブラリ側の作業として [#218](https://github.com/mosuka/litsea/issues/218) で追跡します。
 
 ## メモリ
 

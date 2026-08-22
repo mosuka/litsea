@@ -54,7 +54,7 @@ This is the most constrained of the five bindings, and each gap was measured rat
 | Training | `Extractor` and the trainers are path-based, and wasm32 has no filesystem. `litsea-binding-core` already compiles its trainer module out there. |
 | `CancelToken` | With no training there is nothing to cancel. |
 
-Training in the browser would need in-memory extract/train APIs in `litsea` itself — `Segmenter::add_corpus_with_writer` already streams features without touching the filesystem, so it is feasible as core-library work. That is tracked separately.
+Training in the browser would need in-memory extract/train APIs in `litsea` itself — `Segmenter::add_corpus_with_writer` already streams features without touching the filesystem, so it is feasible as core-library work. That is tracked in [#218](https://github.com/mosuka/litsea/issues/218).
 
 ## Memory
 
