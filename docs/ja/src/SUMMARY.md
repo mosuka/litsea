@@ -57,6 +57,7 @@
   - [Node.js](bindings/nodejs.md)
   - [PHP](bindings/php.md)
   - [Ruby](bindings/ruby.md)
+  - [WebAssembly](bindings/wasm.md)
 
 # トレーニングガイド
 

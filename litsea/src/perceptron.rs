@@ -14,7 +14,10 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, Write};
+// Only `load_model_from_path` uses it, and that is compiled out on wasm32.
+#[cfg(not(target_arch = "wasm32"))]
+use std::io::BufReader;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 

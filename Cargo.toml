@@ -8,6 +8,7 @@ members = [
     "litsea-nodejs",
     "litsea-php",
     "litsea-ruby",
+    "litsea-wasm",
 ]
 # The language bindings are members (so `cargo clippy --workspace` covers
 # them) but not default members: the six-platform regression matrix would
