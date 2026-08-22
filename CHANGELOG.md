@@ -4,6 +4,20 @@
 
 ### Added
 
+- New crate `litsea-ruby` (#205): the Ruby binding for Ruby 3.1+, built with
+  magnus and rb-sys and published to RubyGems as `litsea` (source-only; the
+  extension compiles on install). Exposes `Litsea::Segmenter`
+  (`open` / `from_bytes` / `from_uri`, `segment`, `segment_batch`,
+  `segment_tokens`, `segment_with_pos`, `segment_with_pos_batch`),
+  `Litsea::Token`, and the training pipeline, with an error hierarchy rooted
+  at `Litsea::Error` matching the Python and PHP bindings. Language arguments
+  accept a Symbol or a String. Byte offsets pair with `String#byteslice`.
+  Long-running work **releases the GVL**, so other Ruby threads keep running
+  and one of them can cancel a training run that is already going -- neither
+  magnus nor rb-sys wraps `rb_thread_call_without_gvl`, so the binding
+  declares it itself behind a panic-catching trampoline (`src/gvl.rs`), and
+  two tests pin the behaviour. The gem embeds no models.
+
 - New crate `litsea-php` (#204): the PHP binding for PHP 8.1+, built with
   ext-php-rs and distributed on Packagist as `litsea/litsea` (source plus
   build instructions -- a PHP extension is built against a specific PHP ABI,

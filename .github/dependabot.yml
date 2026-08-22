@@ -63,6 +63,20 @@ updates:
           - "minor"
           - "patch"
 
+  - package-ecosystem: "bundler"
+    directory: "/litsea-ruby"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      # Same batching rationale as the cargo ecosystem above.
+      bundler-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

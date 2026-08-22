@@ -32,3 +32,9 @@ package-lock.json
 vendor/
 composer.lock
 .phpunit.cache/
+# Build artifacts of the litsea-ruby binding
+litsea-ruby/tmp/
+litsea-ruby/pkg/
+litsea-ruby/lib/litsea/*.so
+Gemfile.lock
+.bundle/

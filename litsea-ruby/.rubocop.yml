@@ -1,0 +1,21 @@
+AllCops:
+  TargetRubyVersion: 3.1
+  NewCops: enable
+  Exclude:
+    - "tmp/**/*"
+    - "vendor/**/*"
+
+# Tests read better with long descriptive blocks and literal corpora.
+Metrics/BlockLength:
+  Enabled: false
+Metrics/ClassLength:
+  Exclude:
+    - "test/**/*.rb"
+Metrics/MethodLength:
+  Enabled: false
+Metrics/AbcSize:
+  Enabled: false
+Layout/LineLength:
+  Max: 120
+Style/Documentation:
+  Enabled: false
