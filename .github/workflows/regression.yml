@@ -272,6 +272,12 @@ jobs:
       - name: Run wasm lint
         run: make lint-litsea-wasm
 
+      - name: Verify the CLI fixtures are up to date
+        # `make test-litsea-wasm` regenerates them; a diff means the CLI's
+        # output changed (a retrained model, say) without the committed
+        # expectation being refreshed.
+        run: git diff --exit-code litsea-wasm/tests/fixtures.tsv
+
   feature-check:
     name: Feature check
     needs: [format]

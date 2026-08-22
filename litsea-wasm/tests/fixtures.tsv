@@ -1,0 +1,6 @@
+japanese	japanese.model	seg	これはテストです。	これ は テスト です 。
+chinese	chinese.model	seg	我喜欢吃中国菜。	我 喜欢 吃 中 国菜 。
+korean	korean.model	seg	안녕하세요 반갑습니다	안녕하세요   반갑습니다
+english	english.model	seg	The quick brown fox jumps over the lazy dog.	The   quick   brown   fox   jumps   over   the   lazy   dog .
+japanese	japanese_pos.model	pos	これはテストです。	これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
+korean	korean_pos.model	pos	안녕하세요 반갑습니다	안녕하세요/VERB  /X 반갑습니다/VERB

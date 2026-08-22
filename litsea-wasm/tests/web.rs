@@ -21,6 +21,10 @@ const KOREAN_POS: &[u8] = include_bytes!("../../models/korean_pos.model");
 /// Expected output, produced by the `litsea` CLI (see
 /// `tests/generate_fixtures.sh`) so the reference implementation decides
 /// what is correct, exactly as in the other bindings' parity tests.
+///
+/// Committed rather than generated on demand: `include_str!` resolves at
+/// compile time, so the file has to exist for any build of this target. CI
+/// regenerates it and fails on a diff.
 const FIXTURES: &str = include_str!("fixtures.tsv");
 
 /// Returns the model bytes for a fixture row.

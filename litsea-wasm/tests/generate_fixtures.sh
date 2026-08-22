@@ -4,6 +4,12 @@
 # The wasm tests run in a browser and cannot spawn a process, so the CLI --
 # the reference implementation the other four bindings compare against -- is
 # run here instead, and the test asserts equality against what it wrote.
+#
+# The result is committed, because `include_str!` needs it to exist for any
+# build of the test target (including `cargo clippy --all-targets` on a fresh
+# checkout). CI regenerates it and fails on a diff, so a retrained model
+# cannot leave a stale expectation behind -- the same guard the Node.js
+# binding uses for its generated entry points.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
