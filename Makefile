@@ -24,7 +24,7 @@ help: ## Show help
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-24s %s\n", $$1, $$2}'
 
-clean: clean-litsea-python clean-litsea-nodejs clean-litsea-php clean-litsea-ruby ## Clean the project
+clean: clean-litsea-python clean-litsea-nodejs clean-litsea-php clean-litsea-ruby clean-litsea-wasm ## Clean the project
 	cargo clean
 
 clean-litsea-python: ## Clean litsea-python build artifacts
@@ -105,6 +105,23 @@ lint-litsea-ruby: check-bundler ## Lint litsea-ruby (clippy + rubocop)
 	$(CARGO_WITH_RBCONFIG) cargo clippy -p litsea-ruby --all-targets -- -D warnings
 	cd litsea-ruby && bundle exec rubocop
 
+clean-litsea-wasm: ## Clean litsea-wasm build artifacts
+	rm -rf litsea-wasm/pkg
+	rm -rf litsea-wasm/pkg-node
+	rm -f litsea-wasm/tests/fixtures.tsv
+
+# Which browser drives the headless tests. Firefox by default; override with
+# `make test-litsea-wasm WASM_BROWSER=chrome`.
+WASM_BROWSER ?= firefox
+
+test-litsea-wasm: ## Test litsea-wasm (Rust unit tests + headless browser tests)
+	cargo test -p litsea-wasm --lib
+	./litsea-wasm/tests/generate_fixtures.sh
+	cd litsea-wasm && wasm-pack test --headless --$(WASM_BROWSER)
+
+lint-litsea-wasm: ## Lint litsea-wasm (clippy on wasm32)
+	cargo clippy -p litsea-wasm --target wasm32-unknown-unknown -- -D warnings
+
 lint-litsea-python: setup-venv ## Lint litsea-python (clippy + ruff + mypy)
 	cargo clippy -p litsea-python --all-targets -- -D warnings
 	cd litsea-python && $(abspath $(PYTHON_VENV_DIR))/bin/ruff check python/ tests/ examples/
@@ -118,6 +135,10 @@ build-litsea-python: setup-venv ## Build a release wheel for litsea-python
 
 build-litsea-ruby: check-bundler ## Build litsea-ruby (release)
 	cd litsea-ruby && bundle install --quiet && bundle exec rake compile -- --release
+
+build-litsea-wasm: ## Build litsea-wasm (wasm-pack, --target web)
+	cd litsea-wasm && wasm-pack build --release --target web --out-dir pkg
+	cp litsea-wasm/js/cache.js litsea-wasm/js/cache.d.ts litsea-wasm/pkg/
 
 build-litsea-php: ## Build litsea-php (release)
 	cargo build -p litsea-php --release

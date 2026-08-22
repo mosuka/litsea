@@ -1,0 +1,34 @@
+[package]
+name = "litsea-wasm"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "WebAssembly binding for Litsea."
+documentation = "https://docs.rs/litsea-wasm"
+homepage.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["word", "segmentation", "nlp", "wasm", "webassembly"]
+categories.workspace = true
+license.workspace = true
+
+[lib]
+# `rlib` as well as `cdylib` so `cargo test -p litsea-wasm --lib` can run the
+# pure-Rust conversions on the host.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+litsea.workspace = true
+# No `remote_model`: reqwest's wasm backend cannot build with the timeouts
+# `litsea::model_io` sets, so models are fetched in JavaScript and passed in
+# as bytes.
+litsea-binding-core.workspace = true
+js-sys = "0.3.104"
+wasm-bindgen = "0.2.127"
+
+[dev-dependencies]
+# The browser tests compile the bundled models in with `include_bytes!` and
+# compare against CLI-generated fixtures.
+litsea = { workspace = true }
+js-sys = "0.3.104"
+wasm-bindgen-test = "0.3.77"

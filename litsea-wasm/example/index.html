@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Litsea in the browser</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 2rem auto; padding: 0 1rem; }
+      textarea { width: 100%; font-size: 1rem; padding: 0.5rem; }
+      output { display: block; margin-top: 1rem; line-height: 2; }
+      .token { background: #eef; border-radius: 0.25rem; padding: 0.15rem 0.4rem; margin-right: 0.25rem; }
+      .pos { color: #666; font-size: 0.8em; margin-left: 0.2rem; }
+      .status { color: #666; }
+    </style>
+  </head>
+  <body>
+    <h1>Litsea in the browser</h1>
+    <p class="status" id="status">Loading…</p>
+
+    <label>
+      Text
+      <textarea id="text" rows="3">これはテストです。</textarea>
+    </label>
+
+    <output id="out"></output>
+
+    <script type="module">
+      import init, { Segmenter, version } from '../pkg/litsea_wasm.js'
+      import { fetchModel } from '../js/cache.js'
+
+      const status = document.getElementById('status')
+      const text = document.getElementById('text')
+      const out = document.getElementById('out')
+
+      await init()
+
+      // The page fetches the model: this binding has no fromUri, which also
+      // means caching and CORS stay under the page's control.
+      status.textContent = 'Downloading the model…'
+      const bytes = await fetchModel('../../models/japanese_pos.model')
+      const segmenter = Segmenter.fromBytes('japanese', bytes)
+      status.textContent = `litsea ${version()} ready (hasPos=${segmenter.hasPos})`
+
+      const render = () => {
+        const tokens = segmenter.hasPos
+          ? segmenter.segmentWithPos(text.value)
+          : segmenter.segmentTokens(text.value)
+
+        out.replaceChildren(
+          ...tokens.map((token) => {
+            const span = document.createElement('span')
+            span.className = 'token'
+            span.textContent = token.surface
+            if (token.pos) {
+              const pos = document.createElement('span')
+              pos.className = 'pos'
+              pos.textContent = token.pos
+              span.append(pos)
+            }
+            return span
+          }),
+        )
+      }
+
+      text.addEventListener('input', render)
+      render()
+    </script>
+  </body>
+</html>
