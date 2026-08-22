@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Model File Format - Litsea Documentation</title>
+        <title>Python - Litsea Documentation</title>
 
 
         <!-- Custom HTML head -->
@@ -146,7 +146,7 @@
                         <a href="https://github.com/mosuka/litsea" title="Git repository" aria-label="Git repository">
                             <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
-                        <a href="https://github.com/mosuka/litsea/edit/main/docs/src/advanced/model-file-format.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                        <a href="https://github.com/mosuka/litsea/edit/main/docs/src/bindings/python.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
                             <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
                         </a>
 
@@ -180,139 +180,119 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        <h1 id="model-file-format"><a class="header" href="#model-file-format">Model File Format</a></h1>
-<p>Litsea models are stored as simple plain-text files.</p>
-<h2 id="format-specification"><a class="header" href="#format-specification">Format Specification</a></h2>
-<pre><code class="language-text">&lt;feature_name&gt;\t&lt;weight&gt;
-&lt;feature_name&gt;\t&lt;weight&gt;
-...
-&lt;bias&gt;
+                        <h1 id="python"><a class="header" href="#python">Python</a></h1>
+<p><code>litsea-python</code> exposes Litsea to Python 3.10+ through <a href="https://pyo3.rs">PyO3</a> and <a href="https://www.maturin.rs">maturin</a>. It is published to PyPI as <code>litsea</code>.</p>
+<h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
+<pre><code class="language-sh">pip install litsea
 </code></pre>
-<ul>
-<li>Each line (except the last) contains a <strong>feature name</strong> and its <strong>weight</strong>, separated by a tab character</li>
-<li><strong>Zero-weight features</strong> are omitted to keep the file compact</li>
-<li>The <strong>last line</strong> contains the bias term as a single number</li>
-</ul>
-<h2 id="example"><a class="header" href="#example">Example</a></h2>
-<pre><code class="language-text">BC1:IK	0.3456
-BC2:KI	-0.1234
-UW4:は	0.5678
-UC4:I	0.2345
-...
--0.0891
+<p>Wheels are built against the stable ABI (<code>abi3-py310</code>), so one wheel per platform covers every supported Python version.</p>
+<h2 id="getting-a-model"><a class="header" href="#getting-a-model">Getting a model</a></h2>
+<p>The package contains no models. Download one from the <a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> directory and pass its path — see <a href="../pre-trained-models.html">Pre-trained Models</a>.</p>
+<p>There is no flag to say what kind of model you have: the file identifies itself, and <code>has_pos</code> reports what the loaded model can do.</p>
+<h2 id="segmentation"><a class="header" href="#segmentation">Segmentation</a></h2>
+<pre><code class="language-python">from litsea import Language, Segmenter
+
+seg = Segmenter.open(Language.JAPANESE, "models/japanese.model")
+
+seg.segment("これはテストです。")
+# ['これ', 'は', 'テスト', 'です', '。']
 </code></pre>
-<h2 id="bias-reconstruction"><a class="header" href="#bias-reconstruction">Bias Reconstruction</a></h2>
-<p>When loading a model, the bias is reconstructed using:</p>
-<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
+<p>A language name works anywhere a <code>Language</code> does — <code>Segmenter.open("ja", ...)</code> and <code>Segmenter.open("japanese", ...)</code> are equivalent.</p>
+<p>For space-delimited languages the whitespace is returned as its own token, so the tokens always reconstruct the input:</p>
+<pre><code class="language-python">Segmenter.open("ko", "models/korean.model").segment("안녕하세요 반갑습니다")
+# ['안녕하세요', ' ', '반갑습니다']
 </code></pre>
-<p>Files written by <code>save_model</code> always place the bias line last, so this equals
-the sum of all feature weights. Legacy models (e.g. <code>RWCP.model</code>) place the
-bias line mid-file; their trailing weight lines are accepted and the bias
-bucket is computed from the weights preceding the bias line, matching the
-historical loader.</p>
-<h2 id="validation"><a class="header" href="#validation">Validation</a></h2>
-<p>The loader rejects malformed files with an explicit error instead of loading
-them silently:</p>
-<ul>
-<li>an <strong>empty file</strong></li>
-<li>a file <strong>without a bias line</strong> (the typical symptom of a truncated
-download or interrupted copy)</li>
-<li><strong>more than one</strong> bias line</li>
-<li><strong>duplicate</strong> feature lines</li>
-<li><strong>non-finite</strong> weights or bias values (<code>NaN</code>, <code>inf</code>, <code>-inf</code>), which would
-otherwise poison every score comparison</li>
-</ul>
-<p>The Averaged Perceptron model loader likewise validates its class-count
-header and rejects non-finite weights.</p>
-<p>During prediction:</p>
-<pre><code class="language-text">bias = -sum(all_model_weights) / 2.0    (cached; read once per sentence)
-score = bias + sum(model[feature] for feature in input_attributes)
+<h2 id="pos-tagging"><a class="header" href="#pos-tagging">POS tagging</a></h2>
+<pre><code class="language-python">seg = Segmenter.open(Language.JAPANESE, "models/japanese_pos.model")
+
+for token in seg.segment_with_pos("これはテストです。"):
+    print(token.surface, token.pos.name, token.start, token.end)
+# これ PRON 0 6
+# は ADP 6 9
+# テスト NOUN 9 18
+# です AUX 18 24
+# 。 PUNCT 24 27
 </code></pre>
-<p>The on-disk format is string-keyed and unchanged, but the segmenter does
-not score against the strings directly: at load time each feature line is
-parsed and compiled into a packed <code>u64</code> integer key for the hot loop (see
-<a href="../algorithm/prediction-pipeline.html#the-compiled-scoring-tables">Prediction Pipeline</a>).
-Features that the segmenter’s language could never generate (for example
-type codes of another language) are ignored by that compilation – exactly
-as they could never match an input attribute before – while the bias is
-always computed over every weight in the file.</p>
-<h2 id="two-stage-model-format-litsea-two-stage-v1"><a class="header" href="#two-stage-model-format-litsea-two-stage-v1">Two-Stage Model Format (<code>litsea-two-stage v1</code>)</a></h2>
-<p>A two-stage model bundles a stage-1 boundary classifier, a candidate-tag
-lexicon, and a stage-2 word-level tagger into a single plain-text file with
-a magic first line and marker-delimited sections in a fixed order:</p>
-<pre><code class="language-text">litsea-two-stage v1
-[params]
-dominance\t0.99
-[stage1]
-&lt;AdaBoost model format: "feature\tweight" lines + one bias line&gt;
-[lexicon]
-&lt;surface&gt;\t&lt;TAG&gt;:&lt;count&gt;[,&lt;TAG&gt;:&lt;count&gt;...]
-[stage2]
-&lt;Averaged Perceptron model format: class count, class names, weights&gt;
-</code></pre>
-<ul>
-<li>The <code>[stage1]</code> and <code>[stage2]</code> sections embed the existing formats
-described above verbatim and are parsed by the existing loaders.</li>
-<li>Each <code>[lexicon]</code> line maps a word surface to the UPOS tags observed for
-it in the training corpus with their occurrence counts, most frequent
-first (ties broken by tag name). Surfaces may contain any character
-except tab and newline and are not trimmed, so whitespace tokens stay
-representable.</li>
-<li>The <code>[params]</code> section is optional. Its only key, <code>dominance</code>, is the
-classifier-skip threshold in <code>(0.5, 1.0]</code>: a known surface whose most
-frequent tag covers at least this fraction of its training occurrences is
-tagged without invoking the stage-2 classifier. It defaults to <code>0.99</code>
-when the section is absent.</li>
-<li>Stage-2 class names must be valid UPOS tags; together with every weight
-and lexicon line containing a tab, this guarantees no content line can
-collide with a section marker.</li>
-</ul>
-<p>The format is <strong>purely additive</strong>: the magic line is neither a valid
-AdaBoost weight/bias line nor a perceptron class count, so the existing
-loaders reject two-stage files with an explicit error, and existing model
-files keep loading unchanged. A future format revision will use a different
-magic line (e.g. <code>litsea-two-stage v2</code>); the v1 loader rejects it as an
-unsupported version. The loader validates section order, the lexicon rules
-above, and the parameter range, and reports errors with the section name
-(e.g. <code>[stage2] section: ...</code>).</p>
-<h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
-<p>Model file sizes vary considerably by model type and language:</p>
+<p><code>start</code> and <code>end</code> are byte offsets into the input, so <code>text.encode()[token.start:token.end].decode()</code> returns the surface. Calling <code>segment_with_pos</code> on a segmentation-only model raises <code>PosUnavailableError</code>.</p>
+<h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Model</th><th>Size</th><th>Features</th></tr>
+<tr><th>Call</th><th>Returns</th></tr>
 </thead>
 <tbody>
-<tr><td>japanese.model</td><td>~1.1 MB</td><td>UD Japanese-GSD</td></tr>
-<tr><td>chinese.model</td><td>~2.0 MB</td><td>UD Chinese-GSD</td></tr>
-<tr><td>korean.model</td><td>~86 KB</td><td>UD Korean-GSD</td></tr>
-<tr><td>english.model</td><td>~125 KB</td><td>UD English-EWT</td></tr>
-<tr><td>RWCP.model</td><td>~22 KB</td><td>Original TinySegmenter</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>~16 KB</td><td>JEITA corpus</td></tr>
-<tr><td>japanese_pos.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
-<tr><td>chinese_pos.model</td><td>~8.0 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
-<tr><td>korean_pos.model</td><td>~5.0 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
-<tr><td>english_pos.model</td><td>~3.6 MB</td><td>UD English-EWT (two-stage)</td></tr>
+<tr><td><code>Segmenter.open(language, path)</code></td><td>A segmenter loaded from a file</td></tr>
+<tr><td><code>Segmenter.from_bytes(language, data)</code></td><td>A segmenter loaded from bytes</td></tr>
+<tr><td><code>Segmenter.from_uri(language, uri)</code></td><td>A segmenter loaded from a path, <code>file://</code>, or <code>http(s)://</code> URL</td></tr>
+<tr><td><code>segment(text)</code></td><td><code>list[str]</code></td></tr>
+<tr><td><code>segment_batch(texts)</code></td><td><code>list[list[str]]</code></td></tr>
+<tr><td><code>segment_tokens(text)</code></td><td><code>list[Token]</code> with byte offsets</td></tr>
+<tr><td><code>segment_with_pos(text)</code></td><td><code>list[Token]</code> with tags and offsets</td></tr>
+<tr><td><code>segment_with_pos_batch(texts)</code></td><td><code>list[list[Token]]</code></td></tr>
+<tr><td><code>Extractor(language).extract(...)</code></td><td>Writes a features file</td></tr>
+<tr><td><code>Extractor(language).extract_two_stage(...)</code></td><td>Writes <code>.stage1</code> / <code>.stage2</code> / <code>.lexicon</code></td></tr>
+<tr><td><code>Trainer(threshold, iterations, features).train(model, cancel=None)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>PerceptronTrainer(epochs, features).train(model, cancel=None)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>TwoStageTrainer(epochs, prefix, dominance=0.99).train(model, cancel=None)</code></td><td><code>TwoStageMetrics</code></td></tr>
 </tbody>
 </table>
 </div>
-<p><code>RWCP.model</code> and <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> (see <a href="../pre-trained-models.html">Pre-trained Models</a>) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (<code>*_pos.model</code>) models, which are larger because they carry per-class and per-stage weights.</p>
-<h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
-<ul>
-<li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
-<li>The format is <strong>deterministic</strong> for the usual training workflow: <code>save_model</code> writes features in the learner’s feature order, which is sorted (via <code>BTreeMap</code>) for learners initialized from a features file or loaded from disk. A learner populated only via <code>add_instance()</code> writes features in insertion order instead</li>
-<li>Models are <strong>forward-compatible</strong> – new features in the input that are not in the model are simply ignored during prediction</li>
-</ul>
+<p><code>Language</code> and <code>Upos</code> are PyO3 classes, not <code>enum.Enum</code> subclasses: their members are class attributes, so iterate them with <code>Language.all()</code> and <code>Upos.all()</code> rather than <code>for x in Language</code>.</p>
+<h2 id="training"><a class="header" href="#training">Training</a></h2>
+<pre><code class="language-python">from litsea import Extractor, Language, Trainer
+
+Extractor(Language.JAPANESE).extract("corpus.txt", "features.txt")
+metrics = Trainer(0.01, 10_000, "features.txt").train("japanese.model")
+print(f"accuracy: {metrics.accuracy:.2f}%")
+</code></pre>
+<p>A <code>TwoStageTrainer</code> can only run once — training collapses stage 1 into an AdaBoost model, which consumes the trainer. <code>available</code> reports whether it can still be used, and a second <code>train()</code> raises <code>InvalidArgumentError</code>.</p>
+<h3 id="cancelling"><a class="header" href="#cancelling">Cancelling</a></h3>
+<p>Training releases the GIL, so another thread can stop it:</p>
+<pre><code class="language-python">import threading
+from litsea import CancelToken, Trainer
+
+cancel = CancelToken()
+threading.Timer(60.0, cancel.cancel).start()
+metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=cancel)
+</code></pre>
+<p>Cancelling is <strong>not</strong> an error: training stops at its next check point, still writes the partially trained model, and returns its metrics. The binding never installs a signal handler, so Ctrl-C handling remains the application’s.</p>
+<h2 id="errors"><a class="header" href="#errors">Errors</a></h2>
+<p>Every exception derives from <code>LitseaError</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Exception</th><th>Raised when</th></tr>
+</thead>
+<tbody>
+<tr><td><code>InvalidArgumentError</code></td><td>Unknown language name, unknown feature set, reused trainer</td></tr>
+<tr><td><code>ModelError</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
+<tr><td><code>IoError</code></td><td>A file could not be read or written</td></tr>
+<tr><td><code>ParseError</code></td><td>The model or training data is malformed</td></tr>
+<tr><td><code>UnsupportedError</code></td><td>The scheme or operation is unavailable in this build</td></tr>
+<tr><td><code>PosUnavailableError</code></td><td>POS tagging requested from a segmentation-only model</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="threading-and-the-gil"><a class="header" href="#threading-and-the-gil">Threading and the GIL</a></h2>
+<p>A <code>Segmenter</code> is immutable and safe to share between threads. <code>segment_batch</code>, <code>segment_with_pos_batch</code>, <code>extract</code>, and every <code>train</code> release the GIL.</p>
+<p>Single-sentence <code>segment</code> and <code>segment_with_pos</code> keep it. Releasing the GIL requires owning the input string (PyO3’s <code>Ungil</code> bound forbids touching Python-owned memory with the GIL released), and that copy costs more than segmenting one sentence. Use the batch methods for bulk work.</p>
+<h2 id="development"><a class="header" href="#development">Development</a></h2>
+<pre><code class="language-sh">make setup-venv            # create the venv and install the dev tools
+make test-litsea-python    # cargo test + maturin develop + pytest
+make lint-litsea-python    # clippy + ruff
+make build-litsea-python   # build a release wheel into litsea-python/dist
+</code></pre>
+<p>The parity tests build the <code>litsea</code> CLI and compare the binding’s output against it, so the reference implementation — not a hardcoded expectation — decides what is correct.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../training-guide/retraining-models.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../bindings/binding-core.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                             </a>
 
-                            <a rel="next prefetch" href="../advanced/remote-model-loading.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../training-guide.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                             </a>
 
@@ -322,11 +302,11 @@ above, and the parameter range, and reports errors with the section name
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../training-guide/retraining-models.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../bindings/binding-core.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
                     </a>
 
-                    <a rel="next prefetch" href="../advanced/remote-model-loading.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../training-guide.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
                     </a>
             </nav>

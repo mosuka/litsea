@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f94d6dc5.js";
+            window.path_to_searchindex_js = "searchindex-ac79b091.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-8ebe88ff.js"></script>
+        <script src="toc-e1e175a8.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -3873,7 +3873,7 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
 </thead>
 <tbody>
 <tr><td><a href="#litsea-binding-core"><code>litsea-binding-core</code></a></td><td>（共通・FFI 非依存）</td><td>—</td><td>提供済み</td></tr>
-<tr><td><code>litsea-python</code></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/202">#202</a>）</td></tr>
+<tr><td><a href="#python"><code>litsea-python</code></a></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>提供済み</td></tr>
 <tr><td><code>litsea-nodejs</code></td><td>Node.js 20+</td><td>napi-rs</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/203">#203</a>）</td></tr>
 <tr><td><code>litsea-php</code></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/204">#204</a>）</td></tr>
 <tr><td><code>litsea-ruby</code></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/205">#205</a>）</td></tr>
@@ -3936,10 +3936,11 @@ use litsea_binding_core::CoreSegmenter;
 let segmenter = CoreSegmenter::from_path(Language::Japanese, "models/japanese.model".as_ref())?;
 
 assert_eq!(
-    segmenter.segment("すもももももももものうち"),
-    vec!["すもも", "も", "もも", "も", "もも", "の", "うち"]
+    segmenter.segment("これはテストです。"),
+    vec!["これ", "は", "テスト", "です", "。"]
 );
 <span class="boring">}</span></code></pre>
+<p>空白区切りの言語では空白自体が 1 トークンとして返るため、トークンを連結すると入力が正確に復元されます。例えば <code>korean.model</code> は <code>"안녕하세요 반갑습니다"</code> を <code>["안녕하세요", " ", "반갑습니다"]</code> に分割します。</p>
 <p><code>CoreSegmenter</code> は <code>Arc&lt;Segmenter&gt;</code> と <code>Mutex&lt;SegmentBuffer&gt;</code> を保持します。<code>Segmenter</code> は <code>Send + Sync</code> であり、モデル読み込み済みのインスタンスは packed テーブルが構築済みのため、並行した <code>segment</code> 呼び出しは内部の read ロックしか取りません。ミューテックスが保護するのはスクラッチバッファだけです。したがって 1 つのインスタンスをスレッド間で共有し、継続的に再利用できます（各バインディングはそのように使います）。</p>
 <div class="table-wrapper">
 <table>
@@ -4044,6 +4045,110 @@ println!("accuracy: {:.2}%", metrics.accuracy);
 </tbody>
 </table>
 </div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="python"><a class="header" href="#python">Python</a></h1>
+<p><code>litsea-python</code> は <a href="https://pyo3.rs">PyO3</a> と <a href="https://www.maturin.rs">maturin</a> を用いて Litsea を Python 3.10 以降へ公開するバインディングです。PyPI では <code>litsea</code> という名前で配布します。</p>
+<h2 id="インストール-3"><a class="header" href="#インストール-3">インストール</a></h2>
+<pre><code class="language-sh">pip install litsea
+</code></pre>
+<p>wheel は安定 ABI（<code>abi3-py310</code>）でビルドされるため、プラットフォームごとに 1 つの wheel がサポート対象の全 Python バージョンをカバーします。</p>
+<h2 id="モデルの入手"><a class="header" href="#モデルの入手">モデルの入手</a></h2>
+<p>パッケージにモデルは含まれません。<a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> ディレクトリから取得してパスを渡してください（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）。</p>
+<p>モデルの種別を指定するフラグはありません。ファイル自身が種別を持っており、読み込んだモデルで何ができるかは <code>has_pos</code> が示します。</p>
+<h2 id="分割-1"><a class="header" href="#分割-1">分割</a></h2>
+<pre><code class="language-python">from litsea import Language, Segmenter
+
+seg = Segmenter.open(Language.JAPANESE, "models/japanese.model")
+
+seg.segment("これはテストです。")
+# ['これ', 'は', 'テスト', 'です', '。']
+</code></pre>
+<p><code>Language</code> を受け取る箇所では言語名も使えます。<code>Segmenter.open("ja", ...)</code> と <code>Segmenter.open("japanese", ...)</code> は等価です。</p>
+<p>空白区切りの言語では空白自体が 1 トークンとして返るため、トークンを連結すると常に入力が復元されます。</p>
+<pre><code class="language-python">Segmenter.open("ko", "models/korean.model").segment("안녕하세요 반갑습니다")
+# ['안녕하세요', ' ', '반갑습니다']
+</code></pre>
+<h2 id="pos-タグ付け"><a class="header" href="#pos-タグ付け">POS タグ付け</a></h2>
+<pre><code class="language-python">seg = Segmenter.open(Language.JAPANESE, "models/japanese_pos.model")
+
+for token in seg.segment_with_pos("これはテストです。"):
+    print(token.surface, token.pos.name, token.start, token.end)
+# これ PRON 0 6
+# は ADP 6 9
+# テスト NOUN 9 18
+# です AUX 18 24
+# 。 PUNCT 24 27
+</code></pre>
+<p><code>start</code> と <code>end</code> は入力に対するバイトオフセットです。<code>text.encode()[token.start:token.end].decode()</code> で表層形が得られます。分割専用モデルに対して <code>segment_with_pos</code> を呼ぶと <code>PosUnavailableError</code> が送出されます。</p>
+<h2 id="api"><a class="header" href="#api">API</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>呼び出し</th><th>戻り値</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Segmenter.open(language, path)</code></td><td>ファイルから読み込んだセグメンタ</td></tr>
+<tr><td><code>Segmenter.from_bytes(language, data)</code></td><td>バイト列から読み込んだセグメンタ</td></tr>
+<tr><td><code>Segmenter.from_uri(language, uri)</code></td><td>パス・<code>file://</code>・<code>http(s)://</code> から読み込んだセグメンタ</td></tr>
+<tr><td><code>segment(text)</code></td><td><code>list[str]</code></td></tr>
+<tr><td><code>segment_batch(texts)</code></td><td><code>list[list[str]]</code></td></tr>
+<tr><td><code>segment_tokens(text)</code></td><td>バイトオフセット付き <code>list[Token]</code></td></tr>
+<tr><td><code>segment_with_pos(text)</code></td><td>タグとオフセット付き <code>list[Token]</code></td></tr>
+<tr><td><code>segment_with_pos_batch(texts)</code></td><td><code>list[list[Token]]</code></td></tr>
+<tr><td><code>Extractor(language).extract(...)</code></td><td>特徴量ファイルを書き出す</td></tr>
+<tr><td><code>Extractor(language).extract_two_stage(...)</code></td><td><code>.stage1</code> / <code>.stage2</code> / <code>.lexicon</code> を書き出す</td></tr>
+<tr><td><code>Trainer(threshold, iterations, features).train(model, cancel=None)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>PerceptronTrainer(epochs, features).train(model, cancel=None)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>TwoStageTrainer(epochs, prefix, dominance=0.99).train(model, cancel=None)</code></td><td><code>TwoStageMetrics</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>Language</code> と <code>Upos</code> は <code>enum.Enum</code> のサブクラスではなく PyO3 のクラスです。メンバーはクラス属性なので、列挙には <code>for x in Language</code> ではなく <code>Language.all()</code> / <code>Upos.all()</code> を使ってください。</p>
+<h2 id="学習-2"><a class="header" href="#学習-2">学習</a></h2>
+<pre><code class="language-python">from litsea import Extractor, Language, Trainer
+
+Extractor(Language.JAPANESE).extract("corpus.txt", "features.txt")
+metrics = Trainer(0.01, 10_000, "features.txt").train("japanese.model")
+print(f"accuracy: {metrics.accuracy:.2f}%")
+</code></pre>
+<p><code>TwoStageTrainer</code> は 1 度しか実行できません。学習時に stage 1 が AdaBoost モデルへ collapse され、トレーナが消費されるためです。再利用可能かどうかは <code>available</code> が示し、2 回目の <code>train()</code> は <code>InvalidArgumentError</code> を送出します。</p>
+<h3 id="キャンセル"><a class="header" href="#キャンセル">キャンセル</a></h3>
+<p>学習中は GIL が解放されるため、別スレッドから停止できます。</p>
+<pre><code class="language-python">import threading
+from litsea import CancelToken, Trainer
+
+cancel = CancelToken()
+threading.Timer(60.0, cancel.cancel).start()
+metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=cancel)
+</code></pre>
+<p>キャンセルは<strong>エラーではありません</strong>。次のチェックポイントで停止し、部分的に学習されたモデルを保存してメトリクスを返します。バインディングはシグナルハンドラを登録しないため、Ctrl-C の扱いはアプリケーション側のままです。</p>
+<h2 id="エラー-1"><a class="header" href="#エラー-1">エラー</a></h2>
+<p>すべての例外は <code>LitseaError</code> を継承します。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>例外</th><th>発生条件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ</td></tr>
+<tr><td><code>ModelError</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
+<tr><td><code>IoError</code></td><td>ファイルの読み書き失敗</td></tr>
+<tr><td><code>ParseError</code></td><td>モデルまたは学習データの形式不正</td></tr>
+<tr><td><code>UnsupportedError</code></td><td>このビルドでは利用できないスキームや操作</td></tr>
+<tr><td><code>PosUnavailableError</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="スレッドと-gil"><a class="header" href="#スレッドと-gil">スレッドと GIL</a></h2>
+<p><code>Segmenter</code> はイミュータブルで、スレッド間で共有できます。<code>segment_batch</code>・<code>segment_with_pos_batch</code>・<code>extract</code>・各 <code>train</code> は GIL を解放します。</p>
+<p>単文の <code>segment</code> / <code>segment_with_pos</code> は GIL を保持します。GIL を解放するには入力文字列を所有する必要があり（PyO3 の <code>Ungil</code> 境界により、GIL 解放中に Python 所有のメモリへ触れられないため）、そのコピーのコストが 1 文の分割コストを上回るからです。大量処理にはバッチ版を使ってください。</p>
+<h2 id="開発"><a class="header" href="#開発">開発</a></h2>
+<pre><code class="language-sh">make setup-venv            # venv 作成と開発ツールのインストール
+make test-litsea-python    # cargo test + maturin develop + pytest
+make lint-litsea-python    # clippy + ruff
+make build-litsea-python   # リリース wheel を litsea-python/dist へ出力
+</code></pre>
+<p>パリティテストは <code>litsea</code> CLI をビルドして、その出力とバインディングの出力を突き合わせます。何が正しいかを決めるのはハードコードした期待値ではなく参照実装です。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>

@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-d883fab3.js";
+            window.path_to_searchindex_js = "searchindex-5c8c0c24.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-85ec5467.js"></script>
+        <script src="toc-0ea46218.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -4192,7 +4192,7 @@ published numbers (see
 </thead>
 <tbody>
 <tr><td><a href="#litsea-binding-core"><code>litsea-binding-core</code></a></td><td>(shared, no FFI)</td><td>—</td><td>Available</td></tr>
-<tr><td><code>litsea-python</code></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/202">#202</a>)</td></tr>
+<tr><td><a href="#python"><code>litsea-python</code></a></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>Available</td></tr>
 <tr><td><code>litsea-nodejs</code></td><td>Node.js 20+</td><td>napi-rs</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/203">#203</a>)</td></tr>
 <tr><td><code>litsea-php</code></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/204">#204</a>)</td></tr>
 <tr><td><code>litsea-ruby</code></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/205">#205</a>)</td></tr>
@@ -4255,10 +4255,11 @@ use litsea_binding_core::CoreSegmenter;
 let segmenter = CoreSegmenter::from_path(Language::Japanese, "models/japanese.model".as_ref())?;
 
 assert_eq!(
-    segmenter.segment("すもももももももものうち"),
-    vec!["すもも", "も", "もも", "も", "もも", "の", "うち"]
+    segmenter.segment("これはテストです。"),
+    vec!["これ", "は", "テスト", "です", "。"]
 );
 <span class="boring">}</span></code></pre>
+<p>For space-delimited languages the whitespace is returned as its own token, so the tokens still reconstruct the input exactly — <code>korean.model</code> splits <code>"안녕하세요 반갑습니다"</code> into <code>["안녕하세요", " ", "반갑습니다"]</code>.</p>
 <p><code>CoreSegmenter</code> holds an <code>Arc&lt;Segmenter&gt;</code> plus a <code>Mutex&lt;SegmentBuffer&gt;</code>. <code>Segmenter</code> is <code>Send + Sync</code> and a segmenter built from a loaded model has its packed tables already compiled, so concurrent <code>segment</code> calls take only an internal read lock; the mutex protects the scratch buffer alone. One instance can therefore be shared across threads and reused indefinitely, which is what the bindings do.</p>
 <div class="table-wrapper">
 <table>
@@ -4363,6 +4364,110 @@ println!("accuracy: {:.2}%", metrics.accuracy);
 </tbody>
 </table>
 </div>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="python"><a class="header" href="#python">Python</a></h1>
+<p><code>litsea-python</code> exposes Litsea to Python 3.10+ through <a href="https://pyo3.rs">PyO3</a> and <a href="https://www.maturin.rs">maturin</a>. It is published to PyPI as <code>litsea</code>.</p>
+<h2 id="installation-3"><a class="header" href="#installation-3">Installation</a></h2>
+<pre><code class="language-sh">pip install litsea
+</code></pre>
+<p>Wheels are built against the stable ABI (<code>abi3-py310</code>), so one wheel per platform covers every supported Python version.</p>
+<h2 id="getting-a-model"><a class="header" href="#getting-a-model">Getting a model</a></h2>
+<p>The package contains no models. Download one from the <a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> directory and pass its path — see <a href="#pre-trained-models-4">Pre-trained Models</a>.</p>
+<p>There is no flag to say what kind of model you have: the file identifies itself, and <code>has_pos</code> reports what the loaded model can do.</p>
+<h2 id="segmentation-1"><a class="header" href="#segmentation-1">Segmentation</a></h2>
+<pre><code class="language-python">from litsea import Language, Segmenter
+
+seg = Segmenter.open(Language.JAPANESE, "models/japanese.model")
+
+seg.segment("これはテストです。")
+# ['これ', 'は', 'テスト', 'です', '。']
+</code></pre>
+<p>A language name works anywhere a <code>Language</code> does — <code>Segmenter.open("ja", ...)</code> and <code>Segmenter.open("japanese", ...)</code> are equivalent.</p>
+<p>For space-delimited languages the whitespace is returned as its own token, so the tokens always reconstruct the input:</p>
+<pre><code class="language-python">Segmenter.open("ko", "models/korean.model").segment("안녕하세요 반갑습니다")
+# ['안녕하세요', ' ', '반갑습니다']
+</code></pre>
+<h2 id="pos-tagging-2"><a class="header" href="#pos-tagging-2">POS tagging</a></h2>
+<pre><code class="language-python">seg = Segmenter.open(Language.JAPANESE, "models/japanese_pos.model")
+
+for token in seg.segment_with_pos("これはテストです。"):
+    print(token.surface, token.pos.name, token.start, token.end)
+# これ PRON 0 6
+# は ADP 6 9
+# テスト NOUN 9 18
+# です AUX 18 24
+# 。 PUNCT 24 27
+</code></pre>
+<p><code>start</code> and <code>end</code> are byte offsets into the input, so <code>text.encode()[token.start:token.end].decode()</code> returns the surface. Calling <code>segment_with_pos</code> on a segmentation-only model raises <code>PosUnavailableError</code>.</p>
+<h2 id="api"><a class="header" href="#api">API</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Call</th><th>Returns</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Segmenter.open(language, path)</code></td><td>A segmenter loaded from a file</td></tr>
+<tr><td><code>Segmenter.from_bytes(language, data)</code></td><td>A segmenter loaded from bytes</td></tr>
+<tr><td><code>Segmenter.from_uri(language, uri)</code></td><td>A segmenter loaded from a path, <code>file://</code>, or <code>http(s)://</code> URL</td></tr>
+<tr><td><code>segment(text)</code></td><td><code>list[str]</code></td></tr>
+<tr><td><code>segment_batch(texts)</code></td><td><code>list[list[str]]</code></td></tr>
+<tr><td><code>segment_tokens(text)</code></td><td><code>list[Token]</code> with byte offsets</td></tr>
+<tr><td><code>segment_with_pos(text)</code></td><td><code>list[Token]</code> with tags and offsets</td></tr>
+<tr><td><code>segment_with_pos_batch(texts)</code></td><td><code>list[list[Token]]</code></td></tr>
+<tr><td><code>Extractor(language).extract(...)</code></td><td>Writes a features file</td></tr>
+<tr><td><code>Extractor(language).extract_two_stage(...)</code></td><td>Writes <code>.stage1</code> / <code>.stage2</code> / <code>.lexicon</code></td></tr>
+<tr><td><code>Trainer(threshold, iterations, features).train(model, cancel=None)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>PerceptronTrainer(epochs, features).train(model, cancel=None)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>TwoStageTrainer(epochs, prefix, dominance=0.99).train(model, cancel=None)</code></td><td><code>TwoStageMetrics</code></td></tr>
+</tbody>
+</table>
+</div>
+<p><code>Language</code> and <code>Upos</code> are PyO3 classes, not <code>enum.Enum</code> subclasses: their members are class attributes, so iterate them with <code>Language.all()</code> and <code>Upos.all()</code> rather than <code>for x in Language</code>.</p>
+<h2 id="training-2"><a class="header" href="#training-2">Training</a></h2>
+<pre><code class="language-python">from litsea import Extractor, Language, Trainer
+
+Extractor(Language.JAPANESE).extract("corpus.txt", "features.txt")
+metrics = Trainer(0.01, 10_000, "features.txt").train("japanese.model")
+print(f"accuracy: {metrics.accuracy:.2f}%")
+</code></pre>
+<p>A <code>TwoStageTrainer</code> can only run once — training collapses stage 1 into an AdaBoost model, which consumes the trainer. <code>available</code> reports whether it can still be used, and a second <code>train()</code> raises <code>InvalidArgumentError</code>.</p>
+<h3 id="cancelling"><a class="header" href="#cancelling">Cancelling</a></h3>
+<p>Training releases the GIL, so another thread can stop it:</p>
+<pre><code class="language-python">import threading
+from litsea import CancelToken, Trainer
+
+cancel = CancelToken()
+threading.Timer(60.0, cancel.cancel).start()
+metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=cancel)
+</code></pre>
+<p>Cancelling is <strong>not</strong> an error: training stops at its next check point, still writes the partially trained model, and returns its metrics. The binding never installs a signal handler, so Ctrl-C handling remains the application’s.</p>
+<h2 id="errors-1"><a class="header" href="#errors-1">Errors</a></h2>
+<p>Every exception derives from <code>LitseaError</code>.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Exception</th><th>Raised when</th></tr>
+</thead>
+<tbody>
+<tr><td><code>InvalidArgumentError</code></td><td>Unknown language name, unknown feature set, reused trainer</td></tr>
+<tr><td><code>ModelError</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
+<tr><td><code>IoError</code></td><td>A file could not be read or written</td></tr>
+<tr><td><code>ParseError</code></td><td>The model or training data is malformed</td></tr>
+<tr><td><code>UnsupportedError</code></td><td>The scheme or operation is unavailable in this build</td></tr>
+<tr><td><code>PosUnavailableError</code></td><td>POS tagging requested from a segmentation-only model</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="threading-and-the-gil"><a class="header" href="#threading-and-the-gil">Threading and the GIL</a></h2>
+<p>A <code>Segmenter</code> is immutable and safe to share between threads. <code>segment_batch</code>, <code>segment_with_pos_batch</code>, <code>extract</code>, and every <code>train</code> release the GIL.</p>
+<p>Single-sentence <code>segment</code> and <code>segment_with_pos</code> keep it. Releasing the GIL requires owning the input string (PyO3’s <code>Ungil</code> bound forbids touching Python-owned memory with the GIL released), and that copy costs more than segmenting one sentence. Use the batch methods for bulk work.</p>
+<h2 id="development"><a class="header" href="#development">Development</a></h2>
+<pre><code class="language-sh">make setup-venv            # create the venv and install the dev tools
+make test-litsea-python    # cargo test + maturin develop + pytest
+make lint-litsea-python    # clippy + ruff
+make build-litsea-python   # build a release wheel into litsea-python/dist
+</code></pre>
+<p>The parity tests build the <code>litsea</code> CLI and compare the binding’s output against it, so the reference implementation — not a hardcoded expectation — decides what is correct.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="training-guide"><a class="header" href="#training-guide">Training Guide</a></h1>
 <p>This guide walks you through training custom word segmentation and POS tagging models with Litsea.</p>
