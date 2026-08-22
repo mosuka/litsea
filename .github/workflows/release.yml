@@ -201,9 +201,45 @@ jobs:
       - name: Run PHP lint
         run: make lint-litsea-php
 
+  test-litsea-ruby:
+    name: Test litsea-ruby
+    needs: [format]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        ruby-version: ["3.1", "3.3", "3.4"]
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-ruby-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+
+      - name: Run Ruby test
+        run: make test-litsea-ruby
+
+      - name: Run Ruby lint
+        run: make lint-litsea-ruby
+
   create-release:
     name: Create Release
-    needs: [test, test-litsea-python, test-litsea-nodejs, test-litsea-php]
+    needs: [test, test-litsea-python, test-litsea-nodejs, test-litsea-php, test-litsea-ruby]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -521,3 +557,42 @@ jobs:
           npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  publish-ruby:
+    name: Publish litsea to RubyGems
+    needs: [test-litsea-ruby, publish-crates]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+
+      - name: Build gem
+        working-directory: litsea-ruby
+        run: |
+          bundle install
+          bundle exec rake build
+
+      - name: Publish to RubyGems
+        # Requires the RUBYGEMS_API_KEY repository secret; until it is set
+        # this step fails and the rest of the release is unaffected. The gem
+        # is source-only, so it compiles on the user's machine at install
+        # time.
+        working-directory: litsea-ruby
+        run: |
+          mkdir -p ~/.gem
+          printf -- "---\n:rubygems_api_key: %s\n" "${RUBYGEMS_API_KEY}" > ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+          gem push pkg/litsea-*.gem
+        env:
+          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}

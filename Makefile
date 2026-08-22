@@ -10,6 +10,10 @@ PIP             := $(PYTHON_VENV_DIR)/bin/pip
 MATURIN         := $(PYTHON_VENV_DIR)/bin/maturin
 PYTEST          := $(PYTHON_VENV_DIR)/bin/pytest
 
+# `litsea-ruby` links against libruby, and rb-sys reads the interpreter's
+# configuration from RBCONFIG_* environment variables.
+CARGO_WITH_RBCONFIG = ruby -rrbconfig -e 'RbConfig::CONFIG.each { |k, v| ENV["RBCONFIG_\#{k.upcase}"] = v }; exec(*ARGV)' --
+
 USER_AGENT ?= $(shell curl --version | head -n1 | awk '{print $1"/"$2}')
 USER ?= $(shell whoami)
 HOSTNAME ?= $(shell hostname)
@@ -20,7 +24,7 @@ help: ## Show help
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-24s %s\n", $$1, $$2}'
 
-clean: clean-litsea-python clean-litsea-nodejs clean-litsea-php ## Clean the project
+clean: clean-litsea-python clean-litsea-nodejs clean-litsea-php clean-litsea-ruby ## Clean the project
 	cargo clean
 
 clean-litsea-python: ## Clean litsea-python build artifacts
@@ -77,6 +81,30 @@ test-litsea-php: ## Test litsea-php (Rust unit tests + PHPUnit)
 lint-litsea-php: ## Lint litsea-php (clippy)
 	cargo clippy -p litsea-php --all-targets -- -D warnings
 
+clean-litsea-ruby: ## Clean litsea-ruby build artifacts
+	rm -rf litsea-ruby/tmp
+	rm -rf litsea-ruby/pkg
+	rm -f litsea-ruby/lib/litsea/litsea_ruby.so
+	rm -f litsea-ruby/Gemfile.lock
+
+# Fails early with an actionable message when the active Ruby has no
+# bundler (rbenv's `system` Ruby often does not).
+check-bundler:
+	@bundle --version >/dev/null 2>&1 || { \
+		echo "bundler is not usable with $$(ruby --version)."; \
+		echo "A version manager's shim can exist while the selected Ruby has no bundler."; \
+		echo "Select a Ruby that has it, e.g. 'rbenv local 3.4.9', or run 'gem install bundler'."; \
+		exit 1; \
+	}
+
+test-litsea-ruby: check-bundler ## Test litsea-ruby (Rust unit tests + minitest)
+	$(CARGO_WITH_RBCONFIG) cargo test -p litsea-ruby --lib
+	cd litsea-ruby && bundle install --quiet && bundle exec rake compile && bundle exec rake test
+
+lint-litsea-ruby: check-bundler ## Lint litsea-ruby (clippy + rubocop)
+	$(CARGO_WITH_RBCONFIG) cargo clippy -p litsea-ruby --all-targets -- -D warnings
+	cd litsea-ruby && bundle exec rubocop
+
 lint-litsea-python: setup-venv ## Lint litsea-python (clippy + ruff + mypy)
 	cargo clippy -p litsea-python --all-targets -- -D warnings
 	cd litsea-python && $(abspath $(PYTHON_VENV_DIR))/bin/ruff check python/ tests/ examples/
@@ -87,6 +115,9 @@ build: ## Build the project
 
 build-litsea-python: setup-venv ## Build a release wheel for litsea-python
 	cd litsea-python && VIRTUAL_ENV=$(abspath $(PYTHON_VENV_DIR)) $(abspath $(MATURIN)) build --release --out dist
+
+build-litsea-ruby: check-bundler ## Build litsea-ruby (release)
+	cd litsea-ruby && bundle install --quiet && bundle exec rake compile -- --release
 
 build-litsea-php: ## Build litsea-php (release)
 	cargo build -p litsea-php --release

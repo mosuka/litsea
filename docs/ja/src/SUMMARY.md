@@ -56,6 +56,7 @@
   - [Python](bindings/python.md)
   - [Node.js](bindings/nodejs.md)
   - [PHP](bindings/php.md)
+  - [Ruby](bindings/ruby.md)
 
 # トレーニングガイド
 

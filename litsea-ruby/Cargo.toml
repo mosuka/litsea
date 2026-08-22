@@ -1,0 +1,25 @@
+[package]
+name = "litsea-ruby"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "Ruby binding for Litsea."
+documentation = "https://docs.rs/litsea-ruby"
+homepage.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["word", "segmentation", "nlp", "ruby", "binding"]
+categories.workspace = true
+license.workspace = true
+
+[lib]
+name = "litsea_ruby"
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+litsea.workspace = true
+litsea-binding-core = { workspace = true, features = ["remote_model"] }
+magnus = { version = "0.8.2", features = ["rb-sys"] }
+# Used only to link against libruby; the GVL entry point is declared by
+# hand in `gvl.rs` because neither magnus nor rb-sys exposes it.
+rb-sys = "0.9.130"
