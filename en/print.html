@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5c8c0c24.js";
+            window.path_to_searchindex_js = "searchindex-527a1892.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0ea46218.js"></script>
+        <script src="toc-119d2381.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -4193,7 +4193,7 @@ published numbers (see
 <tbody>
 <tr><td><a href="#litsea-binding-core"><code>litsea-binding-core</code></a></td><td>(shared, no FFI)</td><td>—</td><td>Available</td></tr>
 <tr><td><a href="#python"><code>litsea-python</code></a></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>Available</td></tr>
-<tr><td><code>litsea-nodejs</code></td><td>Node.js 20+</td><td>napi-rs</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/203">#203</a>)</td></tr>
+<tr><td><a href="#nodejs"><code>litsea-nodejs</code></a></td><td>Node.js 20+</td><td>napi-rs</td><td>Available</td></tr>
 <tr><td><code>litsea-php</code></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/204">#204</a>)</td></tr>
 <tr><td><code>litsea-ruby</code></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/205">#205</a>)</td></tr>
 <tr><td><code>litsea-wasm</code></td><td>Browser / Deno</td><td>wasm-bindgen</td><td>Planned (<a href="https://github.com/mosuka/litsea/issues/206">#206</a>)</td></tr>
@@ -4468,6 +4468,102 @@ make lint-litsea-python    # clippy + ruff
 make build-litsea-python   # build a release wheel into litsea-python/dist
 </code></pre>
 <p>The parity tests build the <code>litsea</code> CLI and compare the binding’s output against it, so the reference implementation — not a hardcoded expectation — decides what is correct.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="nodejs"><a class="header" href="#nodejs">Node.js</a></h1>
+<p><code>litsea-nodejs</code> exposes Litsea to Node.js 20+ through <a href="https://napi.rs">napi-rs</a>. It is published to npm as <code>litsea</code>, with prebuilt native binaries for Linux, macOS, and Windows on x64 and arm64.</p>
+<p>For browsers, use <a href="#language-bindings"><code>litsea-wasm</code></a> instead.</p>
+<h2 id="installation-4"><a class="header" href="#installation-4">Installation</a></h2>
+<pre><code class="language-sh">npm install litsea
+</code></pre>
+<h2 id="getting-a-model-1"><a class="header" href="#getting-a-model-1">Getting a model</a></h2>
+<p>The package contains no models. Download one from the <a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> directory and pass its path — see <a href="#pre-trained-models-4">Pre-trained Models</a>. The model file identifies its own kind, so <code>hasPos</code> reports what the loaded model can do and no flag is needed.</p>
+<h2 id="segmentation-2"><a class="header" href="#segmentation-2">Segmentation</a></h2>
+<pre><code class="language-js">import { Segmenter } from 'litsea'
+
+const seg = Segmenter.open('japanese', 'models/japanese.model')
+
+seg.segment('これはテストです。')
+// [ 'これ', 'は', 'テスト', 'です', '。' ]
+</code></pre>
+<p>The language name and its ISO 639-1 code are interchangeable (<code>'ja'</code>, <code>'japanese'</code>).</p>
+<p>For space-delimited languages the whitespace is returned as its own token, so the tokens always reconstruct the input:</p>
+<pre><code class="language-js">Segmenter.open('ko', 'models/korean.model').segment('안녕하세요 반갑습니다')
+// [ '안녕하세요', ' ', '반갑습니다' ]
+</code></pre>
+<h2 id="pos-tagging-3"><a class="header" href="#pos-tagging-3">POS tagging</a></h2>
+<pre><code class="language-js">const seg = Segmenter.open('japanese', 'models/japanese_pos.model')
+
+seg.segmentWithPos('これはテストです。')
+// [ { surface: 'これ', start: 0, end: 6, pos: 'PRON' },
+//   { surface: 'は', start: 6, end: 9, pos: 'ADP' },
+//   { surface: 'テスト', start: 9, end: 18, pos: 'NOUN' },
+//   { surface: 'です', start: 18, end: 24, pos: 'AUX' },
+//   { surface: '。', start: 24, end: 27, pos: 'PUNCT' } ]
+</code></pre>
+<p><code>start</code> and <code>end</code> are <strong>byte</strong> offsets. JavaScript string indices are UTF-16 code units, so slice with a <code>Buffer</code>:</p>
+<pre><code class="language-js">Buffer.from(text).subarray(token.start, token.end).toString()   // === token.surface
+</code></pre>
+<p><code>pos</code> is <code>undefined</code> on tokens from <code>segmentTokens</code>, which does no tagging.</p>
+<h2 id="api-1"><a class="header" href="#api-1">API</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Call</th><th>Returns</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Segmenter.open(language, path)</code></td><td>A segmenter (synchronous)</td></tr>
+<tr><td><code>Segmenter.fromBytes(language, buffer)</code></td><td>A segmenter (synchronous)</td></tr>
+<tr><td><code>Segmenter.fromUri(language, uri)</code></td><td><code>Promise&lt;Segmenter&gt;</code> — downloads off the event loop</td></tr>
+<tr><td><code>segment(text)</code></td><td><code>string[]</code></td></tr>
+<tr><td><code>segmentBatch(texts)</code></td><td><code>string[][]</code></td></tr>
+<tr><td><code>segmentTokens(text)</code></td><td><code>Token[]</code> with byte offsets</td></tr>
+<tr><td><code>segmentWithPos(text)</code></td><td><code>Token[]</code> with tags and offsets</td></tr>
+<tr><td><code>segmentWithPosBatch(texts)</code></td><td><code>Token[][]</code></td></tr>
+<tr><td><code>new Extractor(language).extract(...)</code></td><td><code>Promise&lt;void&gt;</code></td></tr>
+<tr><td><code>new Extractor(language).extractTwoStage(...)</code></td><td><code>Promise&lt;void&gt;</code></td></tr>
+<tr><td><code>new Trainer(threshold, iterations, features).train(model, cancel?)</code></td><td><code>Promise&lt;BinaryMetrics&gt;</code></td></tr>
+<tr><td><code>new PerceptronTrainer(epochs, features).train(model, cancel?)</code></td><td><code>Promise&lt;MulticlassMetrics&gt;</code></td></tr>
+<tr><td><code>new TwoStageTrainer(epochs, prefix, dominance?).train(model, cancel?)</code></td><td><code>Promise&lt;TwoStageMetrics&gt;</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>Type definitions are generated by napi-rs and shipped as <code>index.d.ts</code>.</p>
+<h2 id="asynchronous-by-design"><a class="header" href="#asynchronous-by-design">Asynchronous by design</a></h2>
+<p>Downloading a model, extracting features, and training all return promises and run on libuv’s threadpool, so the event loop keeps turning. That is what makes cancellation useful:</p>
+<pre><code class="language-js">import { CancelToken, Trainer } from 'litsea'
+
+const cancel = new CancelToken()
+setTimeout(() =&gt; cancel.cancel(), 60_000)
+
+const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese.model', cancel)
+</code></pre>
+<p>Cancelling is <strong>not</strong> an error: training stops at its next check point, still writes the partially trained model, and resolves with its metrics. The binding never installs a signal handler.</p>
+<p>Segmentation itself is synchronous: it is fast enough that a promise would cost more than the work.</p>
+<p>A <code>TwoStageTrainer</code> can only be used once — training collapses stage 1 into an AdaBoost model, which consumes it. <code>available</code> reports the state, and a second <code>train()</code> rejects.</p>
+<h2 id="errors-2"><a class="header" href="#errors-2">Errors</a></h2>
+<p>Every error carries a <code>code</code>, matching the error kinds the other bindings expose. Rejected promises carry the same codes as thrown errors.</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>err.code</code></th><th>Raised when</th></tr>
+</thead>
+<tbody>
+<tr><td><code>invalid_argument</code></td><td>Unknown language name, unknown feature set, reused trainer</td></tr>
+<tr><td><code>model</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
+<tr><td><code>io</code></td><td>A file could not be read or written</td></tr>
+<tr><td><code>parse</code></td><td>The model or training data is malformed</td></tr>
+<tr><td><code>unsupported</code></td><td>The scheme or operation is unavailable in this build</td></tr>
+<tr><td><code>pos_unavailable</code></td><td>POS tagging requested from a segmentation-only model</td></tr>
+</tbody>
+</table>
+</div>
+<p>Because <code>napi::Status</code> is a closed enum, the code reaches JavaScript two ways: synchronous calls use napi’s string-status error, and asynchronous ones rebuild the JavaScript <code>Error</code> object in <code>Task::reject</code> so the property survives the rejection.</p>
+<h2 id="development-1"><a class="header" href="#development-1">Development</a></h2>
+<pre><code class="language-sh">make test-litsea-nodejs    # cargo test + napi build + node --test
+make lint-litsea-nodejs    # clippy
+make build-litsea-nodejs   # release build
+</code></pre>
+<p><code>index.js</code> and <code>index.d.ts</code> are generated by <code>napi build</code> and committed; CI rebuilds them and fails if the committed copies are stale. The parity tests build the <code>litsea</code> CLI and compare the binding’s output against it.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="training-guide"><a class="header" href="#training-guide">Training Guide</a></h1>
 <p>This guide walks you through training custom word segmentation and POS tagging models with Litsea.</p>

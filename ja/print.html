@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ac79b091.js";
+            window.path_to_searchindex_js = "searchindex-5da4b409.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-e1e175a8.js"></script>
+        <script src="toc-354464d4.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -3874,7 +3874,7 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
 <tbody>
 <tr><td><a href="#litsea-binding-core"><code>litsea-binding-core</code></a></td><td>（共通・FFI 非依存）</td><td>—</td><td>提供済み</td></tr>
 <tr><td><a href="#python"><code>litsea-python</code></a></td><td>Python 3.10+</td><td>PyO3 + maturin</td><td>提供済み</td></tr>
-<tr><td><code>litsea-nodejs</code></td><td>Node.js 20+</td><td>napi-rs</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/203">#203</a>）</td></tr>
+<tr><td><a href="#nodejs"><code>litsea-nodejs</code></a></td><td>Node.js 20+</td><td>napi-rs</td><td>提供済み</td></tr>
 <tr><td><code>litsea-php</code></td><td>PHP 8.1+</td><td>ext-php-rs</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/204">#204</a>）</td></tr>
 <tr><td><code>litsea-ruby</code></td><td>Ruby 3.1+</td><td>magnus + rb-sys</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/205">#205</a>）</td></tr>
 <tr><td><code>litsea-wasm</code></td><td>ブラウザ / Deno</td><td>wasm-bindgen</td><td>予定（<a href="https://github.com/mosuka/litsea/issues/206">#206</a>）</td></tr>
@@ -4149,6 +4149,102 @@ make lint-litsea-python    # clippy + ruff
 make build-litsea-python   # リリース wheel を litsea-python/dist へ出力
 </code></pre>
 <p>パリティテストは <code>litsea</code> CLI をビルドして、その出力とバインディングの出力を突き合わせます。何が正しいかを決めるのはハードコードした期待値ではなく参照実装です。</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="nodejs"><a class="header" href="#nodejs">Node.js</a></h1>
+<p><code>litsea-nodejs</code> は <a href="https://napi.rs">napi-rs</a> を用いて Litsea を Node.js 20 以降へ公開するバインディングです。npm では <code>litsea</code> として配布し、Linux・macOS・Windows の x64 / arm64 向けにビルド済みバイナリを提供します。</p>
+<p>ブラウザ向けには <a href="#言語バインディング"><code>litsea-wasm</code></a> を使ってください。</p>
+<h2 id="インストール-4"><a class="header" href="#インストール-4">インストール</a></h2>
+<pre><code class="language-sh">npm install litsea
+</code></pre>
+<h2 id="モデルの入手-1"><a class="header" href="#モデルの入手-1">モデルの入手</a></h2>
+<p>パッケージにモデルは含まれません。<a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> から取得してパスを渡してください（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）。モデルファイル自身が種別を持つため、フラグの指定は不要で、読み込んだモデルで何ができるかは <code>hasPos</code> が示します。</p>
+<h2 id="分割-2"><a class="header" href="#分割-2">分割</a></h2>
+<pre><code class="language-js">import { Segmenter } from 'litsea'
+
+const seg = Segmenter.open('japanese', 'models/japanese.model')
+
+seg.segment('これはテストです。')
+// [ 'これ', 'は', 'テスト', 'です', '。' ]
+</code></pre>
+<p>言語名と ISO 639-1 コードのどちらも使えます（<code>'ja'</code> / <code>'japanese'</code>）。</p>
+<p>空白区切りの言語では空白自体が 1 トークンとして返るため、トークンを連結すると常に入力が復元されます。</p>
+<pre><code class="language-js">Segmenter.open('ko', 'models/korean.model').segment('안녕하세요 반갑습니다')
+// [ '안녕하세요', ' ', '반갑습니다' ]
+</code></pre>
+<h2 id="pos-タグ付け-1"><a class="header" href="#pos-タグ付け-1">POS タグ付け</a></h2>
+<pre><code class="language-js">const seg = Segmenter.open('japanese', 'models/japanese_pos.model')
+
+seg.segmentWithPos('これはテストです。')
+// [ { surface: 'これ', start: 0, end: 6, pos: 'PRON' },
+//   { surface: 'は', start: 6, end: 9, pos: 'ADP' },
+//   { surface: 'テスト', start: 9, end: 18, pos: 'NOUN' },
+//   { surface: 'です', start: 18, end: 24, pos: 'AUX' },
+//   { surface: '。', start: 24, end: 27, pos: 'PUNCT' } ]
+</code></pre>
+<p><code>start</code> と <code>end</code> は<strong>バイト</strong>オフセットです。JavaScript の文字列インデックスは UTF-16 コードユニットなので、切り出しには <code>Buffer</code> を使ってください。</p>
+<pre><code class="language-js">Buffer.from(text).subarray(token.start, token.end).toString()   // === token.surface
+</code></pre>
+<p>タグ付けを行わない <code>segmentTokens</code> のトークンでは <code>pos</code> は <code>undefined</code> になります。</p>
+<h2 id="api-1"><a class="header" href="#api-1">API</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>呼び出し</th><th>戻り値</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Segmenter.open(language, path)</code></td><td>セグメンタ（同期）</td></tr>
+<tr><td><code>Segmenter.fromBytes(language, buffer)</code></td><td>セグメンタ（同期）</td></tr>
+<tr><td><code>Segmenter.fromUri(language, uri)</code></td><td><code>Promise&lt;Segmenter&gt;</code>（イベントループ外でダウンロード）</td></tr>
+<tr><td><code>segment(text)</code></td><td><code>string[]</code></td></tr>
+<tr><td><code>segmentBatch(texts)</code></td><td><code>string[][]</code></td></tr>
+<tr><td><code>segmentTokens(text)</code></td><td>バイトオフセット付き <code>Token[]</code></td></tr>
+<tr><td><code>segmentWithPos(text)</code></td><td>タグとオフセット付き <code>Token[]</code></td></tr>
+<tr><td><code>segmentWithPosBatch(texts)</code></td><td><code>Token[][]</code></td></tr>
+<tr><td><code>new Extractor(language).extract(...)</code></td><td><code>Promise&lt;void&gt;</code></td></tr>
+<tr><td><code>new Extractor(language).extractTwoStage(...)</code></td><td><code>Promise&lt;void&gt;</code></td></tr>
+<tr><td><code>new Trainer(threshold, iterations, features).train(model, cancel?)</code></td><td><code>Promise&lt;BinaryMetrics&gt;</code></td></tr>
+<tr><td><code>new PerceptronTrainer(epochs, features).train(model, cancel?)</code></td><td><code>Promise&lt;MulticlassMetrics&gt;</code></td></tr>
+<tr><td><code>new TwoStageTrainer(epochs, prefix, dominance?).train(model, cancel?)</code></td><td><code>Promise&lt;TwoStageMetrics&gt;</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>型定義は napi-rs が生成し、<code>index.d.ts</code> として同梱されます。</p>
+<h2 id="非同期設計"><a class="header" href="#非同期設計">非同期設計</a></h2>
+<p>モデルのダウンロード・特徴量抽出・学習はいずれも Promise を返し、libuv のスレッドプールで実行されるため、イベントループは止まりません。これがキャンセルを有効にしている理由でもあります。</p>
+<pre><code class="language-js">import { CancelToken, Trainer } from 'litsea'
+
+const cancel = new CancelToken()
+setTimeout(() =&gt; cancel.cancel(), 60_000)
+
+const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese.model', cancel)
+</code></pre>
+<p>キャンセルは<strong>エラーではありません</strong>。次のチェックポイントで停止し、部分的に学習されたモデルを保存してメトリクスで resolve します。バインディングはシグナルハンドラを登録しません。</p>
+<p>分割自体は同期処理です。Promise のコストの方が処理そのものより大きいためです。</p>
+<p><code>TwoStageTrainer</code> は 1 度しか使えません。学習時に stage 1 が AdaBoost モデルへ collapse され、トレーナが消費されるためです。状態は <code>available</code> が示し、2 回目の <code>train()</code> は reject されます。</p>
+<h2 id="エラー-2"><a class="header" href="#エラー-2">エラー</a></h2>
+<p>すべてのエラーは、他のバインディングと同じ種別を表す <code>code</code> を持ちます。reject された Promise も throw されたエラーと同じ <code>code</code> を持ちます。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th><code>err.code</code></th><th>発生条件</th></tr>
+</thead>
+<tbody>
+<tr><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ</td></tr>
+<tr><td><code>model</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
+<tr><td><code>io</code></td><td>ファイルの読み書き失敗</td></tr>
+<tr><td><code>parse</code></td><td>モデルまたは学習データの形式不正</td></tr>
+<tr><td><code>unsupported</code></td><td>このビルドでは利用できないスキームや操作</td></tr>
+<tr><td><code>pos_unavailable</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>napi::Status</code> が閉じた enum のため、code は 2 つの経路で JavaScript に渡ります。同期呼び出しは napi の文字列ステータス付きエラーを使い、非同期呼び出しは <code>Task::reject</code> で JavaScript の <code>Error</code> オブジェクトを再構築してプロパティを reject 後も保持させています。</p>
+<h2 id="開発-1"><a class="header" href="#開発-1">開発</a></h2>
+<pre><code class="language-sh">make test-litsea-nodejs    # cargo test + napi build + node --test
+make lint-litsea-nodejs    # clippy
+make build-litsea-nodejs   # リリースビルド
+</code></pre>
+<p><code>index.js</code> と <code>index.d.ts</code> は <code>napi build</code> が生成したものをコミットしており、CI で再生成して内容が古い場合は失敗させます。パリティテストは <code>litsea</code> CLI をビルドし、その出力とバインディングの出力を突き合わせます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="トレーニングガイド"><a class="header" href="#トレーニングガイド">トレーニングガイド</a></h1>
 <p>このガイドでは、Litsea で独自の単語分割モデルと品詞推定モデルを学習する手順を説明します。</p>
