@@ -107,8 +107,6 @@ lint-litsea-ruby: check-bundler ## Lint litsea-ruby (clippy + rubocop)
 
 clean-litsea-wasm: ## Clean litsea-wasm build artifacts
 	rm -rf litsea-wasm/pkg
-	rm -rf litsea-wasm/pkg-node
-	rm -f litsea-wasm/tests/fixtures.tsv
 
 # Which browser drives the headless tests. Firefox by default; override with
 # `make test-litsea-wasm WASM_BROWSER=chrome`.
