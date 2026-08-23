@@ -32,6 +32,7 @@ package-lock.json
 vendor/
 composer.lock
 .phpunit.cache/
+.phpunit.result.cache
 # Build artifacts of the litsea-wasm binding
 litsea-wasm/pkg/
 # Build artifacts of the litsea-ruby binding
