@@ -1,0 +1,144 @@
+name: Publish Node.js Binding
+
+# Publishes the Node.js binding on its own, separately from a full release.
+#
+# `release.yml` runs from the file contents at the tag that triggered it, so a
+# fix landed on `main` cannot be applied by re-running a tag's release, and
+# moving the tag would re-run the jobs that already published to crates.io,
+# PyPI, and RubyGems. A dispatched workflow avoids both: the definition comes
+# from the branch it is dispatched on, while `ref` selects the source to
+# publish. That makes this the recovery path when `publish-nodejs` in
+# `release.yml` fails partway through - as it did for v0.13.0, where npm
+# rejected the `litsea-win32-x64-msvc` package name and the main package was
+# never published (#225).
+#
+# Republishing is safe: see the publish step for what is skipped.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to publish from (a release tag, e.g. v0.13.0)"
+        required: true
+        type: string
+      dry_run:
+        description: "Build and rehearse the publish without releasing anything"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+# One publish at a time. Two concurrent runs would race on the same package
+# versions and report confusing failures.
+concurrency:
+  group: publish-nodejs
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build addon (${{ matrix.platform.target }})
+    # Kept in step with the `build-nodejs-binaries` matrix in release.yml.
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - runner: macos-latest
+            target: aarch64-apple-darwin
+          - runner: macos-26-intel
+            target: x86_64-apple-darwin
+          - runner: windows-latest
+            target: x86_64-pc-windows-msvc
+          - runner: windows-latest
+            target: aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.platform.target }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      - name: Build addon
+        working-directory: litsea-nodejs
+        run: |
+          npm install --no-audit --no-fund
+          npx napi build --platform --release --target ${{ matrix.platform.target }} -p litsea-nodejs
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v7
+        with:
+          name: addon-${{ matrix.platform.target }}
+          path: litsea-nodejs/*.node
+
+  publish:
+    name: Publish litsea to npm
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download addons
+        uses: actions/download-artifact@v8
+        with:
+          pattern: addon-*
+          merge-multiple: true
+          path: litsea-nodejs/artifacts
+
+      - name: Publish to npm
+        working-directory: litsea-nodejs
+        # Inputs reach the script through the environment rather than template
+        # expansion, so their contents are never interpreted as shell.
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          npm install --no-audit --no-fund
+          npx napi create-npm-dirs
+          npx napi artifacts --output-dir artifacts
+
+          version="$(node -p 'require("./package.json").version')"
+
+          if [ "${DRY_RUN}" = "true" ]; then
+            npx napi prepublish --no-gh-release --dry-run
+            npm publish --access public --dry-run
+            echo "dry run: would have published litsea@${version}"
+            exit 0
+          fi
+
+          # Both halves tolerate a version that is already on the registry, so
+          # a partially completed publish can simply be run again. The napi CLI
+          # skips a per-platform package that is already published; the main
+          # package is checked here.
+          npx napi prepublish --no-gh-release
+
+          if npm view "litsea@${version}" version >/dev/null 2>&1; then
+            echo "litsea@${version} is already published; nothing left to do"
+          else
+            npm publish --access public
+          fi
