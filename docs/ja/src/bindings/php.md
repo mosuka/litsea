@@ -1,17 +1,29 @@
 # PHP
 
-`litsea-php` は [ext-php-rs](https://github.com/davidcole1340/ext-php-rs) を用いて Litsea を PHP 8.1 以降へ公開するバインディングです。Packagist では `litsea/litsea` として配布します。
+`litsea-php` は [ext-php-rs](https://github.com/davidcole1340/ext-php-rs) を用いて Litsea を PHP 8.1 以降へ公開するバインディングです。Packagist に `mosuka/litsea` として公開され、[PIE](https://github.com/php/pie) でインストールします。拡張は `litsea` という名前で登録されます。
 
 ## インストール
 
-PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトです。PyPI や npm と異なりビルド済みパッケージの配布はなく、自分でビルドして有効化します。
+PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトです。PyPI や npm と異なりビルド済みパッケージの配布はなく、PIE か自分の手で、使っている PHP に合わせてビルドします。
+
+```sh
+pie install mosuka/litsea
+```
+
+PIE は Packagist からソースを取得し、実行中の PHP に合わせてビルドし（`--with-php-config=...` で別の PHP を選べます）、`litsea.so` を拡張ディレクトリへ配置して有効化します。ビルドには Rust ツールチェーンと libclang が必要で、Windows は未対応です。Composer 自体は `php-ext` 型のパッケージを無視するため、`composer require mosuka/litsea` ではインストールできません。
+
+PIE を使わない場合は自分でビルドして読み込みます。
 
 ```sh
 cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 ```
 
-常時読み込む場合は `php.ini` に `extension=/path/to/liblitsea_php.so` を追記します。ビルドには Rust ツールチェーンと libclang が必要です。
+常時読み込む場合は `php.ini` に `extension=/path/to/liblitsea_php.so` を追記します。どちらの方法でも `php -m` には `litsea` と表示されます。
+
+## 静的解析向けのスタブ
+
+`litsea-php/stubs/litsea.stubs.php` は、すべてのクラスと関数を IDE・PHPStan（`stubFiles`）・Psalm（`stubs`）向けに宣言したファイルです。ビルド済みの拡張から生成し、テストスイートが検証するため、Rust のソースと食い違うことはありません。解析ツールからこのファイルのコピーを指してください。実行時に読み込んではいけません（拡張がすでにクラスを宣言しています）。
 
 ## モデルの入手
 
@@ -107,9 +119,13 @@ $metrics = (new Litsea\Trainer(0.01, 100000, 'features.txt'))->train('japanese.m
 ## 開発
 
 ```sh
-make test-litsea-php    # cargo test + 拡張のビルド + PHPUnit
-make lint-litsea-php    # clippy
-make build-litsea-php   # リリースビルド
+make test-litsea-php      # cargo test + 拡張のビルド + PHPUnit
+make test-litsea-php-pie  # PIE が実行する phpize / configure / make の経路
+make stubs-litsea-php     # litsea-php/stubs/litsea.stubs.php を再生成
+make lint-litsea-php      # clippy
+make build-litsea-php     # リリースビルド
 ```
 
 パリティテストは `litsea` CLI をビルドし、その出力とバインディングの出力を突き合わせます。
+
+`composer.json` はリポジトリのルートにあります。Packagist がルートのマニフェストしか読まないためで、その `php-ext.build-path` が PIE を `litsea-php/` へ戻し、`config.m4` と `Makefile.frag` が PIE の `phpize` / `configure` / `make` の流れを `cargo build --release -p litsea-php` に変換します。

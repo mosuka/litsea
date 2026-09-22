@@ -67,16 +67,50 @@ test-litsea-nodejs: ## Test litsea-nodejs (Rust unit tests + node --test)
 lint-litsea-nodejs: ## Lint litsea-nodejs (clippy)
 	cargo clippy -p litsea-nodejs --all-targets -- -D warnings
 
+# Files that phpize / configure / make leave inside litsea-php/ (the build path
+# PIE uses). Listed by name because `phpize --clean` also deletes tests/*.php,
+# which would remove the PHPUnit suite. Keep in sync with the litsea-php block
+# in .gitignore.
+PHPIZE_ARTIFACTS = build modules autom4te.cache .libs configure configure.ac \
+	config.h config.h.in config.h.in~ config.log config.nice config.status \
+	config.cache Makefile Makefile.fragments Makefile.objects libtool \
+	run-tests.php tmp-php.ini
+
+# composer.json lives at the repository root (Packagist reads it there), so
+# Composer's output lands at the root too.
 clean-litsea-php: ## Clean litsea-php build artifacts
-	rm -rf litsea-php/vendor
-	rm -f litsea-php/composer.lock
+	rm -rf vendor composer.lock .phpunit.cache .tmp/pie-stage
+	cd litsea-php && rm -rf $(PHPIZE_ARTIFACTS) *.lo *.la
 
 test-litsea-php: ## Test litsea-php (Rust unit tests + PHPUnit)
 	cargo test -p litsea-php --lib
 	cargo build -p litsea-php
-	cd litsea-php && composer install --quiet --no-interaction && \
-		LIB=$$(find ../target/debug -maxdepth 1 \( -name 'liblitsea_php.so' -o -name 'liblitsea_php.dylib' \) | head -1) && \
-		php -d extension=$$LIB vendor/bin/phpunit
+	composer validate --strict --no-check-publish
+	composer install --quiet --no-interaction
+	LIB=$$(find target/debug -maxdepth 1 \( -name 'liblitsea_php.so' -o -name 'liblitsea_php.dylib' \) | head -1) && \
+		php -d extension=$$LIB vendor/bin/phpunit -c litsea-php/phpunit.xml.dist
+
+# Exercises the build path PIE uses (phpize / configure / make / make install)
+# without touching the system: the module is staged under .tmp/ and loaded
+# into a php that reads no ini files. The second `make -n` must not mention
+# cargo, which proves `sudo make install` after `make` would not rebuild.
+test-litsea-php-pie: ## Test litsea-php through the phpize build that PIE runs
+	cd litsea-php && rm -rf $(PHPIZE_ARTIFACTS) && \
+		phpize && \
+		./configure --with-php-config="$$(command -v php-config)" && \
+		make && \
+		php -n -d extension="$$PWD/modules/litsea.so" -m | grep -qx litsea && \
+		{ ! make -n 2>&1 | grep -q cargo; } && \
+		make install INSTALL_ROOT="$$PWD/../.tmp/pie-stage" && \
+		test -f "$$PWD/../.tmp/pie-stage$$(php-config --extension-dir)/litsea.so" && \
+		rm -rf "$$PWD/../.tmp/pie-stage" $(PHPIZE_ARTIFACTS)
+
+# The stub file is generated from the compiled extension so it cannot drift
+# from the Rust source; StubsTest fails when it is out of date.
+stubs-litsea-php: ## Regenerate litsea-php/stubs/litsea.stubs.php from the built extension
+	cargo build -p litsea-php
+	LIB=$$(find target/debug -maxdepth 1 \( -name 'liblitsea_php.so' -o -name 'liblitsea_php.dylib' \) | head -1) && \
+		php -n -d extension=$$LIB litsea-php/tools/generate-stubs.php > litsea-php/stubs/litsea.stubs.php
 
 lint-litsea-php: ## Lint litsea-php (clippy)
 	cargo clippy -p litsea-php --all-targets -- -D warnings

@@ -6,7 +6,19 @@ PHP binding for [Litsea](https://github.com/mosuka/litsea), a compact word segme
 
 ## Installation
 
-A PHP extension is a shared object built against a specific PHP ABI, so there is no prebuilt package to install — you build it and enable it in `php.ini`.
+A PHP extension is a shared object built against a specific PHP ABI, so there is no prebuilt package to download — the extension is compiled for your PHP, either by [PIE](https://github.com/php/pie) or by you. Requires PHP 8.1 or later.
+
+### With PIE (recommended)
+
+The package is published on Packagist as `mosuka/litsea` and installed with PIE, the PHP extension installer. Composer itself does not install `php-ext` packages, so `composer require mosuka/litsea` is not the way in.
+
+```sh
+pie install mosuka/litsea
+```
+
+PIE downloads the source, builds it against the PHP that `pie` runs under (pass `--with-php-config=/path/to/php-config` to target another one), installs `litsea.so` into the extension directory and enables it. The build needs a Rust toolchain (<https://rustup.rs/>) and libclang (`libclang-dev` on Debian/Ubuntu; the Xcode command line tools or `brew install llvm` on macOS). Windows is not supported.
+
+### Manual build
 
 ```sh
 git clone https://github.com/mosuka/litsea.git
@@ -26,7 +38,25 @@ or pass it per invocation:
 php -d extension=/path/to/liblitsea_php.so your-script.php
 ```
 
-Requires PHP 8.1 or later and a Rust toolchain, plus libclang for the build (`libclang-dev` on Debian/Ubuntu).
+Either way the extension registers as `litsea`: `php -m` lists `litsea`, and `extension_loaded('litsea')` is the check to use.
+
+### Stubs for static analysis
+
+[`stubs/litsea.stubs.php`](stubs/litsea.stubs.php) declares every class and function of the extension for IDEs, PHPStan and Psalm. It is generated from the compiled extension and the test suite fails when it is out of date, so it cannot drift from the Rust source. Point your analyser at a copy of the file, and never include it at runtime — the extension already declares the classes.
+
+```neon
+# phpstan.neon
+parameters:
+    stubFiles:
+        - path/to/litsea/litsea-php/stubs/litsea.stubs.php
+```
+
+```xml
+<!-- psalm.xml -->
+<stubs>
+    <file name="path/to/litsea/litsea-php/stubs/litsea.stubs.php"/>
+</stubs>
+```
 
 ## Models are not bundled
 
@@ -160,9 +190,13 @@ ext-php-rs renames methods and properties to camelCase, so the PHP API reads as 
 ## Development
 
 ```sh
-make test-litsea-php    # cargo test + build the extension + PHPUnit
-make build-litsea-php   # release build
+make test-litsea-php      # cargo test + build the extension + PHPUnit
+make test-litsea-php-pie  # the phpize / configure / make path that PIE runs
+make stubs-litsea-php     # regenerate stubs/litsea.stubs.php after changing the API
+make build-litsea-php     # release build
 ```
+
+`composer.json` lives at the repository root, not in this directory: Packagist reads it from there, and its `php-ext.build-path` points PIE back at `litsea-php/`, where `config.m4` and `Makefile.frag` run `cargo build`.
 
 ## License
 

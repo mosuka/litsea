@@ -6,7 +6,19 @@
 
 ## インストール
 
-PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトであるため、インストール済みバイナリの配布はありません。自分でビルドして `php.ini` で有効化します。
+PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトであるため、ダウンロードして使えるビルド済みパッケージはありません。[PIE](https://github.com/php/pie) か自分の手で、使っている PHP に合わせてビルドします。PHP 8.1 以降が必要です。
+
+### PIE でインストール（推奨）
+
+パッケージは Packagist に `mosuka/litsea` として公開され、PHP 拡張のインストーラである PIE で入れます。Composer 自体は `php-ext` 型のパッケージをインストールしないため、`composer require mosuka/litsea` では入りません。
+
+```sh
+pie install mosuka/litsea
+```
+
+PIE はソースを取得し、`pie` を実行している PHP に合わせてビルドし（別の PHP を対象にするには `--with-php-config=/path/to/php-config` を指定）、`litsea.so` を拡張ディレクトリへ配置して有効化します。ビルドには Rust ツールチェーン（<https://rustup.rs/>）と libclang（Debian/Ubuntu では `libclang-dev`、macOS では Xcode コマンドラインツールか `brew install llvm`）が必要です。Windows は未対応です。
+
+### 手動ビルド
 
 ```sh
 git clone https://github.com/mosuka/litsea.git
@@ -26,7 +38,25 @@ extension=/path/to/litsea/target/release/liblitsea_php.so
 php -d extension=/path/to/liblitsea_php.so your-script.php
 ```
 
-PHP 8.1 以降と Rust ツールチェーン、およびビルド用の libclang（Debian/Ubuntu では `libclang-dev`）が必要です。
+どちらの方法でも拡張は `litsea` という名前で登録されます。`php -m` には `litsea` と表示され、確認には `extension_loaded('litsea')` を使います。
+
+### 静的解析向けのスタブ
+
+[`stubs/litsea.stubs.php`](stubs/litsea.stubs.php) は、この拡張のすべてのクラスと関数を IDE・PHPStan・Psalm 向けに宣言したファイルです。ビルド済みの拡張から生成し、古くなるとテストが失敗するため、Rust のソースと食い違うことはありません。解析ツールからこのファイルのコピーを指してください。実行時に読み込んではいけません（拡張がすでにクラスを宣言しているため二重定義になります）。
+
+```neon
+# phpstan.neon
+parameters:
+    stubFiles:
+        - path/to/litsea/litsea-php/stubs/litsea.stubs.php
+```
+
+```xml
+<!-- psalm.xml -->
+<stubs>
+    <file name="path/to/litsea/litsea-php/stubs/litsea.stubs.php"/>
+</stubs>
+```
 
 ## モデルは同梱されません
 
@@ -160,9 +190,13 @@ ext-php-rs はメソッドとプロパティを camelCase に変換するため�
 ## 開発
 
 ```sh
-make test-litsea-php    # cargo test + 拡張のビルド + PHPUnit
-make build-litsea-php   # リリースビルド
+make test-litsea-php      # cargo test + 拡張のビルド + PHPUnit
+make test-litsea-php-pie  # PIE が実行する phpize / configure / make の経路
+make stubs-litsea-php     # API 変更後に stubs/litsea.stubs.php を再生成
+make build-litsea-php     # リリースビルド
 ```
+
+`composer.json` はこのディレクトリではなくリポジトリのルートにあります。Packagist がそこから読むためで、その `php-ext.build-path` が PIE を `litsea-php/` へ戻し、`config.m4` と `Makefile.frag` が `cargo build` を実行します。
 
 ## ライセンス
 

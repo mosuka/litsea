@@ -2,8 +2,34 @@
 
 ## Unreleased
 
+### Added
+
+- `litsea-php` can be published on Packagist and installed with PIE (#227).
+  The package manifest moved from `litsea-php/composer.json` to the
+  repository root as `mosuka/litsea` -- Packagist only reads a root
+  `composer.json`, and PIE's `php-ext.build-path` points it back at
+  `litsea-php/`. New `litsea-php/config.m4` and `Makefile.frag` turn PIE's
+  `phpize` / `configure` / `make` sequence into `cargo build --release -p
+  litsea-php` and install the result as `litsea.so`; `make
+  test-litsea-php-pie` exercises that path in CI. Composer itself ignores
+  `php-ext` packages, so `composer require` is not an installation route.
+- `litsea-php/stubs/litsea.stubs.php` declares the extension's classes and
+  functions for IDEs, PHPStan and Psalm (#227). It is generated from the
+  compiled extension by `litsea-php/tools/generate-stubs.php` (`make
+  stubs-litsea-php`), and `StubsTest` fails when it is out of date.
+
 ### Changed
 
+- **Breaking (PHP):** the extension registers as `litsea` instead of the
+  crate name `litsea-php` (#227). PIE does not allow hyphens in an extension
+  name, and `php -m`, `extension_loaded()`, `extension=litsea` and the
+  installed `litsea.so` now agree on one name. Code that checked
+  `extension_loaded('litsea-php')` must check `'litsea'`. The Cargo artifact
+  is still `liblitsea_php.so`.
+- The 0.13.0 notes below say `litsea-php` was distributed on Packagist as
+  `litsea/litsea`. It never was (#227); the package is `mosuka/litsea`, and
+  the first version on Packagist is the first one tagged with the root
+  `composer.json`.
 - `litsea-nodejs` pins `@napi-rs/cli` to an exact version (3.10.4) and
   regenerates its committed `index.js` / `index.d.ts` with it (#234). With
   the previous `^3.0.0` range, CI compared the committed entry points
