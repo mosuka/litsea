@@ -164,11 +164,14 @@ fi
 # CHANGELOG.md and Cargo.lock are excluded too: the former names older
 # versions in its history on purpose, and the latter was just regenerated
 # but still lists third-party crates that happen to share the number.
+# publish-nodejs.yml is excluded for the same reason as the changelog: it
+# records the release whose npm publish failed, and gives that tag as its
+# input example.
 echo
 echo "checking for leftovers"
 leftovers="$(
   git ls-files -z |
-    grep -zZv -E '^(CHANGELOG\.md|Cargo\.lock)$' |
+    grep -zZv -E '^(CHANGELOG\.md|Cargo\.lock|\.github/workflows/publish-nodejs\.yml)$' |
     xargs -0 grep -n -F "${current_version}" /dev/null 2>/dev/null || true
 )"
 
