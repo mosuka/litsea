@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-3b60bd66.js";
+            window.path_to_searchindex_js = "searchindex-99aad99a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -4333,7 +4333,7 @@ const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese
 make lint-litsea-nodejs    # clippy
 make build-litsea-nodejs   # リリースビルド
 </code></pre>
-<p><code>index.js</code> と <code>index.d.ts</code> は <code>napi build</code> が生成したものをコミットしており、CI で再生成して内容が古い場合は失敗させます。パリティテストは <code>litsea</code> CLI をビルドし、その出力とバインディングの出力を突き合わせます。</p>
+<p><code>index.js</code> と <code>index.d.ts</code> は <code>napi build</code> が生成したものをコミットしており、CI で再生成して内容が古い場合は失敗させます。両ファイルの内容は <code>@napi-rs/cli</code> のテンプレートで決まるため、<code>package.json</code> では CLI を正確なバージョンに固定しています。浮動レンジのままだと、上流の CLI リリースだけでコミット済みのファイルが古くなります（2026 年 9 月の 3.9.1 と 3.10.0 で実際に起きました）。そのため CLI を更新するときは、同じ PR で両ファイルを再生成します。パリティテストは <code>litsea</code> CLI をビルドし、その出力とバインディングの出力を突き合わせます。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="php"><a class="header" href="#php">PHP</a></h1>
 <p><code>litsea-php</code> は <a href="https://github.com/davidcole1340/ext-php-rs">ext-php-rs</a> を用いて Litsea を PHP 8.1 以降へ公開するバインディングです。Packagist では <code>litsea/litsea</code> として配布します。</p>
