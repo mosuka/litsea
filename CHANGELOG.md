@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- `litsea-nodejs` pins `@napi-rs/cli` to an exact version (3.10.4) and
+  regenerates its committed `index.js` / `index.d.ts` with it (#234). With
+  the previous `^3.0.0` range, CI compared the committed entry points
+  against whatever CLI npm served that day, so the upstream template
+  changes in 3.9.1 and 3.10.0 failed every PR. The regenerated loader also
+  exports `__napiBindingTarget`, the artifact it loaded, as every napi-rs
+  3.10 loader does.
+
 ## 0.13.0 (2026-08-23)
 
 ### Added

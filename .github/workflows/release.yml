@@ -161,7 +161,8 @@ jobs:
 
       - name: Verify generated entry points are up to date
         # `napi build` regenerates index.js / index.d.ts; they are committed,
-        # so a diff here means someone changed the API without rebuilding.
+        # so a diff here means someone changed the API - or bumped the pinned
+        # @napi-rs/cli, whose templates produce them - without rebuilding.
         run: git diff --exit-code litsea-nodejs/index.js litsea-nodejs/index.d.ts
 
   test-litsea-php:
