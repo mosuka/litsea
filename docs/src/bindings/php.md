@@ -1,17 +1,29 @@
 # PHP
 
-`litsea-php` exposes Litsea to PHP 8.1+ through [ext-php-rs](https://github.com/davidcole1340/ext-php-rs). It is distributed on Packagist as `litsea/litsea`.
+`litsea-php` exposes Litsea to PHP 8.1+ through [ext-php-rs](https://github.com/davidcole1340/ext-php-rs). It is published on Packagist as `mosuka/litsea` and installed with [PIE](https://github.com/php/pie); the extension registers as `litsea`.
 
 ## Installation
 
-A PHP extension is a shared object built against a specific PHP ABI, so unlike PyPI and npm there is no prebuilt package: you build it and enable it.
+A PHP extension is a shared object built against a specific PHP ABI, so unlike PyPI and npm there is no prebuilt package: the extension is compiled for your PHP, by PIE or by hand.
+
+```sh
+pie install mosuka/litsea
+```
+
+PIE fetches the source from Packagist, builds it against the PHP it runs under (`--with-php-config=...` selects another), installs `litsea.so` into the extension directory and enables it. The build needs a Rust toolchain and libclang; Windows is not supported. Composer itself ignores `php-ext` packages, so `composer require mosuka/litsea` is not an installation route.
+
+Without PIE, build and load the library yourself:
 
 ```sh
 cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 ```
 
-Add it to `php.ini` (`extension=/path/to/liblitsea_php.so`) to load it everywhere. The build needs a Rust toolchain and libclang.
+Add it to `php.ini` (`extension=/path/to/liblitsea_php.so`) to load it everywhere. Either way `php -m` lists the extension as `litsea`.
+
+## Stubs for static analysis
+
+`litsea-php/stubs/litsea.stubs.php` declares every class and function for IDEs, PHPStan (`stubFiles`) and Psalm (`stubs`). It is generated from the compiled extension and checked by the test suite, so it cannot drift from the Rust source. Point the analyser at a copy of the file; never include it at runtime, where the extension already declares the classes.
 
 ## Getting a model
 
@@ -107,9 +119,13 @@ Every exception derives from `Litsea\LitseaException`, so one `catch` handles th
 ## Development
 
 ```sh
-make test-litsea-php    # cargo test + build the extension + PHPUnit
-make lint-litsea-php    # clippy
-make build-litsea-php   # release build
+make test-litsea-php      # cargo test + build the extension + PHPUnit
+make test-litsea-php-pie  # the phpize / configure / make path that PIE runs
+make stubs-litsea-php     # regenerate litsea-php/stubs/litsea.stubs.php
+make lint-litsea-php      # clippy
+make build-litsea-php     # release build
 ```
 
 The parity tests build the `litsea` CLI and compare the binding's output against it.
+
+`composer.json` lives at the repository root because Packagist only reads a root manifest; its `php-ext.build-path` points PIE back at `litsea-php/`, where `config.m4` and `Makefile.frag` turn PIE's `phpize` / `configure` / `make` sequence into `cargo build --release -p litsea-php`.

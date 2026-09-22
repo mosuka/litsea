@@ -17,7 +17,7 @@ Litsea is usable from other languages through bindings that live in this reposit
 |---------|----------|--------|
 | [`litsea-python`](litsea-python/README.md) (PyPI: `litsea`) | Python 3.10+ | Available |
 | [`litsea-nodejs`](litsea-nodejs/README.md) (npm: `litsea`) | Node.js 20+ | Available |
-| [`litsea-php`](litsea-php/README.md) (Packagist: `litsea/litsea`) | PHP 8.1+ | Available |
+| [`litsea-php`](litsea-php/README.md) (Packagist: `mosuka/litsea`, installed with PIE) | PHP 8.1+ | Available |
 | [`litsea-ruby`](litsea-ruby/README.md) (RubyGems: `litsea`) | Ruby 3.1+ | Available |
 | [`litsea-wasm`](litsea-wasm/README.md) (npm: `litsea-wasm`) | Browser / Deno | Available |
 

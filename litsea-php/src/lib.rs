@@ -47,6 +47,13 @@ pub fn supported_languages() -> Vec<String> {
 
 /// Registers the extension's classes and functions with PHP.
 ///
+/// The module is registered as `litsea`, not under the crate name
+/// `litsea-php` that ext-php-rs uses by default. PIE requires the
+/// `extension-name` in `composer.json` to match `^[A-Za-z][a-zA-Z0-9_]+$`,
+/// so the hyphenated crate name cannot be used there, and `php -m`,
+/// `extension_loaded()`, `extension=litsea` and the installed `litsea.so`
+/// all have to agree on one name.
+///
 /// # Arguments
 /// * `module` - The module builder PHP supplies at load time.
 ///
@@ -55,6 +62,7 @@ pub fn supported_languages() -> Vec<String> {
 #[php_module]
 pub fn get_module(module: ModuleBuilder) -> ModuleBuilder {
     module
+        .name("litsea")
         // Exceptions: the base class must be registered before its subclasses.
         .class::<error::LitseaException>()
         .class::<error::InvalidArgumentException>()

@@ -28,11 +28,35 @@ dist/
 *.node
 node_modules/
 package-lock.json
-# Composer dev dependencies of the litsea-php binding
+# Composer dev dependencies of the litsea-php binding (composer.json is at the
+# repository root, so these land at the root)
 vendor/
 composer.lock
 .phpunit.cache/
 .phpunit.result.cache
+# phpize / configure / make output inside litsea-php (the build path PIE uses).
+# Listed by exact name: a Makefile* glob would also hide Makefile.frag.
+litsea-php/build/
+litsea-php/modules/
+litsea-php/autom4te.cache/
+litsea-php/.libs/
+litsea-php/configure
+litsea-php/configure.ac
+litsea-php/config.h
+litsea-php/config.h.in
+litsea-php/config.h.in~
+litsea-php/config.log
+litsea-php/config.nice
+litsea-php/config.status
+litsea-php/config.cache
+litsea-php/Makefile
+litsea-php/Makefile.fragments
+litsea-php/Makefile.objects
+litsea-php/libtool
+litsea-php/run-tests.php
+litsea-php/tmp-php.ini
+litsea-php/*.lo
+litsea-php/*.la
 # Build artifacts of the litsea-wasm binding
 litsea-wasm/pkg/
 # Build artifacts of the litsea-ruby binding

@@ -198,6 +198,9 @@ jobs:
       - name: Run PHP test
         run: make test-litsea-php
 
+      - name: Run PHP test through the phpize build that PIE uses
+        run: make test-litsea-php-pie
+
       - name: Run PHP lint
         run: make lint-litsea-php
 
