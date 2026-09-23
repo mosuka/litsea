@@ -4,8 +4,8 @@
 # release.
 #
 # Usage:
-#   scripts/bump_up_version.sh 0.14.0
-#   scripts/bump_up_version.sh 0.14.0 --keep-changelog
+#   scripts/bump_up_version.sh 1.2.3
+#   scripts/bump_up_version.sh 1.2.3 --keep-changelog
 #
 # What it touches:
 #
@@ -52,7 +52,7 @@ usage() {
   cat >&2 <<'EOF'
 usage: scripts/bump_up_version.sh <new-version> [--keep-changelog]
 
-  <new-version>      the version to move to, e.g. 0.14.0
+  <new-version>      the version to move to, e.g. 1.2.3
   --keep-changelog   leave the `## Unreleased` heading alone
 
 Run from anywhere; paths are resolved relative to the repository root.
@@ -78,7 +78,7 @@ done
 
 [ -n "${new_version}" ] || usage
 
-# Semver, optionally with a pre-release suffix (0.14.0-rc.1).
+# Semver, optionally with a pre-release suffix (1.2.3-rc.1).
 if ! printf '%s' "${new_version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then
   echo "not a version: ${new_version}" >&2
   exit 1
@@ -144,11 +144,20 @@ fi
 if grep -q -F "${current_version}" litsea-nodejs/index.js 2>/dev/null; then
   if command -v npx >/dev/null 2>&1; then
     echo "regenerating litsea-nodejs/index.js (napi embeds the version)"
-    (
+    # The build is chatty, so its output is kept in a log and shown only when
+    # it fails; a silent failure here would surface later as a stale loader.
+    napi_log="$(mktemp)"
+    if (
       cd litsea-nodejs
       npm install --silent --no-audit --no-fund
       npx napi build --platform -p litsea-nodejs
-    ) >/dev/null 2>&1 || echo "  regeneration failed; see the command below" >&2
+    ) >"${napi_log}" 2>&1; then
+      rm -f "${napi_log}"
+    else
+      echo "  regeneration failed; last lines of its output:" >&2
+      tail -n 20 "${napi_log}" >&2
+      rm -f "${napi_log}"
+    fi
   else
     echo "npx not found; cannot regenerate litsea-nodejs/index.js" >&2
   fi
