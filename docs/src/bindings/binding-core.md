@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-litsea-binding-core = "0.14.0"
+litsea-binding-core = "0.14.1"
 ```
 
 ## Module Map
