@@ -6,12 +6,12 @@
 
 - Prebuilt PIE binaries for `litsea-php` (#238). Every release now attaches
   `php_litsea-<tag>_php<8.1..8.5>-<x86_64|arm64>-<linux-glibc|darwin-bsdlibc>-<nts|zts>.zip`
-  assets, and `composer.json` lists `pre-packaged-binary` ahead of
+  assets (Linux x86_64 and arm64, macOS on Apple silicon), and `composer.json` lists `pre-packaged-binary` ahead of
   `composer-default`, so `pie install mosuka/litsea` on PIE 1.4 or later
   downloads the module instead of compiling it: no Rust toolchain on the
   user's machine. The Linux builds run on Ubuntu 22.04 and therefore need
-  glibc 2.35 or newer; musl, older glibc and older PIE releases fall back
-  to the source build as before. The release job also checks that every
+  glibc 2.35 or newer; musl, older glibc, Intel Macs and older PIE releases fall
+  back to the source build as before. The release job also checks that every
   module loads, reports the release version and links nothing beyond libc,
   and CI now builds the extension on macOS, which 0.14.0 never did.
 
@@ -19,6 +19,15 @@
 
 - The PHP docs now say what a source build needs beyond Rust and libclang:
   PIE's build tools (`autoconf`, `libtool`, `make`) and `unzip` (#238).
+
+### Fixed
+
+- `litsea-php` links on macOS (#238). The cdylib references Zend symbols
+  that the `php` binary provides at load time; Apple's linker rejects
+  those unless told to resolve them lazily, so every macOS build failed
+  with "Undefined symbols for architecture arm64". `build.rs` now passes
+  `-undefined dynamic_lookup` for the cdylib, the way PyO3 does for Python
+  extension modules.
 
 ## 0.14.0 (2026-09-23)
 

@@ -16,9 +16,9 @@ The package is published on Packagist as `mosuka/litsea` and installed with PIE,
 pie install mosuka/litsea
 ```
 
-PIE 1.4 or later downloads a prebuilt `litsea.so` from the GitHub release when one exists for your PHP (8.1 to 8.5, NTS or ZTS) and platform (Linux x86_64 or arm64 with glibc 2.35 or newer, macOS arm64 or x86_64), installs it into the extension directory and enables it. Nothing is compiled and no Rust toolchain is needed; PIE itself needs `unzip`. Pass `--with-php-config=/path/to/php-config` to target another PHP.
+PIE 1.4 or later downloads a prebuilt `litsea.so` from the GitHub release when one exists for your PHP (8.1 to 8.5, NTS or ZTS) and platform (Linux x86_64 or arm64 with glibc 2.35 or newer, macOS on Apple silicon), installs it into the extension directory and enables it. Nothing is compiled and no Rust toolchain is needed; PIE itself needs `unzip`. Pass `--with-php-config=/path/to/php-config` to target another PHP.
 
-For every other combination (Alpine and other musl systems, glibc older than 2.35, PIE before 1.4) the same command falls back to building from source, which needs a Rust toolchain (<https://rustup.rs/>), libclang (`libclang-dev` on Debian/Ubuntu; the Xcode command line tools or `brew install llvm` on macOS) and PIE's usual build tools (`autoconf`, `libtool`, `make`). Windows is not supported.
+For every other combination (Alpine and other musl systems, glibc older than 2.35, Intel Macs, PIE before 1.4) the same command falls back to building from source, which needs a Rust toolchain (<https://rustup.rs/>), libclang (`libclang-dev` on Debian/Ubuntu; the Xcode command line tools or `brew install llvm` on macOS) and PIE's usual build tools (`autoconf`, `libtool`, `make`). Windows is not supported.
 
 ### Manual build
 

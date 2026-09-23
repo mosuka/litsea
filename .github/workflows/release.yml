@@ -433,9 +433,12 @@ jobs:
         platform:
           # arch / os / libc are the segments PIE puts in the asset name
           # (php/pie src/Platform/{Architecture,OperatingSystemFamily,LibcFlavour}.php).
-          # macOS is always "bsdlibc" because PIE detects otool. Linux is
-          # built on 22.04 so the module needs no GLIBC symbol newer than
-          # 2.35 and loads on Ubuntu 22.04 and Debian 12.
+          # macOS is always "bsdlibc" because PIE detects otool, and only
+          # Apple silicon is built: setup-php has deprecated the Intel
+          # runners and can no longer install PHP on them, so Intel Macs
+          # fall back to PIE's source build. Linux is built on 22.04 so the
+          # module needs no GLIBC symbol newer than 2.35 and loads on
+          # Ubuntu 22.04 and Debian 12.
           - runner: ubuntu-22.04
             arch: x86_64
             os: linux
@@ -446,10 +449,6 @@ jobs:
             libc: glibc
           - runner: macos-latest
             arch: arm64
-            os: darwin
-            libc: bsdlibc
-          - runner: macos-26-intel
-            arch: x86_64
             os: darwin
             libc: bsdlibc
     runs-on: ${{ matrix.platform.runner }}
@@ -480,6 +479,17 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-${{ runner.arch }}-pie-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Install a newer libclang (Linux x86_64)
+        # The 22.04 image ships libclang 14, whose bundled emmintrin.h trips
+        # bindgen while it parses the PHP headers ("invalid conversion
+        # between vector type '__m128i' ... and integer type 'int'"). LLVM 18
+        # from apt.llvm.org parses them; arm64 has no SSE headers and builds
+        # with the stock libclang.
+        if: runner.os == 'Linux' && runner.arch == 'X64'
+        run: |
+          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 18
+          echo "LIBCLANG_PATH=/usr/lib/llvm-18/lib" >> "$GITHUB_ENV"
+
       - name: Install build prerequisites (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -500,14 +510,15 @@ jobs:
           php -n -d extension="$PWD/modules/litsea.so" -m | grep -x litsea
           expected=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "litsea-php") | .version')
           actual=$(php -n -d extension="$PWD/modules/litsea.so" -r 'echo Litsea\version();')
-          echo "extension reports $actual, Cargo says $expected, PHP_ZTS=$(php -r 'echo PHP_ZTS;')"
+          # PHP_ZTS is an int up to 8.3 and a bool from 8.4, where `echo`
+          # prints "" for false; the ternary gives one spelling for both.
+          ts=$(php -r 'echo PHP_ZTS ? "zts" : "nts";')
+          echo "extension reports $actual, Cargo says $expected, PHP is $ts"
           test "$actual" = "$expected"
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             test "v$expected" = "$GITHUB_REF_NAME"
           fi
-          want=0
-          if [ "${{ matrix.ts }}" = zts ]; then want=1; fi
-          test "$(php -r 'echo PHP_ZTS;')" = "$want"
+          test "$ts" = "${{ matrix.ts }}"
 
       - name: Verify the glibc requirement (Linux)
         if: runner.os == 'Linux'
@@ -547,8 +558,7 @@ jobs:
             version="v$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "litsea-php") | .version')-dev"
           fi
           php_minor=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
-          ts=nts
-          if [ "$(php -r 'echo PHP_ZTS;')" = 1 ]; then ts=zts; fi
+          ts=$(php -r 'echo PHP_ZTS ? "zts" : "nts";')
           asset=$(echo "php_litsea-${version}_php${php_minor}-${{ matrix.platform.arch }}-${{ matrix.platform.os }}-${{ matrix.platform.libc }}-${ts}.zip" | tr '[:upper:]' '[:lower:]')
           zip -j "$asset" modules/litsea.so
           unzip -l "$asset"
