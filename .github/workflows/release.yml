@@ -413,6 +413,163 @@ jobs:
           files: litsea-${{ matrix.platform.target }}-${{ github.ref_name }}${{ matrix.platform.archive }}
           tag_name: ${{ github.ref_name }}
 
+  build-php-binaries:
+    name: Build PIE binary (php${{ matrix.php-version }}-${{ matrix.platform.arch }}-${{ matrix.platform.os }}-${{ matrix.ts }})
+    needs: [test-litsea-php, create-release]
+    # Runs after the release exists on a tag push, and as a dry run on
+    # workflow_dispatch from a branch. create-release is tag-gated and ends
+    # up `skipped` on a dispatch, which the implicit success() would treat
+    # as a failure, hence the explicit result checks. The zips are always
+    # uploaded as workflow artifacts and attached to the GitHub Release only
+    # on a tag (last step).
+    if: ${{ !cancelled() && needs.test-litsea-php.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.create-release.result) }}
+    strategy:
+      # A dry run should report every cell rather than stop at the first
+      # failure.
+      fail-fast: false
+      matrix:
+        php-version: ["8.1", "8.2", "8.3", "8.4", "8.5"]
+        ts: [nts, zts]
+        platform:
+          # arch / os / libc are the segments PIE puts in the asset name
+          # (php/pie src/Platform/{Architecture,OperatingSystemFamily,LibcFlavour}.php).
+          # macOS is always "bsdlibc" because PIE detects otool. Linux is
+          # built on 22.04 so the module needs no GLIBC symbol newer than
+          # 2.35 and loads on Ubuntu 22.04 and Debian 12.
+          - runner: ubuntu-22.04
+            arch: x86_64
+            os: linux
+            libc: glibc
+          - runner: ubuntu-22.04-arm
+            arch: arm64
+            os: linux
+            libc: glibc
+          - runner: macos-latest
+            arch: arm64
+            os: darwin
+            libc: bsdlibc
+          - runner: macos-26-intel
+            arch: x86_64
+            os: darwin
+            libc: bsdlibc
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+        env:
+          phpts: ${{ matrix.ts }}
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Cache Cargo
+        # Registry and index only: ext-php-rs bakes the target PHP's headers
+        # into the build, so a `target` cache would need one entry per cell
+        # and evict everything else under the repository cache cap.
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ runner.arch }}-pie-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install build prerequisites (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          command -v autoconf >/dev/null || brew install autoconf
+          command -v glibtoolize >/dev/null || brew install libtool
+
+      - name: Build through phpize (the path PIE runs)
+        working-directory: litsea-php
+        run: |
+          phpize
+          ./configure --with-php-config="$(command -v php-config)"
+          make LITSEA_CARGO_FLAGS=--locked
+          test -f modules/litsea.so
+
+      - name: Verify the module loads and matches the release version
+        working-directory: litsea-php
+        run: |
+          php -n -d extension="$PWD/modules/litsea.so" -m | grep -x litsea
+          expected=$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "litsea-php") | .version')
+          actual=$(php -n -d extension="$PWD/modules/litsea.so" -r 'echo Litsea\version();')
+          echo "extension reports $actual, Cargo says $expected, PHP_ZTS=$(php -r 'echo PHP_ZTS;')"
+          test "$actual" = "$expected"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            test "v$expected" = "$GITHUB_REF_NAME"
+          fi
+          want=0
+          if [ "${{ matrix.ts }}" = zts ]; then want=1; fi
+          test "$(php -r 'echo PHP_ZTS;')" = "$want"
+
+      - name: Verify the glibc requirement (Linux)
+        if: runner.os == 'Linux'
+        working-directory: litsea-php
+        run: |
+          objdump -p modules/litsea.so | awk '/NEEDED/ {print $2}'
+          if objdump -p modules/litsea.so | awk '/NEEDED/ {print $2}' | grep -v -E '^(libc|libm|libgcc_s|libpthread|libdl|librt|ld-linux)'; then
+            echo "error: unexpected shared-library dependency" >&2
+            exit 1
+          fi
+          max=$(objdump -T modules/litsea.so | grep -o 'GLIBC_[0-9][0-9.]*' | sort -uV | tail -1)
+          echo "highest GLIBC symbol version: $max"
+          test "$(printf '%s\n' "${max#GLIBC_}" 2.35 | sort -V | tail -1)" = 2.35
+
+      - name: Verify the dynamic dependencies (macOS)
+        if: runner.os == 'macOS'
+        working-directory: litsea-php
+        run: |
+          otool -L modules/litsea.so
+          if otool -L modules/litsea.so | tail -n +2 | grep -E '/opt/homebrew/|/usr/local/'; then
+            echo "error: linked against a Homebrew library that users need not have" >&2
+            exit 1
+          fi
+
+      - name: Package the pre-packaged binary for PIE
+        id: package
+        working-directory: litsea-php
+        run: |
+          # PIE looks up php_{ext}-{version}_php{X.Y}-{arch}-{os}-{libc}-{nts|zts}.zip
+          # on the release for {version} = Composer's pretty version = the
+          # git tag (php/pie src/Platform/PrePackagedBinaryAssetName.php),
+          # and expects litsea.so at the archive root. A branch dry run has
+          # no tag; it uses the Cargo version with a -dev marker.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="$GITHUB_REF_NAME"
+          else
+            version="v$(cargo metadata --no-deps --format-version=1 | jq -r '.packages[] | select(.name == "litsea-php") | .version')-dev"
+          fi
+          php_minor=$(php -r 'echo PHP_MAJOR_VERSION . "." . PHP_MINOR_VERSION;')
+          ts=nts
+          if [ "$(php -r 'echo PHP_ZTS;')" = 1 ]; then ts=zts; fi
+          asset=$(echo "php_litsea-${version}_php${php_minor}-${{ matrix.platform.arch }}-${{ matrix.platform.os }}-${{ matrix.platform.libc }}-${ts}.zip" | tr '[:upper:]' '[:lower:]')
+          zip -j "$asset" modules/litsea.so
+          unzip -l "$asset"
+          echo "asset=$asset" >> "$GITHUB_OUTPUT"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: pie-${{ matrix.platform.runner }}-php${{ matrix.php-version }}-${{ matrix.ts }}
+          path: litsea-php/${{ steps.package.outputs.asset }}
+          if-no-files-found: error
+
+      - name: Upload release asset
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: litsea-php/${{ steps.package.outputs.asset }}
+          tag_name: ${{ github.ref_name }}
+
   publish-crates:
     name: Publish crate
     needs: [release]

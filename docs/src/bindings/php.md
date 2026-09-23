@@ -10,7 +10,7 @@ A PHP extension is a shared object built against a specific PHP ABI, so unlike P
 pie install mosuka/litsea
 ```
 
-PIE fetches the source from Packagist, builds it against the PHP it runs under (`--with-php-config=...` selects another), installs `litsea.so` into the extension directory and enables it. The build needs a Rust toolchain and libclang; Windows is not supported. Composer itself ignores `php-ext` packages, so `composer require mosuka/litsea` is not an installation route.
+PIE 1.4 or later downloads a prebuilt `litsea.so` from the GitHub release for PHP 8.1 to 8.5 (NTS or ZTS) on Linux x86_64 / arm64 (glibc 2.35 or newer) and macOS arm64 / x86_64, installs it into the extension directory and enables it; no Rust toolchain is involved (`--with-php-config=...` selects another PHP). Other combinations (musl such as Alpine, older glibc, PIE before 1.4) fall back to a source build, which needs a Rust toolchain, libclang and PIE's build tools (`autoconf`, `libtool`, `make`); Windows is not supported. Composer itself ignores `php-ext` packages, so `composer require mosuka/litsea` is not an installation route.
 
 Without PIE, build and load the library yourself:
 

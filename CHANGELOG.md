@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Prebuilt PIE binaries for `litsea-php` (#238). Every release now attaches
+  `php_litsea-<tag>_php<8.1..8.5>-<x86_64|arm64>-<linux-glibc|darwin-bsdlibc>-<nts|zts>.zip`
+  assets, and `composer.json` lists `pre-packaged-binary` ahead of
+  `composer-default`, so `pie install mosuka/litsea` on PIE 1.4 or later
+  downloads the module instead of compiling it: no Rust toolchain on the
+  user's machine. The Linux builds run on Ubuntu 22.04 and therefore need
+  glibc 2.35 or newer; musl, older glibc and older PIE releases fall back
+  to the source build as before. The release job also checks that every
+  module loads, reports the release version and links nothing beyond libc,
+  and CI now builds the extension on macOS, which 0.14.0 never did.
+
+### Changed
+
+- The PHP docs now say what a source build needs beyond Rust and libclang:
+  PIE's build tools (`autoconf`, `libtool`, `make`) and `unzip` (#238).
+
 ## 0.14.0 (2026-09-23)
 
 ### Added
