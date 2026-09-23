@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cc46d1d8.js";
+            window.path_to_searchindex_js = "searchindex-90608ea3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -4341,7 +4341,7 @@ make build-litsea-nodejs   # リリースビルド
 <p>PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトです。PyPI や npm と異なりビルド済みパッケージの配布はなく、PIE か自分の手で、使っている PHP に合わせてビルドします。</p>
 <pre><code class="language-sh">pie install mosuka/litsea
 </code></pre>
-<p>PIE は Packagist からソースを取得し、実行中の PHP に合わせてビルドし（<code>--with-php-config=...</code> で別の PHP を選べます）、<code>litsea.so</code> を拡張ディレクトリへ配置して有効化します。ビルドには Rust ツールチェーンと libclang が必要で、Windows は未対応です。Composer 自体は <code>php-ext</code> 型のパッケージを無視するため、<code>composer require mosuka/litsea</code> ではインストールできません。</p>
+<p>PIE 1.4 以降は、PHP 8.1〜8.5（NTS / ZTS）× Linux x86_64 / arm64（glibc 2.35 以上）または Apple シリコンの macOS 向けのビルド済み <code>litsea.so</code> を GitHub Release からダウンロードし、拡張ディレクトリへ配置して有効化します。Rust ツールチェーンは不要です（<code>--with-php-config=...</code> で別の PHP を選べます）。それ以外の組み合わせ（Alpine などの musl、古い glibc、Intel Mac、PIE 1.4 未満）ではソースビルドにフォールバックし、Rust ツールチェーン、libclang、PIE のビルドツール（<code>autoconf</code>、<code>libtool</code>、<code>make</code>）が必要になります。Windows は未対応です。Composer 自体は <code>php-ext</code> 型のパッケージを無視するため、<code>composer require mosuka/litsea</code> ではインストールできません。</p>
 <p>PIE を使わない場合は自分でビルドして読み込みます。</p>
 <pre><code class="language-sh">cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-fdaa1915.js";
+            window.path_to_searchindex_js = "../searchindex-c461ed01.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -186,7 +186,7 @@
 <p>A PHP extension is a shared object built against a specific PHP ABI, so unlike PyPI and npm there is no prebuilt package: the extension is compiled for your PHP, by PIE or by hand.</p>
 <pre><code class="language-sh">pie install mosuka/litsea
 </code></pre>
-<p>PIE fetches the source from Packagist, builds it against the PHP it runs under (<code>--with-php-config=...</code> selects another), installs <code>litsea.so</code> into the extension directory and enables it. The build needs a Rust toolchain and libclang; Windows is not supported. Composer itself ignores <code>php-ext</code> packages, so <code>composer require mosuka/litsea</code> is not an installation route.</p>
+<p>PIE 1.4 or later downloads a prebuilt <code>litsea.so</code> from the GitHub release for PHP 8.1 to 8.5 (NTS or ZTS) on Linux x86_64 / arm64 (glibc 2.35 or newer) and macOS on Apple silicon, installs it into the extension directory and enables it; no Rust toolchain is involved (<code>--with-php-config=...</code> selects another PHP). Other combinations (musl such as Alpine, older glibc, Intel Macs, PIE before 1.4) fall back to a source build, which needs a Rust toolchain, libclang and PIE’s build tools (<code>autoconf</code>, <code>libtool</code>, <code>make</code>); Windows is not supported. Composer itself ignores <code>php-ext</code> packages, so <code>composer require mosuka/litsea</code> is not an installation route.</p>
 <p>Without PIE, build and load the library yourself:</p>
 <pre><code class="language-sh">cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
