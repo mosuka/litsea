@@ -27,7 +27,7 @@
     "build-path": "litsea-php",
     "support-zts": true,
     "support-nts": true,
-    "download-url-method": ["composer-default"],
+    "download-url-method": ["pre-packaged-binary", "composer-default"],
     "os-families-exclude": ["windows"]
   },
   "config": {

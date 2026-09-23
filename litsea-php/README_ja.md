@@ -16,7 +16,9 @@ PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェク�
 pie install mosuka/litsea
 ```
 
-PIE はソースを取得し、`pie` を実行している PHP に合わせてビルドし（別の PHP を対象にするには `--with-php-config=/path/to/php-config` を指定）、`litsea.so` を拡張ディレクトリへ配置して有効化します。ビルドには Rust ツールチェーン（<https://rustup.rs/>）と libclang（Debian/Ubuntu では `libclang-dev`、macOS では Xcode コマンドラインツールか `brew install llvm`）が必要です。Windows は未対応です。
+PIE 1.4 以降は、使っている PHP（8.1〜8.5、NTS / ZTS）とプラットフォーム（Linux x86_64 / arm64 で glibc 2.35 以上、Apple シリコンの macOS）に合うビルド済みの `litsea.so` が GitHub Release にあれば、それをダウンロードして拡張ディレクトリへ配置し、有効化します。コンパイルは行われず、Rust ツールチェーンは不要です（PIE 自体が `unzip` を必要とします）。別の PHP を対象にするには `--with-php-config=/path/to/php-config` を指定します。
+
+それ以外の組み合わせ（Alpine などの musl 環境、glibc 2.35 未満、Intel Mac、PIE 1.4 未満）では同じコマンドがソースビルドにフォールバックし、Rust ツールチェーン（<https://rustup.rs/>）、libclang（Debian/Ubuntu では `libclang-dev`、macOS では Xcode コマンドラインツールか `brew install llvm`）、および PIE の標準的なビルドツール（`autoconf`、`libtool`、`make`）が必要になります。Windows は未対応です。
 
 ### 手動ビルド
 

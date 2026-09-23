@@ -10,7 +10,7 @@ PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェク�
 pie install mosuka/litsea
 ```
 
-PIE は Packagist からソースを取得し、実行中の PHP に合わせてビルドし（`--with-php-config=...` で別の PHP を選べます）、`litsea.so` を拡張ディレクトリへ配置して有効化します。ビルドには Rust ツールチェーンと libclang が必要で、Windows は未対応です。Composer 自体は `php-ext` 型のパッケージを無視するため、`composer require mosuka/litsea` ではインストールできません。
+PIE 1.4 以降は、PHP 8.1〜8.5（NTS / ZTS）× Linux x86_64 / arm64（glibc 2.35 以上）または Apple シリコンの macOS 向けのビルド済み `litsea.so` を GitHub Release からダウンロードし、拡張ディレクトリへ配置して有効化します。Rust ツールチェーンは不要です（`--with-php-config=...` で別の PHP を選べます）。それ以外の組み合わせ（Alpine などの musl、古い glibc、Intel Mac、PIE 1.4 未満）ではソースビルドにフォールバックし、Rust ツールチェーン、libclang、PIE のビルドツール（`autoconf`、`libtool`、`make`）が必要になります。Windows は未対応です。Composer 自体は `php-ext` 型のパッケージを無視するため、`composer require mosuka/litsea` ではインストールできません。
 
 PIE を使わない場合は自分でビルドして読み込みます。
 
