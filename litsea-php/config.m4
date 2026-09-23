@@ -52,8 +52,22 @@ if test "$PHP_LITSEA" != "no"; then
   if test -z "$PHP_CONFIG" || test ! -x "$PHP_CONFIG"; then
     AC_MSG_ERROR([cannot resolve php-config to an executable path; pass --with-php-config=/path/to/php-config])
   fi
-  if test -z "$PHP_EXECUTABLE" || test ! -x "$PHP_EXECUTABLE"; then
-    AC_MSG_ERROR([$PHP_CONFIG --php-binary returned '$PHP_EXECUTABLE', which is not executable. ext-php-rs needs the php CLI of the target installation.])
+  dnl `php-config --php-binary` is "NONE" in some builds (Homebrew's
+  dnl php@X.Y-zts formulae, which setup-php installs for thread-safe CI).
+  dnl Fall back to the php on PATH, but only if it reports the same version
+  dnl as php-config, so the headers and the binary belong to one install.
+  if test -z "$PHP_EXECUTABLE" || test "$PHP_EXECUTABLE" = "NONE" || test ! -x "$PHP_EXECUTABLE"; then
+    php_config_binary="$PHP_EXECUTABLE"
+    PHP_EXECUTABLE=$(command -v php 2>/dev/null)
+    if test -z "$PHP_EXECUTABLE" || test ! -x "$PHP_EXECUTABLE"; then
+      AC_MSG_ERROR([$PHP_CONFIG --php-binary returned '$php_config_binary' and no php was found on PATH. ext-php-rs needs the php CLI of the target installation; put it on PATH or set PHP=/path/to/php.])
+    fi
+    php_bin_version=$("$PHP_EXECUTABLE" -n -r 'echo PHP_VERSION;' 2>/dev/null)
+    php_config_version=$("$PHP_CONFIG" --version 2>/dev/null)
+    if test "$php_bin_version" != "$php_config_version"; then
+      AC_MSG_ERROR([$PHP_CONFIG describes PHP $php_config_version but the php on PATH ($PHP_EXECUTABLE) is PHP $php_bin_version. Pass --with-php-config for the installation whose php is on PATH.])
+    fi
+    AC_MSG_NOTICE([php-config reports no php binary; using $PHP_EXECUTABLE (PHP $php_bin_version) from PATH])
   fi
   AC_MSG_CHECKING([for php-config to pass to ext-php-rs])
   AC_MSG_RESULT([$PHP_CONFIG])

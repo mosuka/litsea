@@ -28,6 +28,11 @@
   with "Undefined symbols for architecture arm64". `build.rs` now passes
   `-undefined dynamic_lookup` for the cdylib, the way PyO3 does for Python
   extension modules.
+- `litsea-php/config.m4` no longer rejects installations whose
+  `php-config --php-binary` is `NONE`, as Homebrew's `php@X.Y-zts` formulae
+  report (#238). It falls back to the `php` on PATH when that binary has
+  the version `php-config` describes, and says which installation to
+  point `--with-php-config` at otherwise.
 
 ## 0.14.0 (2026-09-23)
 

@@ -479,16 +479,20 @@ jobs:
             ~/.cargo/git
           key: ${{ runner.os }}-${{ runner.arch }}-pie-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install a newer libclang (Linux x86_64)
-        # The 22.04 image ships libclang 14, whose bundled emmintrin.h trips
-        # bindgen while it parses the PHP headers ("invalid conversion
-        # between vector type '__m128i' ... and integer type 'int'"). LLVM 18
-        # from apt.llvm.org parses them; arm64 has no SSE headers and builds
-        # with the stock libclang.
+      - name: Install a matching clang and libclang (Linux x86_64)
+        # bindgen loads the newest libclang it can find but asks the `clang`
+        # driver on PATH for the system include paths. The 22.04 image ships
+        # clang 14 on PATH next to libclang 15, so clang 14's emmintrin.h is
+        # parsed by a different libclang and the SSE builtins mismatch
+        # ("invalid conversion between vector type '__m128i' ... and integer
+        # type 'int'"). One LLVM 18 for both sides fixes it; arm64 has no
+        # SSE headers and builds with the stock toolchain.
         if: runner.os == 'Linux' && runner.arch == 'X64'
         run: |
           wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 18
           echo "LIBCLANG_PATH=/usr/lib/llvm-18/lib" >> "$GITHUB_ENV"
+          echo "CLANG_PATH=/usr/lib/llvm-18/bin/clang" >> "$GITHUB_ENV"
+          echo "/usr/lib/llvm-18/bin" >> "$GITHUB_PATH"
 
       - name: Install build prerequisites (macOS)
         if: runner.os == 'macOS'
