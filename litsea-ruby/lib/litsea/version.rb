@@ -3,5 +3,5 @@
 module Litsea
   # Kept in lockstep with the `litsea` crate; `Litsea.version` reports the
   # version the native extension was built from.
-  VERSION = '0.14.1'
+  VERSION = '0.14.2'
 end
