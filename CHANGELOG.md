@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- A tag push whose non-PHP test jobs fail no longer publishes a GitHub
+  release that holds only the PIE binaries (#242). `create-release` is
+  skipped in that case, and `build-php-binaries` accepted a skipped
+  `create-release` so that a `workflow_dispatch` from a branch could run it
+  as a dry run; its upload step then created the release itself. It now
+  accepts a skipped `create-release` only off a tag.
+
 ## 0.14.1 (2026-09-23)
 
 ### Added
