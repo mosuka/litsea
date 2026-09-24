@@ -419,10 +419,12 @@ jobs:
     # Runs after the release exists on a tag push, and as a dry run on
     # workflow_dispatch from a branch. create-release is tag-gated and ends
     # up `skipped` on a dispatch, which the implicit success() would treat
-    # as a failure, hence the explicit result checks. The zips are always
-    # uploaded as workflow artifacts and attached to the GitHub Release only
-    # on a tag (last step).
-    if: ${{ !cancelled() && needs.test-litsea-php.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.create-release.result) }}
+    # as a failure, hence the explicit result checks. `skipped` is accepted
+    # only off a tag: on a tag it means another test job failed, and the
+    # upload step below would otherwise create the release with nothing but
+    # the PHP zips on it. The zips are always uploaded as workflow artifacts
+    # and attached to the GitHub Release only on a tag (last step).
+    if: ${{ !cancelled() && needs.test-litsea-php.result == 'success' && (needs.create-release.result == 'success' || (needs.create-release.result == 'skipped' && !startsWith(github.ref, 'refs/tags/'))) }}
     strategy:
       # A dry run should report every cell rather than stop at the first
       # failure.
