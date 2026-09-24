@@ -10,6 +10,13 @@
   `create-release` so that a `workflow_dispatch` from a branch could run it
   as a dry run; its upload step then created the release itself. It now
   accepts a skipped `create-release` only off a tag.
+- `./configure` for `litsea-php` no longer prints
+  `shtool:mkdir:Error: invalid number of arguments` on PHP 8.1–8.3 (#244),
+  which showed up in every `pie install mosuka/litsea` that builds from
+  source and made a successful install look broken. `config.m4` does not
+  call `PHP_NEW_EXTENSION`, so no build directory was registered; it now
+  registers `modules/` with `PHP_ADD_BUILD_DIR`. The build itself was never
+  affected.
 
 ## 0.14.1 (2026-09-23)
 
