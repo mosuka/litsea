@@ -10,7 +10,13 @@ Ruby binding for [Litsea](https://github.com/mosuka/litsea), a compact word segm
 gem install litsea
 ```
 
-The gem compiles the native extension on install, so a Rust toolchain is required. Ruby 3.1 or later.
+The gem compiles the native extension on install, which takes a minute or two. It needs:
+
+- Ruby 3.1 or later, with a C compiler and `make` for building native gems
+- a Rust toolchain, 1.87 or later
+- libclang (`libclang-dev` on Debian and Ubuntu, the Xcode Command Line Tools on macOS)
+
+It compiles against the crates.io releases of `litsea` and `litsea-binding-core` of its own version. The gems released from 0.13.0 until the fix for [#247](https://github.com/mosuka/litsea/issues/247) fail to compile during installation; `gem install litsea` picks the newest release, so this matters only when you pin one of them.
 
 ## Models are not bundled
 
@@ -126,9 +132,13 @@ Every error derives from `Litsea::Error`, so one `rescue` handles them all.
 ## Development
 
 ```sh
-make test-litsea-ruby    # cargo test + rake compile + rake test
-make build-litsea-ruby   # release build
+make test-litsea-ruby       # cargo test + rake compile + rake test
+make build-litsea-ruby      # release build
+make package-litsea-ruby    # source gem into pkg/
+make test-litsea-ruby-gem   # gem install that gem in a clean container (needs Docker)
 ```
+
+Build the gem with `make package-litsea-ruby` (`bundle exec rake build`), not `gem build`: this directory's `Cargo.toml` only resolves inside the Cargo workspace, so the task builds the gem from the crate as `cargo package` normalizes it.
 
 The parity tests build the `litsea` CLI and compare the binding's output against it. Note that `bundle` must be available for the active Ruby; with rbenv, `rbenv local 3.4.9` (or any installed 3.1+) is enough.
 

@@ -15,6 +15,10 @@
 #   Cargo.lock                          via `cargo update --workspace`
 #   litsea-nodejs/package.json          npm restates the version
 #   litsea-ruby/lib/litsea/version.rb   Litsea::VERSION, read by the gemspec
+#   litsea-ruby/Cargo.toml              exact `=X.Y.Z` pins on litsea and
+#                                       litsea-binding-core: the gem compiles
+#                                       against the crates.io release it ships
+#                                       with, not the workspace requirement
 #   docs/{src,ja/src}/...               dependency snippets, 6 files per language
 #   CHANGELOG.md                        `## Unreleased` -> `## <version> (<date>)`
 #
@@ -36,6 +40,7 @@ readonly FILES=(
   "Cargo.toml"
   "litsea-nodejs/package.json"
   "litsea-ruby/lib/litsea/version.rb"
+  "litsea-ruby/Cargo.toml"
   "docs/src/litsea.md"
   "docs/src/README.md"
   "docs/src/bindings/binding-core.md"

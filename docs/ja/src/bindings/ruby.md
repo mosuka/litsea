@@ -8,7 +8,15 @@
 gem install litsea
 ```
 
-gem はソース配布で、インストール時に拡張をコンパイルするため Rust ツールチェーンが必要です。
+gem はソース配布です。`gem install` の実行時に、同梱の Rust ソースからネイティブ拡張をコンパイルします（1〜2 分かかります）。次のものが必要です。
+
+- Ruby 3.1 以降と、ネイティブ gem のビルドに使うツール（C コンパイラと `make`）
+- Rust ツールチェーン 1.87 以降（[rustup](https://rustup.rs/) でインストール）
+- libclang（rb-sys が Ruby のバインディング生成に使用）: Debian / Ubuntu は `libclang-dev`、macOS は Xcode Command Line Tools
+
+gem は crates.io 上の同じバージョンの `litsea` と `litsea-binding-core` に対してコンパイルされます（この 2 つはバージョンを完全に固定しています）。そのため `Litsea.version` は常に gem のバージョンと一致します。gem には `Cargo.lock` が含まれないため、それ以外の Rust の依存はインストール時に互換性のある最新のリリースに解決されます。
+
+> **Note:** 0.13.0 から [#247](https://github.com/mosuka/litsea/issues/247) の修正までにリリースされた gem は、インストール時のコンパイルに失敗します（[変更履歴](https://github.com/mosuka/litsea/blob/main/CHANGELOG.md)を参照）。`gem install litsea` は最新のリリースを選ぶため、影響があるのはそれらのバージョンを指定した場合だけです。
 
 ## モデルの入手
 
@@ -108,9 +116,13 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 ## 開発
 
 ```sh
-make test-litsea-ruby    # cargo test + rake compile + rake test
-make lint-litsea-ruby    # clippy + rubocop
-make build-litsea-ruby   # リリースビルド
+make test-litsea-ruby       # cargo test + rake compile + rake test
+make lint-litsea-ruby       # clippy + rubocop
+make build-litsea-ruby      # リリースビルド
+make package-litsea-ruby    # ソース gem を litsea-ruby/pkg/ に出力
+make test-litsea-ruby-gem   # その gem をクリーンなコンテナで gem install（Docker が必要）
 ```
 
 有効な Ruby で `bundle` が使える必要があります。バージョン管理ツールの shim が存在していても、選択中のインタプリタに bundler が無い場合があるため、Makefile がその旨を検出して案内します。パリティテストは `litsea` CLI をビルドし、その出力とバインディングの出力を突き合わせます。
+
+gem は `gem build` ではなく `make package-litsea-ruby`（`bundle exec rake build`）でビルドしてください。クレート自身の `Cargo.toml` は Cargo ワークスペースから設定を継承しており、このリポジトリの中でしか解決できません。このタスクは `cargo package` が正規化したクレートから gem をビルドします。gem とクレートのバージョンが異なる場合や、`litsea` と `litsea-binding-core` がそのバージョンに固定されていない場合は、ビルドを中止します。`make test-litsea-ruby-gem` は、素の `ruby:3.3` コンテナでその gem を `gem install` し、テキストを分割します。litsea のクレートはチェックアウトからコンパイルするため、crates.io に未公開のバージョンでも実行できます。

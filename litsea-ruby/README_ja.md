@@ -10,7 +10,13 @@
 gem install litsea
 ```
 
-インストール時にネイティブ拡張をコンパイルするため、Rust ツールチェーンが必要です。Ruby 3.1 以降に対応しています。
+インストール時にネイティブ拡張をコンパイルします（1〜2 分かかります）。次のものが必要です。
+
+- Ruby 3.1 以降と、ネイティブ gem のビルドに使う C コンパイラと `make`
+- Rust ツールチェーン 1.87 以降
+- libclang（Debian / Ubuntu は `libclang-dev`、macOS は Xcode Command Line Tools）
+
+gem は crates.io 上の同じバージョンの `litsea` と `litsea-binding-core` に対してコンパイルされます。0.13.0 から [#247](https://github.com/mosuka/litsea/issues/247) の修正までにリリースされた gem は、インストール時のコンパイルに失敗します。`gem install litsea` は最新のリリースを選ぶため、影響があるのはそれらのバージョンを指定した場合だけです。
 
 ## モデルは同梱されません
 
@@ -126,9 +132,13 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 ## 開発
 
 ```sh
-make test-litsea-ruby    # cargo test + rake compile + rake test
-make build-litsea-ruby   # リリースビルド
+make test-litsea-ruby       # cargo test + rake compile + rake test
+make build-litsea-ruby      # リリースビルド
+make package-litsea-ruby    # ソース gem を pkg/ に出力
+make test-litsea-ruby-gem   # その gem をクリーンなコンテナで gem install（Docker が必要）
 ```
+
+gem は `gem build` ではなく `make package-litsea-ruby`（`bundle exec rake build`）でビルドしてください。このディレクトリの `Cargo.toml` は Cargo ワークスペースの中でしか解決できないため、このタスクは `cargo package` が正規化したクレートから gem をビルドします。
 
 パリティテストは `litsea` CLI をビルドし、その出力とバインディングの出力を突き合わせます。なお、有効な Ruby に `bundle` が入っている必要があります（rbenv なら `rbenv local 3.4.9` などで 3.1 以降を選択してください）。
 
