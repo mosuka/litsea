@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9a778691.js";
+            window.path_to_searchindex_js = "../searchindex-03bfa506.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -185,7 +185,16 @@
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <pre><code class="language-sh">gem install litsea
 </code></pre>
-<p>The gem is source-only and compiles the extension on install, so a Rust toolchain is required.</p>
+<p>The gem is source-only: <code>gem install</code> compiles the native extension from the bundled Rust source, which takes a minute or two. It needs:</p>
+<ul>
+<li>Ruby 3.1 or later, with the tools for building native gems (a C compiler and <code>make</code>)</li>
+<li>a Rust toolchain, 1.87 or later, installed with <a href="https://rustup.rs/">rustup</a></li>
+<li>libclang, which rb-sys uses to generate its Ruby bindings: <code>libclang-dev</code> on Debian and Ubuntu, the Xcode Command Line Tools on macOS</li>
+</ul>
+<p>The gem compiles against the crates.io releases of <code>litsea</code> and <code>litsea-binding-core</code> of its own version, which it pins exactly, so <code>Litsea.version</code> always matches the gem version. It ships no <code>Cargo.lock</code>, so the other Rust dependencies resolve to their latest compatible releases at install time.</p>
+<blockquote>
+<p><strong>Note:</strong> The gems released from 0.13.0 until the fix for <a href="https://github.com/mosuka/litsea/issues/247">#247</a> fail to compile during installation (see the <a href="https://github.com/mosuka/litsea/blob/main/CHANGELOG.md">changelog</a>). <code>gem install litsea</code> picks the newest release, so this matters only when you pin one of those versions.</p>
+</blockquote>
 <h2 id="getting-a-model"><a class="header" href="#getting-a-model">Getting a model</a></h2>
 <p>The gem contains no models. Download one from the <a href="https://github.com/mosuka/litsea/tree/main/models"><code>models/</code></a> directory and pass its path — see <a href="../pre-trained-models.html">Pre-trained Models</a>. The model identifies its own kind, so <code>has_pos?</code> reports what was loaded and no flag is needed.</p>
 <h2 id="segmentation"><a class="header" href="#segmentation">Segmentation</a></h2>
@@ -268,11 +277,14 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 </table>
 </div>
 <h2 id="development"><a class="header" href="#development">Development</a></h2>
-<pre><code class="language-sh">make test-litsea-ruby    # cargo test + rake compile + rake test
-make lint-litsea-ruby    # clippy + rubocop
-make build-litsea-ruby   # release build
+<pre><code class="language-sh">make test-litsea-ruby       # cargo test + rake compile + rake test
+make lint-litsea-ruby       # clippy + rubocop
+make build-litsea-ruby      # release build
+make package-litsea-ruby    # source gem into litsea-ruby/pkg/
+make test-litsea-ruby-gem   # gem install that gem in a clean container (needs Docker)
 </code></pre>
 <p><code>bundle</code> must be usable with the active Ruby; a version manager’s shim can exist while the selected interpreter has no bundler, so the Makefile checks and says so. The parity tests build the <code>litsea</code> CLI and compare the binding’s output against it.</p>
+<p>Build the gem with <code>make package-litsea-ruby</code> (<code>bundle exec rake build</code>), not <code>gem build</code>: the crate’s own <code>Cargo.toml</code> inherits from the Cargo workspace and only resolves inside this repository. The task builds the gem from the crate as <code>cargo package</code> normalizes it, and refuses to when the gem and crate versions differ or when <code>litsea</code> and <code>litsea-binding-core</code> are not pinned to that version. <code>make test-litsea-ruby-gem</code> installs the gem with <code>gem install</code> in a bare <code>ruby:3.3</code> container and segments text with it. It compiles the litsea crates from the checkout, so it also works for versions that are not on crates.io yet.</p>
 
                     </main>
 
