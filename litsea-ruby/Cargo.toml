@@ -24,8 +24,8 @@ crate-type = ["cdylib", "lib"]
 # against. Their own dependencies resolve at install time, as the gem ships no
 # Cargo.lock. scripts/bump_up_version.sh keeps these in step with the
 # workspace, and `rake build` refuses to package anything else.
-litsea = { version = "=0.14.2", path = "../litsea" }
-litsea-binding-core = { version = "=0.14.2", path = "../litsea-binding-core", features = [
+litsea = { version = "=0.14.3", path = "../litsea" }
+litsea-binding-core = { version = "=0.14.3", path = "../litsea-binding-core", features = [
     "remote_model",
 ] }
 magnus = { version = "0.8.2", features = ["rb-sys"] }
