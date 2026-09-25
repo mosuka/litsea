@@ -17,8 +17,17 @@ name = "litsea_ruby"
 crate-type = ["cdylib", "lib"]
 
 [dependencies]
-litsea.workspace = true
-litsea-binding-core = { workspace = true, features = ["remote_model"] }
+# Exact pins instead of `workspace = true`: the gem ships this crate as
+# `cargo package` normalizes it (`rake build`), and `gem install` then
+# compiles it against crates.io, where these two must be the release the gem
+# was built from - `Litsea.version` reports the `litsea` it was compiled
+# against. Their own dependencies resolve at install time, as the gem ships no
+# Cargo.lock. scripts/bump_up_version.sh keeps these in step with the
+# workspace, and `rake build` refuses to package anything else.
+litsea = { version = "=0.14.2", path = "../litsea" }
+litsea-binding-core = { version = "=0.14.2", path = "../litsea-binding-core", features = [
+    "remote_model",
+] }
 magnus = { version = "0.8.2", features = ["rb-sys"] }
 # Used only to link against libruby; the GVL entry point is declared by
 # hand in `gvl.rs` because neither magnus nor rb-sys exposes it.

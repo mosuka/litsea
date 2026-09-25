@@ -801,10 +801,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  publish-ruby:
-    name: Publish litsea to RubyGems
-    needs: [test-litsea-ruby, publish-crates]
-    if: startsWith(github.ref, 'refs/tags/v')
+  # One source gem for every platform: `gem install` compiles the extension
+  # (litsea-ruby/extconf.rb), so there is nothing platform-specific to build.
+  # `make package-litsea-ruby` packages the crate as `cargo package`
+  # normalizes it, with litsea and litsea-binding-core pinned to the crates.io
+  # releases of this version, and fails when the gem and crate versions
+  # differ. Runs on a tag and as a dry run on workflow_dispatch from a branch.
+  build-ruby-gem:
+    name: Build Ruby gem
+    needs: [test-litsea-ruby]
     runs-on: ubuntu-latest
     steps:
       - name: Run checkout
@@ -821,22 +826,119 @@ jobs:
           ruby-version: "3.4"
 
       - name: Build gem
-        working-directory: litsea-ruby
+        run: make package-litsea-ruby
+
+      - name: Upload gem artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: gem-litsea
+          path: litsea-ruby/pkg/*.gem
+          if-no-files-found: error
+
+  # Installs the gem the way users will once it is on RubyGems: `gem install`
+  # compiles it against the crates publish-crates has just released. Linux
+  # runs in a bare ruby container, so a prerequisite missing from the docs
+  # fails it; macOS installs into an empty GEM_HOME. Both use a current Ruby
+  # and the latest stable Rust, so the documented minimums (Ruby 3.1, Rust
+  # 1.87) are not tested here. publish-ruby pushes the gem only after every
+  # leg passes.
+  #
+  # On workflow_dispatch from a branch this is a dry run. publish-crates is
+  # tag-gated and ends up `skipped`, which the implicit success() would treat
+  # as a failure, hence the explicit result checks; with nothing released,
+  # the litsea crates are compiled from the checkout (LITSEA_SOURCE_DIR, see
+  # litsea-ruby/test/gem/install_and_test.sh). `skipped` is accepted only off
+  # a tag: on a tag it means the crates were not published.
+  test-ruby-gem:
+    name: Test Ruby gem install (${{ matrix.platform.name }})
+    needs: [build-ruby-gem, publish-crates]
+    if: ${{ !cancelled() && needs.build-ruby-gem.result == 'success' && (needs.publish-crates.result == 'success' || (needs.publish-crates.result == 'skipped' && !startsWith(github.ref, 'refs/tags/'))) }}
+    strategy:
+      # A dry run should report both legs rather than stop at the first
+      # failure.
+      fail-fast: false
+      matrix:
+        platform:
+          - name: linux-x86_64
+            runner: ubuntu-latest
+            container: true
+          - name: darwin-arm64
+            runner: macos-latest
+            container: false
+    runs-on: ${{ matrix.platform.runner }}
+    steps:
+      - name: Run checkout
+        uses: actions/checkout@v7
+
+      - name: Download gem artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: gem-litsea
+          path: gems
+
+      - name: Select the litsea crates to compile against
+        # crates.io on a tag, as users get them; the checkout on a dry run,
+        # whose version is not on crates.io.
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: echo "LITSEA_SOURCE_DIR=$GITHUB_WORKSPACE" >> "$GITHUB_ENV"
+
+      - name: Install gem in a clean ruby container and segment
+        if: ${{ matrix.platform.container }}
         run: |
-          bundle install
-          bundle exec rake build
+          gem_file=$(echo gems/litsea-*.gem)
+          docker run --rm -v "$PWD:/src:ro" \
+            -e "LITSEA_SOURCE_DIR=${LITSEA_SOURCE_DIR:+/src}" \
+            ruby:3.3 \
+            bash /src/litsea-ruby/test/gem/install_and_test.sh --setup "/src/$gem_file"
+
+      - name: Setup Ruby
+        if: ${{ !matrix.platform.container }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+
+      - name: Install toolchain
+        if: ${{ !matrix.platform.container }}
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install gem into an empty GEM_HOME and segment
+        if: ${{ !matrix.platform.container }}
+        run: |
+          export GEM_HOME="$RUNNER_TEMP/gem-home"
+          bash litsea-ruby/test/gem/install_and_test.sh gems/litsea-*.gem
+
+  # The gem compiles against crates.io at install time, so it is pushed only
+  # once test-ruby-gem has installed it against the crates publish-crates
+  # released.
+  publish-ruby:
+    name: Publish litsea to RubyGems
+    needs: [test-ruby-gem]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download gem artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: gem-litsea
+          path: gems
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
 
       - name: Publish to RubyGems
         # Requires the RUBYGEMS_API_KEY repository secret; until it is set
         # this step fails and the rest of the release is unaffected. The gem
         # is source-only, so it compiles on the user's machine at install
         # time.
-        working-directory: litsea-ruby
         run: |
           mkdir -p ~/.gem
           printf -- "---\n:rubygems_api_key: %s\n" "${RUBYGEMS_API_KEY}" > ~/.gem/credentials
           chmod 0600 ~/.gem/credentials
-          gem push pkg/litsea-*.gem
+          gem push gems/litsea-*.gem
         env:
           RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
 

@@ -1,8 +1,14 @@
 # frozen_string_literal: true
 
-require 'bundler/gem_tasks'
+require 'json'
+require 'open3'
 require 'rake/testtask'
 require 'rb_sys/extensiontask'
+require 'tmpdir'
+
+# `bundler/gem_tasks` is deliberately not required: its build, install and
+# release tasks run `gem build` on this directory, which ships a Cargo.toml
+# that only resolves inside the Cargo workspace. `build` below replaces them.
 
 GEMSPEC = Gem::Specification.load('litsea.gemspec')
 
@@ -18,3 +24,71 @@ Rake::TestTask.new(:test) do |t|
 end
 
 task default: %i[compile test]
+
+# Where `rake build` writes the gem.
+PKG_DIR = File.expand_path('pkg', __dir__)
+
+# Crates the gem must compile against at exactly its own version (see the
+# comment on them in Cargo.toml).
+PINNED_CRATES = %w[litsea litsea-binding-core].freeze
+
+# Returns the `litsea-ruby` package as `cargo metadata` describes it.
+#
+# @return [Hash] the package entry, with its `version` and `dependencies`
+def litsea_ruby_package
+  json, status = Open3.capture2('cargo', 'metadata', '--no-deps', '--format-version', '1', chdir: __dir__)
+  abort 'cargo metadata failed' unless status.success?
+
+  JSON.parse(json).fetch('packages').find { |package| package['name'] == 'litsea-ruby' } ||
+    abort('cargo metadata does not list litsea-ruby')
+end
+
+# Aborts unless the crate is at the gem's version and pins PINNED_CRATES to it,
+# so the gem cannot silently compile against another release.
+#
+# @param package [Hash] the `litsea-ruby` entry from `cargo metadata`
+# @param version [String] the gem version
+# @return [void]
+def check_crate_versions(package, version)
+  unless package['version'] == version
+    abort "litsea.gemspec version #{version} does not match the litsea-ruby crate version #{package['version']}"
+  end
+
+  PINNED_CRATES.each do |crate|
+    requirement = package['dependencies'].find { |dependency| dependency['name'] == crate }&.fetch('req')
+    next if requirement == "=#{version}"
+
+    abort "litsea-ruby/Cargo.toml requires #{crate} #{requirement.inspect}, expected \"=#{version}\""
+  end
+end
+
+desc 'Build the source gem into pkg/ from the crate as `cargo package` normalizes it'
+task :build do
+  version = GEMSPEC.version.to_s
+  check_crate_versions(litsea_ruby_package, version)
+
+  gem_file = File.join(PKG_DIR, "#{GEMSPEC.name}-#{version}.gem")
+  mkdir_p PKG_DIR
+  rm_f gem_file
+
+  # Staged outside the repository, where neither rubocop nor cargo's
+  # workspace lookup can pick the extracted crate up.
+  Dir.mktmpdir('litsea-gem-') do |stage|
+    # `cargo package` resolves the workspace inheritance and turns the path
+    # dependencies into crates.io ones, so the crate builds outside this
+    # repository. No lockfile: generating one resolves the litsea crates of
+    # this version on crates.io, which do not exist yet when a pull request or
+    # a release builds the gem.
+    target_dir = File.join(stage, 'target')
+    sh 'cargo', 'package', '--package', 'litsea-ruby', '--no-verify', '--allow-dirty',
+       '--exclude-lockfile', '--target-dir', target_dir
+    sh 'tar', '-xzf', File.join(target_dir, 'package', "litsea-ruby-#{version}.crate"), '-C', stage
+
+    crate_dir = File.join(stage, "litsea-ruby-#{version}")
+    cp File.expand_path('../LICENSE', __dir__), crate_dir
+    # Outside `bundle exec`'s environment: its RUBYOPT=-rbundler/setup would
+    # load this directory's gemspec (through the Gemfile) before the staged one.
+    build_gem = -> { sh 'gem', 'build', 'litsea.gemspec', '--output', gem_file, chdir: crate_dir }
+    defined?(Bundler) ? Bundler.with_unbundled_env(&build_gem) : build_gem.call
+  end
+end

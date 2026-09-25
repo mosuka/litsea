@@ -135,6 +135,16 @@ test-litsea-ruby: check-bundler ## Test litsea-ruby (Rust unit tests + minitest)
 	$(CARGO_WITH_RBCONFIG) cargo test -p litsea-ruby --lib
 	cd litsea-ruby && bundle install --quiet && bundle exec rake compile && bundle exec rake test
 
+# Installs the source gem with `gem install` in a clean Ruby container, as a
+# user would, and segments with it (litsea-ruby/test/gem/). The litsea crates
+# are compiled from this checkout rather than crates.io, so unreleased changes
+# are tested too; release.yml runs the same script against crates.io.
+RUBY_GEM_TEST_IMAGE ?= ruby:3.3
+
+test-litsea-ruby-gem: package-litsea-ruby ## Test installing the litsea-ruby gem in a clean container (needs Docker)
+	docker run --rm -v "$(CURDIR):/src:ro" -e LITSEA_SOURCE_DIR=/src $(RUBY_GEM_TEST_IMAGE) \
+		bash /src/litsea-ruby/test/gem/install_and_test.sh --setup /src/litsea-ruby/pkg/litsea-$(LITSEA_VERSION).gem
+
 lint-litsea-ruby: check-bundler ## Lint litsea-ruby (clippy + rubocop)
 	$(CARGO_WITH_RBCONFIG) cargo clippy -p litsea-ruby --all-targets -- -D warnings
 	cd litsea-ruby && bundle exec rubocop
@@ -167,6 +177,9 @@ build-litsea-python: setup-venv ## Build a release wheel for litsea-python
 
 build-litsea-ruby: check-bundler ## Build litsea-ruby (release)
 	cd litsea-ruby && bundle install --quiet && bundle exec rake compile -- --release
+
+package-litsea-ruby: check-bundler ## Build the litsea-ruby source gem into litsea-ruby/pkg/
+	cd litsea-ruby && bundle install --quiet && bundle exec rake build
 
 build-litsea-wasm: ## Build litsea-wasm (wasm-pack, --target web)
 	cd litsea-wasm && wasm-pack build --release --target web --out-dir pkg

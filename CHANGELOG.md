@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- The `litsea` gem on RubyGems can now be installed (#247). None of the
+  published gems (0.13.0, 0.14.0, 0.14.1 and 0.14.2) could: they shipped the
+  binding's workspace member `Cargo.toml`, which inherits from a workspace
+  root the gem does not contain, so `gem install` stopped with
+  `failed to find a workspace root`. `rake build` now builds the gem from
+  the crate as `cargo package` normalizes it, with `litsea` and
+  `litsea-binding-core` pinned to the gem's own version on crates.io, and
+  ships the LICENSE. The release workflow installs the gem in a clean
+  container on Linux and on macOS before pushing it, and the regression
+  workflow does the same on every change. The docs now list every
+  prerequisite of `gem install litsea`: libclang and a C compiler with
+  `make`, besides a Rust toolchain.
+
 ## 0.14.2 (2026-09-25)
 
 ### Fixed

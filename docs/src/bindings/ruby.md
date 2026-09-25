@@ -8,7 +8,15 @@
 gem install litsea
 ```
 
-The gem is source-only and compiles the extension on install, so a Rust toolchain is required.
+The gem is source-only: `gem install` compiles the native extension from the bundled Rust source, which takes a minute or two. It needs:
+
+- Ruby 3.1 or later, with the tools for building native gems (a C compiler and `make`)
+- a Rust toolchain, 1.87 or later, installed with [rustup](https://rustup.rs/)
+- libclang, which rb-sys uses to generate its Ruby bindings: `libclang-dev` on Debian and Ubuntu, the Xcode Command Line Tools on macOS
+
+The gem compiles against the crates.io releases of `litsea` and `litsea-binding-core` of its own version, which it pins exactly, so `Litsea.version` always matches the gem version. It ships no `Cargo.lock`, so the other Rust dependencies resolve to their latest compatible releases at install time.
+
+> **Note:** The gems released from 0.13.0 until the fix for [#247](https://github.com/mosuka/litsea/issues/247) fail to compile during installation (see the [changelog](https://github.com/mosuka/litsea/blob/main/CHANGELOG.md)). `gem install litsea` picks the newest release, so this matters only when you pin one of those versions.
 
 ## Getting a model
 
@@ -108,9 +116,13 @@ Every error derives from `Litsea::Error`, so one `rescue` handles them all — t
 ## Development
 
 ```sh
-make test-litsea-ruby    # cargo test + rake compile + rake test
-make lint-litsea-ruby    # clippy + rubocop
-make build-litsea-ruby   # release build
+make test-litsea-ruby       # cargo test + rake compile + rake test
+make lint-litsea-ruby       # clippy + rubocop
+make build-litsea-ruby      # release build
+make package-litsea-ruby    # source gem into litsea-ruby/pkg/
+make test-litsea-ruby-gem   # gem install that gem in a clean container (needs Docker)
 ```
 
 `bundle` must be usable with the active Ruby; a version manager's shim can exist while the selected interpreter has no bundler, so the Makefile checks and says so. The parity tests build the `litsea` CLI and compare the binding's output against it.
+
+Build the gem with `make package-litsea-ruby` (`bundle exec rake build`), not `gem build`: the crate's own `Cargo.toml` inherits from the Cargo workspace and only resolves inside this repository. The task builds the gem from the crate as `cargo package` normalizes it, and refuses to when the gem and crate versions differ or when `litsea` and `litsea-binding-core` are not pinned to that version. `make test-litsea-ruby-gem` installs the gem with `gem install` in a bare `ruby:3.3` container and segments text with it. It compiles the litsea crates from the checkout, so it also works for versions that are not on crates.io yet.
