@@ -28,7 +28,7 @@ litsea = { version = "=0.14.3", path = "../litsea" }
 litsea-binding-core = { version = "=0.14.3", path = "../litsea-binding-core", features = [
     "remote_model",
 ] }
-magnus = { version = "0.8.2", features = ["rb-sys"] }
+magnus = { version = "0.9.0", features = ["rb-sys"] }
 # Used only to link against libruby; the GVL entry point is declared by
 # hand in `gvl.rs` because neither magnus nor rb-sys exposes it.
 rb-sys = "0.9.130"
