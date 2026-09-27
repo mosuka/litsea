@@ -94,6 +94,10 @@ excluded from scoring.
 
 - **Algorithm**: two-stage segmentation + POS tagging (a binary boundary
   classifier plus a word-level tagger with a candidate-tag lexicon)
+- **Stage-2 feature set**: `full` (chosen by a dev-split sweep over
+  fast/balanced/full on the space-preserving corpus in issue #198,
+  replacing `balanced`), 20 epochs (from the same issue's dev-split epoch
+  sweep, replacing 50)
 - **Word F1 (held-out)**: 99.88%
 - **Tagged Word F1 (held-out)**: 93.95%
 - **Note**: this model is trained on the **same space-preserving corpus**

@@ -180,6 +180,13 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 
 Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese), `en` (English).
 
+For Korean and English, add `-s` when generating the POS corpus so it keeps a literal space token wherever the original text had one. The bundled `korean_pos.model` and `english_pos.model` are trained on this space-preserving corpus (issue #198):
+
+```sh
+conllu_file=$(bash scripts/download_udtreebank.sh -l en -o /tmp)
+bash scripts/corpus_udtreebank.sh -p -s "$conllu_file" pos_corpus.tsv
+```
+
 ### Step 2: Extract two-stage features
 
 Use the `--pos` flag with the `extract` command to extract the three feature files (stage-1 boundary features, stage-2 word-level features, and the candidate-tag lexicon) from the POS corpus:
@@ -188,9 +195,15 @@ Use the `--pos` flag with the `extract` command to extract the three feature fil
 ./target/release/litsea extract --pos -l japanese ./pos_corpus.txt ./pos_features
 ```
 
+For the space-preserving corpus, add `--format tsv` so `extract --pos` reads its tab-separated `word/POS` tokens. The bundled Korean and English models also use the `full` stage-2 feature set (see [Extracting Features](docs/src/training-guide/extracting-features.md#two-stage-feature-extraction)):
+
+```sh
+./target/release/litsea extract --pos --format tsv --stage2-features full -l english ./pos_corpus.tsv ./pos_features
+```
+
 ### Step 3: Train the two-stage model
 
-Use the `--pos` flag with the `train` command to train a binary boundary classifier (stage 1) plus a word-level tagger (stage 2), assembled with the candidate-tag lexicon into a single `litsea-two-stage v1` model file. Use `--num-epochs` to set the number of training epochs (the bundled models use 50):
+Use the `--pos` flag with the `train` command to train a binary boundary classifier (stage 1) plus a word-level tagger (stage 2), assembled with the candidate-tag lexicon into a single `litsea-two-stage v1` model file. Use `--num-epochs` to set the number of training epochs (the bundled models use 50, except `korean_pos.model`, which uses 20 — see [Pre-trained Models](docs/src/pre-trained-models.md#two-stage-pos-tagging-models)):
 
 ```sh
 ./target/release/litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model

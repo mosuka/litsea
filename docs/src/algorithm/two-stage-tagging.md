@@ -39,7 +39,10 @@ model quality keeps improving well past the 10-epoch convention older
 models were trained with, and plateaus at around 50 epochs on the UD GSD
 training sets. In particular, stage 1's boundary-only features need more
 epochs than richer per-character feature sets to converge on the same
-corpus. **The bundled two-stage models use 50 epochs**; when retraining, a
+corpus. **The bundled two-stage models use 50 epochs**, except
+`korean_pos.model`, which a dev-split sweep on the space-preserving corpus
+(issue #198) settled at 20 (see [Pre-trained
+Models](../pre-trained-models.md#korean_posmodel)); when retraining, a
 one-shot low-epoch run will understate the quality the architecture can
 reach.
 
@@ -122,8 +125,9 @@ Stage 2's word-level tagger can be extracted with three feature sets
 (`--stage2-features` on `litsea extract --pos`; see [Extracting
 Features](../training-guide/extracting-features.md)), trading tagging
 quality for throughput. Segmentation quality is unaffected -- it is
-decided entirely by stage 1. The figures below are at 50 epochs, matching
-the bundled models.
+decided entirely by stage 1. The Chinese column below is at 50 epochs,
+matching `chinese_pos.model`; the note under the table explains where the
+Korean and English columns come from.
 
 | Feature set | Chinese Tagged F1 | Korean Tagged F1 | English Tagged F1 |
 |-------------|-----|-----|-----|
@@ -133,7 +137,8 @@ the bundled models.
 
 (Korean and English were re-swept on the space-preserving corpus for issue #198; those two columns are dev-split figures from that sweep, while the
 Chinese column predates it. Korean's winner moved from `balanced` to
-`full` as a result.)
+`full` as a result, and the same re-sweep settled `korean_pos.model` on
+20 epochs; `english_pos.model` stays at 50.)
 
 For Japanese, `fast` alone reaches 92.95% tagged F1, so the bundled
 `japanese_pos.model` uses it. For Chinese, `balanced` gives most of
