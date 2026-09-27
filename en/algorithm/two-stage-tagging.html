@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2ca78133.js";
+            window.path_to_searchindex_js = "../searchindex-8a21208d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -219,7 +219,10 @@ model quality keeps improving well past the 10-epoch convention older
 models were trained with, and plateaus at around 50 epochs on the UD GSD
 training sets. In particular, stage 1’s boundary-only features need more
 epochs than richer per-character feature sets to converge on the same
-corpus. <strong>The bundled two-stage models use 50 epochs</strong>; when retraining, a
+corpus. <strong>The bundled two-stage models use 50 epochs</strong>, except
+<code>korean_pos.model</code>, which a dev-split sweep on the space-preserving corpus
+(issue #198) settled at 20 (see <a href="../pre-trained-models.html#korean_posmodel">Pre-trained
+Models</a>); when retraining, a
 one-shot low-epoch run will understate the quality the architecture can
 reach.</p>
 <h2 id="measured-quality-and-throughput"><a class="header" href="#measured-quality-and-throughput">Measured quality and throughput</a></h2>
@@ -303,8 +306,9 @@ spaces, so the space-separated corpus already matched their real input.</p>
 (<code>--stage2-features</code> on <code>litsea extract --pos</code>; see <a href="../training-guide/extracting-features.html">Extracting
 Features</a>), trading tagging
 quality for throughput. Segmentation quality is unaffected – it is
-decided entirely by stage 1. The figures below are at 50 epochs, matching
-the bundled models.</p>
+decided entirely by stage 1. The Chinese column below is at 50 epochs,
+matching <code>chinese_pos.model</code>; the note under the table explains where the
+Korean and English columns come from.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -319,7 +323,8 @@ the bundled models.</p>
 </div>
 <p>(Korean and English were re-swept on the space-preserving corpus for issue #198; those two columns are dev-split figures from that sweep, while the
 Chinese column predates it. Korean’s winner moved from <code>balanced</code> to
-<code>full</code> as a result.)</p>
+<code>full</code> as a result, and the same re-sweep settled <code>korean_pos.model</code> on
+20 epochs; <code>english_pos.model</code> stays at 50.)</p>
 <p>For Japanese, <code>fast</code> alone reaches 92.95% tagged F1, so the bundled
 <code>japanese_pos.model</code> uses it. For Chinese, <code>balanced</code> gives most of
 <code>full</code>’s gain (82.29% vs. 82.96%) at meaningfully better throughput, so

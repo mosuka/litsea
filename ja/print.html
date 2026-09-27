@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-97e25102.js";
+            window.path_to_searchindex_js = "searchindex-9592eddf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -1291,6 +1291,9 @@ stage-2 単語タガーは、これとは別の並行する宣言的テーブル
 分かりました。特に stage 1 の境界のみの特徴量は、よりリッチな文字ごとの
 特徴量セットに比べて、同じコーパスで収束するのにより多くのエポックを
 必要とします。<strong>同梱の二段構成モデルは 50 エポックを使用しています</strong>。
+ただし <code>korean_pos.model</code> は例外で、空白保持コーパス（issue #198）の
+dev split でのスイープにより 20 エポックを選んでいます
+（<a href="#korean_posmodel-1">事前学習済みモデル</a>を参照）。
 再学習の際、一発の低エポック実行ではこのアーキテクチャの到達可能な品質を
 過小評価することになります。</p>
 <h2 id="実測の品質とスループット"><a class="header" href="#実測の品質とスループット">実測の品質とスループット</a></h2>
@@ -1372,8 +1375,9 @@ issue #198 までは、二段構成の extractor は空白区切りの <code>wor
 <h2 id="stage-2-特徴量セットの選び方"><a class="header" href="#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a></h2>
 <p>stage 2 の単語単位タガーは 3 種類の特徴量セット（<code>litsea extract --pos</code> の <code>--stage2-features</code>。<a href="#特徴量の抽出">特徴量の抽出</a>を参照）で
 抽出でき、タグ付け品質とスループットをトレードオフできます。分割品質は
-影響を受けません – 分割は stage 1 だけで決まります。以下の数値は
-同梱モデルと同じ 50 エポックでの値です。</p>
+影響を受けません – 分割は stage 1 だけで決まります。以下の中国語の列は
+<code>chinese_pos.model</code> と同じ 50 エポックでの値です。韓国語と英語の列の
+出どころは表の下の注記を参照してください。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1388,7 +1392,9 @@ issue #198 までは、二段構成の extractor は空白区切りの <code>wor
 </div>
 <p>（韓国語と英語は issue #198 に伴って空白保持コーパスで再スイープしており、
 この 2 列はそのスイープの dev split の数値です。中国語の列はそれ以前の
-ものです。その結果、韓国語の勝者は <code>balanced</code> から <code>full</code> に変わりました。）</p>
+ものです。その結果、韓国語の勝者は <code>balanced</code> から <code>full</code> に変わり、
+同じ再スイープで <code>korean_pos.model</code> のエポック数は 20 になりました。
+<code>english_pos.model</code> は 50 のままです。）</p>
 <p>日本語では <code>fast</code> だけで Tagged F1 92.95% に到達するため、同梱の
 <code>japanese_pos.model</code> はこれを使用しています。
 中国語では <code>balanced</code> が <code>full</code> の伸びの大半（82.29% vs 82.96%）を
@@ -1660,6 +1666,9 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
 <ul>
 <li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）</li>
+<li><strong>stage-2 特徴量セット</strong>: <code>full</code>（issue #198 で、空白保持コーパスの dev split
+での fast/balanced/full のスイープにより <code>balanced</code> から変更）、20 エポック
+（同じ issue の dev split でのエポックスイープにより 50 から変更）</li>
 <li><strong>単語 F1（held-out）</strong>: 99.88%</li>
 <li><strong>タグ付き単語 F1（held-out）</strong>: 93.95%</li>
 <li><strong>注記</strong>: このモデルは <code>korean.model</code> と<strong>同じ空白保持コーパス</strong>で学習して
@@ -5033,7 +5042,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <tr><th>パラメータ</th><th>フラグ</th><th>デフォルト値</th><th>ガイダンス</th></tr>
 </thead>
 <tbody>
-<tr><td>エポック数</td><td><code>--num-epochs</code></td><td>10</td><td>同梱モデル作成時のエポックスイープ（<a href="#方法論についての注記-十分な学習エポック数を使う">方法論についての注記</a>を参照）で、分割品質が既定値を大きく超えて向上し続け <strong>50</strong> 付近でプラトーに達すると判明しました – 同梱モデルは 10 ではなく 50 を使用しています</td></tr>
+<tr><td>エポック数</td><td><code>--num-epochs</code></td><td>10</td><td>同梱モデル作成時のエポックスイープ（<a href="#方法論についての注記-十分な学習エポック数を使う">方法論についての注記</a>を参照）で、分割品質が既定値を大きく超えて向上し続け <strong>50</strong> 付近でプラトーに達すると判明しました – 同梱モデルは 10 ではなく 50 を使用しています（ただし <code>korean_pos.model</code> は、空白保持コーパス（issue #198）での dev split の再スイープにより 20）</td></tr>
 <tr><td>Dominance</td><td><code>--dominance</code></td><td>0.99</td><td>分類器スキップの閾値、範囲は <code>(0.5, 1.0]</code>: 既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされます。値を小さくするとより頻繁に分類器をスキップします（高速だが語彙表への依存度が上がる）。既定値は同梱モデルと同じです</td></tr>
 <tr><td>stage-2 特徴量セット</td><td><code>extract --pos</code> の <code>--stage2-features</code></td><td><code>fast</code></td><td><code>full</code>、<code>balanced</code>、<code>fast</code>。<a href="#特徴量の抽出">特徴量の抽出</a>と<a href="#stage-2-特徴量セットの選び方">特徴量セットの選び方</a>を参照</td></tr>
 </tbody>
@@ -5791,8 +5800,11 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 （10〜150 エポック）では、stage 1 の<strong>分割</strong>品質は特に 10 エポックを大きく
 超えて向上し続け、50 エポック付近でプラトーに達することが判明しました
 – 以下の同梱二段構成モデルは、このスイープから得た 50 エポックを使用して
-います。再学習の際、一発の低エポック実行ではこのアーキテクチャの到達可能な
-品質を過小評価することになります
+います。ただし <code>korean_pos.model</code> は例外で、空白保持コーパスで再学習した
+際（issue #198）に新しいコーパスの dev split でスイープし直し、20 エポックを
+選びました（下記の韓国語のプロトコルについての注記を参照）。再学習の際、
+一発の低エポック実行ではこのアーキテクチャの到達可能な品質を過小評価する
+ことになります
 （<a href="#方法論についての注記-十分な学習エポック数を使う">方法論についての注記</a>を参照）。</p>
 <h3 id="japanese_posmodel-1"><a class="header" href="#japanese_posmodel-1">japanese_pos.model</a></h3>
 <div class="table-wrapper">

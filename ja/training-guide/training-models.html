@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-97e25102.js";
+            window.path_to_searchindex_js = "../searchindex-9592eddf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -294,7 +294,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <tr><th>パラメータ</th><th>フラグ</th><th>デフォルト値</th><th>ガイダンス</th></tr>
 </thead>
 <tbody>
-<tr><td>エポック数</td><td><code>--num-epochs</code></td><td>10</td><td>同梱モデル作成時のエポックスイープ（<a href="../algorithm/two-stage-tagging.html#方法論についての注記-十分な学習エポック数を使う">方法論についての注記</a>を参照）で、分割品質が既定値を大きく超えて向上し続け <strong>50</strong> 付近でプラトーに達すると判明しました – 同梱モデルは 10 ではなく 50 を使用しています</td></tr>
+<tr><td>エポック数</td><td><code>--num-epochs</code></td><td>10</td><td>同梱モデル作成時のエポックスイープ（<a href="../algorithm/two-stage-tagging.html#方法論についての注記-十分な学習エポック数を使う">方法論についての注記</a>を参照）で、分割品質が既定値を大きく超えて向上し続け <strong>50</strong> 付近でプラトーに達すると判明しました – 同梱モデルは 10 ではなく 50 を使用しています（ただし <code>korean_pos.model</code> は、空白保持コーパス（issue #198）での dev split の再スイープにより 20）</td></tr>
 <tr><td>Dominance</td><td><code>--dominance</code></td><td>0.99</td><td>分類器スキップの閾値、範囲は <code>(0.5, 1.0]</code>: 既知の単語のうち最頻タグが学習時の出現のこの割合以上を占めるものは、stage-2 分類器を呼ばずにタグ付けされます。値を小さくするとより頻繁に分類器をスキップします（高速だが語彙表への依存度が上がる）。既定値は同梱モデルと同じです</td></tr>
 <tr><td>stage-2 特徴量セット</td><td><code>extract --pos</code> の <code>--stage2-features</code></td><td><code>fast</code></td><td><code>full</code>、<code>balanced</code>、<code>fast</code>。<a href="extracting-features.html">特徴量の抽出</a>と<a href="../algorithm/two-stage-tagging.html#stage-2-特徴量セットの選び方">特徴量セットの選び方</a>を参照</td></tr>
 </tbody>

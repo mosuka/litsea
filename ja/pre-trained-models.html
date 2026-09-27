@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-97e25102.js";
+            window.path_to_searchindex_js = "searchindex-9592eddf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -435,8 +435,11 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 （10〜150 エポック）では、stage 1 の<strong>分割</strong>品質は特に 10 エポックを大きく
 超えて向上し続け、50 エポック付近でプラトーに達することが判明しました
 – 以下の同梱二段構成モデルは、このスイープから得た 50 エポックを使用して
-います。再学習の際、一発の低エポック実行ではこのアーキテクチャの到達可能な
-品質を過小評価することになります
+います。ただし <code>korean_pos.model</code> は例外で、空白保持コーパスで再学習した
+際（issue #198）に新しいコーパスの dev split でスイープし直し、20 エポックを
+選びました（下記の韓国語のプロトコルについての注記を参照）。再学習の際、
+一発の低エポック実行ではこのアーキテクチャの到達可能な品質を過小評価する
+ことになります
 （<a href="algorithm/two-stage-tagging.html#方法論についての注記-十分な学習エポック数を使う">方法論についての注記</a>を参照）。</p>
 <h3 id="japanese_posmodel"><a class="header" href="#japanese_posmodel">japanese_pos.model</a></h3>
 <div class="table-wrapper">

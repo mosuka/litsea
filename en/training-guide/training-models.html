@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2ca78133.js";
+            window.path_to_searchindex_js = "../searchindex-8a21208d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -295,7 +295,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <tr><th>Parameter</th><th>Flag</th><th>Default</th><th>Guidance</th></tr>
 </thead>
 <tbody>
-<tr><td>Epochs</td><td><code>--num-epochs</code></td><td>10</td><td>An epoch sweep during bundling (see <a href="../algorithm/two-stage-tagging.html#a-methodology-note-use-enough-training-epochs">the methodology note</a>) found segmentation quality still improving well past the default and plateauing around <strong>50</strong> – the bundled models use 50, not 10</td></tr>
+<tr><td>Epochs</td><td><code>--num-epochs</code></td><td>10</td><td>An epoch sweep during bundling (see <a href="../algorithm/two-stage-tagging.html#a-methodology-note-use-enough-training-epochs">the methodology note</a>) found segmentation quality still improving well past the default and plateauing around <strong>50</strong> – the bundled models use 50, not 10, except <code>korean_pos.model</code>, whose dev-split re-sweep on the space-preserving corpus (issue #198) settled on 20</td></tr>
 <tr><td>Dominance</td><td><code>--dominance</code></td><td>0.99</td><td>Classifier-skip threshold in <code>(0.5, 1.0]</code>: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier. Lower values skip the classifier more often (faster, more reliant on the lexicon); the default matches the bundled models</td></tr>
 <tr><td>Stage-2 feature set</td><td><code>--stage2-features</code> on <code>extract --pos</code></td><td><code>fast</code></td><td><code>full</code>, <code>balanced</code>, or <code>fast</code>; see <a href="extracting-features.html">Extracting Features</a> and <a href="../algorithm/two-stage-tagging.html#choosing-a-stage-2-feature-set">choosing a feature set</a></td></tr>
 </tbody>

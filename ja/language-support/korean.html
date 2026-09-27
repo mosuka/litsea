@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-97e25102.js";
+            window.path_to_searchindex_js = "../searchindex-9592eddf.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -253,6 +253,9 @@
 <h3 id="korean_posmodel"><a class="header" href="#korean_posmodel">korean_pos.model</a></h3>
 <ul>
 <li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）</li>
+<li><strong>stage-2 特徴量セット</strong>: <code>full</code>（issue #198 で、空白保持コーパスの dev split
+での fast/balanced/full のスイープにより <code>balanced</code> から変更）、20 エポック
+（同じ issue の dev split でのエポックスイープにより 50 から変更）</li>
 <li><strong>単語 F1（held-out）</strong>: 99.88%</li>
 <li><strong>タグ付き単語 F1（held-out）</strong>: 93.95%</li>
 <li><strong>注記</strong>: このモデルは <code>korean.model</code> と<strong>同じ空白保持コーパス</strong>で学習して
