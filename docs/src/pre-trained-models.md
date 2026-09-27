@@ -249,9 +249,12 @@ methodology note).
 **Epoch note**: an epoch sweep during two-stage bundling (10 to 150
 epochs) found that stage 1's *segmentation* quality specifically continues
 improving well past 10 epochs and plateaus around 50 -- the bundled
-two-stage models below use 50 epochs, chosen from that sweep. When
-retraining, a one-shot low-epoch run will understate the quality the
-architecture can reach (see the [methodology
+two-stage models below use 50 epochs, chosen from that sweep, except
+`korean_pos.model`: when it was retrained on the space-preserving corpus
+(issue #198), a dev-split sweep on the new corpus settled on 20 (see the
+Korean protocol note below). When retraining, a one-shot low-epoch run
+will understate the quality the architecture can reach (see the
+[methodology
 note](algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epochs)).
 
 ### japanese_pos.model

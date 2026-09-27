@@ -139,7 +139,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 
 | Parameter | Flag | Default | Guidance |
 |-----------|------|---------|----------|
-| Epochs | `--num-epochs` | 10 | An epoch sweep during bundling (see [the methodology note](../algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epochs)) found segmentation quality still improving well past the default and plateauing around **50** -- the bundled models use 50, not 10 |
+| Epochs | `--num-epochs` | 10 | An epoch sweep during bundling (see [the methodology note](../algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epochs)) found segmentation quality still improving well past the default and plateauing around **50** -- the bundled models use 50, not 10, except `korean_pos.model`, whose dev-split re-sweep on the space-preserving corpus (issue #198) settled on 20 |
 | Dominance | `--dominance` | 0.99 | Classifier-skip threshold in `(0.5, 1.0]`: a known word whose most frequent tag covers at least this fraction of its training occurrences is tagged without invoking the stage-2 classifier. Lower values skip the classifier more often (faster, more reliant on the lexicon); the default matches the bundled models |
 | Stage-2 feature set | `--stage2-features` on `extract --pos` | `fast` | `full`, `balanced`, or `fast`; see [Extracting Features](extracting-features.md) and [choosing a feature set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set) |
 
