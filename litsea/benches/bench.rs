@@ -116,9 +116,10 @@ fn load_corpus_lines(corpus_name: &str) -> (Vec<String>, u64) {
     (lines, chars)
 }
 
-/// Runs seven benches: the four segmentation cases of the external
-/// tokenizer-speed-bench harness, reproduced in-repo, plus three
-/// `*-two-stage` POS cases (issue #169).
+/// Runs nine benches: five segmentation cases plus four `*-two-stage` POS
+/// cases (issue #169). Every case except `japanese-rwcp` reproduces a litsea
+/// bench of the external tokenizer-speed-bench harness in-repo, on the same
+/// model and corpus.
 /// One iteration segments every line of the corpus, and criterion's
 /// `Throughput::Elements` makes the report read as chars/sec. Methodology
 /// differences from the external harness (criterion sampling instead of
@@ -228,9 +229,9 @@ fn bench_predict_adaboost(c: &mut Criterion) {
 }
 
 /// Paired comparison of the owned-output `segment()` API against the
-/// buffer-reusing `segment_into()` API (issue #184) on the same three
-/// segmentation workloads as `external_corpus` (same corpora, same
-/// per-line iteration, chars/sec via `Throughput::Elements`). The
+/// buffer-reusing `segment_into()` API (issue #184) on the same four
+/// segmentation corpora as `external_corpus` (same per-line iteration,
+/// chars/sec via `Throughput::Elements`). The
 /// `*-strings` ids are the `segment()` baseline; the `*-ranges` ids reuse
 /// one `SegmentBuffer` across the whole corpus, so their difference is the
 /// per-call allocation cost the new API removes. Compare ids within one

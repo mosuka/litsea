@@ -34,9 +34,10 @@ make bench
 
 `external_corpus` グループは、外部の
 [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
-にある litsea の 7 ベンチをリポジトリ内で再現します（下記の `english`/`english-two-stage`
-ケースはこの外部ハーネスにはまだ対応するものがありません）。これにより、
-スループットの回帰を `cargo bench` だけで検出できます:
+にある litsea のベンチをリポジトリ内で再現します。これにより、
+スループットの回帰を `cargo bench` だけで検出できます。下記のうち
+`japanese-rwcp` 以外のケースにはすべて、同じモデルを同じコーパスで
+計測する対応ベンチが外部ハーネスにあります:
 
 ```sh
 cargo bench --bench bench -- external_corpus
@@ -55,8 +56,8 @@ cargo bench --bench bench -- external_corpus
 | `english-two-stage` | english_pos.model | pride_and_prejudice.txt |
 
 `*-two-stage` ベンチは[二段構成アーキテクチャ](../algorithm/two-stage-tagging.md)
-（#147/#169）と合わせて追加したもので、上記の元々の tokenizer-speed-bench
-を再現する 7 ベンチには含まれません。
+（#147/#169）と合わせて追加したものです。`japanese-rwcp` は litsea 側だけの
+ケースで、外部ハーネスは `RWCP.model` をもう計測していません。
 
 1 イテレーションでコーパス全行を分割し（外部ベンチと同様、行のフィルタなし）、
 グループの `Throughput::Elements` にコーパスの改行を除く文字数を設定しているため、
