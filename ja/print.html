@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9592eddf.js";
+            window.path_to_searchindex_js = "searchindex-f7868836.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -5436,9 +5436,10 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <h2 id="コーパススループットexternal_corpus"><a class="header" href="#コーパススループットexternal_corpus">コーパススループット（<code>external_corpus</code>）</a></h2>
 <p><code>external_corpus</code> グループは、外部の
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
-にある litsea の 7 ベンチをリポジトリ内で再現します（下記の <code>english</code>/<code>english-two-stage</code>
-ケースはこの外部ハーネスにはまだ対応するものがありません）。これにより、
-スループットの回帰を <code>cargo bench</code> だけで検出できます:</p>
+にある litsea のベンチをリポジトリ内で再現します。これにより、
+スループットの回帰を <code>cargo bench</code> だけで検出できます。下記のうち
+<code>japanese-rwcp</code> 以外のケースにはすべて、同じモデルを同じコーパスで
+計測する対応ベンチが外部ハーネスにあります:</p>
 <pre><code class="language-sh">cargo bench --bench bench -- external_corpus
 </code></pre>
 <div class="table-wrapper">
@@ -5460,8 +5461,8 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </table>
 </div>
 <p><code>*-two-stage</code> ベンチは<a href="#二段構成タグ付け">二段構成アーキテクチャ</a>
-（#147/#169）と合わせて追加したもので、上記の元々の tokenizer-speed-bench
-を再現する 7 ベンチには含まれません。</p>
+（#147/#169）と合わせて追加したものです。<code>japanese-rwcp</code> は litsea 側だけの
+ケースで、外部ハーネスは <code>RWCP.model</code> をもう計測していません。</p>
 <p>1 イテレーションでコーパス全行を分割し（外部ベンチと同様、行のフィルタなし）、
 グループの <code>Throughput::Elements</code> にコーパスの改行を除く文字数を設定しているため、
 Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</strong> として読めます。</p>
@@ -5943,12 +5944,12 @@ stage 1 は、英語のほぼすべての語境界を示す空白文字を一度
 <li><strong>rulin_waishi.txt</strong> – 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。</li>
 <li><strong>pride_and_prejudice.txt</strong> – Pride and Prejudice（Jane Austen）、約 688 KB、Project Gutenberg eBook #1342（ヘッダー・フッター・挿絵キャプションを除去し、1 行 1 段落に整形）。</li>
 </ul>
-<p><code>wagahaiwa_nekodearu.txt</code>／<code>mujeong.txt</code>／<code>rulin_waishi.txt</code> の 3 つは外部の
+<p><code>wagahaiwa_nekodearu.txt</code>／<code>mujeong.txt</code>／<code>rulin_waishi.txt</code>／
+<code>pride_and_prejudice.txt</code> の 4 つは <code>external_corpus</code> ベンチマークグループが
+使用します（<a href="#ベンチマーク">ベンチマーク</a>を参照）。外部の
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
-のコーパスとバイト同一で、<code>external_corpus</code> ベンチマークグループが使用します
-（<a href="#ベンチマーク">ベンチマーク</a>を参照）。<code>pride_and_prejudice.txt</code>
-は同じベンチマークグループの英語のケースに使われますが、この外部ハーネス側
-にはまだ対応するコーパスがありません。いずれもパブリックドメインです。</p>
+はこの 4 ファイルをこのリポジトリから取得するため、コーパスはバイト同一です。
+いずれもパブリックドメインです。</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="ライセンス"><a class="header" href="#ライセンス">ライセンス</a></h1>
 <p>Litsea はデュアルライセンスで配布されています。</p>
