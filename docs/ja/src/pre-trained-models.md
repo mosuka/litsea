@@ -379,9 +379,9 @@ echo "これはテストです。" | litsea segment --pos -l japanese models/jap
 - **rulin_waishi.txt** -- 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。
 - **pride_and_prejudice.txt** -- Pride and Prejudice（Jane Austen）、約 688 KB、Project Gutenberg eBook #1342（ヘッダー・フッター・挿絵キャプションを除去し、1 行 1 段落に整形）。
 
-`wagahaiwa_nekodearu.txt`／`mujeong.txt`／`rulin_waishi.txt` の 3 つは外部の
+`wagahaiwa_nekodearu.txt`／`mujeong.txt`／`rulin_waishi.txt`／
+`pride_and_prejudice.txt` の 4 つは `external_corpus` ベンチマークグループが
+使用します（[ベンチマーク](advanced/benchmarking.md)を参照）。外部の
 [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
-のコーパスとバイト同一で、`external_corpus` ベンチマークグループが使用します
-（[ベンチマーク](advanced/benchmarking.md)を参照）。`pride_and_prejudice.txt`
-は同じベンチマークグループの英語のケースに使われますが、この外部ハーネス側
-にはまだ対応するコーパスがありません。いずれもパブリックドメインです。
+はこの 4 ファイルをこのリポジトリから取得するため、コーパスはバイト同一です。
+いずれもパブリックドメインです。

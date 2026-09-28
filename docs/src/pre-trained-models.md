@@ -385,10 +385,9 @@ The `resources/` directory also contains sample data used for benchmarking:
 - **rulin_waishi.txt** -- 儒林外史 (Wu Jingzi), ~985 KB, zh.wikisource.
 - **pride_and_prejudice.txt** -- Pride and Prejudice (Jane Austen), ~688 KB, Project Gutenberg eBook #1342 (header, footer, and illustration captions stripped; one paragraph per line).
 
-The `wagahaiwa_nekodearu.txt`/`mujeong.txt`/`rulin_waishi.txt` trio is
-byte-identical to the corpora of the external
+The `wagahaiwa_nekodearu.txt`, `mujeong.txt`, `rulin_waishi.txt` and
+`pride_and_prejudice.txt` corpora feed the `external_corpus` benchmark
+group (see [Benchmarking](advanced/benchmarking.md)). The external
 [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
-harness and feeds the `external_corpus` benchmark group (see
-[Benchmarking](advanced/benchmarking.md)); `pride_and_prejudice.txt` feeds
-the same benchmark group's English cases but has no counterpart in that
-external harness yet. All are public domain.
+harness downloads the same four files from this repository, so its
+corpora are byte-identical. All are public domain.

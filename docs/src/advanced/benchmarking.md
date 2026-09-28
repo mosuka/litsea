@@ -32,11 +32,11 @@ Models are loaded synchronously with `load_model_from_path` — no async runtime
 
 ## Corpus Throughput (`external_corpus`)
 
-The `external_corpus` group reproduces the seven litsea benches of the
+The `external_corpus` group reproduces the litsea benches of the
 external [tokenizer-speed-bench](https://github.com/mosuka/tokenizer-speed-bench)
-harness in-repo (the `english`/`english-two-stage` cases below have no
-counterpart there yet), so throughput regressions can be caught with
-`cargo bench` alone:
+harness in-repo, so throughput regressions can be caught with
+`cargo bench` alone. Every case below except `japanese-rwcp` has a
+counterpart there that measures the same model on the same corpus:
 
 ```sh
 cargo bench --bench bench -- external_corpus
@@ -55,8 +55,9 @@ cargo bench --bench bench -- external_corpus
 | `english-two-stage` | english_pos.model | pride_and_prejudice.txt |
 
 The `*-two-stage` benches were added alongside the [two-stage
-architecture](../algorithm/two-stage-tagging.md) (#147/#169); they are not
-part of the original seven tokenizer-speed-bench-mirroring benches above.
+architecture](../algorithm/two-stage-tagging.md) (#147/#169). The
+`japanese-rwcp` case is litsea-only: the external harness no longer
+measures `RWCP.model`.
 
 One iteration segments every line of the corpus (unfiltered, like the
 external harness), and the group sets `Throughput::Elements` to the
