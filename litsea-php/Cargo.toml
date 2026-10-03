@@ -19,4 +19,4 @@ crate-type = ["cdylib", "lib"]
 [dependencies]
 litsea.workspace = true
 litsea-binding-core = { workspace = true, features = ["remote_model"] }
-ext-php-rs = "0.15.15"
+ext-php-rs = "0.16.0"
