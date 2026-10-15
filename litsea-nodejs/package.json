@@ -60,6 +60,6 @@
     "english"
   ],
   "devDependencies": {
-    "@napi-rs/cli": "3.10.5"
+    "@napi-rs/cli": "3.10.8"
   }
 }
