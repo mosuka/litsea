@@ -243,7 +243,8 @@ impl Trainer {
     ///
     /// # Errors
     /// Throws `Litsea\IoException` if the model cannot be written.
-    #[php(defaults(cancel = None))]
+    // A trailing `Option` argument is already optional with a `null`
+    // default, and `defaults` cannot render an object as a PHP literal.
     pub fn train(
         &self,
         model_path: String,
@@ -298,7 +299,8 @@ impl PerceptronTrainer {
     ///
     /// # Errors
     /// Throws `Litsea\IoException` if the model cannot be written.
-    #[php(defaults(cancel = None))]
+    // A trailing `Option` argument is already optional with a `null`
+    // default, and `defaults` cannot render an object as a PHP literal.
     pub fn train(
         &self,
         model_path: String,
@@ -375,7 +377,8 @@ impl TwoStageTrainer {
     /// # Errors
     /// Throws `Litsea\InvalidArgumentException` if the trainer has already
     /// been used, or `Litsea\IoException` if the model cannot be written.
-    #[php(defaults(cancel = None))]
+    // A trailing `Option` argument is already optional with a `null`
+    // default, and `defaults` cannot render an object as a PHP literal.
     pub fn train(
         &self,
         model_path: String,
