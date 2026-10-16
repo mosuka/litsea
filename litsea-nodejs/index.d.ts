@@ -122,7 +122,10 @@ export type JsPerceptronTrainer = PerceptronTrainer
  * Build one with `Segmenter.open`, `Segmenter.fromBytes`, or
  * `Segmenter.fromUri`. The kind of model is detected from the file itself,
  * so `hasPos` describes what was loaded rather than something the caller
- * has to declare.
+ * has to declare. Every constructor takes two optional trailing arguments:
+ * `userWords`, words to emit as single tokens, and `userWordsGate`, a flip
+ * ratio in `0.0..=1.0` that applies a word only where the model's margin
+ * against it is small enough.
  */
 export declare class Segmenter {
   /**
@@ -131,30 +134,36 @@ export declare class Segmenter {
    * # Arguments
    * * `language` - A language name or ISO 639-1 code (`"japanese"`, `"ja"`).
    * * `path` - Path to the model file.
+   * * `user_words` - Optional words to emit as single tokens.
+   * * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
+   *   `0.0..=1.0`.
    *
    * # Returns
    * The new `Segmenter`.
    *
    * # Errors
-   * Throws an error whose `code` is `invalid_argument`, `io`, `parse`, or
-   * `model`.
+   * Throws an error whose `code` is `invalid_argument` (also for a gate
+   * outside `0.0..=1.0`), `io`, `parse`, or `model`.
    */
-  static open(language: string, path: string): Segmenter
+  static open(language: string, path: string, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null): Segmenter
   /**
    * Loads a model from raw bytes.
    *
    * # Arguments
    * * `language` - A language name or ISO 639-1 code.
    * * `data` - The model file contents.
+   * * `user_words` - Optional words to emit as single tokens.
+   * * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
+   *   `0.0..=1.0`.
    *
    * # Returns
    * The new `Segmenter`.
    *
    * # Errors
-   * Throws an error whose `code` is `invalid_argument`, `parse`, or
-   * `model`.
+   * Throws an error whose `code` is `invalid_argument` (also for a gate
+   * outside `0.0..=1.0`), `parse`, or `model`.
    */
-  static fromBytes(language: string, data: Buffer): Segmenter
+  static fromBytes(language: string, data: Buffer, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null): Segmenter
   /**
    * Loads a model from a URI, resolving once it is available.
    *
@@ -165,15 +174,19 @@ export declare class Segmenter {
    * # Arguments
    * * `language` - A language name or ISO 639-1 code.
    * * `uri` - The model URI.
+   * * `user_words` - Optional words to emit as single tokens.
+   * * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
+   *   `0.0..=1.0`.
    *
    * # Returns
    * A promise resolving to the new `Segmenter`.
    *
    * # Errors
-   * Rejects with an error whose `code` is `invalid_argument`, `model`,
-   * `io`, or `parse`.
+   * Throws synchronously with the `invalid_argument` code for an unknown
+   * language or a gate outside `0.0..=1.0`; otherwise rejects with an
+   * error whose `code` is `model`, `io`, or `parse`.
    */
-  static fromUri(language: string, uri: string): Promise<Segmenter>
+  static fromUri(language: string, uri: string, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null): Promise<Segmenter>
   /** The language this segmenter was built for. */
   get language(): string
   /** Whether this segmenter can tag parts of speech. */

@@ -55,13 +55,26 @@ Buffer.from(text).subarray(token.start, token.end).toString()   // === token.sur
 
 `pos` is `undefined` on tokens from `segmentTokens`, which does no tagging.
 
+## User dictionary
+
+Every constructor takes two optional trailing arguments ([#263](https://github.com/mosuka/litsea/issues/263)): `userWords`, an array of words to emit as single tokens wherever they occur, and `userWordsGate`, a flip ratio in `0`–`1` that applies a word only where the model's margin against it is small enough.
+
+```js
+const seg = Segmenter.open('japanese', 'models/japanese.model', ['雪だるま', '新幹線'])
+
+seg.segment('雪だるまを作る')
+// [ '雪だるま', 'を', '作る' ]   (without the dictionary: [ '雪', 'だる', 'ま', 'を', '作る' ])
+```
+
+A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a `userWordsGate` of `0` applies a word only where the model already agrees with it. A gate outside `0`–`1` throws with the `invalid_argument` code — synchronously, also from `fromUri`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
+
 ## API
 
 | Call | Returns |
 |------|---------|
-| `Segmenter.open(language, path)` | A segmenter (synchronous) |
-| `Segmenter.fromBytes(language, buffer)` | A segmenter (synchronous) |
-| `Segmenter.fromUri(language, uri)` | `Promise<Segmenter>` — downloads off the event loop |
+| `Segmenter.open(language, path, userWords?, userWordsGate?)` | A segmenter (synchronous) |
+| `Segmenter.fromBytes(language, buffer, userWords?, userWordsGate?)` | A segmenter (synchronous) |
+| `Segmenter.fromUri(language, uri, userWords?, userWordsGate?)` | `Promise<Segmenter>` — downloads off the event loop |
 | `segment(text)` | `string[]` |
 | `segmentBatch(texts)` | `string[][]` |
 | `segmentTokens(text)` | `Token[]` with byte offsets |
@@ -100,7 +113,7 @@ Every error carries a `code`, matching the error kinds the other bindings expose
 
 | `err.code` | Raised when |
 |-----------|-------------|
-| `invalid_argument` | Unknown language name, unknown feature set, reused trainer |
+| `invalid_argument` | Unknown language name, unknown feature set, reused trainer, `userWordsGate` outside `0`–`1` |
 | `model` | Download failed, or the file is a legacy joint POS model |
 | `io` | A file could not be read or written |
 | `parse` | The model or training data is malformed |

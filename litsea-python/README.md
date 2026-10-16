@@ -76,6 +76,19 @@ for token in seg.segment_with_pos("これはテストです。"):
 
 Calling `segment_with_pos` on a segmentation-only model raises `PosUnavailableError`.
 
+### User dictionary
+
+Words passed as `user_words` are emitted as single tokens wherever they occur, without retraining; every constructor accepts it as a keyword argument.
+
+```python
+seg = Segmenter.open(Language.JAPANESE, "models/japanese.model", user_words=["雪だるま", "新幹線"])
+
+seg.segment("雪だるまを作る")
+# ['雪だるま', 'を', '作る']   (without the dictionary: ['雪', 'だる', 'ま', 'を', '作る'])
+```
+
+Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. `user_words_gate` (`0.0`-`1.0`) applies a word only where the model's margin against it is small enough: `0.0` only where the model already agrees with it.
+
 ### Other model sources
 
 ```python
@@ -132,7 +145,7 @@ Every exception derives from `LitseaError`, so one `except` clause catches them 
 
 | Exception | Raised when |
 |-----------|-------------|
-| `InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer |
+| `InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate` outside `0.0`-`1.0` |
 | `ModelError` | Download failed, or the file is a legacy joint POS model |
 | `IoError` | A file could not be read or written |
 | `ParseError` | The model or training data is malformed |

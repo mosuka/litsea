@@ -76,6 +76,19 @@ text.byteslice(token.start, token.end - token.start)   # == token.surface
 
 Calling `segment_with_pos` on a segmentation-only model raises `Litsea::PosUnavailableError`.
 
+### User dictionary
+
+Words passed as `user_words:` are emitted as single tokens wherever they occur, without retraining; every constructor accepts the keyword.
+
+```ruby
+seg = Litsea::Segmenter.open(:japanese, "models/japanese.model", user_words: ["雪だるま", "新幹線"])
+
+seg.segment("雪だるまを作る")
+# => ["雪だるま", "を", "作る"]   (without the dictionary: ["雪", "だる", "ま", "を", "作る"])
+```
+
+Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. `user_words_gate:` (`0.0`-`1.0`) applies a word only where the model's margin against it is small enough: `0.0` only where the model already agrees with it.
+
 ### Other model sources
 
 ```ruby
@@ -122,7 +135,7 @@ Every error derives from `Litsea::Error`, so one `rescue` handles them all.
 
 | Error | Raised when |
 |-------|-------------|
-| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer |
+| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate:` outside `0.0`-`1.0` |
 | `Litsea::ModelError` | Download failed, or the file is a legacy joint POS model |
 | `Litsea::IoError` | A file could not be read or written |
 | `Litsea::ParseError` | The model or training data is malformed |

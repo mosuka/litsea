@@ -66,13 +66,28 @@ foreach ($seg->segmentWithPos('これはテストです。') as $token) {
 
 `start` and `end` are byte offsets, and PHP strings are byte strings, so `substr($text, $token->start, $token->end - $token->start)` returns the surface directly — no encoding-aware slicing needed, unlike JavaScript.
 
+## User dictionary
+
+Every constructor takes two optional trailing arguments ([#263](https://github.com/mosuka/litsea/issues/263)): `$user_words`, an array of words to emit as single tokens wherever they occur, and `$user_words_gate`, a flip ratio in `0.0`–`1.0` that applies a word only where the model's margin against it is small enough. Both default to `null` and work as named arguments too.
+
+```php
+$seg = Segmenter::open('japanese', 'models/japanese.model', ['雪だるま', '新幹線']);
+
+$seg->segment('雪だるまを作る');
+// ['雪だるま', 'を', '作る']   (without the dictionary: ['雪', 'だる', 'ま', 'を', '作る'])
+
+Segmenter::open('japanese', 'models/japanese.model', user_words: ['雪だるま'], user_words_gate: 0.5);
+```
+
+A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a gate of `0.0` applies a word only where the model already agrees with it. A gate outside `0.0`–`1.0` throws `Litsea\InvalidArgumentException`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
+
 ## API
 
 | Call | Returns |
 |------|---------|
-| `Segmenter::open($language, $path)` | A segmenter |
-| `Segmenter::fromBytes($language, $contents)` | A segmenter |
-| `Segmenter::fromUri($language, $uri)` | A segmenter (blocking download) |
+| `Segmenter::open($language, $path, $user_words?, $user_words_gate?)` | A segmenter |
+| `Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?)` | A segmenter |
+| `Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?)` | A segmenter (blocking download) |
 | `segment($text)` | `string[]` |
 | `segmentBatch($texts)` | `string[][]` |
 | `segmentTokens($text)` | `Token[]` with byte offsets |
@@ -109,7 +124,7 @@ Every exception derives from `Litsea\LitseaException`, so one `catch` handles th
 
 | Exception | Thrown when |
 |-----------|-------------|
-| `Litsea\InvalidArgumentException` | Unknown language name, unknown feature set, reused trainer |
+| `Litsea\InvalidArgumentException` | Unknown language name, unknown feature set, reused trainer, `$user_words_gate` outside `0.0`–`1.0` |
 | `Litsea\ModelException` | Download failed, or the file is a legacy joint POS model |
 | `Litsea\IoException` | A file could not be read or written |
 | `Litsea\ParseException` | The model or training data is malformed |

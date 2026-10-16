@@ -55,13 +55,26 @@ Buffer.from(text).subarray(token.start, token.end).toString()   // === token.sur
 
 タグ付けを行わない `segmentTokens` のトークンでは `pos` は `undefined` になります。
 
+## ユーザー辞書
+
+すべてのコンストラクタは、省略可能な末尾の引数を 2 つ受け取ります（[#263](https://github.com/mosuka/litsea/issues/263)）。`userWords` は、現れた場所で必ず 1 トークンとして出力する語の配列、`userWordsGate` は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（`0`〜`1`）です。
+
+```js
+const seg = Segmenter.open('japanese', 'models/japanese.model', ['雪だるま', '新幹線'])
+
+seg.segment('雪だるまを作る')
+// [ '雪だるま', 'を', '作る' ]   （辞書なしでは [ '雪', 'だる', 'ま', 'を', '作る' ]）
+```
+
+登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（`japanese_pos.model` では `雪だるま/NOUN`）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`userWordsGate` を `0` にすると、モデルがすでに同意している場所だけに語を適用します。`0`〜`1` の外の gate は `invalid_argument` コードのエラーを同期的に投げます（`fromUri` でも同様です）。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
+
 ## API
 
 | 呼び出し | 戻り値 |
 |---------|-------|
-| `Segmenter.open(language, path)` | セグメンタ（同期） |
-| `Segmenter.fromBytes(language, buffer)` | セグメンタ（同期） |
-| `Segmenter.fromUri(language, uri)` | `Promise<Segmenter>`（イベントループ外でダウンロード） |
+| `Segmenter.open(language, path, userWords?, userWordsGate?)` | セグメンタ（同期） |
+| `Segmenter.fromBytes(language, buffer, userWords?, userWordsGate?)` | セグメンタ（同期） |
+| `Segmenter.fromUri(language, uri, userWords?, userWordsGate?)` | `Promise<Segmenter>`（イベントループ外でダウンロード） |
 | `segment(text)` | `string[]` |
 | `segmentBatch(texts)` | `string[][]` |
 | `segmentTokens(text)` | バイトオフセット付き `Token[]` |
@@ -100,7 +113,7 @@ const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese
 
 | `err.code` | 発生条件 |
 |-----------|---------|
-| `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ |
+| `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ、`0`〜`1` の外の `userWordsGate` |
 | `model` | ダウンロード失敗、または旧 joint POS モデル |
 | `io` | ファイルの読み書き失敗 |
 | `parse` | モデルまたは学習データの形式不正 |

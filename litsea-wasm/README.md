@@ -54,6 +54,19 @@ new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.
 
 Calling `segmentWithPos` on a segmentation-only model throws an error with `code === 'pos_unavailable'`. The model file identifies its own kind, so `hasPos` reports what was loaded.
 
+### User dictionary
+
+Words passed as `userWords` are emitted as single tokens wherever they occur, without retraining; `fromBytes` accepts them as an optional trailing argument.
+
+```js
+const seg = Segmenter.fromBytes('japanese', bytes, ['雪だるま', '新幹線'])
+
+seg.segment('雪だるまを作る')
+// [ '雪だるま', 'を', '作る' ]   (without the dictionary: [ '雪', 'だる', 'ま', 'を', '作る' ])
+```
+
+Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. The next argument, `userWordsGate` (`0`-`1`), applies a word only where the model's margin against it is small enough: `0` only where the model already agrees with it.
+
 ### Caching models
 
 Models are 84 KB – 8 MB and cross the network once per visitor. The package ships an optional helper that keeps them in Cache Storage:
@@ -84,7 +97,7 @@ Every error carries a `code`, matching the Node.js binding:
 
 | `err.code` | Raised when |
 |-----------|-------------|
-| `invalid_argument` | Unknown language name |
+| `invalid_argument` | Unknown language name, `userWordsGate` outside `0`-`1` |
 | `model` | The file is a legacy joint POS model |
 | `parse` | The model is malformed or not UTF-8 |
 | `pos_unavailable` | POS tagging requested from a segmentation-only model |

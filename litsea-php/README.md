@@ -118,6 +118,19 @@ substr($text, $token->start, $token->end - $token->start);   // === $token->surf
 
 Calling `segmentWithPos()` on a segmentation-only model throws `Litsea\PosUnavailableException`.
 
+### User dictionary
+
+Words passed as `$user_words` are emitted as single tokens wherever they occur, without retraining; every constructor accepts it as an optional trailing argument (named arguments work too).
+
+```php
+$seg = Segmenter::open('japanese', 'models/japanese.model', ['雪だるま', '新幹線']);
+
+$seg->segment('雪だるまを作る');
+// ['雪だるま', 'を', '作る']   (without the dictionary: ['雪', 'だる', 'ま', 'を', '作る'])
+```
+
+Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. `$user_words_gate` (`0.0`-`1.0`) applies a word only where the model's margin against it is small enough: `0.0` only where the model already agrees with it.
+
 ### Other model sources
 
 ```php
@@ -178,7 +191,7 @@ Every exception derives from `Litsea\LitseaException`, so one `catch` handles th
 
 | Exception | Thrown when |
 |-----------|-------------|
-| `Litsea\InvalidArgumentException` | Unknown language name, unknown feature set, reused trainer |
+| `Litsea\InvalidArgumentException` | Unknown language name, unknown feature set, reused trainer, `$user_words_gate` outside `0.0`-`1.0` |
 | `Litsea\ModelException` | Download failed, or the file is a legacy joint POS model |
 | `Litsea\IoException` | A file could not be read or written |
 | `Litsea\ParseException` | The model or training data is malformed |

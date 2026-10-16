@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from conftest import run_cli
-from litsea import Language, PosUnavailableError, Segmenter, Token, Upos
+from litsea import InvalidArgumentError, Language, PosUnavailableError, Segmenter, Token, Upos
 
 # One sentence per language, with the segmentation model that handles it.
 SEGMENTATION_CASES = [
@@ -22,6 +22,21 @@ POS_CASES = [
     ("japanese", "japanese_pos.model", "これはテストです。"),
     ("korean", "korean_pos.model", "안녕하세요 반갑습니다"),
 ]
+
+# User dictionary cases (#263): the model splits each registered word
+# without the dictionary, and the English word contains a space.
+USER_WORD_CASES = [
+    ("japanese", "japanese.model", ["雪だるま", "新幹線"], "雪だるまを作る"),
+    ("japanese", "japanese.model", ["雪だるま", "新幹線"], "新幹線で帰る"),
+    ("english", "english.model", ["New York"], "I live in New York."),
+]
+
+
+def write_words(directory: Path, words: list[str]) -> Path:
+    """Write a `--user-words` file for the CLI and return its path."""
+    path = directory / "words.txt"
+    path.write_text("".join(word + "\n" for word in words), encoding="utf-8")
+    return path
 
 
 @pytest.mark.parametrize(("language", "model", "sentence"), SEGMENTATION_CASES)
@@ -57,6 +72,94 @@ def test_segment_with_pos_matches_the_cli(
     seg = Segmenter.open(language, models_dir / model)
     actual = " ".join(f"{token.surface}/{token.pos.name}" for token in seg.segment_with_pos(sentence))
     assert actual == expected
+
+
+@pytest.mark.parametrize(("language", "model", "words", "sentence"), USER_WORD_CASES)
+def test_user_words_match_the_cli(
+    models_dir: Path,
+    litsea_cli: Path,
+    tmp_path: Path,
+    language: str,
+    model: str,
+    words: list[str],
+    sentence: str,
+) -> None:
+    """`user_words` must produce exactly what `litsea segment --user-words` does."""
+    expected = run_cli(
+        litsea_cli,
+        ["segment", "-l", language, "--user-words", str(write_words(tmp_path, words)), str(models_dir / model)],
+        sentence + "\n",
+    )[0]
+
+    seg = Segmenter.open(language, models_dir / model, user_words=words)
+    assert " ".join(seg.segment(sentence)) == expected
+    # The dictionary must actually matter for these cases.
+    assert seg.segment(sentence) != Segmenter.open(language, models_dir / model).segment(sentence)
+
+
+def test_user_words_with_pos_match_the_cli(models_dir: Path, litsea_cli: Path, tmp_path: Path) -> None:
+    """A dictionary word is one tagged token, as with `litsea segment --pos --user-words`."""
+    sentence = "雪だるまを作る"
+    words = ["雪だるま"]
+    expected = run_cli(
+        litsea_cli,
+        [
+            "segment",
+            "-l",
+            "japanese",
+            "--pos",
+            "--user-words",
+            str(write_words(tmp_path, words)),
+            str(models_dir / "japanese_pos.model"),
+        ],
+        sentence + "\n",
+    )[0]
+
+    seg = Segmenter.open("japanese", models_dir / "japanese_pos.model", user_words=words)
+    actual = " ".join(f"{token.surface}/{token.pos.name}" for token in seg.segment_with_pos(sentence))
+    assert actual == expected
+    assert seg.segment_with_pos(sentence)[0].surface == "雪だるま"
+
+
+def test_user_words_on_every_constructor(models_dir: Path) -> None:
+    """`open`, `from_bytes`, and `from_uri` all accept the dictionary."""
+    path = models_dir / "japanese.model"
+    sentence = "雪だるまを作る"
+    words = ("雪だるま",)  # any sequence of strings works
+
+    from_path = Segmenter.open(Language.JAPANESE, path, user_words=words)
+    from_bytes = Segmenter.from_bytes(Language.JAPANESE, path.read_bytes(), user_words=words)
+    from_uri = Segmenter.from_uri(Language.JAPANESE, str(path), user_words=words)
+
+    assert from_path.segment(sentence) == ["雪だるま", "を", "作る"]
+    assert from_bytes.segment(sentence) == from_path.segment(sentence)
+    assert from_uri.segment(sentence) == from_path.segment(sentence)
+
+
+def test_user_words_gate(models_dir: Path) -> None:
+    """Gate 0 applies a word only where the model already agrees with it."""
+    path = models_dir / "japanese.model"
+    sentence = "雪だるまを作る"
+    plain = Segmenter.open("japanese", path).segment(sentence)
+
+    gated = Segmenter.open("japanese", path, user_words=["雪だるま"], user_words_gate=0.0)
+    assert gated.segment(sentence) == plain
+    open_gate = Segmenter.open("japanese", path, user_words=["雪だるま"], user_words_gate=1.0)
+    assert open_gate.segment(sentence) == ["雪だるま", "を", "作る"]
+    # An empty list is no dictionary at all.
+    assert Segmenter.open("japanese", path, user_words=[]).segment(sentence) == plain
+
+
+def test_user_words_invalid_arguments(models_dir: Path) -> None:
+    """A gate outside 0..1 is an `InvalidArgumentError`, words must be strings."""
+    path = models_dir / "japanese.model"
+    for words in (["雪だるま"], None):
+        with pytest.raises(InvalidArgumentError, match=r"0\.0\.\.=1\.0"):
+            Segmenter.open("japanese", path, user_words=words, user_words_gate=1.5)
+    with pytest.raises(TypeError):
+        Segmenter.open("japanese", path, user_words="雪だるま")  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        Segmenter.open("japanese", path, ["雪だるま"])  # type: ignore[misc]
 
 
 @pytest.mark.parametrize(("language", "model", "sentence"), SEGMENTATION_CASES)

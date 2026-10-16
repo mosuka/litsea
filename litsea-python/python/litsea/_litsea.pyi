@@ -99,15 +99,38 @@ class Segmenter:
     """A word segmenter, optionally with POS tagging."""
 
     @staticmethod
-    def open(language: LanguageArg, path: str | os.PathLike[str]) -> Segmenter:
-        """Load a model from a filesystem path."""
+    def open(
+        language: LanguageArg,
+        path: str | os.PathLike[str],
+        *,
+        user_words: Sequence[str] | None = None,
+        user_words_gate: float | None = None,
+    ) -> Segmenter:
+        """Load a model from a filesystem path.
+
+        ``user_words`` are emitted as single tokens wherever they occur;
+        ``user_words_gate`` (``0.0``-``1.0``) applies a word only where the
+        model's margin against it is small enough.
+        """
 
     @staticmethod
-    def from_bytes(language: LanguageArg, data: bytes) -> Segmenter:
+    def from_bytes(
+        language: LanguageArg,
+        data: bytes,
+        *,
+        user_words: Sequence[str] | None = None,
+        user_words_gate: float | None = None,
+    ) -> Segmenter:
         """Load a model from raw bytes."""
 
     @staticmethod
-    def from_uri(language: LanguageArg, uri: str) -> Segmenter:
+    def from_uri(
+        language: LanguageArg,
+        uri: str,
+        *,
+        user_words: Sequence[str] | None = None,
+        user_words_gate: float | None = None,
+    ) -> Segmenter:
         """Load a model from a path, ``file://`` path, or ``http(s)://`` URL."""
 
     @property

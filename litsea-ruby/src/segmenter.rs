@@ -2,20 +2,90 @@
 
 use std::path::Path;
 
-use litsea_binding_core::{CoreSegmenter, TokenView};
-use magnus::{Module, Object, RArray, RModule, RString, Ruby, Value, error::Error};
+use litsea::UserDictionary;
+use litsea_binding_core::{CoreSegmenter, TokenView, build_user_dictionary};
+use magnus::scan_args::{get_kwargs, scan_args};
+use magnus::{Module, Object, RArray, RModule, RString, Ruby, TryConvert, Value, error::Error};
 
 use crate::error::map_err;
 use crate::gvl::without_gvl;
 use crate::language::language_from_value;
 use crate::token::Token;
 
+/// The keyword arguments every constructor accepts (issue #263): the
+/// optional `user_words:` and `user_words_gate:`, each of which may also be
+/// passed as `nil`.
+struct UserWordsArgs {
+    /// The words to emit as single tokens.
+    user_words: Option<Vec<String>>,
+    /// The flip-ratio gate in `0.0..=1.0`.
+    user_words_gate: Option<f64>,
+}
+
+impl UserWordsArgs {
+    /// Builds the user dictionary these arguments describe.
+    ///
+    /// # Returns
+    /// `None` when no words were given, otherwise the dictionary.
+    ///
+    /// # Errors
+    /// Raises `Litsea::InvalidArgumentError` if the gate is outside
+    /// `0.0..=1.0`, also when no words were given.
+    fn dictionary(self) -> Result<Option<UserDictionary>, Error> {
+        map_err(build_user_dictionary(
+            self.user_words.as_deref().unwrap_or_default(),
+            self.user_words_gate,
+        ))
+    }
+}
+
+/// Splits the arguments of `open`, `from_bytes`, and `from_uri`: the
+/// language and the model source as required positionals, then the
+/// `user_words:` / `user_words_gate:` keywords.
+///
+/// magnus cannot express optional keyword arguments in a `function!`
+/// arity, so the constructors take their arguments through `scan_args`,
+/// as the trainers do.
+///
+/// # Arguments
+/// * `args` - The raw Ruby arguments.
+///
+/// # Returns
+/// The language value, the model source, and the keyword arguments.
+///
+/// # Errors
+/// Returns a Ruby `ArgumentError` for a wrong argument count or an unknown
+/// keyword, or a `TypeError` if an argument has the wrong type.
+fn scan_constructor_args<T: TryConvert>(
+    args: &[Value],
+) -> Result<(Value, T, UserWordsArgs), Error> {
+    let args = scan_args::<(Value, T), (), (), (), _, ()>(args)?;
+    let (language, source) = args.required;
+    let kwargs = get_kwargs::<_, (), (Option<Option<Vec<String>>>, Option<Option<f64>>), ()>(
+        args.keywords,
+        &[],
+        &["user_words", "user_words_gate"],
+    )?;
+    let (user_words, user_words_gate) = kwargs.optional;
+    Ok((
+        language,
+        source,
+        UserWordsArgs {
+            user_words: user_words.flatten(),
+            user_words_gate: user_words_gate.flatten(),
+        },
+    ))
+}
+
 /// A word segmenter, optionally with POS tagging.
 ///
 /// Build one with `Segmenter.open`, `Segmenter.from_bytes`, or
 /// `Segmenter.from_uri`. The kind of model is detected from the file itself,
 /// so `has_pos?` describes what was loaded rather than something the caller
-/// declares.
+/// declares. Every constructor accepts the keyword arguments `user_words:`,
+/// an array of words to emit as single tokens, and `user_words_gate:`, a
+/// flip ratio in `0.0..=1.0` that applies a word only where the model's
+/// margin against it is small enough.
 #[magnus::wrap(class = "Litsea::Segmenter", free_immediately, size)]
 pub struct Segmenter {
     /// The wrapped core segmenter.
@@ -26,20 +96,25 @@ impl Segmenter {
     /// Loads a model from a filesystem path.
     ///
     /// # Arguments
-    /// * `language` - A language name or ISO 639-1 code, as a String or Symbol.
-    /// * `path` - Path to the model file.
+    /// * `args` - `language` (a language name or ISO 639-1 code, as a String
+    ///   or Symbol), `path` (the model file), and the optional
+    ///   `user_words:` / `user_words_gate:` keywords.
     ///
     /// # Returns
     /// The new segmenter.
     ///
     /// # Errors
-    /// Raises `Litsea::InvalidArgumentError`, `Litsea::IoError`,
-    /// `Litsea::ParseError`, or `Litsea::ModelError`.
-    fn open(language: Value, path: String) -> Result<Self, Error> {
+    /// Raises `Litsea::InvalidArgumentError` (also for a gate outside
+    /// `0.0..=1.0`), `Litsea::IoError`, `Litsea::ParseError`, or
+    /// `Litsea::ModelError`.
+    fn open(args: &[Value]) -> Result<Self, Error> {
+        let (language, path, user_words): (_, String, _) = scan_constructor_args(args)?;
         let language = language_from_value(language)?;
+        let dictionary = user_words.dictionary()?;
         // Reading and compiling a model is measurable work; let other Ruby
         // threads run while it happens.
-        let inner = without_gvl(|| CoreSegmenter::from_path(language, Path::new(&path)));
+        let inner =
+            without_gvl(|| CoreSegmenter::from_path_with(language, Path::new(&path), dictionary));
         Ok(Self {
             inner: map_err(inner)?,
         })
@@ -51,23 +126,26 @@ impl Segmenter {
     /// (ASCII-8BIT) works as well as one read as UTF-8.
     ///
     /// # Arguments
-    /// * `language` - A language name or ISO 639-1 code, as a String or Symbol.
-    /// * `data` - The model file contents.
+    /// * `args` - `language` (a language name or ISO 639-1 code, as a String
+    ///   or Symbol), `data` (the model file contents), and the optional
+    ///   `user_words:` / `user_words_gate:` keywords.
     ///
     /// # Returns
     /// The new segmenter.
     ///
     /// # Errors
-    /// Raises `Litsea::InvalidArgumentError`, `Litsea::ParseError`, or
-    /// `Litsea::ModelError`.
-    fn from_bytes(language: Value, data: RString) -> Result<Self, Error> {
+    /// Raises `Litsea::InvalidArgumentError` (also for a gate outside
+    /// `0.0..=1.0`), `Litsea::ParseError`, or `Litsea::ModelError`.
+    fn from_bytes(args: &[Value]) -> Result<Self, Error> {
+        let (language, data, user_words): (_, RString, _) = scan_constructor_args(args)?;
         let language = language_from_value(language)?;
+        let dictionary = user_words.dictionary()?;
         // SAFETY: the slice is used only within this call, and nothing here
         // runs Ruby code that could move or free the string in the meantime
-        // (`from_bytes` parses into owned Rust structures).
+        // (`from_bytes_with` parses into owned Rust structures).
         let bytes = unsafe { data.as_slice() };
         Ok(Self {
-            inner: map_err(CoreSegmenter::from_bytes(language, bytes))?,
+            inner: map_err(CoreSegmenter::from_bytes_with(language, bytes, dictionary))?,
         })
     }
 
@@ -77,8 +155,9 @@ impl Segmenter {
     /// The GVL is released while the model is fetched.
     ///
     /// # Arguments
-    /// * `language` - A language name or ISO 639-1 code, as a String or Symbol.
-    /// * `uri` - The model URI.
+    /// * `args` - `language` (a language name or ISO 639-1 code, as a String
+    ///   or Symbol), `uri` (the model URI), and the optional `user_words:` /
+    ///   `user_words_gate:` keywords.
     ///
     /// # Returns
     /// The new segmenter.
@@ -86,9 +165,12 @@ impl Segmenter {
     /// # Errors
     /// Raises `Litsea::ModelError` if the download fails, plus the same
     /// errors as `open`.
-    fn from_uri(language: Value, uri: String) -> Result<Self, Error> {
+    fn from_uri(args: &[Value]) -> Result<Self, Error> {
+        let (language, uri, user_words): (_, String, _) = scan_constructor_args(args)?;
         let language = language_from_value(language)?;
-        let inner = without_gvl(|| CoreSegmenter::from_uri_blocking(language, &uri));
+        let dictionary = user_words.dictionary()?;
+        let inner =
+            without_gvl(|| CoreSegmenter::from_uri_blocking_with(language, &uri, dictionary));
         Ok(Self {
             inner: map_err(inner)?,
         })
@@ -224,9 +306,9 @@ fn tokens_to_array(ruby: &Ruby, tokens: Vec<TokenView>) -> Result<RArray, Error>
 /// Returns a Ruby exception if the class cannot be defined.
 pub fn define(ruby: &Ruby, module: &RModule) -> Result<(), Error> {
     let class = module.define_class("Segmenter", ruby.class_object())?;
-    class.define_singleton_method("open", magnus::function!(Segmenter::open, 2))?;
-    class.define_singleton_method("from_bytes", magnus::function!(Segmenter::from_bytes, 2))?;
-    class.define_singleton_method("from_uri", magnus::function!(Segmenter::from_uri, 2))?;
+    class.define_singleton_method("open", magnus::function!(Segmenter::open, -1))?;
+    class.define_singleton_method("from_bytes", magnus::function!(Segmenter::from_bytes, -1))?;
+    class.define_singleton_method("from_uri", magnus::function!(Segmenter::from_uri, -1))?;
     class.define_method("language", magnus::method!(Segmenter::language, 0))?;
     class.define_method("has_pos?", magnus::method!(Segmenter::has_pos, 0))?;
     class.define_method("segment", magnus::method!(Segmenter::segment, 1))?;

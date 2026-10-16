@@ -1,7 +1,9 @@
 /** Segmentation, POS tagging, and error codes. */
 
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test } from 'node:test'
 
 import { Segmenter, supportedLanguages, version } from '../index.js'
@@ -19,6 +21,98 @@ const POS_CASES = [
   ['japanese', 'japanese_pos.model', 'これはテストです。'],
   ['korean', 'korean_pos.model', '안녕하세요 반갑습니다'],
 ]
+
+// User dictionary cases (#263): the model splits each registered word
+// without the dictionary, and the English word contains a space.
+const USER_WORD_CASES = [
+  ['japanese', 'japanese.model', ['雪だるま', '新幹線'], '雪だるまを作る'],
+  ['japanese', 'japanese.model', ['雪だるま', '新幹線'], '新幹線で帰る'],
+  ['english', 'english.model', ['New York'], 'I live in New York.'],
+]
+
+/**
+ * Writes a `--user-words` file for the CLI.
+ *
+ * @param {string[]} words - The words, one per line.
+ * @returns {string} The file path.
+ */
+function writeWords(words) {
+  const path = join(mkdtempSync(join(tmpdir(), 'litsea-words-')), 'words.txt')
+  writeFileSync(path, words.map((word) => `${word}\n`).join(''))
+  return path
+}
+
+for (const [language, model, words, sentence] of USER_WORD_CASES) {
+  test(`userWords matches the CLI (${language}: ${sentence})`, () => {
+    const [expected] = runCli(
+      ['segment', '-l', language, '--user-words', writeWords(words), modelPath(model)],
+      `${sentence}\n`,
+    )
+    const seg = Segmenter.open(language, modelPath(model), words)
+    assert.equal(seg.segment(sentence).join(' '), expected)
+    // The dictionary must actually matter for these cases.
+    assert.notDeepEqual(seg.segment(sentence), Segmenter.open(language, modelPath(model)).segment(sentence))
+  })
+}
+
+test('userWords with POS matches the CLI', () => {
+  const sentence = '雪だるまを作る'
+  const words = ['雪だるま']
+  const [expected] = runCli(
+    ['segment', '-l', 'japanese', '--pos', '--user-words', writeWords(words), modelPath('japanese_pos.model')],
+    `${sentence}\n`,
+  )
+  const seg = Segmenter.open('japanese', modelPath('japanese_pos.model'), words)
+  const tokens = seg.segmentWithPos(sentence)
+  assert.equal(tokens.map((token) => `${token.surface}/${token.pos}`).join(' '), expected)
+  assert.equal(tokens[0].surface, '雪だるま')
+})
+
+test('userWords on every constructor', async () => {
+  const path = modelPath('japanese.model')
+  const sentence = '雪だるまを作る'
+  const words = ['雪だるま']
+  const expected = ['雪だるま', 'を', '作る']
+
+  assert.deepEqual(Segmenter.open('japanese', path, words).segment(sentence), expected)
+  assert.deepEqual(Segmenter.fromBytes('japanese', readFileSync(path), words).segment(sentence), expected)
+  assert.deepEqual((await Segmenter.fromUri('japanese', path, words)).segment(sentence), expected)
+})
+
+test('userWordsGate 0 applies a word only where the model agrees', () => {
+  const path = modelPath('japanese.model')
+  const sentence = '雪だるまを作る'
+  const plain = Segmenter.open('japanese', path).segment(sentence)
+
+  assert.deepEqual(Segmenter.open('japanese', path, ['雪だるま'], 0).segment(sentence), plain)
+  assert.deepEqual(Segmenter.open('japanese', path, ['雪だるま'], 1).segment(sentence), ['雪だるま', 'を', '作る'])
+  // An empty array, undefined, or null is no dictionary at all.
+  assert.deepEqual(Segmenter.open('japanese', path, []).segment(sentence), plain)
+  assert.deepEqual(Segmenter.open('japanese', path, undefined, undefined).segment(sentence), plain)
+  assert.deepEqual(Segmenter.open('japanese', path, null, null).segment(sentence), plain)
+})
+
+test('an out-of-range userWordsGate throws with a code', async () => {
+  const path = modelPath('japanese.model')
+  for (const words of [['雪だるま'], undefined]) {
+    assert.throws(
+      () => Segmenter.open('japanese', path, words, 1.5),
+      (error) => {
+        assert.equal(error.code, 'invalid_argument')
+        assert.match(error.message, /0\.0\.\.=1\.0/)
+        return true
+      },
+    )
+  }
+  // fromUri validates the gate before scheduling any work.
+  assert.throws(
+    () => Segmenter.fromUri('japanese', path, ['雪だるま'], -0.5),
+    (error) => {
+      assert.equal(error.code, 'invalid_argument')
+      return true
+    },
+  )
+})
 
 for (const [language, model, sentence] of SEGMENTATION_CASES) {
   test(`segment matches the CLI (${language})`, () => {
