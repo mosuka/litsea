@@ -2,12 +2,36 @@
 
 use std::path::PathBuf;
 
-use litsea_binding_core::CoreSegmenter;
+use litsea::UserDictionary;
+use litsea_binding_core::{CoreSegmenter, build_user_dictionary};
 use pyo3::prelude::*;
 
-use crate::error::map_err;
+use crate::error::{PyLitseaResult, map_err};
 use crate::language::{LanguageArg, PyLanguage};
 use crate::upos::PyToken;
+
+/// Builds the user dictionary from the constructors' keyword arguments
+/// (issue #263).
+///
+/// # Arguments
+/// * `user_words` - The words to emit as single tokens, or `None`.
+/// * `user_words_gate` - The flip-ratio gate in `0.0..=1.0`, or `None`.
+///
+/// # Returns
+/// `None` when no words were given, otherwise the dictionary.
+///
+/// # Errors
+/// Raises `InvalidArgumentError` if the gate is outside `0.0..=1.0`, also
+/// when no words were given.
+fn user_dictionary(
+    user_words: Option<Vec<String>>,
+    user_words_gate: Option<f64>,
+) -> PyLitseaResult<Option<UserDictionary>> {
+    map_err(build_user_dictionary(
+        user_words.as_deref().unwrap_or_default(),
+        user_words_gate,
+    ))
+}
 
 /// A word segmenter, optionally with POS tagging.
 ///
@@ -16,6 +40,10 @@ use crate::upos::PyToken;
 /// two-stage POS model produces a segmenter where `has_pos` is `True` and
 /// `segment_with_pos` works; a segmentation-only model produces one where it
 /// raises `PosUnavailableError`.
+///
+/// Every constructor accepts the keyword-only arguments `user_words` (a
+/// sequence of words to emit as single tokens) and `user_words_gate` (a
+/// flip ratio in `0.0..=1.0`); see the `litsea` crate's `UserDictionary`.
 ///
 /// Instances are immutable and safe to share between threads. Reusing one
 /// across calls is the intended usage: an internal scratch buffer reaches a
@@ -33,6 +61,9 @@ impl PySegmenter {
     /// # Arguments
     /// * `language` - A `Language` member or its name (`"ja"`, `"japanese"`).
     /// * `path` - Path to the model file.
+    /// * `user_words` - Keyword-only: words to emit as single tokens.
+    /// * `user_words_gate` - Keyword-only: the flip-ratio gate for
+    ///   `user_words`, in `0.0..=1.0`.
     ///
     /// # Returns
     /// The new `Segmenter`.
@@ -40,11 +71,21 @@ impl PySegmenter {
     /// # Errors
     /// Raises `IoError` if the file cannot be read, `ParseError` if it is
     /// malformed, `ModelError` if it is a legacy joint POS model, or
-    /// `InvalidArgumentError` for an unknown language.
+    /// `InvalidArgumentError` for an unknown language or a gate outside
+    /// `0.0..=1.0`.
     #[staticmethod]
-    fn open(py: Python<'_>, language: LanguageArg, path: PathBuf) -> PyResult<Self> {
+    #[pyo3(signature = (language, path, *, user_words=None, user_words_gate=None))]
+    fn open(
+        py: Python<'_>,
+        language: LanguageArg,
+        path: PathBuf,
+        user_words: Option<Vec<String>>,
+        user_words_gate: Option<f64>,
+    ) -> PyResult<Self> {
         let language = language.resolve()?;
-        let inner = py.detach(|| map_err(CoreSegmenter::from_path(language, &path)))?;
+        let dictionary = user_dictionary(user_words, user_words_gate)?;
+        let inner =
+            py.detach(|| map_err(CoreSegmenter::from_path_with(language, &path, dictionary)))?;
         Ok(Self { inner })
     }
 
@@ -53,6 +94,9 @@ impl PySegmenter {
     /// # Arguments
     /// * `language` - A `Language` member or its name.
     /// * `data` - The model file contents.
+    /// * `user_words` - Keyword-only: words to emit as single tokens.
+    /// * `user_words_gate` - Keyword-only: the flip-ratio gate for
+    ///   `user_words`, in `0.0..=1.0`.
     ///
     /// # Returns
     /// The new `Segmenter`.
@@ -60,12 +104,19 @@ impl PySegmenter {
     /// # Errors
     /// Raises `ParseError` if the bytes are malformed, `ModelError` if they
     /// are a legacy joint POS model, or `InvalidArgumentError` for an
-    /// unknown language.
+    /// unknown language or a gate outside `0.0..=1.0`.
     #[staticmethod]
-    fn from_bytes(language: LanguageArg, data: &[u8]) -> PyResult<Self> {
+    #[pyo3(signature = (language, data, *, user_words=None, user_words_gate=None))]
+    fn from_bytes(
+        language: LanguageArg,
+        data: &[u8],
+        user_words: Option<Vec<String>>,
+        user_words_gate: Option<f64>,
+    ) -> PyResult<Self> {
         let language = language.resolve()?;
+        let dictionary = user_dictionary(user_words, user_words_gate)?;
         Ok(Self {
-            inner: map_err(CoreSegmenter::from_bytes(language, data))?,
+            inner: map_err(CoreSegmenter::from_bytes_with(language, data, dictionary))?,
         })
     }
 
@@ -77,6 +128,9 @@ impl PySegmenter {
     /// # Arguments
     /// * `language` - A `Language` member or its name.
     /// * `uri` - The model URI.
+    /// * `user_words` - Keyword-only: words to emit as single tokens.
+    /// * `user_words_gate` - Keyword-only: the flip-ratio gate for
+    ///   `user_words`, in `0.0..=1.0`.
     ///
     /// # Returns
     /// The new `Segmenter`.
@@ -85,9 +139,19 @@ impl PySegmenter {
     /// Raises `ModelError` if the download fails, plus the same errors as
     /// `Segmenter.open`.
     #[staticmethod]
-    fn from_uri(py: Python<'_>, language: LanguageArg, uri: String) -> PyResult<Self> {
+    #[pyo3(signature = (language, uri, *, user_words=None, user_words_gate=None))]
+    fn from_uri(
+        py: Python<'_>,
+        language: LanguageArg,
+        uri: String,
+        user_words: Option<Vec<String>>,
+        user_words_gate: Option<f64>,
+    ) -> PyResult<Self> {
         let language = language.resolve()?;
-        let inner = py.detach(|| map_err(CoreSegmenter::from_uri_blocking(language, &uri)))?;
+        let dictionary = user_dictionary(user_words, user_words_gate)?;
+        let inner = py.detach(|| {
+            map_err(CoreSegmenter::from_uri_blocking_with(language, &uri, dictionary))
+        })?;
         Ok(Self { inner })
     }
 

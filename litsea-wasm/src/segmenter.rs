@@ -1,7 +1,7 @@
 //! The `Segmenter` class.
 
 use js_sys::Array;
-use litsea_binding_core::{CoreSegmenter, parse_language};
+use litsea_binding_core::{CoreSegmenter, build_user_dictionary, parse_language};
 use wasm_bindgen::prelude::*;
 
 use crate::error::map_err;
@@ -29,18 +29,31 @@ impl Segmenter {
     /// # Arguments
     /// * `language` - A language name or ISO 639-1 code (`"japanese"`, `"ja"`).
     /// * `data` - The model file contents.
+    /// * `user_words` - Optional words to emit as single tokens (issue
+    ///   #263); `userWords` in JavaScript.
+    /// * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
+    ///   `0.0..=1.0`; `userWordsGate` in JavaScript.
     ///
     /// # Returns
     /// The new segmenter.
     ///
     /// # Errors
-    /// Throws an error whose `code` is `invalid_argument`, `parse`, or
-    /// `model`.
+    /// Throws an error whose `code` is `invalid_argument` (also for a gate
+    /// outside `0.0..=1.0`), `parse`, or `model`.
     #[wasm_bindgen(js_name = fromBytes)]
-    pub fn from_bytes(language: &str, data: &[u8]) -> Result<Segmenter, JsValue> {
+    pub fn from_bytes(
+        language: &str,
+        data: &[u8],
+        #[wasm_bindgen(js_name = userWords)] user_words: Option<Vec<String>>,
+        #[wasm_bindgen(js_name = userWordsGate)] user_words_gate: Option<f64>,
+    ) -> Result<Segmenter, JsValue> {
         let language = map_err(parse_language(language))?;
+        let dictionary = map_err(build_user_dictionary(
+            user_words.as_deref().unwrap_or_default(),
+            user_words_gate,
+        ))?;
         Ok(Self {
-            inner: map_err(CoreSegmenter::from_bytes(language, data))?,
+            inner: map_err(CoreSegmenter::from_bytes_with(language, data, dictionary))?,
         })
     }
 

@@ -16,6 +16,89 @@ class TestSegmenter < LitseaTest
     ['korean', 'korean_pos.model', '안녕하세요 반갑습니다']
   ].freeze
 
+  # User dictionary cases (#263): the model splits each registered word
+  # without the dictionary, and the English word contains a space.
+  USER_WORD_CASES = [
+    ['japanese', 'japanese.model', %w[雪だるま 新幹線], '雪だるまを作る'],
+    ['japanese', 'japanese.model', %w[雪だるま 新幹線], '新幹線で帰る'],
+    ['english', 'english.model', ['New York'], 'I live in New York.']
+  ].freeze
+
+  # Writes a `--user-words` file for the CLI into +dir+ and returns its path.
+  def write_words(dir, words)
+    path = File.join(dir, 'words.txt')
+    File.write(path, words.map { |word| "#{word}\n" }.join)
+    path
+  end
+
+  def test_user_words_match_the_cli
+    USER_WORD_CASES.each do |language, model, words, sentence|
+      Dir.mktmpdir do |dir|
+        expected = run_cli(
+          ['segment', '-l', language, '--user-words', write_words(dir, words), model_path(model)], "#{sentence}\n"
+        ).first
+        seg = Litsea::Segmenter.open(language, model_path(model), user_words: words)
+        assert_equal expected, seg.segment(sentence).join(' '), sentence
+        # The dictionary must actually matter for these cases.
+        refute_equal Litsea::Segmenter.open(language, model_path(model)).segment(sentence), seg.segment(sentence)
+      end
+    end
+  end
+
+  def test_user_words_with_pos_match_the_cli
+    sentence = '雪だるまを作る'
+    words = ['雪だるま']
+    Dir.mktmpdir do |dir|
+      expected = run_cli(
+        ['segment', '-l', 'japanese', '--pos', '--user-words', write_words(dir, words),
+         model_path('japanese_pos.model')], "#{sentence}\n"
+      ).first
+      tokens = Litsea::Segmenter.open(:japanese, model_path('japanese_pos.model'), user_words: words)
+                                .segment_with_pos(sentence)
+      assert_equal expected, tokens.map { |t| "#{t.surface}/#{t.pos}" }.join(' ')
+      assert_equal '雪だるま', tokens.first.surface
+    end
+  end
+
+  def test_user_words_on_every_constructor
+    path = model_path('japanese.model')
+    sentence = '雪だるまを作る'
+    expected = %w[雪だるま を 作る]
+
+    assert_equal expected, Litsea::Segmenter.open(:japanese, path, user_words: ['雪だるま']).segment(sentence)
+    assert_equal expected,
+                 Litsea::Segmenter.from_bytes(:japanese, File.binread(path), user_words: ['雪だるま']).segment(sentence)
+    assert_equal expected, Litsea::Segmenter.from_uri(:japanese, path, user_words: ['雪だるま']).segment(sentence)
+  end
+
+  def test_user_words_gate
+    path = model_path('japanese.model')
+    sentence = '雪だるまを作る'
+    plain = Litsea::Segmenter.open(:japanese, path).segment(sentence)
+
+    # Gate 0 applies a word only where the model already agrees with it.
+    gated = Litsea::Segmenter.open(:japanese, path, user_words: ['雪だるま'], user_words_gate: 0.0)
+    assert_equal plain, gated.segment(sentence)
+    open_gate = Litsea::Segmenter.open(:japanese, path, user_words: ['雪だるま'], user_words_gate: 1.0)
+    assert_equal %w[雪だるま を 作る], open_gate.segment(sentence)
+    # An empty array or nil is no dictionary at all.
+    assert_equal plain, Litsea::Segmenter.open(:japanese, path, user_words: []).segment(sentence)
+    assert_equal plain, Litsea::Segmenter.open(:japanese, path, user_words: nil, user_words_gate: nil).segment(sentence)
+  end
+
+  def test_user_words_invalid_arguments
+    path = model_path('japanese.model')
+    [['雪だるま'], nil].each do |words|
+      error = assert_raises(Litsea::InvalidArgumentError) do
+        Litsea::Segmenter.open(:japanese, path, user_words: words, user_words_gate: 1.5)
+      end
+      assert_match(/0\.0\.\.=1\.0/, error.message)
+    end
+    assert_raises(ArgumentError) { Litsea::Segmenter.open(:japanese, path, user_word: ['雪だるま']) }
+    assert_raises(ArgumentError) { Litsea::Segmenter.open(:japanese) }
+    assert_raises(TypeError) { Litsea::Segmenter.open(:japanese, path, user_words: '雪だるま') }
+  end
+
   def test_segment_matches_the_cli
     SEGMENTATION_CASES.each do |language, model, sentence|
       # Compare the rendered line rather than a re-split of it: the CLI joins

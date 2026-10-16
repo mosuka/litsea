@@ -18,27 +18,40 @@ cli="${repo_root}/target/debug/litsea"
 
 [ -x "${cli}" ] || cargo build --quiet -p litsea-cli --manifest-path "${repo_root}/Cargo.toml"
 
-# language <TAB> model <TAB> mode <TAB> sentence, where mode is "seg" or
-# "pos". An explicit token rather than an empty field: tab counts as
+# The user dictionary is written to a file for `--user-words`.
+words_file="$(mktemp)"
+trap 'rm -f "${words_file}"' EXIT
+
+# language <TAB> model <TAB> mode <TAB> words <TAB> sentence, where mode is
+# "seg" or "pos" and words is a comma-separated user dictionary (#263), or
+# "-" for none. Explicit tokens rather than empty fields: tab counts as
 # whitespace for IFS, so `read` collapses consecutive tabs and an empty
 # field would shift every column after it.
 cases=(
-  $'japanese\tjapanese.model\tseg\tこれはテストです。'
-  $'chinese\tchinese.model\tseg\t我喜欢吃中国菜。'
-  $'korean\tkorean.model\tseg\t안녕하세요 반갑습니다'
-  $'english\tenglish.model\tseg\tThe quick brown fox jumps over the lazy dog.'
-  $'japanese\tjapanese_pos.model\tpos\tこれはテストです。'
-  $'korean\tkorean_pos.model\tpos\t안녕하세요 반갑습니다'
+  $'japanese\tjapanese.model\tseg\t-\tこれはテストです。'
+  $'chinese\tchinese.model\tseg\t-\t我喜欢吃中国菜。'
+  $'korean\tkorean.model\tseg\t-\t안녕하세요 반갑습니다'
+  $'english\tenglish.model\tseg\t-\tThe quick brown fox jumps over the lazy dog.'
+  $'japanese\tjapanese_pos.model\tpos\t-\tこれはテストです。'
+  $'korean\tkorean_pos.model\tpos\t-\t안녕하세요 반갑습니다'
+  $'japanese\tjapanese.model\tseg\t雪だるま,新幹線\t雪だるまを作る'
+  $'japanese\tjapanese.model\tseg\t雪だるま,新幹線\t新幹線で帰る'
+  $'english\tenglish.model\tseg\tNew York\tI live in New York.'
+  $'japanese\tjapanese_pos.model\tpos\t雪だるま\t雪だるまを作る'
 )
 
 : > "${out}"
 for row in "${cases[@]}"; do
-  IFS=$'\t' read -r language model mode sentence <<< "${row}"
+  IFS=$'\t' read -r language model mode words sentence <<< "${row}"
   args=(segment -l "${language}")
   [ "${mode}" = "pos" ] && args+=(--pos)
+  if [ "${words}" != "-" ]; then
+    printf '%s\n' "${words//,/$'\n'}" > "${words_file}"
+    args+=(--user-words "${words_file}")
+  fi
   args+=("${repo_root}/models/${model}")
   expected="$(printf '%s\n' "${sentence}" | "${cli}" "${args[@]}")"
-  printf '%s\t%s\t%s\t%s\t%s\n' "${language}" "${model}" "${mode}" "${sentence}" "${expected}" >> "${out}"
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "${language}" "${model}" "${mode}" "${words}" "${sentence}" "${expected}" >> "${out}"
 done
 
 echo "wrote ${out} ($(wc -l < "${out}") cases)"

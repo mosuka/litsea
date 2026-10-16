@@ -3,17 +3,44 @@
 use std::path::Path;
 
 use ext_php_rs::prelude::*;
-use litsea_binding_core::{CoreSegmenter, parse_language};
+use litsea::UserDictionary;
+use litsea_binding_core::{CoreSegmenter, build_user_dictionary, parse_language};
 
 use crate::error::map_err;
 use crate::token::Token;
+
+/// Builds the user dictionary from the constructors' optional trailing
+/// arguments (issue #263).
+///
+/// # Arguments
+/// * `user_words` - The words to emit as single tokens, or `null`.
+/// * `user_words_gate` - The flip-ratio gate in `0.0..=1.0`, or `null`.
+///
+/// # Returns
+/// `None` when no words were given, otherwise the dictionary.
+///
+/// # Errors
+/// Throws `Litsea\InvalidArgumentException` if the gate is outside
+/// `0.0..=1.0`, also when no words were given.
+fn user_dictionary(
+    user_words: Option<Vec<String>>,
+    user_words_gate: Option<f64>,
+) -> PhpResult<Option<UserDictionary>> {
+    map_err(build_user_dictionary(
+        user_words.as_deref().unwrap_or_default(),
+        user_words_gate,
+    ))
+}
 
 /// A word segmenter, optionally with POS tagging.
 ///
 /// Build one with `Segmenter::open`, `Segmenter::fromBytes`, or
 /// `Segmenter::fromUri`. The kind of model is detected from the file itself,
 /// so `hasPos()` describes what was loaded rather than something the caller
-/// declares.
+/// declares. Every constructor takes two optional trailing arguments:
+/// `$user_words`, an array of words to emit as single tokens, and
+/// `$user_words_gate`, a flip ratio in `0.0..=1.0` that applies a word only
+/// where the model's margin against it is small enough.
 #[php_class]
 #[php(name = "Litsea\\Segmenter")]
 pub struct Segmenter {
@@ -28,17 +55,29 @@ impl Segmenter {
     /// # Arguments
     /// * `language` - A language name or ISO 639-1 code (`"japanese"`, `"ja"`).
     /// * `path` - Path to the model file.
+    /// * `user_words` - Optional array of words to emit as single tokens.
+    /// * `user_words_gate` - Optional flip-ratio gate for `$user_words`, in
+    ///   `0.0..=1.0`.
     ///
     /// # Returns
     /// The new `Segmenter`.
     ///
     /// # Errors
-    /// Throws `Litsea\InvalidArgumentException`, `Litsea\IoException`,
-    /// `Litsea\ParseException`, or `Litsea\ModelException`.
-    pub fn open(language: String, path: String) -> PhpResult<Self> {
+    /// Throws `Litsea\InvalidArgumentException` (also for a gate outside
+    /// `0.0..=1.0`), `Litsea\IoException`, `Litsea\ParseException`, or
+    /// `Litsea\ModelException`.
+    // A trailing `Option` argument is already optional with a `null`
+    // default, so no `defaults` attribute is needed.
+    pub fn open(
+        language: String,
+        path: String,
+        user_words: Option<Vec<String>>,
+        user_words_gate: Option<f64>,
+    ) -> PhpResult<Self> {
         let language = map_err(parse_language(&language))?;
+        let dictionary = user_dictionary(user_words, user_words_gate)?;
         Ok(Self {
-            inner: map_err(CoreSegmenter::from_path(language, Path::new(&path)))?,
+            inner: map_err(CoreSegmenter::from_path_with(language, Path::new(&path), dictionary))?,
         })
     }
 
@@ -51,17 +90,26 @@ impl Segmenter {
     /// # Arguments
     /// * `language` - A language name or ISO 639-1 code.
     /// * `data` - The model file contents.
+    /// * `user_words` - Optional array of words to emit as single tokens.
+    /// * `user_words_gate` - Optional flip-ratio gate for `$user_words`, in
+    ///   `0.0..=1.0`.
     ///
     /// # Returns
     /// The new `Segmenter`.
     ///
     /// # Errors
-    /// Throws `Litsea\InvalidArgumentException`, `Litsea\ParseException`, or
-    /// `Litsea\ModelException`.
-    pub fn from_bytes(language: String, data: String) -> PhpResult<Self> {
+    /// Throws `Litsea\InvalidArgumentException` (also for a gate outside
+    /// `0.0..=1.0`), `Litsea\ParseException`, or `Litsea\ModelException`.
+    pub fn from_bytes(
+        language: String,
+        data: String,
+        user_words: Option<Vec<String>>,
+        user_words_gate: Option<f64>,
+    ) -> PhpResult<Self> {
         let language = map_err(parse_language(&language))?;
+        let dictionary = user_dictionary(user_words, user_words_gate)?;
         Ok(Self {
-            inner: map_err(CoreSegmenter::from_bytes(language, data.as_bytes()))?,
+            inner: map_err(CoreSegmenter::from_bytes_with(language, data.as_bytes(), dictionary))?,
         })
     }
 
@@ -74,6 +122,9 @@ impl Segmenter {
     /// # Arguments
     /// * `language` - A language name or ISO 639-1 code.
     /// * `uri` - The model URI.
+    /// * `user_words` - Optional array of words to emit as single tokens.
+    /// * `user_words_gate` - Optional flip-ratio gate for `$user_words`, in
+    ///   `0.0..=1.0`.
     ///
     /// # Returns
     /// The new `Segmenter`.
@@ -81,10 +132,16 @@ impl Segmenter {
     /// # Errors
     /// Throws `Litsea\ModelException` if the download fails, plus the same
     /// exceptions as `open`.
-    pub fn from_uri(language: String, uri: String) -> PhpResult<Self> {
+    pub fn from_uri(
+        language: String,
+        uri: String,
+        user_words: Option<Vec<String>>,
+        user_words_gate: Option<f64>,
+    ) -> PhpResult<Self> {
         let language = map_err(parse_language(&language))?;
+        let dictionary = user_dictionary(user_words, user_words_gate)?;
         Ok(Self {
-            inner: map_err(CoreSegmenter::from_uri_blocking(language, &uri))?,
+            inner: map_err(CoreSegmenter::from_uri_blocking_with(language, &uri, dictionary))?,
         })
     }
 

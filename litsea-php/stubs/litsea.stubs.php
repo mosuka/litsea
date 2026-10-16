@@ -97,15 +97,15 @@ class Segmenter
     /** Not constructible from PHP: instances come from the extension. */
     private function __construct() {}
 
-    public static function fromBytes(string $language, string $data): Segmenter {}
+    public static function fromBytes(string $language, string $data, ?array $user_words = null, ?float $user_words_gate = null): Segmenter {}
 
-    public static function fromUri(string $language, string $uri): Segmenter {}
+    public static function fromUri(string $language, string $uri, ?array $user_words = null, ?float $user_words_gate = null): Segmenter {}
 
     public function hasPos(): bool {}
 
     public function language(): string {}
 
-    public static function open(string $language, string $path): Segmenter {}
+    public static function open(string $language, string $path, ?array $user_words = null, ?float $user_words_gate = null): Segmenter {}
 
     public function segment(string $text): array {}
 

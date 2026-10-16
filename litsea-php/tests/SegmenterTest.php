@@ -39,6 +39,104 @@ final class SegmenterTest extends LitseaTestCase
         ];
     }
 
+    /**
+     * User dictionary cases (#263): the model splits each registered word
+     * without the dictionary, and the English word contains a space.
+     *
+     * @return array<string, array{string, string, list<string>, string}>
+     */
+    public static function userWordCases(): array
+    {
+        return [
+            'japanese snowman' => ['japanese', 'japanese.model', ['雪だるま', '新幹線'], '雪だるまを作る'],
+            'japanese shinkansen' => ['japanese', 'japanese.model', ['雪だるま', '新幹線'], '新幹線で帰る'],
+            'english space' => ['english', 'english.model', ['New York'], 'I live in New York.'],
+        ];
+    }
+
+    /**
+     * Writes a `--user-words` file for the CLI.
+     *
+     * @param list<string> $words
+     */
+    private static function writeWords(array $words): string
+    {
+        $path = self::tempDir() . '/words.txt';
+        file_put_contents($path, implode('', array_map(static fn (string $word) => $word . "\n", $words)));
+
+        return $path;
+    }
+
+    /** @param list<string> $words */
+    #[DataProvider('userWordCases')]
+    public function testUserWordsMatchTheCli(string $language, string $model, array $words, string $sentence): void
+    {
+        [$expected] = self::runCli(
+            ['segment', '-l', $language, '--user-words', self::writeWords($words), self::modelPath($model)],
+            $sentence . "\n"
+        );
+
+        $seg = Segmenter::open($language, self::modelPath($model), $words);
+        $this->assertSame($expected, implode(' ', $seg->segment($sentence)));
+        // The dictionary must actually matter for these cases.
+        $this->assertNotSame(Segmenter::open($language, self::modelPath($model))->segment($sentence), $seg->segment($sentence));
+    }
+
+    public function testUserWordsWithPosMatchTheCli(): void
+    {
+        $sentence = '雪だるまを作る';
+        $words = ['雪だるま'];
+        [$expected] = self::runCli(
+            ['segment', '-l', 'japanese', '--pos', '--user-words', self::writeWords($words), self::modelPath('japanese_pos.model')],
+            $sentence . "\n"
+        );
+
+        $seg = Segmenter::open('japanese', self::modelPath('japanese_pos.model'), $words);
+        $tokens = $seg->segmentWithPos($sentence);
+        $rendered = implode(' ', array_map(static fn (Token $token) => $token->surface . '/' . $token->pos, $tokens));
+        $this->assertSame($expected, $rendered);
+        $this->assertSame('雪だるま', $tokens[0]->surface);
+    }
+
+    public function testUserWordsOnEveryConstructor(): void
+    {
+        $path = self::modelPath('japanese.model');
+        $sentence = '雪だるまを作る';
+        $expected = ['雪だるま', 'を', '作る'];
+
+        $this->assertSame($expected, Segmenter::open('japanese', $path, ['雪だるま'])->segment($sentence));
+        $this->assertSame($expected, Segmenter::fromBytes('japanese', file_get_contents($path), ['雪だるま'])->segment($sentence));
+        $this->assertSame($expected, Segmenter::fromUri('japanese', $path, ['雪だるま'])->segment($sentence));
+        // Named arguments work too.
+        $this->assertSame($expected, Segmenter::open('japanese', $path, user_words: ['雪だるま'])->segment($sentence));
+    }
+
+    public function testUserWordsGate(): void
+    {
+        $path = self::modelPath('japanese.model');
+        $sentence = '雪だるまを作る';
+        $plain = Segmenter::open('japanese', $path)->segment($sentence);
+
+        // Gate 0 applies a word only where the model already agrees with it.
+        $this->assertSame($plain, Segmenter::open('japanese', $path, ['雪だるま'], 0.0)->segment($sentence));
+        $this->assertSame(['雪だるま', 'を', '作る'], Segmenter::open('japanese', $path, ['雪だるま'], 1.0)->segment($sentence));
+        // An empty array or null is no dictionary at all.
+        $this->assertSame($plain, Segmenter::open('japanese', $path, [])->segment($sentence));
+        $this->assertSame($plain, Segmenter::open('japanese', $path, null, null)->segment($sentence));
+    }
+
+    public function testOutOfRangeUserWordsGateThrows(): void
+    {
+        foreach ([['雪だるま'], null] as $words) {
+            try {
+                Segmenter::open('japanese', self::modelPath('japanese.model'), $words, 1.5);
+                $this->fail('expected InvalidArgumentException');
+            } catch (InvalidArgumentException $error) {
+                $this->assertMatchesRegularExpression('/0\.0\.\.=1\.0/', $error->getMessage());
+            }
+        }
+    }
+
     #[DataProvider('segmentationCases')]
     public function testSegmentMatchesTheCli(string $language, string $model, string $sentence): void
     {
