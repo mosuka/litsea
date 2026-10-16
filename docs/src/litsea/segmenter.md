@@ -266,3 +266,116 @@ Streams the character-level training features of a POS-tagged corpus
 (`word/POS word/POS ...`), including the first position, to a custom
 writer, without mutating the segmenter. This is what
 `Extractor::extract_two_stage` builds its stage-1 boundary features on.
+
+## User Dictionary
+
+A `UserDictionary` (issue #263) is an optional set of words that the
+segmenter emits as single tokens whenever they occur in the input. It is
+a constraint on the boundary decisions, not a change to the model: the
+model still scores every position, and the dictionary overrides the
+decisions at the edges of an occurrence (forced boundaries) and inside it
+(forced non-boundaries). Output examples in this section come from
+`japanese.model`.
+
+### `UserDictionary`
+
+```rust
+pub struct UserDictionary { /* private */ }
+
+impl UserDictionary {
+    pub fn new() -> Self
+    pub fn from_words<I, S>(words: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>
+    pub fn add(&mut self, word: &str) -> bool
+    pub fn contains(&self, word: &str) -> bool
+    pub fn len(&self) -> usize
+    pub fn is_empty(&self) -> bool
+    pub fn set_gate(&mut self, gate: Option<f64>) -> Result<()>
+    pub fn gate(&self) -> Option<f64>
+}
+```
+
+Words are stored in a trie keyed by Unicode scalar values and matched
+exactly as given — no case folding, no width or Unicode normalization. A
+word may contain a space; for languages whose models emit spaces as
+tokens (Korean, English) such a word becomes one token containing the
+space. Words of one character have no inside to keep together, so `add`
+drops them and returns `false` (it also returns `false` for a duplicate).
+The type is re-exported as `litsea::UserDictionary`.
+
+### Semantics
+
+- An occurrence of a registered word is emitted as exactly one token: a
+  boundary is forced before its first character and after its last one,
+  and no boundary is placed inside it.
+- Forced decisions enter the model's boundary-tag history (the
+  `UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*` features) exactly like model decisions, so
+  the positions after a word are scored with consistent features. On
+  tag-free (pointwise) models such as `korean.model` and `english.model`
+  the dictionary has no effect beyond the occurrence itself.
+- Overlapping occurrences are resolved leftmost-longest: scanning from
+  the left, the longest registered word starting at the current position
+  wins and matching resumes after it.
+- Matching is context-free: a registered word is applied wherever its
+  characters occur, so a two-character fragment such as `って` or `いま`
+  registered as a word breaks every other word it occurs in. Register
+  whole words, and consider the gate below for dictionaries that contain
+  short entries.
+- The dictionary carries no part-of-speech information. In
+  `segment_with_pos`, a forced word unknown to the lexicon is tagged by
+  the stage-2 tagger's full argmax.
+- An empty dictionary, or one whose words never occur, leaves the output
+  byte-identical to segmentation without a dictionary.
+
+### Gate
+
+`set_gate(Some(ratio))` applies an occurrence only if its **flip ratio**
+is at most `ratio`. The flip ratio is the sum of the model's absolute
+scores at the positions whose unconstrained decision the word would
+overturn, divided by the sum over every position the word constrains, so
+it lies in `0.0..=1.0` and needs no per-model tuning: `0.0` applies a word
+only where the model already agrees with it, `1.0` applies it everywhere,
+and `None` (the default) skips the check. Values outside `0.0..=1.0` (or
+NaN) are rejected with `LitseaError::InvalidInput`.
+
+The gate is for dictionaries that contain short or ambiguous entries:
+with `中野` registered and gate `0.0`, `山中野球部` stays `山中 | 野球 | 部`
+(the model's margin against `中野` there is large) while
+`私の名前は中野です` still yields `中野` as one token (the model agrees).
+With no gate the word is applied in both sentences.
+
+On tag-dependent models the gate costs one extra sequential scoring pass
+for sentences that contain a candidate — the unconstrained decisions it
+compares against are computed without the words an earlier position may
+force, a documented approximation; on pointwise models it is free.
+
+### `with_user_dictionary` / `set_user_dictionary` / `user_dictionary`
+
+```rust
+pub fn with_user_dictionary(self, dictionary: UserDictionary) -> Self
+pub fn set_user_dictionary(&mut self, dictionary: Option<UserDictionary>)
+pub fn user_dictionary(&self) -> Option<&UserDictionary>
+```
+
+Attach, replace or clear the dictionary, or read it back. The compiled
+scoring table is not involved, so this is cheap at any time, and without
+a dictionary the segmentation hot path is a single check per sentence.
+
+```rust
+use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = AdaBoost::new(0.01, 100);
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+
+let segmenter = Segmenter::with_learner(Language::Japanese, learner)
+    .with_user_dictionary(UserDictionary::from_words(["雪だるま", "新幹線"]));
+let tokens = segmenter.segment("雪だるまを作る");
+// ["雪だるま", "を", "作る"]   (without the dictionary: ["雪", "だる", "ま", "を", "作る"])
+```

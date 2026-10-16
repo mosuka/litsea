@@ -21,6 +21,8 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | Enable POS-tagged segmentation output. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`) |
 | `--threads <N>` | `1` | Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with `N > 1`, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without `--pos`). Wall-clock time for large inputs drops with core count; single-line latency is unchanged |
+| `--user-words <FILE>` | none | User dictionary (issue #263): a UTF-8 file with one word per line. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. Words of one character and empty lines are ignored |
+| `--user-words-gate <RATIO>` | none | Flip-ratio gate for `--user-words`, in `0.0..=1.0`: an occurrence is applied only if the share of the model's margin it would overturn is at most `RATIO` (`0` = only where the model already agrees, `1` = always). Requires `--user-words` |
 
 ## Input / Output
 
@@ -126,6 +128,39 @@ Note `cargo bench -- external_corpus` remains a single-threaded *engine*
 measurement — CLI-level thread scaling and engine throughput are different
 numbers and should not be compared directly (see
 [Benchmarking](../advanced/benchmarking.md)).
+
+## User Dictionary (`--user-words`)
+
+A user dictionary forces registered words to come out as single tokens
+without retraining (issue #263). The file is UTF-8 with one word per line;
+only the line terminator is stripped, empty lines are skipped, and there
+is no comment syntax. Words of one character are ignored.
+
+```sh
+printf '雪だるま\n新幹線\n' > words.txt
+printf '雪だるまを作る\n新幹線で帰る\n' \
+  | litsea segment --user-words words.txt -l japanese ./models/japanese.model
+```
+
+```text
+雪だるま を 作る
+新幹線 で 帰る
+```
+
+Without the dictionary `japanese.model` produces `雪 だる ま を 作る` and
+`新 幹線 で 帰る`. The dictionary works with `--pos` (the forced word is
+tagged like any other word: `雪だるま/NOUN を/ADP 作る/VERB` here) and with
+`--threads`, whose output stays byte-identical to the sequential run.
+
+Matching is context-free: a registered word is applied wherever its
+characters occur, so a two-character fragment such as `って` registered
+as a word breaks every other word it occurs in. For dictionaries with
+short or ambiguous entries, `--user-words-gate RATIO` applies an
+occurrence only if the share of the model's margin it would overturn is
+at most `RATIO`. With `--user-words-gate 0` the example above comes out
+as the model's own `雪 だる ま を 作る`, because the model disagrees with
+the word there. See [Segmenter](../litsea/segmenter.md) ("User
+Dictionary") for the full semantics.
 
 ## Notes
 

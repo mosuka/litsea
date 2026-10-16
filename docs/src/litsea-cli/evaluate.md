@@ -33,6 +33,8 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language of the model and gold corpus. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | Evaluate segmentation + POS tagging. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`). Combines with `--format` below to select the gold format |
 | `--format <FORMAT>` | `space` | Gold corpus format. Without `--pos`: `space` (space-separated tokens) or `tsv` (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). With `--pos`: `space` selects `"word/POS word/POS ..."` (the two-stage training corpus format, unspaced) and `tsv` selects tab-separated `"word/POS"` tokens where a token may also be a literal space (issues #196/#198; the space-preserving format the Korean and English two-stage models are now trained on, so for those languages this is the protocol that matches both training and real input) |
+| `--user-words <FILE>` | none | User dictionary applied during evaluation (issue #263); the same file format and semantics as [`segment --user-words`](segment.md) |
+| `--user-words-gate <RATIO>` | none | Flip-ratio gate for `--user-words`, in `0.0..=1.0` (see `segment --user-words-gate`). Requires `--user-words` |
 
 ## Metrics
 
@@ -77,6 +79,15 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+```
+
+Measure what a user dictionary does on the same gold — it is applied
+exactly as `segment --user-words` applies it, so the metrics are what a
+user of that dictionary would get:
+
+```sh
+litsea evaluate --user-words words.txt -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate --user-words words.txt --user-words-gate 0.5 -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 ```
 
 The Korean and English two-stage models are trained on the

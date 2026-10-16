@@ -1,6 +1,6 @@
 # Architecture Overview
 
-Litsea is designed as a compact, dictionary-free word segmentation system. It treats word segmentation as a **binary classification problem** and uses **AdaBoost** to learn word boundary patterns from character-level features.
+Litsea is designed as a compact word segmentation system that needs no dictionary. It treats word segmentation as a **binary classification problem** and uses **AdaBoost** to learn word boundary patterns from character-level features.
 
 ## High-Level Data Flow
 
@@ -36,7 +36,7 @@ flowchart LR
 
 ## Design Principles
 
-- **No dictionary dependency** -- Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns
+- **No dictionary required** -- Unlike MeCab or Lindera, Litsea segments with a statistical model learned from character patterns alone; an optional user dictionary can force specific words into single tokens on top of it (`segment --user-words`, issue #263)
 - **Compact models** -- Legacy word-segmentation models (`RWCP.model`, `JEITA_Genpaku_ChaSen_IPAdic.model`) are ~16-22 KB; the retrained `japanese`/`chinese`/`korean`/`english.model` are ~86 KB-2.0 MB, trading file size for the quality gains documented in [Pre-trained Models](../pre-trained-models.md); two-stage POS models are ~3.6-8 MB -- all still small enough to embed directly in applications, containing only the feature weights that matter
 - **Language-agnostic framework** -- The core algorithm is the same for all languages; only the character type patterns differ
 - **Simple extensibility** -- Adding a new language requires only defining character type patterns and training a model

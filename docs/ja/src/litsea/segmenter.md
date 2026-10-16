@@ -236,3 +236,73 @@ where
 ```
 
 POS タグ付きコーパス（`word/POS word/POS ...`）の文字レベル学習用特徴量を、最初の位置を含めて、Segmenter を変更することなくカスタムライターへストリーミングします。これは `Extractor::extract_two_stage` が stage-1 境界特徴量を構築する際の基盤となっています。
+
+## ユーザー辞書
+
+`UserDictionary`（issue #263）は、入力に現れたら必ず 1 トークンとして出力する語の集合で、任意に設定できます。モデルを変えるものではなく、境界判定への制約です。モデルは引き続きすべての位置を採点し、辞書は出現箇所の両端（境界を強制）と内側（非境界を強制）の判定を上書きします。本節の出力例は `japanese.model` によるものです。
+
+### `UserDictionary`
+
+```rust
+pub struct UserDictionary { /* private */ }
+
+impl UserDictionary {
+    pub fn new() -> Self
+    pub fn from_words<I, S>(words: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<str>
+    pub fn add(&mut self, word: &str) -> bool
+    pub fn contains(&self, word: &str) -> bool
+    pub fn len(&self) -> usize
+    pub fn is_empty(&self) -> bool
+    pub fn set_gate(&mut self, gate: Option<f64>) -> Result<()>
+    pub fn gate(&self) -> Option<f64>
+}
+```
+
+語は Unicode スカラー値をキーとする trie に格納され、与えられたまま照合されます — 大文字小文字の同一視や、全角半角・Unicode の正規化は行いません。語に空白を含めることもできます。モデルが空白をトークンとして出力する言語（韓国語・英語）では、そのような語は空白を含む 1 トークンになります。1 文字の語には結合すべき内側がないため、`add` は格納せずに `false` を返します（重複の場合も `false` を返します）。この型は `litsea::UserDictionary` として再エクスポートされています。
+
+### 意味論
+
+- 登録語の出現箇所は厳密に 1 トークンとして出力されます。先頭文字の前と末尾文字の後に境界を強制し、内側には境界を置きません。
+- 強制した判定は、モデルの判定と全く同じようにモデルの境界タグ履歴（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*` 特徴量）に入るため、語の後ろの位置は一貫した特徴量で採点されます。`korean.model` や `english.model` のようなタグ非依存（pointwise）モデルでは、辞書の影響は出現箇所そのものに限られます。
+- 重なった出現箇所は leftmost-longest で解決します。左から走査し、現在位置から始まる最長の登録語が勝ち、その後ろから照合を再開します。
+- 照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、`って` や `いま` のような 2 文字の断片を語として登録すると、それを含む他の語をすべて壊します。語全体を登録し、短い語を含む辞書では後述の gate を検討してください。
+- 辞書は品詞情報を持ちません。`segment_with_pos` では、語彙表に未知の強制語は stage-2 タガーの全候補 argmax でタグ付けされます。
+- 空の辞書、または登録語が一度も現れない辞書は、辞書なしの分割とバイト単位で同一の出力を残します。
+
+### Gate
+
+`set_gate(Some(ratio))` を設定すると、出現箇所は **flip ratio** が `ratio` 以下のときだけ適用されます。flip ratio は、語が制約する位置のうち制約なしの判定を覆す位置のモデルスコアの絶対値の和を、語が制約するすべての位置の絶対値の和で割ったものです。`0.0..=1.0` に収まり、モデルごとの調整は不要です。`0.0` はモデルがすでに同意している場所だけに語を適用し、`1.0` はすべてに適用し、`None`（既定）は判定を省きます。`0.0..=1.0` の外の値（または NaN）は `LitseaError::InvalidInput` で拒否されます。
+
+gate は短い語や曖昧な語を含む辞書のためのものです。`中野` を登録して gate を `0.0` にすると、`山中野球部` は `山中 | 野球 | 部` のまま（そこではモデルの `中野` に対する margin が大きい）ですが、`私の名前は中野です` では引き続き `中野` が 1 トークンになります（モデルが同意している）。gate なしでは両方の文に語が適用されます。
+
+タグ依存モデルでは、候補を含む文に限り逐次採点パスが 1 回余分にかかります — 比較対象となる制約なしの判定は、前の位置が強制するかもしれない語を考慮せずに計算されるため、近似であることを明記しておきます。pointwise モデルでは追加コストはありません。
+
+### `with_user_dictionary` / `set_user_dictionary` / `user_dictionary`
+
+```rust
+pub fn with_user_dictionary(self, dictionary: UserDictionary) -> Self
+pub fn set_user_dictionary(&mut self, dictionary: Option<UserDictionary>)
+pub fn user_dictionary(&self) -> Option<&UserDictionary>
+```
+
+辞書の設定・差し替え・解除と参照を行います。コンパイル済みのスコア表には関与しないためいつでも低コストで変更でき、辞書なしの分割ホットパスは 1 文につき 1 回の判定だけです。
+
+```rust
+use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = AdaBoost::new(0.01, 100);
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+
+let segmenter = Segmenter::with_learner(Language::Japanese, learner)
+    .with_user_dictionary(UserDictionary::from_words(["雪だるま", "新幹線"]));
+let tokens = segmenter.segment("雪だるまを作る");
+// ["雪だるま", "を", "作る"]   （辞書なしでは ["雪", "だる", "ま", "を", "作る"]）
+```
