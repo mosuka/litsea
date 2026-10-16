@@ -30,6 +30,7 @@ pub mod segmenter;
 pub mod trainer;
 pub mod two_stage;
 pub mod upos;
+pub mod user_dictionary;
 mod word_features;
 
 pub use adaboost::AdaBoost;
@@ -43,6 +44,7 @@ pub use segmenter::{SegmentBuffer, Segmenter};
 pub use trainer::{PerceptronTrainer, Trainer, TwoStageMetrics, TwoStageTrainer};
 pub use two_stage::{ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner};
 pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
+pub use user_dictionary::UserDictionary;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
