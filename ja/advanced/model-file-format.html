@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f3f7e617.js";
+            window.path_to_searchindex_js = "../searchindex-693943b7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -203,12 +203,11 @@ UC4:I	0.2345
 </code></pre>
 <h2 id="バイアスの復元"><a class="header" href="#バイアスの復元">バイアスの復元</a></h2>
 <p>モデルの読み込み時に、バイアスは以下の式で復元されます:</p>
-<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
+<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(feature_weights)
 </code></pre>
-<p><code>save_model</code> で書き出されたファイルは常にバイアス行を最終行に置くため、この値は
-すべての特徴量の重みの合計と等しくなります。レガシーモデル（例: <code>RWCP.model</code>）は
-バイアス行をファイルの途中に置いており、それ以降の重み行も受け入れられます。バイアス
-バケットはバイアス行より前の重みから計算され、従来のローダーの挙動と一致します。</p>
+<p>バイアス行は、<code>save_model</code> が書き出すとおりファイルの最終行でなければなりません。
+これにより、バイアスバケットを復元する時点ですべての特徴量の重みを読み終えており、
+モデルのバイアスはバイアス行の値と等しくなります。</p>
 <h2 id="バリデーション"><a class="header" href="#バリデーション">バリデーション</a></h2>
 <p>ローダーは、不正な形式のファイルを黙って読み込まず、明示的なエラーとして拒否します:</p>
 <ul>
@@ -216,6 +215,7 @@ UC4:I	0.2345
 <li><strong>バイアス行を持たない</strong>ファイル（ダウンロードの途中切断やコピーの中断で
 典型的に発生する症状）</li>
 <li>バイアス行が <strong>2 行以上</strong>あるファイル</li>
+<li><strong>バイアス行の後に重み行</strong>があるファイル（バイアス行は最終行でなければならない）</li>
 <li><strong>重複した</strong>特徴量行</li>
 <li>**非有限（non-finite）**な重みまたはバイアス値（<code>NaN</code>、<code>inf</code>、<code>-inf</code>）。これらは
 放置するとすべてのスコア比較を汚染してしまいます</li>
@@ -281,8 +281,6 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 <tr><td>chinese.model</td><td>約 2.0 MB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>korean.model</td><td>約 86 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>english.model</td><td>約 125 KB</td><td>UD English-EWT</td></tr>
-<tr><td>RWCP.model</td><td>約 22 KB</td><td>オリジナルの TinySegmenter</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 16 KB</td><td>JEITA コーパス</td></tr>
 <tr><td>japanese_pos.model</td><td>約 5.4 MB</td><td>UD Japanese-GSD（二段構成）</td></tr>
 <tr><td>chinese_pos.model</td><td>約 8.0 MB</td><td>UD Chinese-GSD（二段構成）</td></tr>
 <tr><td>korean_pos.model</td><td>約 5.0 MB</td><td>UD Korean-GSD（二段構成）</td></tr>
@@ -290,7 +288,7 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 </tbody>
 </table>
 </div>
-<p><code>RWCP.model</code> と <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>・<code>english.model</code>（<a href="../pre-trained-models.html">事前学習済みモデル</a>を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく約 86 KB〜2.0 MB になりましたが、それでも二段構成モデル（<code>*_pos.model</code>）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。</p>
+<p>単語分割モデル <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>・<code>english.model</code>（<a href="../pre-trained-models.html">事前学習済みモデル</a>を参照）は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 配信に十分な小ささです。二段構成モデル（<code>*_pos.model</code>）の数メガバイトに比べても小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。</p>
 <h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
 <ul>
 <li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>

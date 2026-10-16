@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f3f7e617.js";
+            window.path_to_searchindex_js = "searchindex-693943b7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -186,7 +186,7 @@
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
-<li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
+<li><strong>コンパクトな学習済みモデル</strong> – 単語分割モデル <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
 <li><strong>辞書は不要</strong> – 統計モデルで分割を実行。任意のユーザー辞書（<code>UserDictionary</code>、<code>segment --user-words</code>）を使えば、再学習なしに指定した語を 1 トークンにできる</li>
 <li><strong>二段構成の品詞推定</strong> – 二値境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによる各単語のタグ付けを組み合わせ、通常の単語分割にわずかなコストしか追加しない</li>
 <li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語、英語</li>
@@ -198,7 +198,7 @@
 <p>Litsea は単語分割を<strong>二値分類問題</strong>として扱います。文中の各文字位置について、モデルがその位置が<strong>単語境界</strong>（+1）か<strong>非境界</strong>（-1）かを予測します。分類器は、各言語固有の文字 n-gram 特徴量と文字種情報を使用します。</p>
 <pre><code class="language-text">Input:  "これはテストです。"
          こ れ は テ ス ト で す 。
-         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (japanese.model)
 Output: ["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h3 id="品詞推定pos-tagging"><a class="header" href="#品詞推定pos-tagging">品詞推定（POS Tagging）</a></h3>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ec62ed3f.js";
+            window.path_to_searchindex_js = "../searchindex-5e65aac3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -223,24 +223,12 @@ Procedure</a> for the full recipe</li>
 classifier plus a word-level tagger with a candidate-tag lexicon)</li>
 <li><strong>Details</strong>: see <a href="../pre-trained-models.html#japanese_posmodel">Pre-trained Models</a></li>
 </ul>
-<h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
-<ul>
-<li><strong>Source</strong>: Extracted from the original TinySegmenter</li>
-<li><strong>License</strong>: BSD 3-Clause (Taku Kudo)</li>
-<li><strong>Size</strong>: ~22 KB</li>
-</ul>
-<h3 id="jeita_genpaku_chasen_ipadicmodel"><a class="header" href="#jeita_genpaku_chasen_ipadicmodel">JEITA_Genpaku_ChaSen_IPAdic.model</a></h3>
-<ul>
-<li><strong>Training corpus</strong>: JEITA Project Sugita Genpaku corpus</li>
-<li><strong>Tokenizer</strong>: ChaSen with IPAdic dictionary</li>
-<li><strong>Size</strong>: ~16 KB</li>
-</ul>
 <h2 id="example"><a class="header" href="#example">Example</a></h2>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/RWCP.model
+  | litsea segment -l japanese ./models/japanese.model
 </code></pre>
 <p>Output:</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+<pre><code class="language-text">Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 
                     </main>

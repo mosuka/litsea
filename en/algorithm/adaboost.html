@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ec62ed3f.js";
+            window.path_to_searchindex_js = "../searchindex-5e65aac3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -265,7 +265,8 @@ bias_value
 <li>The last line contains the bias term (a single number)</li>
 </ul>
 <p>Malformed files (empty, truncated before the bias line, duplicate bias lines or
-features, non-finite weights) are rejected at load time. See
+features, a weight line after the bias line, non-finite weights) are rejected
+at load time. See
 <a href="../advanced/model-file-format.html">Model File Format</a> for details.</p>
 <blockquote>
 <p><strong>This page describes the AdaBoost <em>training algorithm</em>.</strong> The file

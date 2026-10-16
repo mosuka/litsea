@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f3f7e617.js";
+            window.path_to_searchindex_js = "searchindex-693943b7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -305,41 +305,11 @@ held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回りま�
 </tbody>
 </table>
 </div>
-<h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>プロパティ</th><th>値</th></tr>
-</thead>
-<tbody>
-<tr><td>言語</td><td>日本語</td></tr>
-<tr><td>ソース</td><td>オリジナルの <a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> から抽出</td></tr>
-<tr><td>ライセンス</td><td>BSD 3-Clause (Taku Kudo)</td></tr>
-<tr><td>ファイルサイズ</td><td>約 22 KB</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="jeita_genpaku_chasen_ipadicmodel"><a class="header" href="#jeita_genpaku_chasen_ipadicmodel">JEITA_Genpaku_ChaSen_IPAdic.model</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>プロパティ</th><th>値</th></tr>
-</thead>
-<tbody>
-<tr><td>言語</td><td>日本語</td></tr>
-<tr><td>学習コーパス</td><td>JEITA プロジェクト 杉田玄白コーパス</td></tr>
-<tr><td>トークナイザ</td><td>ChaSen with IPAdic</td></tr>
-<tr><td>ファイルサイズ</td><td>約 16 KB</td></tr>
-</tbody>
-</table>
-</div>
 <h2 id="学習手順"><a class="header" href="#学習手順">学習手順</a></h2>
-<p><code>RWCP.model</code> と <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はレガシー・互換用モデルで、
-従来どおりに学習（または取得）しています – 通常の AdaBoost 手順は
-<a href="training-guide/training-models.html">モデルの学習</a>を参照してください。
-<code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は binary-perceptron 畳み込み手順
+<p><code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は binary-perceptron 畳み込み手順
 （issue #165）で再学習しています。エンジンの変更は不要ですが、通常の
-<code>litsea train</code> に加えて数ステップが必要です:</p>
+<code>litsea train</code> に加えて数ステップが必要です（通常の AdaBoost 手順は
+<a href="training-guide/training-models.html">モデルの学習</a>を参照してください）:</p>
 <pre><code class="language-sh"># 1. プレーンな境界特徴量を抽出（従来と同じステップ）。--tag-free を付けると
 #    16 個のタグ依存テンプレートを除外して pointwise モデルを学習できる
 #    （korean.model で使用。次節を参照）。
@@ -556,7 +526,7 @@ stage 1 は、英語のほぼすべての語境界を示す空白文字を一度
 </code></pre>
 <h2 id="モデルの選択"><a class="header" href="#モデルの選択">モデルの選択</a></h2>
 <ul>
-<li><strong>日本語</strong>には、最高精度を求める場合は <code>japanese.model</code> を、オリジナルの TinySegmenter との互換性を重視する場合は <code>RWCP.model</code> を使用</li>
+<li><strong>日本語</strong>には <code>japanese.model</code> を使用</li>
 <li><strong>中国語</strong>には <code>chinese.model</code> を使用</li>
 <li><strong>韓国語</strong>には <code>korean.model</code> を使用</li>
 <li><strong>英語</strong>には <code>english.model</code> を使用</li>

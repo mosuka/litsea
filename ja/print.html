@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f3f7e617.js";
+            window.path_to_searchindex_js = "searchindex-693943b7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -184,7 +184,7 @@
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
-<li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
+<li><strong>コンパクトな学習済みモデル</strong> – 単語分割モデル <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
 <li><strong>辞書は不要</strong> – 統計モデルで分割を実行。任意のユーザー辞書（<code>UserDictionary</code>、<code>segment --user-words</code>）を使えば、再学習なしに指定した語を 1 トークンにできる</li>
 <li><strong>二段構成の品詞推定</strong> – 二値境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによる各単語のタグ付けを組み合わせ、通常の単語分割にわずかなコストしか追加しない</li>
 <li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語、英語</li>
@@ -196,7 +196,7 @@
 <p>Litsea は単語分割を<strong>二値分類問題</strong>として扱います。文中の各文字位置について、モデルがその位置が<strong>単語境界</strong>（+1）か<strong>非境界</strong>（-1）かを予測します。分類器は、各言語固有の文字 n-gram 特徴量と文字種情報を使用します。</p>
 <pre><code class="language-text">Input:  "これはテストです。"
          こ れ は テ ス ト で す 。
-         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (japanese.model)
 Output: ["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h3 id="品詞推定pos-tagging"><a class="header" href="#品詞推定pos-tagging">品詞推定（POS Tagging）</a></h3>
@@ -280,12 +280,12 @@ litsea = "0.14.3"
 <h2 id="cli-クイックスタート"><a class="header" href="#cli-クイックスタート">CLI クイックスタート</a></h2>
 <h3 id="テキストの分割"><a class="header" href="#テキストの分割">テキストの分割</a></h3>
 <p>Litsea には <code>models/</code> ディレクトリに学習済みモデルが同梱されています。テキストを <code>segment</code> コマンドにパイプで渡します:</p>
-<p><strong>日本語</strong>（同梱の <code>RWCP.model</code>、オリジナルの TinySegmenter モデルを使用）:</p>
+<p><strong>日本語</strong>（同梱の <code>japanese.model</code> を使用）:</p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/RWCP.model
+  | litsea segment -l japanese ./models/japanese.model
 </code></pre>
 <p>出力:</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+<pre><code class="language-text">Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <p><strong>中国語:</strong></p>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
@@ -316,7 +316,7 @@ use litsea::segmenter::Segmenter;
 fn main() -&gt; litsea::Result&lt;()&gt; {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::with_learner(Language::Japanese, learner);
@@ -391,7 +391,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
 <ul>
 <li><strong>辞書は不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルだけで分割する。その上に、任意のユーザー辞書で特定の語を 1 トークンに強制できる（<code>segment --user-words</code>、issue #263）</li>
-<li><strong>コンパクトなモデル</strong> – レガシーな単語分割モデル（<code>RWCP.model</code>、<code>JEITA_Genpaku_ChaSen_IPAdic.model</code>）は約 16-22 KB。再学習された <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、<a href="#事前学習済みモデル">事前学習済みモデル</a>に記載の品質向上とのトレードオフ。二段構成の品詞モデルは約 3.6-8 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
+<li><strong>コンパクトなモデル</strong> – 単語分割モデル <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB（精度は<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）。二段構成の品詞モデルは約 3.6-8 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
 <li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
 <li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
 </ul>
@@ -699,7 +699,7 @@ bias_value
 <li>最終行にはバイアス項（単一の数値）が含まれる</li>
 </ul>
 <p>不正な形式のファイル（空、バイアス行より前で切り詰められている、バイアス行や特徴量が重複している、
-有限でない重みを含む、など）は読み込み時に拒否されます。詳細は
+バイアス行の後に重み行がある、有限でない重みを含む、など）は読み込み時に拒否されます。詳細は
 <a href="#モデルファイル形式-2">モデルファイル形式</a>を参照してください。</p>
 <blockquote>
 <p><strong>本ページで説明しているのは AdaBoost の学習アルゴリズムです。</strong> 上記のファイル形式は、同梱されている4つの分割モデル
@@ -825,7 +825,7 @@ feature2\tclass2\tweight2
 <tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
 <tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
 <tr><td>学習方式</td><td>サンプル再重み付けによる反復ブースティング</td><td>重み平均化によるオンライン学習</td></tr>
-<tr><td>モデルサイズ</td><td>約 86 KB〜2.0 MB（再学習済み japanese/chinese/korean/english.model）／約 16〜22 KB（レガシー RWCP/JEITA）</td><td>約 3.6-8 MB（二段構成モデル）</td></tr>
+<tr><td>モデルサイズ</td><td>約 86 KB〜2.0 MB（japanese/chinese/korean/english.model）</td><td>約 3.6-8 MB（二段構成モデル）</td></tr>
 <tr><td>ハイパーパラメータ</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>
@@ -1516,24 +1516,12 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <li><strong>アルゴリズム</strong>: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）</li>
 <li><strong>詳細</strong>: <a href="#japanese_posmodel-1">事前学習済みモデル</a>を参照</li>
 </ul>
-<h3 id="rwcpmodel"><a class="header" href="#rwcpmodel">RWCP.model</a></h3>
-<ul>
-<li><strong>出典</strong>: オリジナルのTinySegmenterから抽出</li>
-<li><strong>ライセンス</strong>: BSD 3-Clause（工藤拓）</li>
-<li><strong>サイズ</strong>: 約22 KB</li>
-</ul>
-<h3 id="jeita_genpaku_chasen_ipadicmodel"><a class="header" href="#jeita_genpaku_chasen_ipadicmodel">JEITA_Genpaku_ChaSen_IPAdic.model</a></h3>
-<ul>
-<li><strong>学習コーパス</strong>: JEITA杉田玄白プロジェクトのコーパス</li>
-<li><strong>トークナイザ</strong>: ChaSen（IPAdic辞書使用）</li>
-<li><strong>サイズ</strong>: 約16 KB</li>
-</ul>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/RWCP.model
+  | litsea segment -l japanese ./models/japanese.model
 </code></pre>
 <p>出力:</p>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+<pre><code class="language-text">Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="中国語"><a class="header" href="#中国語">中国語</a></h1>
@@ -1986,7 +1974,7 @@ use litsea::segmenter::Segmenter;
 
 fn main() -&gt; litsea::Result&lt;()&gt; {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     let segmenter = Segmenter::with_learner(Language::Japanese, learner);
     let tokens = segmenter.segment("これはテストです。");
@@ -2771,7 +2759,7 @@ let mut learner = AdaBoost::new(0.01, 100);
 </span><span class="boring">fn main() {
 </span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>ローカルファイルからモデルの重みを同期的に読み込みます。不正な形式のファイル（空、bias 行の欠落、bias 行や特徴量の重複、非有限の重み）は <code>LitseaError::InvalidData</code> で拒否されます。ローカルファイルにはこのメソッドが推奨されます – 非同期ランタイムは不要です。</p>
+<p>ローカルファイルからモデルの重みを同期的に読み込みます。不正な形式のファイル（空、bias 行の欠落、bias 行や特徴量の重複、bias 行の後の重み行、非有限の重み）は <code>LitseaError::InvalidData</code> で拒否されます。ローカルファイルにはこのメソッドが推奨されます – 非同期ランタイムは不要です。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -3862,9 +3850,9 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <h2 id="使用例-7"><a class="header" href="#使用例-7">使用例</a></h2>
 <p><strong>日本語:</strong></p>
 <pre><code class="language-sh">echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./models/RWCP.model
+  | litsea segment -l japanese ./models/japanese.model
 </code></pre>
-<pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+<pre><code class="language-text">Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 。
 </code></pre>
 <p><strong>中国語:</strong></p>
 <pre><code class="language-sh">echo "中文分词测试。" | litsea segment -l chinese ./models/chinese.model
@@ -5381,12 +5369,11 @@ UC4:I	0.2345
 </code></pre>
 <h2 id="バイアスの復元"><a class="header" href="#バイアスの復元">バイアスの復元</a></h2>
 <p>モデルの読み込み時に、バイアスは以下の式で復元されます:</p>
-<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
+<pre><code class="language-text">bias_bucket_weight = -bias_value * 2 - sum(feature_weights)
 </code></pre>
-<p><code>save_model</code> で書き出されたファイルは常にバイアス行を最終行に置くため、この値は
-すべての特徴量の重みの合計と等しくなります。レガシーモデル（例: <code>RWCP.model</code>）は
-バイアス行をファイルの途中に置いており、それ以降の重み行も受け入れられます。バイアス
-バケットはバイアス行より前の重みから計算され、従来のローダーの挙動と一致します。</p>
+<p>バイアス行は、<code>save_model</code> が書き出すとおりファイルの最終行でなければなりません。
+これにより、バイアスバケットを復元する時点ですべての特徴量の重みを読み終えており、
+モデルのバイアスはバイアス行の値と等しくなります。</p>
 <h2 id="バリデーション"><a class="header" href="#バリデーション">バリデーション</a></h2>
 <p>ローダーは、不正な形式のファイルを黙って読み込まず、明示的なエラーとして拒否します:</p>
 <ul>
@@ -5394,6 +5381,7 @@ UC4:I	0.2345
 <li><strong>バイアス行を持たない</strong>ファイル（ダウンロードの途中切断やコピーの中断で
 典型的に発生する症状）</li>
 <li>バイアス行が <strong>2 行以上</strong>あるファイル</li>
+<li><strong>バイアス行の後に重み行</strong>があるファイル（バイアス行は最終行でなければならない）</li>
 <li><strong>重複した</strong>特徴量行</li>
 <li>**非有限（non-finite）**な重みまたはバイアス値（<code>NaN</code>、<code>inf</code>、<code>-inf</code>）。これらは
 放置するとすべてのスコア比較を汚染してしまいます</li>
@@ -5459,8 +5447,6 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 <tr><td>chinese.model</td><td>約 2.0 MB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>korean.model</td><td>約 86 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>english.model</td><td>約 125 KB</td><td>UD English-EWT</td></tr>
-<tr><td>RWCP.model</td><td>約 22 KB</td><td>オリジナルの TinySegmenter</td></tr>
-<tr><td>JEITA_Genpaku_ChaSen_IPAdic.model</td><td>約 16 KB</td><td>JEITA コーパス</td></tr>
 <tr><td>japanese_pos.model</td><td>約 5.4 MB</td><td>UD Japanese-GSD（二段構成）</td></tr>
 <tr><td>chinese_pos.model</td><td>約 8.0 MB</td><td>UD Chinese-GSD（二段構成）</td></tr>
 <tr><td>korean_pos.model</td><td>約 5.0 MB</td><td>UD Korean-GSD（二段構成）</td></tr>
@@ -5468,7 +5454,7 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 </tbody>
 </table>
 </div>
-<p><code>RWCP.model</code> と <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>・<code>english.model</code>（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく約 86 KB〜2.0 MB になりましたが、それでも二段構成モデル（<code>*_pos.model</code>）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。</p>
+<p>単語分割モデル <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>・<code>english.model</code>（<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 配信に十分な小ささです。二段構成モデル（<code>*_pos.model</code>）の数メガバイトに比べても小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。</p>
 <h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
 <ul>
 <li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>
@@ -5576,9 +5562,9 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <p><code>external_corpus</code> グループは、外部の
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
 にある litsea のベンチをリポジトリ内で再現します。これにより、
-スループットの回帰を <code>cargo bench</code> だけで検出できます。下記のうち
-<code>japanese-rwcp</code> 以外のケースにはすべて、同じモデルを同じコーパスで
-計測する対応ベンチが外部ハーネスにあります:</p>
+スループットの回帰を <code>cargo bench</code> だけで検出できます。下記のケースには
+すべて、同じモデルを同じコーパスで計測する対応ベンチが外部ハーネスに
+あります:</p>
 <pre><code class="language-sh">cargo bench --bench bench -- external_corpus
 </code></pre>
 <div class="table-wrapper">
@@ -5588,7 +5574,6 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </thead>
 <tbody>
 <tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
-<tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-two-stage</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>korean-two-stage</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
@@ -5600,8 +5585,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 </table>
 </div>
 <p><code>*-two-stage</code> ベンチは<a href="#二段構成タグ付け">二段構成アーキテクチャ</a>
-（#147/#169）と合わせて追加したものです。<code>japanese-rwcp</code> は litsea 側だけの
-ケースで、外部ハーネスは <code>RWCP.model</code> をもう計測していません。</p>
+（#147/#169）と合わせて追加したものです。</p>
 <p>1 イテレーションでコーパス全行を分割し（外部ベンチと同様、行のフィルタなし）、
 グループの <code>Throughput::Elements</code> にコーパスの改行を除く文字数を設定しているため、
 Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</strong> として読めます。</p>
@@ -5810,41 +5794,11 @@ held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回りま�
 </tbody>
 </table>
 </div>
-<h3 id="rwcpmodel-1"><a class="header" href="#rwcpmodel-1">RWCP.model</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>プロパティ</th><th>値</th></tr>
-</thead>
-<tbody>
-<tr><td>言語</td><td>日本語</td></tr>
-<tr><td>ソース</td><td>オリジナルの <a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> から抽出</td></tr>
-<tr><td>ライセンス</td><td>BSD 3-Clause (Taku Kudo)</td></tr>
-<tr><td>ファイルサイズ</td><td>約 22 KB</td></tr>
-</tbody>
-</table>
-</div>
-<h3 id="jeita_genpaku_chasen_ipadicmodel-1"><a class="header" href="#jeita_genpaku_chasen_ipadicmodel-1">JEITA_Genpaku_ChaSen_IPAdic.model</a></h3>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>プロパティ</th><th>値</th></tr>
-</thead>
-<tbody>
-<tr><td>言語</td><td>日本語</td></tr>
-<tr><td>学習コーパス</td><td>JEITA プロジェクト 杉田玄白コーパス</td></tr>
-<tr><td>トークナイザ</td><td>ChaSen with IPAdic</td></tr>
-<tr><td>ファイルサイズ</td><td>約 16 KB</td></tr>
-</tbody>
-</table>
-</div>
 <h2 id="学習手順"><a class="header" href="#学習手順">学習手順</a></h2>
-<p><code>RWCP.model</code> と <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はレガシー・互換用モデルで、
-従来どおりに学習（または取得）しています – 通常の AdaBoost 手順は
-<a href="#モデルの学習">モデルの学習</a>を参照してください。
-<code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は binary-perceptron 畳み込み手順
+<p><code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は binary-perceptron 畳み込み手順
 （issue #165）で再学習しています。エンジンの変更は不要ですが、通常の
-<code>litsea train</code> に加えて数ステップが必要です:</p>
+<code>litsea train</code> に加えて数ステップが必要です（通常の AdaBoost 手順は
+<a href="#モデルの学習">モデルの学習</a>を参照してください）:</p>
 <pre><code class="language-sh"># 1. プレーンな境界特徴量を抽出（従来と同じステップ）。--tag-free を付けると
 #    16 個のタグ依存テンプレートを除外して pointwise モデルを学習できる
 #    （korean.model で使用。次節を参照）。
@@ -6061,7 +6015,7 @@ stage 1 は、英語のほぼすべての語境界を示す空白文字を一度
 </code></pre>
 <h2 id="モデルの選択"><a class="header" href="#モデルの選択">モデルの選択</a></h2>
 <ul>
-<li><strong>日本語</strong>には、最高精度を求める場合は <code>japanese.model</code> を、オリジナルの TinySegmenter との互換性を重視する場合は <code>RWCP.model</code> を使用</li>
+<li><strong>日本語</strong>には <code>japanese.model</code> を使用</li>
 <li><strong>中国語</strong>には <code>chinese.model</code> を使用</li>
 <li><strong>韓国語</strong>には <code>korean.model</code> を使用</li>
 <li><strong>英語</strong>には <code>english.model</code> を使用</li>

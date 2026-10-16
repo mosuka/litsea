@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ec62ed3f.js";
+            window.path_to_searchindex_js = "searchindex-5e65aac3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -186,7 +186,7 @@
 <h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
 <ul>
 <li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
-<li><strong>Compact pre-trained models</strong> – the legacy <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> files are kilobyte-scale; the quality-optimized <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP</li>
+<li><strong>Compact pre-trained models</strong> – the <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> segmentation models are ~86 KB-2.0 MB, small enough to embed directly in applications or serve over HTTP</li>
 <li><strong>No dictionary required</strong> – segmentation is driven by a statistical model; an optional user dictionary (<code>UserDictionary</code>, <code>segment --user-words</code>) forces words of your choice into single tokens without retraining</li>
 <li><strong>Two-stage POS tagging</strong> – segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, adding little cost over plain segmentation</li>
 <li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), Korean, and English</li>
@@ -198,7 +198,7 @@
 <p>Litsea treats word segmentation as a <strong>binary classification problem</strong>: for each character position in a sentence, the model predicts whether it is a <strong>word boundary</strong> (+1) or <strong>not a boundary</strong> (-1). The classifier uses character n-gram features and character type information specific to each language.</p>
 <pre><code class="language-text">Input:  "これはテストです。"
          こ れ は テ ス ト で す 。
-         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (japanese.model)
 Output: ["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>

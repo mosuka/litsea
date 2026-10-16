@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f3f7e617.js";
+            window.path_to_searchindex_js = "../searchindex-693943b7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -211,9 +211,9 @@
 <p><code>external_corpus</code> グループは、外部の
 <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
 にある litsea のベンチをリポジトリ内で再現します。これにより、
-スループットの回帰を <code>cargo bench</code> だけで検出できます。下記のうち
-<code>japanese-rwcp</code> 以外のケースにはすべて、同じモデルを同じコーパスで
-計測する対応ベンチが外部ハーネスにあります:</p>
+スループットの回帰を <code>cargo bench</code> だけで検出できます。下記のケースには
+すべて、同じモデルを同じコーパスで計測する対応ベンチが外部ハーネスに
+あります:</p>
 <pre><code class="language-sh">cargo bench --bench bench -- external_corpus
 </code></pre>
 <div class="table-wrapper">
@@ -223,7 +223,6 @@
 </thead>
 <tbody>
 <tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
-<tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-two-stage</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>korean-two-stage</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
@@ -235,8 +234,7 @@
 </table>
 </div>
 <p><code>*-two-stage</code> ベンチは<a href="../algorithm/two-stage-tagging.html">二段構成アーキテクチャ</a>
-（#147/#169）と合わせて追加したものです。<code>japanese-rwcp</code> は litsea 側だけの
-ケースで、外部ハーネスは <code>RWCP.model</code> をもう計測していません。</p>
+（#147/#169）と合わせて追加したものです。</p>
 <p>1 イテレーションでコーパス全行を分割し（外部ベンチと同様、行のフィルタなし）、
 グループの <code>Throughput::Elements</code> にコーパスの改行を除く文字数を設定しているため、
 Criterion の <code>elem/s</code> 表示がそのまま <strong>chars/sec</strong> として読めます。</p>

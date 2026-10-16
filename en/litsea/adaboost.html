@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ec62ed3f.js";
+            window.path_to_searchindex_js = "../searchindex-5e65aac3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -225,7 +225,7 @@ let mut learner = AdaBoost::new(0.01, 100);
 </span><span class="boring">fn main() {
 </span>pub fn load_model_from_path(&amp;mut self, path: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
-<p>Loads model weights from a local file, synchronously. Malformed files (empty, missing bias line, duplicate bias lines or features, non-finite weights) are rejected with <code>LitseaError::InvalidData</code>. This is the preferred method for local files – no async runtime is needed.</p>
+<p>Loads model weights from a local file, synchronously. Malformed files (empty, missing bias line, duplicate bias lines or features, a weight line after the bias line, non-finite weights) are rejected with <code>LitseaError::InvalidData</code>. This is the preferred method for local files – no async runtime is needed.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;

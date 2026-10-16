@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ec62ed3f.js";
+            window.path_to_searchindex_js = "../searchindex-5e65aac3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -211,8 +211,8 @@
 <p>The <code>external_corpus</code> group reproduces the litsea benches of the
 external <a href="https://github.com/mosuka/tokenizer-speed-bench">tokenizer-speed-bench</a>
 harness in-repo, so throughput regressions can be caught with
-<code>cargo bench</code> alone. Every case below except <code>japanese-rwcp</code> has a
-counterpart there that measures the same model on the same corpus:</p>
+<code>cargo bench</code> alone. Every case below has a counterpart there that
+measures the same model on the same corpus:</p>
 <pre><code class="language-sh">cargo bench --bench bench -- external_corpus
 </code></pre>
 <div class="table-wrapper">
@@ -222,7 +222,6 @@ counterpart there that measures the same model on the same corpus:</p>
 </thead>
 <tbody>
 <tr><td><code>japanese</code></td><td>japanese.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
-<tr><td><code>japanese-rwcp</code></td><td>RWCP.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>japanese-two-stage</code></td><td>japanese_pos.model</td><td>wagahaiwa_nekodearu.txt</td></tr>
 <tr><td><code>korean</code></td><td>korean.model</td><td>mujeong.txt</td></tr>
 <tr><td><code>korean-two-stage</code></td><td>korean_pos.model</td><td>mujeong.txt</td></tr>
@@ -234,9 +233,7 @@ counterpart there that measures the same model on the same corpus:</p>
 </table>
 </div>
 <p>The <code>*-two-stage</code> benches were added alongside the <a href="../algorithm/two-stage-tagging.html">two-stage
-architecture</a> (#147/#169). The
-<code>japanese-rwcp</code> case is litsea-only: the external harness no longer
-measures <code>RWCP.model</code>.</p>
+architecture</a> (#147/#169).</p>
 <p>One iteration segments every line of the corpus (unfiltered, like the
 external harness), and the group sets <code>Throughput::Elements</code> to the
 corpus’s newline-free character count, so Criterion’s <code>elem/s</code> figures
