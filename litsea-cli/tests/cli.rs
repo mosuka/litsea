@@ -36,7 +36,7 @@ fn run_litsea(args: &[&str], stdin: Option<&str>) -> Output {
 #[test]
 fn test_segment_golden_output() {
     let output = run_litsea(
-        &["segment", "-l", "japanese", model_path("RWCP.model").to_str().unwrap()],
+        &["segment", "-l", "japanese", model_path("japanese.model").to_str().unwrap()],
         Some("これはテストです。\n"),
     );
     assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
@@ -689,7 +689,7 @@ fn test_missing_model_error() {
 #[test]
 fn test_unsupported_language_error() {
     let output = run_litsea(
-        &["segment", "-l", "french", model_path("RWCP.model").to_str().unwrap()],
+        &["segment", "-l", "french", model_path("japanese.model").to_str().unwrap()],
         Some("x\n"),
     );
     assert!(!output.status.success());
@@ -711,7 +711,7 @@ fn test_broken_pipe_exits_zero() {
         .arg("segment")
         .arg("-l")
         .arg("japanese")
-        .arg(model_path("RWCP.model"))
+        .arg(model_path("japanese.model"))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

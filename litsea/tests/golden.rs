@@ -60,9 +60,8 @@ fn assert_segment_with_pos(segmenter: &Segmenter, cases: &[(&str, &[(&str, &str)
 }
 
 // ---------------------------------------------------------------------------
-// Word segmentation (AdaBoost-format models — RWCP.model and the JEITA
-// model are genuinely AdaBoost-trained; japanese.model, chinese.model, and
-// korean.model are a 2-class Averaged Perceptron losslessly collapsed to
+// Word segmentation (AdaBoost-format models — japanese.model, chinese.model,
+// and korean.model are a 2-class Averaged Perceptron losslessly collapsed to
 // AdaBoost-format scalar weights, per issue #165)
 // ---------------------------------------------------------------------------
 
@@ -87,44 +86,6 @@ fn golden_segment_japanese() {
         ],
     );
     assert!(segmenter.segment("").is_empty());
-}
-
-#[test]
-fn golden_segment_japanese_rwcp() {
-    let segmenter = adaboost_segmenter(Language::Japanese, "RWCP.model");
-    assert_segment(
-        &segmenter,
-        &[
-            ("これはテストです。", &["これ", "は", "テスト", "です", "。"]),
-            ("私の猫は可愛い。", &["私", "の", "猫", "は", "可愛い", "。"]),
-            ("東京都に住んでいます。", &["東京都", "に", "住ん", "でい", "ます", "。"]),
-            ("字", &["字"]),
-            // Edge case: whole sentence is a single word
-            ("こんにちは", &["こんにちは"]),
-            ("価格は1000円です。", &["価格", "は", "1", "0", "0", "0", "円", "です", "。"]),
-            ("RustでNLPを実装する。", &["Rust", "で", "NLP", "を", "実装", "する", "。"]),
-        ],
-    );
-}
-
-#[test]
-fn golden_segment_japanese_jeita() {
-    let segmenter = adaboost_segmenter(Language::Japanese, "JEITA_Genpaku_ChaSen_IPAdic.model");
-    assert_segment(
-        &segmenter,
-        &[
-            ("これはテストです。", &["これ", "は", "テスト", "です", "。"]),
-            ("私の猫は可愛い。", &["私", "の", "猫", "は", "可愛", "い", "。"]),
-            (
-                "東京都に住んでいます。",
-                &["東京", "都", "に", "住ん", "で", "い", "ます", "。"],
-            ),
-            ("字", &["字"]),
-            ("こんにちは", &["こん", "にち", "は"]),
-            ("価格は1000円です。", &["価格", "は", "1000", "円", "です", "。"]),
-            ("RustでNLPを実装する。", &["Rust", "で", "NLP", "を", "実装", "する", "。"]),
-        ],
-    );
 }
 
 #[test]
