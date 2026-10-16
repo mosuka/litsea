@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7868836.js";
+            window.path_to_searchindex_js = "../searchindex-6434f3d9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -206,6 +206,8 @@
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263）。1 行 1 語の UTF-8 ファイル。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。1 文字の語と空行は無視されます</td></tr>
+<tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>）。語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します（<code>0</code> = モデルがすでに同意している場所だけ、<code>1</code> = 常に）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
 </div>
@@ -273,6 +275,28 @@
 計測のままです — CLI レベルのスレッドスケーリングとエンジンスループットは
 別の数値であり、直接比較しないでください
 （<a href="../advanced/benchmarking.html">ベンチマーク</a>を参照）。</p>
+<h2 id="ユーザー辞書--user-words"><a class="header" href="#ユーザー辞書--user-words">ユーザー辞書（<code>--user-words</code>）</a></h2>
+<p>ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
+ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除き、空行は読み飛ばし、
+コメント構文はありません。1 文字の語は無視されます。</p>
+<pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
+printf '雪だるまを作る\n新幹線で帰る\n' \
+  | litsea segment --user-words words.txt -l japanese ./models/japanese.model
+</code></pre>
+<pre><code class="language-text">雪だるま を 作る
+新幹線 で 帰る
+</code></pre>
+<p>辞書なしでは <code>japanese.model</code> は <code>雪 だる ま を 作る</code> と <code>新 幹線 で 帰る</code> を
+出力します。辞書は <code>--pos</code> でも使え（強制した語は他の語と同じようにタグ付け
+されます。この例では <code>雪だるま/NOUN を/ADP 作る/VERB</code>）、<code>--threads</code> でも
+出力は逐次実行とバイト単位で同一です。</p>
+<p>照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、
+<code>って</code> のような 2 文字の断片を語として登録すると、それを含む他の語をすべて
+壊します。短い語や曖昧な語を含む辞書には <code>--user-words-gate RATIO</code> を使うと、
+語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します。
+<code>--user-words-gate 0</code> では上の例はモデル自身の <code>雪 だる ま を 作る</code> になります。
+そこではモデルがこの語に同意していないためです。意味論の全体は
+<a href="../litsea/segmenter.html">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
 <h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
 <ul>
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>

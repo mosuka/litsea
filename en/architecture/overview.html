@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-143b524c.js";
+            window.path_to_searchindex_js = "../searchindex-4d51af10.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
-<p>Litsea is designed as a compact, dictionary-free word segmentation system. It treats word segmentation as a <strong>binary classification problem</strong> and uses <strong>AdaBoost</strong> to learn word boundary patterns from character-level features.</p>
+<p>Litsea is designed as a compact word segmentation system that needs no dictionary. It treats word segmentation as a <strong>binary classification problem</strong> and uses <strong>AdaBoost</strong> to learn word boundary patterns from character-level features.</p>
 <h2 id="high-level-data-flow"><a class="header" href="#high-level-data-flow">High-Level Data Flow</a></h2>
 <p>Litsea has two main workflows: <strong>training</strong> and <strong>segmentation</strong>.</p>
 <h3 id="training-pipeline"><a class="header" href="#training-pipeline">Training Pipeline</a></h3>
@@ -210,7 +210,7 @@
 </ol>
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
-<li><strong>No dictionary dependency</strong> – Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns</li>
+<li><strong>No dictionary required</strong> – Unlike MeCab or Lindera, Litsea segments with a statistical model learned from character patterns alone; an optional user dictionary can force specific words into single tokens on top of it (<code>segment --user-words</code>, issue #263)</li>
 <li><strong>Compact models</strong> – Legacy word-segmentation models (<code>RWCP.model</code>, <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>) are ~16-22 KB; the retrained <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> are ~86 KB-2.0 MB, trading file size for the quality gains documented in <a href="../pre-trained-models.html">Pre-trained Models</a>; two-stage POS models are ~3.6-8 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
 <li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>

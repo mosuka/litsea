@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-143b524c.js";
+            window.path_to_searchindex_js = "../searchindex-4d51af10.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -206,6 +206,8 @@
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>none</td><td>User dictionary (issue #263): a UTF-8 file with one word per line. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. Words of one character and empty lines are ignored</td></tr>
+<tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>none</td><td>Flip-ratio gate for <code>--user-words</code>, in <code>0.0..=1.0</code>: an occurrence is applied only if the share of the model’s margin it would overturn is at most <code>RATIO</code> (<code>0</code> = only where the model already agrees, <code>1</code> = always). Requires <code>--user-words</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -274,6 +276,31 @@ Note <code>cargo bench -- external_corpus</code> remains a single-threaded <em>e
 measurement — CLI-level thread scaling and engine throughput are different
 numbers and should not be compared directly (see
 <a href="../advanced/benchmarking.html">Benchmarking</a>).</p>
+<h2 id="user-dictionary---user-words"><a class="header" href="#user-dictionary---user-words">User Dictionary (<code>--user-words</code>)</a></h2>
+<p>A user dictionary forces registered words to come out as single tokens
+without retraining (issue #263). The file is UTF-8 with one word per line;
+only the line terminator is stripped, empty lines are skipped, and there
+is no comment syntax. Words of one character are ignored.</p>
+<pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
+printf '雪だるまを作る\n新幹線で帰る\n' \
+  | litsea segment --user-words words.txt -l japanese ./models/japanese.model
+</code></pre>
+<pre><code class="language-text">雪だるま を 作る
+新幹線 で 帰る
+</code></pre>
+<p>Without the dictionary <code>japanese.model</code> produces <code>雪 だる ま を 作る</code> and
+<code>新 幹線 で 帰る</code>. The dictionary works with <code>--pos</code> (the forced word is
+tagged like any other word: <code>雪だるま/NOUN を/ADP 作る/VERB</code> here) and with
+<code>--threads</code>, whose output stays byte-identical to the sequential run.</p>
+<p>Matching is context-free: a registered word is applied wherever its
+characters occur, so a two-character fragment such as <code>って</code> registered
+as a word breaks every other word it occurs in. For dictionaries with
+short or ambiguous entries, <code>--user-words-gate RATIO</code> applies an
+occurrence only if the share of the model’s margin it would overturn is
+at most <code>RATIO</code>. With <code>--user-words-gate 0</code> the example above comes out
+as the model’s own <code>雪 だる ま を 作る</code>, because the model disagrees with
+the word there. See <a href="../litsea/segmenter.html">Segmenter</a> (“User
+Dictionary”) for the full semantics.</p>
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
 <ul>
 <li>The <code>--language</code> flag must match the language the model was trained for</li>

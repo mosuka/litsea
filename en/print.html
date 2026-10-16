@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-143b524c.js";
+            window.path_to_searchindex_js = "searchindex-4d51af10.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -185,7 +185,7 @@
 <ul>
 <li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
 <li><strong>Compact pre-trained models</strong> – the legacy <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> files are kilobyte-scale; the quality-optimized <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP</li>
-<li><strong>No dictionary dependency</strong> – segmentation is driven entirely by a statistical model</li>
+<li><strong>No dictionary required</strong> – segmentation is driven by a statistical model; an optional user dictionary (<code>UserDictionary</code>, <code>segment --user-words</code>) forces words of your choice into single tokens without retraining</li>
 <li><strong>Two-stage POS tagging</strong> – segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, adding little cost over plain segmentation</li>
 <li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), Korean, and English</li>
 <li><strong>Model training capabilities</strong> – train custom models using AdaBoost or Averaged Perceptron with your own corpora</li>
@@ -362,7 +362,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
-<p>Litsea is designed as a compact, dictionary-free word segmentation system. It treats word segmentation as a <strong>binary classification problem</strong> and uses <strong>AdaBoost</strong> to learn word boundary patterns from character-level features.</p>
+<p>Litsea is designed as a compact word segmentation system that needs no dictionary. It treats word segmentation as a <strong>binary classification problem</strong> and uses <strong>AdaBoost</strong> to learn word boundary patterns from character-level features.</p>
 <h2 id="high-level-data-flow"><a class="header" href="#high-level-data-flow">High-Level Data Flow</a></h2>
 <p>Litsea has two main workflows: <strong>training</strong> and <strong>segmentation</strong>.</p>
 <h3 id="training-pipeline"><a class="header" href="#training-pipeline">Training Pipeline</a></h3>
@@ -391,7 +391,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 </ol>
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
-<li><strong>No dictionary dependency</strong> – Unlike MeCab or Lindera, Litsea relies solely on a statistical model learned from character patterns</li>
+<li><strong>No dictionary required</strong> – Unlike MeCab or Lindera, Litsea segments with a statistical model learned from character patterns alone; an optional user dictionary can force specific words into single tokens on top of it (<code>segment --user-words</code>, issue #263)</li>
 <li><strong>Compact models</strong> – Legacy word-segmentation models (<code>RWCP.model</code>, <code>JEITA_Genpaku_ChaSen_IPAdic.model</code>) are ~16-22 KB; the retrained <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> are ~86 KB-2.0 MB, trading file size for the quality gains documented in <a href="#pre-trained-models-4">Pre-trained Models</a>; two-stage POS models are ~3.6-8 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
 <li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
@@ -2471,6 +2471,109 @@ where
 (<code>word/POS word/POS ...</code>), including the first position, to a custom
 writer, without mutating the segmenter. This is what
 <code>Extractor::extract_two_stage</code> builds its stage-1 boundary features on.</p>
+<h2 id="user-dictionary"><a class="header" href="#user-dictionary">User Dictionary</a></h2>
+<p>A <code>UserDictionary</code> (issue #263) is an optional set of words that the
+segmenter emits as single tokens whenever they occur in the input. It is
+a constraint on the boundary decisions, not a change to the model: the
+model still scores every position, and the dictionary overrides the
+decisions at the edges of an occurrence (forced boundaries) and inside it
+(forced non-boundaries). Output examples in this section come from
+<code>japanese.model</code>.</p>
+<h3 id="userdictionary"><a class="header" href="#userdictionary"><code>UserDictionary</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct UserDictionary { /* private */ }
+
+impl UserDictionary {
+    pub fn new() -&gt; Self
+    pub fn from_words&lt;I, S&gt;(words: I) -&gt; Self
+    where
+        I: IntoIterator&lt;Item = S&gt;,
+        S: AsRef&lt;str&gt;
+    pub fn add(&amp;mut self, word: &amp;str) -&gt; bool
+    pub fn contains(&amp;self, word: &amp;str) -&gt; bool
+    pub fn len(&amp;self) -&gt; usize
+    pub fn is_empty(&amp;self) -&gt; bool
+    pub fn set_gate(&amp;mut self, gate: Option&lt;f64&gt;) -&gt; Result&lt;()&gt;
+    pub fn gate(&amp;self) -&gt; Option&lt;f64&gt;
+}
+<span class="boring">}</span></code></pre>
+<p>Words are stored in a trie keyed by Unicode scalar values and matched
+exactly as given — no case folding, no width or Unicode normalization. A
+word may contain a space; for languages whose models emit spaces as
+tokens (Korean, English) such a word becomes one token containing the
+space. Words of one character have no inside to keep together, so <code>add</code>
+drops them and returns <code>false</code> (it also returns <code>false</code> for a duplicate).
+The type is re-exported as <code>litsea::UserDictionary</code>.</p>
+<h3 id="semantics"><a class="header" href="#semantics">Semantics</a></h3>
+<ul>
+<li>An occurrence of a registered word is emitted as exactly one token: a
+boundary is forced before its first character and after its last one,
+and no boundary is placed inside it.</li>
+<li>Forced decisions enter the model’s boundary-tag history (the
+<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code> features) exactly like model decisions, so
+the positions after a word are scored with consistent features. On
+tag-free (pointwise) models such as <code>korean.model</code> and <code>english.model</code>
+the dictionary has no effect beyond the occurrence itself.</li>
+<li>Overlapping occurrences are resolved leftmost-longest: scanning from
+the left, the longest registered word starting at the current position
+wins and matching resumes after it.</li>
+<li>Matching is context-free: a registered word is applied wherever its
+characters occur, so a two-character fragment such as <code>って</code> or <code>いま</code>
+registered as a word breaks every other word it occurs in. Register
+whole words, and consider the gate below for dictionaries that contain
+short entries.</li>
+<li>The dictionary carries no part-of-speech information. In
+<code>segment_with_pos</code>, a forced word unknown to the lexicon is tagged by
+the stage-2 tagger’s full argmax.</li>
+<li>An empty dictionary, or one whose words never occur, leaves the output
+byte-identical to segmentation without a dictionary.</li>
+</ul>
+<h3 id="gate"><a class="header" href="#gate">Gate</a></h3>
+<p><code>set_gate(Some(ratio))</code> applies an occurrence only if its <strong>flip ratio</strong>
+is at most <code>ratio</code>. The flip ratio is the sum of the model’s absolute
+scores at the positions whose unconstrained decision the word would
+overturn, divided by the sum over every position the word constrains, so
+it lies in <code>0.0..=1.0</code> and needs no per-model tuning: <code>0.0</code> applies a word
+only where the model already agrees with it, <code>1.0</code> applies it everywhere,
+and <code>None</code> (the default) skips the check. Values outside <code>0.0..=1.0</code> (or
+NaN) are rejected with <code>LitseaError::InvalidInput</code>.</p>
+<p>The gate is for dictionaries that contain short or ambiguous entries:
+with <code>中野</code> registered and gate <code>0.0</code>, <code>山中野球部</code> stays <code>山中 | 野球 | 部</code>
+(the model’s margin against <code>中野</code> there is large) while
+<code>私の名前は中野です</code> still yields <code>中野</code> as one token (the model agrees).
+With no gate the word is applied in both sentences.</p>
+<p>On tag-dependent models the gate costs one extra sequential scoring pass
+for sentences that contain a candidate — the unconstrained decisions it
+compares against are computed without the words an earlier position may
+force, a documented approximation; on pointwise models it is free.</p>
+<h3 id="with_user_dictionary--set_user_dictionary--user_dictionary"><a class="header" href="#with_user_dictionary--set_user_dictionary--user_dictionary"><code>with_user_dictionary</code> / <code>set_user_dictionary</code> / <code>user_dictionary</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_user_dictionary(self, dictionary: UserDictionary) -&gt; Self
+pub fn set_user_dictionary(&amp;mut self, dictionary: Option&lt;UserDictionary&gt;)
+pub fn user_dictionary(&amp;self) -&gt; Option&lt;&amp;UserDictionary&gt;
+<span class="boring">}</span></code></pre>
+<p>Attach, replace or clear the dictionary, or read it back. The compiled
+scoring table is not involved, so this is cheap at any time, and without
+a dictionary the segmentation hot path is a single check per sentence.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = AdaBoost::new(0.01, 100);
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+
+let segmenter = Segmenter::with_learner(Language::Japanese, learner)
+    .with_user_dictionary(UserDictionary::from_words(["雪だるま", "新幹線"]));
+let tokens = segmenter.segment("雪だるまを作る");
+// ["雪だるま", "を", "作る"]   (without the dictionary: ["雪", "だる", "ま", "を", "作る"])
+<span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
 <p>The <code>Extractor</code> struct extracts features from a corpus file for model training.</p>
@@ -4098,6 +4201,8 @@ text with <code>litsea evaluate --pos</code> for a realistic quality estimate.</
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>none</td><td>User dictionary (issue #263): a UTF-8 file with one word per line. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. Words of one character and empty lines are ignored</td></tr>
+<tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>none</td><td>Flip-ratio gate for <code>--user-words</code>, in <code>0.0..=1.0</code>: an occurrence is applied only if the share of the model’s margin it would overturn is at most <code>RATIO</code> (<code>0</code> = only where the model already agrees, <code>1</code> = always). Requires <code>--user-words</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -4166,6 +4271,31 @@ Note <code>cargo bench -- external_corpus</code> remains a single-threaded <em>e
 measurement — CLI-level thread scaling and engine throughput are different
 numbers and should not be compared directly (see
 <a href="#benchmarking">Benchmarking</a>).</p>
+<h2 id="user-dictionary---user-words"><a class="header" href="#user-dictionary---user-words">User Dictionary (<code>--user-words</code>)</a></h2>
+<p>A user dictionary forces registered words to come out as single tokens
+without retraining (issue #263). The file is UTF-8 with one word per line;
+only the line terminator is stripped, empty lines are skipped, and there
+is no comment syntax. Words of one character are ignored.</p>
+<pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
+printf '雪だるまを作る\n新幹線で帰る\n' \
+  | litsea segment --user-words words.txt -l japanese ./models/japanese.model
+</code></pre>
+<pre><code class="language-text">雪だるま を 作る
+新幹線 で 帰る
+</code></pre>
+<p>Without the dictionary <code>japanese.model</code> produces <code>雪 だる ま を 作る</code> and
+<code>新 幹線 で 帰る</code>. The dictionary works with <code>--pos</code> (the forced word is
+tagged like any other word: <code>雪だるま/NOUN を/ADP 作る/VERB</code> here) and with
+<code>--threads</code>, whose output stays byte-identical to the sequential run.</p>
+<p>Matching is context-free: a registered word is applied wherever its
+characters occur, so a two-character fragment such as <code>って</code> registered
+as a word breaks every other word it occurs in. For dictionaries with
+short or ambiguous entries, <code>--user-words-gate RATIO</code> applies an
+occurrence only if the share of the model’s margin it would overturn is
+at most <code>RATIO</code>. With <code>--user-words-gate 0</code> the example above comes out
+as the model’s own <code>雪 だる ま を 作る</code>, because the model disagrees with
+the word there. See <a href="#segmenter">Segmenter</a> (“User
+Dictionary”) for the full semantics.</p>
 <h2 id="notes"><a class="header" href="#notes">Notes</a></h2>
 <ul>
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
@@ -4211,6 +4341,8 @@ train the model — the bundled files in <code>resources/eval/</code> are the UD
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language of the model and gold corpus. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Evaluate segmentation + POS tagging. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>). Combines with <code>--format</code> below to select the gold format</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>Gold corpus format. Without <code>--pos</code>: <code>space</code> (space-separated tokens) or <code>tsv</code> (tab-separated tokens; a token may be a literal space, as in the Korean/English space-preserving corpus). With <code>--pos</code>: <code>space</code> selects <code>"word/POS word/POS ..."</code> (the two-stage training corpus format, unspaced) and <code>tsv</code> selects tab-separated <code>"word/POS"</code> tokens where a token may also be a literal space (issues #196/#198; the space-preserving format the Korean and English two-stage models are now trained on, so for those languages this is the protocol that matches both training and real input)</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>none</td><td>User dictionary applied during evaluation (issue #263); the same file format and semantics as <a href="#segment-1"><code>segment --user-words</code></a></td></tr>
+<tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>none</td><td>Flip-ratio gate for <code>--user-words</code>, in <code>0.0..=1.0</code> (see <code>segment --user-words-gate</code>). Requires <code>--user-words</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -4257,6 +4389,12 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+</code></pre>
+<p>Measure what a user dictionary does on the same gold — it is applied
+exactly as <code>segment --user-words</code> applies it, so the metrics are what a
+user of that dictionary would get:</p>
+<pre><code class="language-sh">litsea evaluate --user-words words.txt -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate --user-words words.txt --user-words-gate 0.5 -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 </code></pre>
 <p>The Korean and English two-stage models are trained on the
 space-preserving corpus (issue #198), so evaluate them with <code>--pos --format tsv</code> against the <code>*_pos_spaced.tsv</code> gold – that protocol matches
@@ -4319,7 +4457,7 @@ litsea-binding-core = "0.14.3"
 <h2 id="module-map-1"><a class="header" href="#module-map-1">Module Map</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
-    C["litsea_binding_core::model"] --- D["build_segmenter, read_model_file, read_model_uri"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, read_model_file, read_model_uri"]
     E["litsea_binding_core::token"] --- F["TokenView"]
     G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
     I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
@@ -4334,7 +4472,7 @@ litsea-binding-core = "0.14.3"
 </thead>
 <tbody>
 <tr><td><code>segmenter</code></td><td><code>CoreSegmenter</code></td><td>Segmentation and POS tagging, single and batch, with a reusable buffer</td></tr>
-<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code></td><td>Model loading and model-kind detection</td></tr>
+<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code>, <code>build_segmenter_with</code>, <code>build_user_dictionary</code></td><td>Model loading, model-kind detection, and the user dictionary the bindings attach</td></tr>
 <tr><td><code>token</code></td><td><code>TokenView</code></td><td>Token with surface, byte offsets, and optional UPOS tag</td></tr>
 <tr><td><code>language</code></td><td><code>SUPPORTED_LANGUAGES</code>, <code>parse_language</code></td><td>Language-name parsing and enumeration</td></tr>
 <tr><td><code>trainer</code></td><td><code>CoreExtractor</code>, <code>CoreTrainer</code>, <code>CorePerceptronTrainer</code>, <code>CoreTwoStageTrainer</code></td><td>Feature extraction and training (native targets only)</td></tr>
@@ -4386,10 +4524,15 @@ assert_eq!(
 <tr><td><code>CoreSegmenter::from_path(language, path)</code></td><td>Native targets</td></tr>
 <tr><td><code>CoreSegmenter::from_uri(language, uri).await</code></td><td>Everywhere (<code>http(s)://</code> needs the <code>remote_model</code> feature)</td></tr>
 <tr><td><code>CoreSegmenter::from_uri_blocking(language, uri)</code></td><td>Native targets</td></tr>
+<tr><td><code>CoreSegmenter::from_bytes_with(language, bytes, dictionary)</code></td><td>Everywhere, including wasm32</td></tr>
+<tr><td><code>CoreSegmenter::from_path_with(language, path, dictionary)</code></td><td>Native targets</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_with(language, uri, dictionary).await</code></td><td>Everywhere (<code>http(s)://</code> needs the <code>remote_model</code> feature)</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_blocking_with(language, uri, dictionary)</code></td><td>Native targets</td></tr>
 </tbody>
 </table>
 </div>
-<p>All of them go through <code>build_segmenter</code>, which decides what to build from the model file itself:</p>
+<p>The <code>*_with</code> constructors take an <code>Option&lt;UserDictionary&gt;</code> (issue #263) and attach it to the built segmenter; the plain constructors are the <code>None</code> case. <code>build_user_dictionary(words, gate)</code> is the shared helper that turns a host’s word list and optional gate into that dictionary: an empty list yields <code>None</code> (so the segmenter’s hot path stays untouched), and a gate outside <code>0.0..=1.0</code> is an <code>ErrorKind::InvalidArgument</code> error — also with an empty list, so a bad gate is never ignored. See <a href="#segmenter">Segmenter</a> (“User Dictionary”) for the semantics.</p>
+<p>All of them go through <code>build_segmenter_with</code> (<code>build_segmenter</code> is its <code>None</code> case), which decides what to build from the model file itself:</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4411,7 +4554,7 @@ assert_eq!(
 <tr><th>Kind</th><th><code>as_str()</code></th><th>Raised when</th></tr>
 </thead>
 <tbody>
-<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>Unknown language name, unknown feature set, unusable trainer</td></tr>
+<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>Unknown language name, unknown feature set, unusable trainer, user-dictionary gate outside <code>0.0..=1.0</code></td></tr>
 <tr><td><code>Model</code></td><td><code>model</code></td><td>Failed download, or a model of the wrong kind</td></tr>
 <tr><td><code>Io</code></td><td><code>io</code></td><td>A file could not be read or written</td></tr>
 <tr><td><code>Parse</code></td><td><code>parse</code></td><td>Malformed model or training data</td></tr>

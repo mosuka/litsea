@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-f7868836.js";
+            window.path_to_searchindex_js = "searchindex-6434f3d9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -185,7 +185,7 @@
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
 <li><strong>コンパクトな学習済みモデル</strong> – レガシーな <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> はキロバイト級。品質を最適化した <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ</li>
-<li><strong>辞書不要</strong> – 統計モデルのみで分割を実行</li>
+<li><strong>辞書は不要</strong> – 統計モデルで分割を実行。任意のユーザー辞書（<code>UserDictionary</code>、<code>segment --user-words</code>）を使えば、再学習なしに指定した語を 1 トークンにできる</li>
 <li><strong>二段構成の品詞推定</strong> – 二値境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによる各単語のタグ付けを組み合わせ、通常の単語分割にわずかなコストしか追加しない</li>
 <li><strong>多言語対応</strong> – 日本語、中国語（簡体字/繁体字）、韓国語、英語</li>
 <li><strong>モデル学習機能</strong> – AdaBoost または Averaged Perceptron を使用して独自のコーパスからカスタムモデルを学習可能</li>
@@ -361,7 +361,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 </ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="アーキテクチャ概要"><a class="header" href="#アーキテクチャ概要">アーキテクチャ概要</a></h1>
-<p>Litsea は、コンパクトで辞書不要の単語分割システムとして設計されています。単語分割を<strong>二値分類問題</strong>として扱い、文字レベルの特徴量から単語境界パターンを学習するために <strong>AdaBoost</strong> を使用します。</p>
+<p>Litsea は、辞書を必要としないコンパクトな単語分割システムとして設計されています。単語分割を<strong>二値分類問題</strong>として扱い、文字レベルの特徴量から単語境界パターンを学習するために <strong>AdaBoost</strong> を使用します。</p>
 <h2 id="高レベルデータフロー"><a class="header" href="#高レベルデータフロー">高レベルデータフロー</a></h2>
 <p>Litsea には<strong>学習</strong>と<strong>分割</strong>の 2 つの主要なワークフローがあります。</p>
 <h3 id="学習パイプライン"><a class="header" href="#学習パイプライン">学習パイプライン</a></h3>
@@ -390,7 +390,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 </ol>
 <h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
 <ul>
-<li><strong>辞書不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルのみに依存</li>
+<li><strong>辞書は不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルだけで分割する。その上に、任意のユーザー辞書で特定の語を 1 トークンに強制できる（<code>segment --user-words</code>、issue #263）</li>
 <li><strong>コンパクトなモデル</strong> – レガシーな単語分割モデル（<code>RWCP.model</code>、<code>JEITA_Genpaku_ChaSen_IPAdic.model</code>）は約 16-22 KB。再学習された <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、<a href="#事前学習済みモデル">事前学習済みモデル</a>に記載の品質向上とのトレードオフ。二段構成の品詞モデルは約 3.6-8 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
 <li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
 <li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
@@ -2221,6 +2221,66 @@ where
     F: FnMut(HashSet&lt;String&gt;, SegmentLabel)
 <span class="boring">}</span></code></pre>
 <p>POS タグ付きコーパス（<code>word/POS word/POS ...</code>）の文字レベル学習用特徴量を、最初の位置を含めて、Segmenter を変更することなくカスタムライターへストリーミングします。これは <code>Extractor::extract_two_stage</code> が stage-1 境界特徴量を構築する際の基盤となっています。</p>
+<h2 id="ユーザー辞書"><a class="header" href="#ユーザー辞書">ユーザー辞書</a></h2>
+<p><code>UserDictionary</code>（issue #263）は、入力に現れたら必ず 1 トークンとして出力する語の集合で、任意に設定できます。モデルを変えるものではなく、境界判定への制約です。モデルは引き続きすべての位置を採点し、辞書は出現箇所の両端（境界を強制）と内側（非境界を強制）の判定を上書きします。本節の出力例は <code>japanese.model</code> によるものです。</p>
+<h3 id="userdictionary"><a class="header" href="#userdictionary"><code>UserDictionary</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct UserDictionary { /* private */ }
+
+impl UserDictionary {
+    pub fn new() -&gt; Self
+    pub fn from_words&lt;I, S&gt;(words: I) -&gt; Self
+    where
+        I: IntoIterator&lt;Item = S&gt;,
+        S: AsRef&lt;str&gt;
+    pub fn add(&amp;mut self, word: &amp;str) -&gt; bool
+    pub fn contains(&amp;self, word: &amp;str) -&gt; bool
+    pub fn len(&amp;self) -&gt; usize
+    pub fn is_empty(&amp;self) -&gt; bool
+    pub fn set_gate(&amp;mut self, gate: Option&lt;f64&gt;) -&gt; Result&lt;()&gt;
+    pub fn gate(&amp;self) -&gt; Option&lt;f64&gt;
+}
+<span class="boring">}</span></code></pre>
+<p>語は Unicode スカラー値をキーとする trie に格納され、与えられたまま照合されます — 大文字小文字の同一視や、全角半角・Unicode の正規化は行いません。語に空白を含めることもできます。モデルが空白をトークンとして出力する言語（韓国語・英語）では、そのような語は空白を含む 1 トークンになります。1 文字の語には結合すべき内側がないため、<code>add</code> は格納せずに <code>false</code> を返します（重複の場合も <code>false</code> を返します）。この型は <code>litsea::UserDictionary</code> として再エクスポートされています。</p>
+<h3 id="意味論"><a class="header" href="#意味論">意味論</a></h3>
+<ul>
+<li>登録語の出現箇所は厳密に 1 トークンとして出力されます。先頭文字の前と末尾文字の後に境界を強制し、内側には境界を置きません。</li>
+<li>強制した判定は、モデルの判定と全く同じようにモデルの境界タグ履歴（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code> 特徴量）に入るため、語の後ろの位置は一貫した特徴量で採点されます。<code>korean.model</code> や <code>english.model</code> のようなタグ非依存（pointwise）モデルでは、辞書の影響は出現箇所そのものに限られます。</li>
+<li>重なった出現箇所は leftmost-longest で解決します。左から走査し、現在位置から始まる最長の登録語が勝ち、その後ろから照合を再開します。</li>
+<li>照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、<code>って</code> や <code>いま</code> のような 2 文字の断片を語として登録すると、それを含む他の語をすべて壊します。語全体を登録し、短い語を含む辞書では後述の gate を検討してください。</li>
+<li>辞書は品詞情報を持ちません。<code>segment_with_pos</code> では、語彙表に未知の強制語は stage-2 タガーの全候補 argmax でタグ付けされます。</li>
+<li>空の辞書、または登録語が一度も現れない辞書は、辞書なしの分割とバイト単位で同一の出力を残します。</li>
+</ul>
+<h3 id="gate"><a class="header" href="#gate">Gate</a></h3>
+<p><code>set_gate(Some(ratio))</code> を設定すると、出現箇所は <strong>flip ratio</strong> が <code>ratio</code> 以下のときだけ適用されます。flip ratio は、語が制約する位置のうち制約なしの判定を覆す位置のモデルスコアの絶対値の和を、語が制約するすべての位置の絶対値の和で割ったものです。<code>0.0..=1.0</code> に収まり、モデルごとの調整は不要です。<code>0.0</code> はモデルがすでに同意している場所だけに語を適用し、<code>1.0</code> はすべてに適用し、<code>None</code>（既定）は判定を省きます。<code>0.0..=1.0</code> の外の値（または NaN）は <code>LitseaError::InvalidInput</code> で拒否されます。</p>
+<p>gate は短い語や曖昧な語を含む辞書のためのものです。<code>中野</code> を登録して gate を <code>0.0</code> にすると、<code>山中野球部</code> は <code>山中 | 野球 | 部</code> のまま（そこではモデルの <code>中野</code> に対する margin が大きい）ですが、<code>私の名前は中野です</code> では引き続き <code>中野</code> が 1 トークンになります（モデルが同意している）。gate なしでは両方の文に語が適用されます。</p>
+<p>タグ依存モデルでは、候補を含む文に限り逐次採点パスが 1 回余分にかかります — 比較対象となる制約なしの判定は、前の位置が強制するかもしれない語を考慮せずに計算されるため、近似であることを明記しておきます。pointwise モデルでは追加コストはありません。</p>
+<h3 id="with_user_dictionary--set_user_dictionary--user_dictionary"><a class="header" href="#with_user_dictionary--set_user_dictionary--user_dictionary"><code>with_user_dictionary</code> / <code>set_user_dictionary</code> / <code>user_dictionary</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_user_dictionary(self, dictionary: UserDictionary) -&gt; Self
+pub fn set_user_dictionary(&amp;mut self, dictionary: Option&lt;UserDictionary&gt;)
+pub fn user_dictionary(&amp;self) -&gt; Option&lt;&amp;UserDictionary&gt;
+<span class="boring">}</span></code></pre>
+<p>辞書の設定・差し替え・解除と参照を行います。コンパイル済みのスコア表には関与しないためいつでも低コストで変更でき、辞書なしの分割ホットパスは 1 文につき 1 回の判定だけです。</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = AdaBoost::new(0.01, 100);
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+
+let segmenter = Segmenter::with_learner(Language::Japanese, learner)
+    .with_user_dictionary(UserDictionary::from_words(["雪だるま", "新幹線"]));
+let tokens = segmenter.segment("雪だるまを作る");
+// ["雪だるま", "を", "作る"]   （辞書なしでは ["雪", "だる", "ま", "を", "作る"]）
+<span class="boring">}</span></code></pre>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
 <p><code>Extractor</code> 構造体は、モデル学習用にコーパスファイルから特徴量を抽出します。</p>
@@ -3786,6 +3846,8 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263）。1 行 1 語の UTF-8 ファイル。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。1 文字の語と空行は無視されます</td></tr>
+<tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>）。語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します（<code>0</code> = モデルがすでに同意している場所だけ、<code>1</code> = 常に）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
 </div>
@@ -3853,6 +3915,28 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 計測のままです — CLI レベルのスレッドスケーリングとエンジンスループットは
 別の数値であり、直接比較しないでください
 （<a href="#ベンチマーク">ベンチマーク</a>を参照）。</p>
+<h2 id="ユーザー辞書--user-words"><a class="header" href="#ユーザー辞書--user-words">ユーザー辞書（<code>--user-words</code>）</a></h2>
+<p>ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
+ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除き、空行は読み飛ばし、
+コメント構文はありません。1 文字の語は無視されます。</p>
+<pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
+printf '雪だるまを作る\n新幹線で帰る\n' \
+  | litsea segment --user-words words.txt -l japanese ./models/japanese.model
+</code></pre>
+<pre><code class="language-text">雪だるま を 作る
+新幹線 で 帰る
+</code></pre>
+<p>辞書なしでは <code>japanese.model</code> は <code>雪 だる ま を 作る</code> と <code>新 幹線 で 帰る</code> を
+出力します。辞書は <code>--pos</code> でも使え（強制した語は他の語と同じようにタグ付け
+されます。この例では <code>雪だるま/NOUN を/ADP 作る/VERB</code>）、<code>--threads</code> でも
+出力は逐次実行とバイト単位で同一です。</p>
+<p>照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、
+<code>って</code> のような 2 文字の断片を語として登録すると、それを含む他の語をすべて
+壊します。短い語や曖昧な語を含む辞書には <code>--user-words-gate RATIO</code> を使うと、
+語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します。
+<code>--user-words-gate 0</code> では上の例はモデル自身の <code>雪 だる ま を 作る</code> になります。
+そこではモデルがこの語に同意していないためです。意味論の全体は
+<a href="#segmenter">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
 <h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
 <ul>
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
@@ -3897,6 +3981,8 @@ train 分割で学習されているため、この条件を満たします。</
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。<a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です。ゴールド形式は下記の <code>--format</code> と組み合わせて選択します</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式。<code>--pos</code> なしの場合: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> ありの場合: <code>space</code> は <code>"word/POS word/POS ..."</code>（二段構成の学習コーパス形式、無空白）を、<code>tsv</code> はタブ区切りの <code>"word/POS"</code> トークン（トークンは空白文字も可）を選択します（issue #196/#198。韓国語・英語の二段構成モデルが現在学習に使っている空白保持形式であり、これらの言語では学習時と実際の入力の双方に一致するプロトコルです）</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>評価時に適用するユーザー辞書（issue #263）。ファイル形式と意味論は <a href="#segment-1"><code>segment --user-words</code></a> と同じです</td></tr>
+<tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>。<code>segment --user-words-gate</code> 参照）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
 </div>
@@ -3940,6 +4026,12 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+</code></pre>
+<p>同じゴールドでユーザー辞書の効果を測ります — 辞書は <code>segment --user-words</code>
+と全く同じように適用されるため、メトリクスはその辞書の利用者が得るものその
+ものです:</p>
+<pre><code class="language-sh">litsea evaluate --user-words words.txt -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate --user-words words.txt --user-words-gate 0.5 -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 </code></pre>
 <p>韓国語・英語では、<code>--pos</code> 単体は #198 以前に二段構成モデルが学習に使っていた
 空白非保持プロトコルを再現します。現在のモデルの品質を測るには、
@@ -4000,7 +4092,7 @@ litsea-binding-core = "0.14.3"
 <h2 id="モジュール構成-1"><a class="header" href="#モジュール構成-1">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
-    C["litsea_binding_core::model"] --- D["build_segmenter, read_model_file, read_model_uri"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, read_model_file, read_model_uri"]
     E["litsea_binding_core::token"] --- F["TokenView"]
     G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
     I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
@@ -4015,7 +4107,7 @@ litsea-binding-core = "0.14.3"
 </thead>
 <tbody>
 <tr><td><code>segmenter</code></td><td><code>CoreSegmenter</code></td><td>分割と POS タグ付け（単発・バッチ）。バッファを再利用する</td></tr>
-<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code></td><td>モデルの読み込みと種別判定</td></tr>
+<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code>, <code>build_segmenter_with</code>, <code>build_user_dictionary</code></td><td>モデルの読み込みと種別判定、バインディングが取り付けるユーザー辞書</td></tr>
 <tr><td><code>token</code></td><td><code>TokenView</code></td><td>表層形・バイトオフセット・UPOS タグ（任意）を持つトークン</td></tr>
 <tr><td><code>language</code></td><td><code>SUPPORTED_LANGUAGES</code>, <code>parse_language</code></td><td>言語名のパースと列挙</td></tr>
 <tr><td><code>trainer</code></td><td><code>CoreExtractor</code>, <code>CoreTrainer</code>, <code>CorePerceptronTrainer</code>, <code>CoreTwoStageTrainer</code></td><td>特徴量抽出と学習（ネイティブターゲットのみ）</td></tr>
@@ -4067,10 +4159,15 @@ assert_eq!(
 <tr><td><code>CoreSegmenter::from_path(language, path)</code></td><td>ネイティブターゲット</td></tr>
 <tr><td><code>CoreSegmenter::from_uri(language, uri).await</code></td><td>すべての環境（<code>http(s)://</code> は <code>remote_model</code> feature が必要）</td></tr>
 <tr><td><code>CoreSegmenter::from_uri_blocking(language, uri)</code></td><td>ネイティブターゲット</td></tr>
+<tr><td><code>CoreSegmenter::from_bytes_with(language, bytes, dictionary)</code></td><td>wasm32 を含むすべての環境</td></tr>
+<tr><td><code>CoreSegmenter::from_path_with(language, path, dictionary)</code></td><td>ネイティブターゲット</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_with(language, uri, dictionary).await</code></td><td>すべての環境（<code>http(s)://</code> は <code>remote_model</code> feature が必要）</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_blocking_with(language, uri, dictionary)</code></td><td>ネイティブターゲット</td></tr>
 </tbody>
 </table>
 </div>
-<p>いずれも <code>build_segmenter</code> を経由し、モデルファイル自身から何を構築するかを決定します。</p>
+<p><code>*_with</code> コンストラクタは <code>Option&lt;UserDictionary&gt;</code>（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは <code>None</code> の場合です。<code>build_user_dictionary(words, gate)</code> は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは <code>None</code> になり（セグメンタのホットパスには触れません）、<code>0.0..=1.0</code> の外の gate は <code>ErrorKind::InvalidArgument</code> エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。意味論は <a href="#segmenter">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
+<p>いずれも <code>build_segmenter_with</code>（<code>build_segmenter</code> はその <code>None</code> の場合）を経由し、モデルファイル自身から何を構築するかを決定します。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -4092,7 +4189,7 @@ assert_eq!(
 <tr><th>種別</th><th><code>as_str()</code></th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ</td></tr>
+<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0..=1.0</code> の外のユーザー辞書 gate</td></tr>
 <tr><td><code>Model</code></td><td><code>model</code></td><td>ダウンロード失敗、または種別の異なるモデル</td></tr>
 <tr><td><code>Io</code></td><td><code>io</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>Parse</code></td><td><code>parse</code></td><td>モデルまたは学習データの形式不正</td></tr>

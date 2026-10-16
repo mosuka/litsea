@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-143b524c.js";
+            window.path_to_searchindex_js = "../searchindex-4d51af10.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -414,6 +414,109 @@ where
 (<code>word/POS word/POS ...</code>), including the first position, to a custom
 writer, without mutating the segmenter. This is what
 <code>Extractor::extract_two_stage</code> builds its stage-1 boundary features on.</p>
+<h2 id="user-dictionary"><a class="header" href="#user-dictionary">User Dictionary</a></h2>
+<p>A <code>UserDictionary</code> (issue #263) is an optional set of words that the
+segmenter emits as single tokens whenever they occur in the input. It is
+a constraint on the boundary decisions, not a change to the model: the
+model still scores every position, and the dictionary overrides the
+decisions at the edges of an occurrence (forced boundaries) and inside it
+(forced non-boundaries). Output examples in this section come from
+<code>japanese.model</code>.</p>
+<h3 id="userdictionary"><a class="header" href="#userdictionary"><code>UserDictionary</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct UserDictionary { /* private */ }
+
+impl UserDictionary {
+    pub fn new() -&gt; Self
+    pub fn from_words&lt;I, S&gt;(words: I) -&gt; Self
+    where
+        I: IntoIterator&lt;Item = S&gt;,
+        S: AsRef&lt;str&gt;
+    pub fn add(&amp;mut self, word: &amp;str) -&gt; bool
+    pub fn contains(&amp;self, word: &amp;str) -&gt; bool
+    pub fn len(&amp;self) -&gt; usize
+    pub fn is_empty(&amp;self) -&gt; bool
+    pub fn set_gate(&amp;mut self, gate: Option&lt;f64&gt;) -&gt; Result&lt;()&gt;
+    pub fn gate(&amp;self) -&gt; Option&lt;f64&gt;
+}
+<span class="boring">}</span></code></pre>
+<p>Words are stored in a trie keyed by Unicode scalar values and matched
+exactly as given — no case folding, no width or Unicode normalization. A
+word may contain a space; for languages whose models emit spaces as
+tokens (Korean, English) such a word becomes one token containing the
+space. Words of one character have no inside to keep together, so <code>add</code>
+drops them and returns <code>false</code> (it also returns <code>false</code> for a duplicate).
+The type is re-exported as <code>litsea::UserDictionary</code>.</p>
+<h3 id="semantics"><a class="header" href="#semantics">Semantics</a></h3>
+<ul>
+<li>An occurrence of a registered word is emitted as exactly one token: a
+boundary is forced before its first character and after its last one,
+and no boundary is placed inside it.</li>
+<li>Forced decisions enter the model’s boundary-tag history (the
+<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code> features) exactly like model decisions, so
+the positions after a word are scored with consistent features. On
+tag-free (pointwise) models such as <code>korean.model</code> and <code>english.model</code>
+the dictionary has no effect beyond the occurrence itself.</li>
+<li>Overlapping occurrences are resolved leftmost-longest: scanning from
+the left, the longest registered word starting at the current position
+wins and matching resumes after it.</li>
+<li>Matching is context-free: a registered word is applied wherever its
+characters occur, so a two-character fragment such as <code>って</code> or <code>いま</code>
+registered as a word breaks every other word it occurs in. Register
+whole words, and consider the gate below for dictionaries that contain
+short entries.</li>
+<li>The dictionary carries no part-of-speech information. In
+<code>segment_with_pos</code>, a forced word unknown to the lexicon is tagged by
+the stage-2 tagger’s full argmax.</li>
+<li>An empty dictionary, or one whose words never occur, leaves the output
+byte-identical to segmentation without a dictionary.</li>
+</ul>
+<h3 id="gate"><a class="header" href="#gate">Gate</a></h3>
+<p><code>set_gate(Some(ratio))</code> applies an occurrence only if its <strong>flip ratio</strong>
+is at most <code>ratio</code>. The flip ratio is the sum of the model’s absolute
+scores at the positions whose unconstrained decision the word would
+overturn, divided by the sum over every position the word constrains, so
+it lies in <code>0.0..=1.0</code> and needs no per-model tuning: <code>0.0</code> applies a word
+only where the model already agrees with it, <code>1.0</code> applies it everywhere,
+and <code>None</code> (the default) skips the check. Values outside <code>0.0..=1.0</code> (or
+NaN) are rejected with <code>LitseaError::InvalidInput</code>.</p>
+<p>The gate is for dictionaries that contain short or ambiguous entries:
+with <code>中野</code> registered and gate <code>0.0</code>, <code>山中野球部</code> stays <code>山中 | 野球 | 部</code>
+(the model’s margin against <code>中野</code> there is large) while
+<code>私の名前は中野です</code> still yields <code>中野</code> as one token (the model agrees).
+With no gate the word is applied in both sentences.</p>
+<p>On tag-dependent models the gate costs one extra sequential scoring pass
+for sentences that contain a candidate — the unconstrained decisions it
+compares against are computed without the words an earlier position may
+force, a documented approximation; on pointwise models it is free.</p>
+<h3 id="with_user_dictionary--set_user_dictionary--user_dictionary"><a class="header" href="#with_user_dictionary--set_user_dictionary--user_dictionary"><code>with_user_dictionary</code> / <code>set_user_dictionary</code> / <code>user_dictionary</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn with_user_dictionary(self, dictionary: UserDictionary) -&gt; Self
+pub fn set_user_dictionary(&amp;mut self, dictionary: Option&lt;UserDictionary&gt;)
+pub fn user_dictionary(&amp;self) -&gt; Option&lt;&amp;UserDictionary&gt;
+<span class="boring">}</span></code></pre>
+<p>Attach, replace or clear the dictionary, or read it back. The compiled
+scoring table is not involved, so this is cheap at any time, and without
+a dictionary the segmentation hot path is a single check per sentence.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::adaboost::AdaBoost;
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = AdaBoost::new(0.01, 100);
+learner.load_model_from_path(Path::new("./models/japanese.model"))?;
+
+let segmenter = Segmenter::with_learner(Language::Japanese, learner)
+    .with_user_dictionary(UserDictionary::from_words(["雪だるま", "新幹線"]));
+let tokens = segmenter.segment("雪だるまを作る");
+// ["雪だるま", "を", "作る"]   (without the dictionary: ["雪", "だる", "ま", "を", "作る"])
+<span class="boring">}</span></code></pre>
 
                     </main>
 

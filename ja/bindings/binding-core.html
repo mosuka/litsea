@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7868836.js";
+            window.path_to_searchindex_js = "../searchindex-6434f3d9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -189,7 +189,7 @@ litsea-binding-core = "0.14.3"
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
-    C["litsea_binding_core::model"] --- D["build_segmenter, read_model_file, read_model_uri"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, read_model_file, read_model_uri"]
     E["litsea_binding_core::token"] --- F["TokenView"]
     G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
     I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
@@ -204,7 +204,7 @@ litsea-binding-core = "0.14.3"
 </thead>
 <tbody>
 <tr><td><code>segmenter</code></td><td><code>CoreSegmenter</code></td><td>分割と POS タグ付け（単発・バッチ）。バッファを再利用する</td></tr>
-<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code></td><td>モデルの読み込みと種別判定</td></tr>
+<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code>, <code>build_segmenter_with</code>, <code>build_user_dictionary</code></td><td>モデルの読み込みと種別判定、バインディングが取り付けるユーザー辞書</td></tr>
 <tr><td><code>token</code></td><td><code>TokenView</code></td><td>表層形・バイトオフセット・UPOS タグ（任意）を持つトークン</td></tr>
 <tr><td><code>language</code></td><td><code>SUPPORTED_LANGUAGES</code>, <code>parse_language</code></td><td>言語名のパースと列挙</td></tr>
 <tr><td><code>trainer</code></td><td><code>CoreExtractor</code>, <code>CoreTrainer</code>, <code>CorePerceptronTrainer</code>, <code>CoreTwoStageTrainer</code></td><td>特徴量抽出と学習（ネイティブターゲットのみ）</td></tr>
@@ -256,10 +256,15 @@ assert_eq!(
 <tr><td><code>CoreSegmenter::from_path(language, path)</code></td><td>ネイティブターゲット</td></tr>
 <tr><td><code>CoreSegmenter::from_uri(language, uri).await</code></td><td>すべての環境（<code>http(s)://</code> は <code>remote_model</code> feature が必要）</td></tr>
 <tr><td><code>CoreSegmenter::from_uri_blocking(language, uri)</code></td><td>ネイティブターゲット</td></tr>
+<tr><td><code>CoreSegmenter::from_bytes_with(language, bytes, dictionary)</code></td><td>wasm32 を含むすべての環境</td></tr>
+<tr><td><code>CoreSegmenter::from_path_with(language, path, dictionary)</code></td><td>ネイティブターゲット</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_with(language, uri, dictionary).await</code></td><td>すべての環境（<code>http(s)://</code> は <code>remote_model</code> feature が必要）</td></tr>
+<tr><td><code>CoreSegmenter::from_uri_blocking_with(language, uri, dictionary)</code></td><td>ネイティブターゲット</td></tr>
 </tbody>
 </table>
 </div>
-<p>いずれも <code>build_segmenter</code> を経由し、モデルファイル自身から何を構築するかを決定します。</p>
+<p><code>*_with</code> コンストラクタは <code>Option&lt;UserDictionary&gt;</code>（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは <code>None</code> の場合です。<code>build_user_dictionary(words, gate)</code> は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは <code>None</code> になり（セグメンタのホットパスには触れません）、<code>0.0..=1.0</code> の外の gate は <code>ErrorKind::InvalidArgument</code> エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。意味論は <a href="../litsea/segmenter.html">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
+<p>いずれも <code>build_segmenter_with</code>（<code>build_segmenter</code> はその <code>None</code> の場合）を経由し、モデルファイル自身から何を構築するかを決定します。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -281,7 +286,7 @@ assert_eq!(
 <tr><th>種別</th><th><code>as_str()</code></th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ</td></tr>
+<tr><td><code>InvalidArgument</code></td><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0..=1.0</code> の外のユーザー辞書 gate</td></tr>
 <tr><td><code>Model</code></td><td><code>model</code></td><td>ダウンロード失敗、または種別の異なるモデル</td></tr>
 <tr><td><code>Io</code></td><td><code>io</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>Parse</code></td><td><code>parse</code></td><td>モデルまたは学習データの形式不正</td></tr>

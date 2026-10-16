@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7868836.js";
+            window.path_to_searchindex_js = "../searchindex-6434f3d9.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="アーキテクチャ概要"><a class="header" href="#アーキテクチャ概要">アーキテクチャ概要</a></h1>
-<p>Litsea は、コンパクトで辞書不要の単語分割システムとして設計されています。単語分割を<strong>二値分類問題</strong>として扱い、文字レベルの特徴量から単語境界パターンを学習するために <strong>AdaBoost</strong> を使用します。</p>
+<p>Litsea は、辞書を必要としないコンパクトな単語分割システムとして設計されています。単語分割を<strong>二値分類問題</strong>として扱い、文字レベルの特徴量から単語境界パターンを学習するために <strong>AdaBoost</strong> を使用します。</p>
 <h2 id="高レベルデータフロー"><a class="header" href="#高レベルデータフロー">高レベルデータフロー</a></h2>
 <p>Litsea には<strong>学習</strong>と<strong>分割</strong>の 2 つの主要なワークフローがあります。</p>
 <h3 id="学習パイプライン"><a class="header" href="#学習パイプライン">学習パイプライン</a></h3>
@@ -210,7 +210,7 @@
 </ol>
 <h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
 <ul>
-<li><strong>辞書不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルのみに依存</li>
+<li><strong>辞書は不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルだけで分割する。その上に、任意のユーザー辞書で特定の語を 1 トークンに強制できる（<code>segment --user-words</code>、issue #263）</li>
 <li><strong>コンパクトなモデル</strong> – レガシーな単語分割モデル（<code>RWCP.model</code>、<code>JEITA_Genpaku_ChaSen_IPAdic.model</code>）は約 16-22 KB。再学習された <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB で、<a href="../pre-trained-models.html">事前学習済みモデル</a>に記載の品質向上とのトレードオフ。二段構成の品詞モデルは約 3.6-8 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
 <li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
 <li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>

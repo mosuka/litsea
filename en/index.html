@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-143b524c.js";
+            window.path_to_searchindex_js = "searchindex-4d51af10.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -187,7 +187,7 @@
 <ul>
 <li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
 <li><strong>Compact pre-trained models</strong> – the legacy <code>RWCP.model</code> / <code>JEITA_Genpaku_ChaSen_IPAdic.model</code> files are kilobyte-scale; the quality-optimized <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP</li>
-<li><strong>No dictionary dependency</strong> – segmentation is driven entirely by a statistical model</li>
+<li><strong>No dictionary required</strong> – segmentation is driven by a statistical model; an optional user dictionary (<code>UserDictionary</code>, <code>segment --user-words</code>) forces words of your choice into single tokens without retraining</li>
 <li><strong>Two-stage POS tagging</strong> – segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, adding little cost over plain segmentation</li>
 <li><strong>Multilingual support</strong> – Japanese, Chinese (Simplified/Traditional), Korean, and English</li>
 <li><strong>Model training capabilities</strong> – train custom models using AdaBoost or Averaged Perceptron with your own corpora</li>
