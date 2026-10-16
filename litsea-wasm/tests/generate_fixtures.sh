@@ -16,7 +16,10 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 out="$(dirname "${BASH_SOURCE[0]}")/fixtures.tsv"
 cli="${repo_root}/target/debug/litsea"
 
-[ -x "${cli}" ] || cargo build --quiet -p litsea-cli --manifest-path "${repo_root}/Cargo.toml"
+# Always build, even when a binary exists: one left in target/ (a CI cache
+# restored by its Cargo.lock key, or an older checkout) can predate the
+# source under test, and Cargo makes the build a no-op when it is current.
+cargo build --quiet -p litsea-cli --manifest-path "${repo_root}/Cargo.toml"
 
 # The user dictionary is written to a file for `--user-words`.
 words_file="$(mktemp)"

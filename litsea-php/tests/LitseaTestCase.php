@@ -23,16 +23,24 @@ abstract class LitseaTestCase extends TestCase
         return self::repoRoot() . '/models/' . $name;
     }
 
+    /** Whether this process has already built the CLI. */
+    private static bool $cliBuilt = false;
+
     /**
-     * Builds the `litsea` CLI once and returns the path to the binary.
+     * Builds the `litsea` CLI once per process and returns the path to the
+     * binary.
      *
      * The parity tests compare against the CLI rather than hardcoded output,
-     * so the reference implementation decides what is correct.
+     * so the reference implementation decides what is correct. The build
+     * always runs, even when a binary exists: one left in `target/` (a CI
+     * cache restored by its `Cargo.lock` key, or an older checkout) can
+     * predate the source under test, and Cargo makes the build a no-op when
+     * it is current.
      */
     protected static function litseaCli(): string
     {
         $binary = self::repoRoot() . '/target/debug/litsea';
-        if (!is_file($binary)) {
+        if (!self::$cliBuilt) {
             exec(
                 sprintf('cd %s && cargo build --quiet -p litsea-cli 2>&1', escapeshellarg(self::repoRoot())),
                 $output,
@@ -41,6 +49,8 @@ abstract class LitseaTestCase extends TestCase
             if ($status !== 0) {
                 self::fail("failed to build the litsea CLI: " . implode("\n", $output));
             }
+            self::assertFileExists($binary, 'cargo build did not produce the litsea CLI');
+            self::$cliBuilt = true;
         }
 
         return $binary;

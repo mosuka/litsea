@@ -14,15 +14,27 @@ class LitseaTest < Minitest::Test
     File.join(REPO_ROOT, 'models', name)
   end
 
-  # Builds the `litsea` CLI once and returns the path to the binary.
+  class << self
+    # Whether this process has already built the CLI.
+    attr_accessor :cli_built
+  end
+
+  # Builds the `litsea` CLI once per process and returns the path to the
+  # binary.
   #
   # The parity tests compare against the CLI rather than hardcoded output,
-  # so the reference implementation decides what is correct.
+  # so the reference implementation decides what is correct. The build
+  # always runs, even when a binary exists: one left in target/ (a CI cache
+  # restored by its Cargo.lock key, or an older checkout) can predate the
+  # source under test, and Cargo makes the build a no-op when it is current.
   def litsea_cli
     binary = File.join(REPO_ROOT, 'target', 'debug', 'litsea')
-    unless File.exist?(binary)
+    unless LitseaTest.cli_built
       _, stderr, status = Open3.capture3('cargo', 'build', '--quiet', '-p', 'litsea-cli', chdir: REPO_ROOT)
       raise "failed to build the litsea CLI: #{stderr}" unless status.success?
+      raise "cargo build did not produce #{binary}" unless File.exist?(binary)
+
+      LitseaTest.cli_built = true
     end
     binary
   end
