@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4d51af10.js";
+            window.path_to_searchindex_js = "../searchindex-ec62ed3f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -222,6 +222,16 @@ foreach ($seg-&gt;segmentWithPos('これはテストです。') as $token) {
 // 。      PUNCT   [24:27]
 </code></pre>
 <p><code>start</code> and <code>end</code> are byte offsets, and PHP strings are byte strings, so <code>substr($text, $token-&gt;start, $token-&gt;end - $token-&gt;start)</code> returns the surface directly — no encoding-aware slicing needed, unlike JavaScript.</p>
+<h2 id="user-dictionary"><a class="header" href="#user-dictionary">User dictionary</a></h2>
+<p>Every constructor takes two optional trailing arguments (<a href="https://github.com/mosuka/litsea/issues/263">#263</a>): <code>$user_words</code>, an array of words to emit as single tokens wherever they occur, and <code>$user_words_gate</code>, a flip ratio in <code>0.0</code>–<code>1.0</code> that applies a word only where the model’s margin against it is small enough. Both default to <code>null</code> and work as named arguments too.</p>
+<pre><code class="language-php">$seg = Segmenter::open('japanese', 'models/japanese.model', ['雪だるま', '新幹線']);
+
+$seg-&gt;segment('雪だるまを作る');
+// ['雪だるま', 'を', '作る']   (without the dictionary: ['雪', 'だる', 'ま', 'を', '作る'])
+
+Segmenter::open('japanese', 'models/japanese.model', user_words: ['雪だるま'], user_words_gate: 0.5);
+</code></pre>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a gate of <code>0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code> throws <code>Litsea\InvalidArgumentException</code>. See <a href="../litsea/segmenter.html#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -229,9 +239,9 @@ foreach ($seg-&gt;segmentWithPos('これはテストです。') as $token) {
 <tr><th>Call</th><th>Returns</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Segmenter::open($language, $path)</code></td><td>A segmenter</td></tr>
-<tr><td><code>Segmenter::fromBytes($language, $contents)</code></td><td>A segmenter</td></tr>
-<tr><td><code>Segmenter::fromUri($language, $uri)</code></td><td>A segmenter (blocking download)</td></tr>
+<tr><td><code>Segmenter::open($language, $path, $user_words?, $user_words_gate?)</code></td><td>A segmenter</td></tr>
+<tr><td><code>Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?)</code></td><td>A segmenter</td></tr>
+<tr><td><code>Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?)</code></td><td>A segmenter (blocking download)</td></tr>
 <tr><td><code>segment($text)</code></td><td><code>string[]</code></td></tr>
 <tr><td><code>segmentBatch($texts)</code></td><td><code>string[][]</code></td></tr>
 <tr><td><code>segmentTokens($text)</code></td><td><code>Token[]</code> with byte offsets</td></tr>
@@ -264,7 +274,7 @@ $metrics = (new Litsea\Trainer(0.01, 100000, 'features.txt'))-&gt;train('japanes
 <tr><th>Exception</th><th>Thrown when</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea\InvalidArgumentException</code></td><td>Unknown language name, unknown feature set, reused trainer</td></tr>
+<tr><td><code>Litsea\InvalidArgumentException</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>$user_words_gate</code> outside <code>0.0</code>–<code>1.0</code></td></tr>
 <tr><td><code>Litsea\ModelException</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
 <tr><td><code>Litsea\IoException</code></td><td>A file could not be read or written</td></tr>
 <tr><td><code>Litsea\ParseException</code></td><td>The model or training data is malformed</td></tr>

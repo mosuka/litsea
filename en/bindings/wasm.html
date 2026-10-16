@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4d51af10.js";
+            window.path_to_searchindex_js = "../searchindex-ec62ed3f.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -209,6 +209,14 @@ seg.free()
 <pre><code class="language-js">const bytes = new TextEncoder().encode(text)
 new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.surface
 </code></pre>
+<h2 id="user-dictionary"><a class="header" href="#user-dictionary">User dictionary</a></h2>
+<p><code>fromBytes</code> takes two optional trailing arguments (<a href="https://github.com/mosuka/litsea/issues/263">#263</a>), named as in the Node.js binding: <code>userWords</code>, an array of words to emit as single tokens wherever they occur, and <code>userWordsGate</code>, a flip ratio in <code>0</code>–<code>1</code> that applies a word only where the model’s margin against it is small enough.</p>
+<pre><code class="language-js">const seg = Segmenter.fromBytes('japanese', bytes, ['雪だるま', '新幹線'])
+
+seg.segment('雪だるまを作る')
+// [ '雪だるま', 'を', '作る' ]   (without the dictionary: [ '雪', 'だる', 'ま', 'を', '作る' ])
+</code></pre>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a <code>userWordsGate</code> of <code>0</code> applies a word only where the model already agrees with it. See <a href="../litsea/segmenter.html#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="what-the-host-removes"><a class="header" href="#what-the-host-removes">What the host removes</a></h2>
 <p>This is the most constrained of the five bindings, and each gap was measured rather than assumed.</p>
 <div class="table-wrapper">
@@ -247,7 +255,7 @@ const bytes = await fetchModel('/models/japanese.model')
 <tr><th><code>err.code</code></th><th>Raised when</th></tr>
 </thead>
 <tbody>
-<tr><td><code>invalid_argument</code></td><td>Unknown language name</td></tr>
+<tr><td><code>invalid_argument</code></td><td>Unknown language name, <code>userWordsGate</code> outside <code>0</code>–<code>1</code></td></tr>
 <tr><td><code>model</code></td><td>The file is a legacy joint POS model</td></tr>
 <tr><td><code>parse</code></td><td>The model is malformed or not UTF-8</td></tr>
 <tr><td><code>pos_unavailable</code></td><td>POS tagging requested from a segmentation-only model</td></tr>

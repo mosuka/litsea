@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-6434f3d9.js";
+            window.path_to_searchindex_js = "../searchindex-f3f7e617.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -209,6 +209,14 @@ seg.free()
 <pre><code class="language-js">const bytes = new TextEncoder().encode(text)
 new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.surface
 </code></pre>
+<h2 id="ユーザー辞書"><a class="header" href="#ユーザー辞書">ユーザー辞書</a></h2>
+<p><code>fromBytes</code> は、Node.js バインディングと同じ名前の、省略可能な末尾の引数を 2 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>）。<code>userWords</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>userWordsGate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0</code>〜<code>1</code>）です。</p>
+<pre><code class="language-js">const seg = Segmenter.fromBytes('japanese', bytes, ['雪だるま', '新幹線'])
+
+seg.segment('雪だるまを作る')
+// [ '雪だるま', 'を', '作る' ]   （辞書なしでは [ '雪', 'だる', 'ま', 'を', '作る' ]）
+</code></pre>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。意味論の全体は <a href="../litsea/segmenter.html#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="ホストの制約で提供しない機能"><a class="header" href="#ホストの制約で提供しない機能">ホストの制約で提供しない機能</a></h2>
 <p>5 つのバインディングの中で最も制約が強く、いずれも推測ではなく実測に基づいて判断しています。</p>
 <div class="table-wrapper">
@@ -247,7 +255,7 @@ const bytes = await fetchModel('/models/japanese.model')
 <tr><th><code>err.code</code></th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>invalid_argument</code></td><td>未知の言語名</td></tr>
+<tr><td><code>invalid_argument</code></td><td>未知の言語名、<code>0</code>〜<code>1</code> の外の <code>userWordsGate</code></td></tr>
 <tr><td><code>model</code></td><td>旧 joint POS モデル</td></tr>
 <tr><td><code>parse</code></td><td>モデルの形式不正、または UTF-8 でない</td></tr>
 <tr><td><code>pos_unavailable</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
