@@ -63,13 +63,26 @@ end
 text.byteslice(token.start, token.end - token.start)   # == token.surface
 ```
 
+## User dictionary
+
+Every constructor accepts two keyword arguments ([#263](https://github.com/mosuka/litsea/issues/263)): `user_words:`, an array of words to emit as single tokens wherever they occur, and `user_words_gate:`, a flip ratio in `0.0`–`1.0` that applies a word only where the model's margin against it is small enough.
+
+```ruby
+seg = Litsea::Segmenter.open(:japanese, "models/japanese.model", user_words: ["雪だるま", "新幹線"])
+
+seg.segment("雪だるまを作る")
+# => ["雪だるま", "を", "作る"]   (without the dictionary: ["雪", "だる", "ま", "を", "作る"])
+```
+
+A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; `user_words_gate: 0.0` applies a word only where the model already agrees with it. A gate outside `0.0`–`1.0` raises `Litsea::InvalidArgumentError`, and an unknown keyword raises `ArgumentError`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
+
 ## API
 
 | Call | Returns |
 |------|---------|
-| `Litsea::Segmenter.open(language, path)` | A segmenter |
-| `Litsea::Segmenter.from_bytes(language, data)` | A segmenter (accepts a binary String) |
-| `Litsea::Segmenter.from_uri(language, uri)` | A segmenter |
+| `Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil)` | A segmenter |
+| `Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil)` | A segmenter (accepts a binary String) |
+| `Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil)` | A segmenter |
 | `#segment(text)` | `Array<String>` |
 | `#segment_batch(texts)` | `Array<Array<String>>` |
 | `#segment_tokens(text)` | `Array<Litsea::Token>` with byte offsets |
@@ -106,7 +119,7 @@ Every error derives from `Litsea::Error`, so one `rescue` handles them all — t
 
 | Error | Raised when |
 |-------|-------------|
-| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer |
+| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate:` outside `0.0`–`1.0` |
 | `Litsea::ModelError` | Download failed, or the file is a legacy joint POS model |
 | `Litsea::IoError` | A file could not be read or written |
 | `Litsea::ParseError` | The model or training data is malformed |

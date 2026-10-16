@@ -52,13 +52,26 @@ for token in seg.segment_with_pos("これはテストです。"):
 
 `start` と `end` は入力に対するバイトオフセットです。`text.encode()[token.start:token.end].decode()` で表層形が得られます。分割専用モデルに対して `segment_with_pos` を呼ぶと `PosUnavailableError` が送出されます。
 
+## ユーザー辞書
+
+すべてのコンストラクタは、キーワード専用の引数を 2 つ受け取ります（[#263](https://github.com/mosuka/litsea/issues/263)）。`user_words` は、現れた場所で必ず 1 トークンとして出力する語のシーケンス、`user_words_gate` は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（`0.0`〜`1.0`）です。
+
+```python
+seg = Segmenter.open("ja", "models/japanese.model", user_words=["雪だるま", "新幹線"])
+
+seg.segment("雪だるまを作る")
+# ['雪だるま', 'を', '作る']   （辞書なしでは ['雪', 'だる', 'ま', 'を', '作る']）
+```
+
+登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（`japanese_pos.model` では `雪だるま/NOUN`）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`user_words_gate=0.0` は、モデルがすでに同意している場所だけに語を適用します。`0.0`〜`1.0` の外の gate は `InvalidArgumentError` を送出します。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
+
 ## API
 
 | 呼び出し | 戻り値 |
 |---------|-------|
-| `Segmenter.open(language, path)` | ファイルから読み込んだセグメンタ |
-| `Segmenter.from_bytes(language, data)` | バイト列から読み込んだセグメンタ |
-| `Segmenter.from_uri(language, uri)` | パス・`file://`・`http(s)://` から読み込んだセグメンタ |
+| `Segmenter.open(language, path, *, user_words=None, user_words_gate=None)` | ファイルから読み込んだセグメンタ |
+| `Segmenter.from_bytes(language, data, *, user_words=None, user_words_gate=None)` | バイト列から読み込んだセグメンタ |
+| `Segmenter.from_uri(language, uri, *, user_words=None, user_words_gate=None)` | パス・`file://`・`http(s)://` から読み込んだセグメンタ |
 | `segment(text)` | `list[str]` |
 | `segment_batch(texts)` | `list[list[str]]` |
 | `segment_tokens(text)` | バイトオフセット付き `list[Token]` |
@@ -105,7 +118,7 @@ metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=
 
 | 例外 | 発生条件 |
 |------|---------|
-| `InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ |
+| `InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `user_words_gate` |
 | `ModelError` | ダウンロード失敗、または旧 joint POS モデル |
 | `IoError` | ファイルの読み書き失敗 |
 | `ParseError` | モデルまたは学習データの形式不正 |

@@ -44,6 +44,19 @@ const bytes = new TextEncoder().encode(text)
 new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.surface
 ```
 
+## User dictionary
+
+`fromBytes` takes two optional trailing arguments ([#263](https://github.com/mosuka/litsea/issues/263)), named as in the Node.js binding: `userWords`, an array of words to emit as single tokens wherever they occur, and `userWordsGate`, a flip ratio in `0`–`1` that applies a word only where the model's margin against it is small enough.
+
+```js
+const seg = Segmenter.fromBytes('japanese', bytes, ['雪だるま', '新幹線'])
+
+seg.segment('雪だるまを作る')
+// [ '雪だるま', 'を', '作る' ]   (without the dictionary: [ '雪', 'だる', 'ま', 'を', '作る' ])
+```
+
+A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a `userWordsGate` of `0` applies a word only where the model already agrees with it. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
+
 ## What the host removes
 
 This is the most constrained of the five bindings, and each gap was measured rather than assumed.
@@ -85,7 +98,7 @@ Every error carries a `code`, matching the Node.js binding so the two JavaScript
 
 | `err.code` | Raised when |
 |-----------|-------------|
-| `invalid_argument` | Unknown language name |
+| `invalid_argument` | Unknown language name, `userWordsGate` outside `0`–`1` |
 | `model` | The file is a legacy joint POS model |
 | `parse` | The model is malformed or not UTF-8 |
 | `pos_unavailable` | POS tagging requested from a segmentation-only model |

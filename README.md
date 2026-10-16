@@ -32,6 +32,8 @@ seg.segment("これはテストです。")
 # ['これ', 'は', 'テスト', 'です', '。']
 ```
 
+Every binding also takes a user dictionary when it loads a model — `Segmenter.open(..., user_words=["雪だるま"])` in Python; see each package's README for its spelling.
+
 There is a small plant called Litsea cubeba (Aomoji) in the same camphoraceae family as Lindera (Kuromoji). This is the origin of the name Litsea.
 
 ## How to build Litsea

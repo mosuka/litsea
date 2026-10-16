@@ -66,13 +66,28 @@ foreach ($seg->segmentWithPos('これはテストです。') as $token) {
 
 `start` と `end` はバイトオフセットで、PHP の文字列はバイト列です。そのため `substr($text, $token->start, $token->end - $token->start)` がそのまま表層形を返します（JavaScript のようなエンコーディングを意識した切り出しは不要です）。
 
+## ユーザー辞書
+
+すべてのコンストラクタは、省略可能な末尾の引数を 2 つ受け取ります（[#263](https://github.com/mosuka/litsea/issues/263)）。`$user_words` は、現れた場所で必ず 1 トークンとして出力する語の配列、`$user_words_gate` は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（`0.0`〜`1.0`）です。どちらも既定値は `null` で、名前付き引数でも渡せます。
+
+```php
+$seg = Segmenter::open('japanese', 'models/japanese.model', ['雪だるま', '新幹線']);
+
+$seg->segment('雪だるまを作る');
+// ['雪だるま', 'を', '作る']   （辞書なしでは ['雪', 'だる', 'ま', 'を', '作る']）
+
+Segmenter::open('japanese', 'models/japanese.model', user_words: ['雪だるま'], user_words_gate: 0.5);
+```
+
+登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（`japanese_pos.model` では `雪だるま/NOUN`）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。gate を `0.0` にすると、モデルがすでに同意している場所だけに語を適用します。`0.0`〜`1.0` の外の gate は `Litsea\InvalidArgumentException` を投げます。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
+
 ## API
 
 | 呼び出し | 戻り値 |
 |---------|-------|
-| `Segmenter::open($language, $path)` | セグメンタ |
-| `Segmenter::fromBytes($language, $contents)` | セグメンタ |
-| `Segmenter::fromUri($language, $uri)` | セグメンタ（ダウンロードはブロッキング） |
+| `Segmenter::open($language, $path, $user_words?, $user_words_gate?)` | セグメンタ |
+| `Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?)` | セグメンタ |
+| `Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?)` | セグメンタ（ダウンロードはブロッキング） |
 | `segment($text)` | `string[]` |
 | `segmentBatch($texts)` | `string[][]` |
 | `segmentTokens($text)` | バイトオフセット付き `Token[]` |
@@ -109,7 +124,7 @@ $metrics = (new Litsea\Trainer(0.01, 100000, 'features.txt'))->train('japanese.m
 
 | 例外 | 発生条件 |
 |------|---------|
-| `Litsea\InvalidArgumentException` | 未知の言語名、未知の feature set、使用済みトレーナ |
+| `Litsea\InvalidArgumentException` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `$user_words_gate` |
 | `Litsea\ModelException` | ダウンロード失敗、または旧 joint POS モデル |
 | `Litsea\IoException` | ファイルの読み書き失敗 |
 | `Litsea\ParseException` | モデルまたは学習データの形式不正 |

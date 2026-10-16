@@ -19,15 +19,26 @@
   by `segment`, `segment_into` and `segment_with_pos`;
   `litsea-binding-core` adds `build_user_dictionary`,
   `build_segmenter_with` and the `*_with` constructors of
-  `CoreSegmenter` for the bindings, which expose the option in a
-  follow-up. Without a dictionary the segmentation hot path is one check
-  per sentence and the differential tests still pin bit-identical output.
-  Measured with `litsea evaluate` on the 543 sentences of the UD Japanese
-  GSD test set with `japanese.model` (Word F1 96.70 without a
-  dictionary): an oracle dictionary of the 259 gold words of two or more
-  characters that the model misses scores 96.54 as is (two-character
-  fragments break other words) and 98.20 with gate 0.5; its 126 words of
-  three or more characters score 98.14 as is and 98.07 with gate 0.5.
+  `CoreSegmenter` for the bindings. Without a dictionary the segmentation
+  hot path is one check per sentence and the differential tests still pin
+  bit-identical output. Measured with `litsea evaluate` on the 543
+  sentences of the UD Japanese GSD test set with `japanese.model` (Word F1
+  96.70 without a dictionary): an oracle dictionary of the 259 gold words
+  of two or more characters that the model misses scores 96.54 as is
+  (two-character fragments break other words) and 98.20 with gate 0.5;
+  its 126 words of three or more characters score 98.14 as is and 98.07
+  with gate 0.5.
+- The user dictionary in all five bindings (#263): every segmenter
+  constructor accepts the words and the gate — keyword arguments
+  `user_words=` / `user_words_gate=` in Python and `user_words:` /
+  `user_words_gate:` in Ruby, optional trailing arguments `userWords` /
+  `userWordsGate` in Node.js and WebAssembly (`fromBytes`), and
+  `$user_words` / `$user_words_gate` in PHP, where named arguments work
+  too. A gate outside `0.0..=1.0` raises each host's invalid-argument
+  error. Each binding's parity test compares its output with
+  `litsea segment --user-words` (the WebAssembly fixtures gain a
+  dictionary column), and the Node.js typings and PHP stubs are
+  regenerated.
 
 ## 0.14.3 (2026-09-25)
 
