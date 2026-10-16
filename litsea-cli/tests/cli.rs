@@ -363,6 +363,165 @@ fn test_extract_pos_tsv_format() {
     );
 }
 
+/// Pins `--user-words` (issue #263): a registered word comes out as one
+/// token on the plain, `--threads`, and `--pos` paths; the file format
+/// skips empty lines, accepts CRLF, and ignores one-character words; and
+/// `--user-words-gate 0` applies a word only where the model already
+/// agrees.
+#[test]
+fn test_segment_user_words() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let words = dir.path().join("words.txt");
+    std::fs::write(&words, "雪だるま\n\n新幹線\r\nあ\n").expect("write words");
+    let words = words.to_str().unwrap();
+    let model_owned = model_path("japanese.model");
+    let model = model_owned.to_str().unwrap();
+    let input = "雪だるまを作る\n新幹線で帰る\n";
+
+    let plain = run_litsea(&["segment", "-l", "japanese", model], Some(input));
+    assert!(plain.status.success(), "stderr: {}", String::from_utf8_lossy(&plain.stderr));
+    assert_eq!(String::from_utf8_lossy(&plain.stdout), "雪 だる ま を 作る\n新 幹線 で 帰る\n");
+
+    let with_words =
+        run_litsea(&["segment", "--user-words", words, "-l", "japanese", model], Some(input));
+    assert!(
+        with_words.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&with_words.stderr)
+    );
+    assert_eq!(
+        String::from_utf8_lossy(&with_words.stdout),
+        "雪だるま を 作る\n新幹線 で 帰る\n"
+    );
+
+    let parallel = run_litsea(
+        &["segment", "--threads", "2", "--user-words", words, "-l", "japanese", model],
+        Some(input),
+    );
+    assert!(parallel.status.success());
+    assert_eq!(parallel.stdout, with_words.stdout, "--threads diverged with a dictionary");
+
+    let gated = run_litsea(
+        &[
+            "segment",
+            "--user-words",
+            words,
+            "--user-words-gate",
+            "0",
+            "-l",
+            "japanese",
+            model,
+        ],
+        Some(input),
+    );
+    assert!(gated.status.success(), "stderr: {}", String::from_utf8_lossy(&gated.stderr));
+    assert_eq!(gated.stdout, plain.stdout, "gate 0 must leave the model's output alone");
+
+    let pos_model_owned = model_path("japanese_pos.model");
+    let pos_model = pos_model_owned.to_str().unwrap();
+    let pos = run_litsea(
+        &["segment", "--pos", "--user-words", words, "-l", "japanese", pos_model],
+        Some("雪だるまを作る\n"),
+    );
+    assert!(pos.status.success(), "stderr: {}", String::from_utf8_lossy(&pos.stderr));
+    let stdout = String::from_utf8_lossy(&pos.stdout);
+    assert!(stdout.starts_with("雪だるま/"), "unexpected output: {stdout}");
+}
+
+/// Pins `--user-words` error handling: a gate without a dictionary is an
+/// argument error, a gate outside 0..=1 and a missing file are reported
+/// with their cause.
+#[test]
+fn test_segment_user_words_errors() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let words = dir.path().join("words.txt");
+    std::fs::write(&words, "雪だるま\n").expect("write words");
+    let words = words.to_str().unwrap();
+    let model_owned = model_path("japanese.model");
+    let model = model_owned.to_str().unwrap();
+
+    let output = run_litsea(
+        &["segment", "--user-words-gate", "0.5", "-l", "japanese", model],
+        Some("雪だるまを作る\n"),
+    );
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("--user-words"), "unexpected stderr: {stderr}");
+
+    let output = run_litsea(
+        &[
+            "segment",
+            "--user-words",
+            words,
+            "--user-words-gate",
+            "1.5",
+            "-l",
+            "japanese",
+            model,
+        ],
+        Some("雪だるまを作る\n"),
+    );
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("0.0..=1.0"), "unexpected stderr: {stderr}");
+
+    let output = run_litsea(
+        &["segment", "--user-words", "/nonexistent/words.txt", "-l", "japanese", model],
+        Some("雪だるまを作る\n"),
+    );
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("cannot read user dictionary"), "unexpected stderr: {stderr}");
+}
+
+/// Pins `evaluate --user-words` (issue #263): the dictionary is applied
+/// during evaluation, so a word the model splits scores 100% once
+/// registered.
+#[test]
+fn test_evaluate_user_words() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let gold = dir.path().join("gold.txt");
+    std::fs::write(&gold, "雪だるま を 作る\n").expect("write gold");
+    let gold = gold.to_str().unwrap();
+    let words = dir.path().join("words.txt");
+    std::fs::write(&words, "雪だるま\n").expect("write words");
+    let words = words.to_str().unwrap();
+    let model_owned = model_path("japanese.model");
+    let model = model_owned.to_str().unwrap();
+
+    let plain = run_litsea(&["evaluate", "-l", "japanese", model, gold], None);
+    assert!(plain.status.success(), "stderr: {}", String::from_utf8_lossy(&plain.stderr));
+    let stderr = String::from_utf8_lossy(&plain.stderr);
+    assert!(!stderr.contains("Word F1: 100.00%"), "unexpected output: {stderr}");
+
+    let with_words =
+        run_litsea(&["evaluate", "--user-words", words, "-l", "japanese", model, gold], None);
+    assert!(
+        with_words.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&with_words.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&with_words.stderr);
+    assert!(stderr.contains("Word F1: 100.00%"), "unexpected output: {stderr}");
+
+    let gated = run_litsea(
+        &[
+            "evaluate",
+            "--user-words",
+            words,
+            "--user-words-gate",
+            "0",
+            "-l",
+            "japanese",
+            model,
+            gold,
+        ],
+        None,
+    );
+    assert!(gated.status.success(), "stderr: {}", String::from_utf8_lossy(&gated.stderr));
+    assert_eq!(gated.stderr, plain.stderr, "gate 0 must reproduce the plain metrics");
+}
+
 /// Pins the evaluate subcommand: known model + tiny gold corpus must print
 /// the metrics block with plausible percentages.
 #[test]
