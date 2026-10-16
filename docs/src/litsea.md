@@ -58,7 +58,7 @@ use litsea::segmenter::Segmenter;
 
 fn main() -> litsea::Result<()> {
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     let segmenter = Segmenter::with_learner(Language::Japanese, learner);
     let tokens = segmenter.segment("これはテストです。");

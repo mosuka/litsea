@@ -116,10 +116,9 @@ fn load_corpus_lines(corpus_name: &str) -> (Vec<String>, u64) {
     (lines, chars)
 }
 
-/// Runs nine benches: five segmentation cases plus four `*-two-stage` POS
-/// cases (issue #169). Every case except `japanese-rwcp` reproduces a litsea
-/// bench of the external tokenizer-speed-bench harness in-repo, on the same
-/// model and corpus.
+/// Runs eight benches: four segmentation cases plus four `*-two-stage` POS
+/// cases (issue #169). Every case reproduces a litsea bench of the external
+/// tokenizer-speed-bench harness in-repo, on the same model and corpus.
 /// One iteration segments every line of the corpus, and criterion's
 /// `Throughput::Elements` makes the report read as chars/sec. Methodology
 /// differences from the external harness (criterion sampling instead of
@@ -132,7 +131,6 @@ fn bench_external_corpus(c: &mut Criterion) {
     // (bench id, language, AdaBoost-format model, corpus)
     let segment_cases: &[(&str, Language, &str, &str)] = &[
         ("japanese", Language::Japanese, "japanese.model", "wagahaiwa_nekodearu.txt"),
-        ("japanese-rwcp", Language::Japanese, "RWCP.model", "wagahaiwa_nekodearu.txt"),
         ("korean", Language::Korean, "korean.model", "mujeong.txt"),
         ("chinese", Language::Chinese, "chinese.model", "rulin_waishi.txt"),
         ("english", Language::English, "english.model", "pride_and_prejudice.txt"),

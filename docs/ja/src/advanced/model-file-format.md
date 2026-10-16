@@ -31,13 +31,12 @@ UC4:I	0.2345
 モデルの読み込み時に、バイアスは以下の式で復元されます:
 
 ```text
-bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
+bias_bucket_weight = -bias_value * 2 - sum(feature_weights)
 ```
 
-`save_model` で書き出されたファイルは常にバイアス行を最終行に置くため、この値は
-すべての特徴量の重みの合計と等しくなります。レガシーモデル（例: `RWCP.model`）は
-バイアス行をファイルの途中に置いており、それ以降の重み行も受け入れられます。バイアス
-バケットはバイアス行より前の重みから計算され、従来のローダーの挙動と一致します。
+バイアス行は、`save_model` が書き出すとおりファイルの最終行でなければなりません。
+これにより、バイアスバケットを復元する時点ですべての特徴量の重みを読み終えており、
+モデルのバイアスはバイアス行の値と等しくなります。
 
 ## バリデーション
 
@@ -47,6 +46,7 @@ bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
 - **バイアス行を持たない**ファイル（ダウンロードの途中切断やコピーの中断で
   典型的に発生する症状）
 - バイアス行が **2 行以上**あるファイル
+- **バイアス行の後に重み行**があるファイル（バイアス行は最終行でなければならない）
 - **重複した**特徴量行
 - **非有限（non-finite）**な重みまたはバイアス値（`NaN`、`inf`、`-inf`）。これらは
   放置するとすべてのスコア比較を汚染してしまいます
@@ -119,14 +119,12 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 | chinese.model | 約 2.0 MB | UD Chinese-GSD |
 | korean.model | 約 86 KB | UD Korean-GSD |
 | english.model | 約 125 KB | UD English-EWT |
-| RWCP.model | 約 22 KB | オリジナルの TinySegmenter |
-| JEITA_Genpaku_ChaSen_IPAdic.model | 約 16 KB | JEITA コーパス |
 | japanese_pos.model | 約 5.4 MB | UD Japanese-GSD（二段構成） |
 | chinese_pos.model | 約 8.0 MB | UD Chinese-GSD（二段構成） |
 | korean_pos.model | 約 5.0 MB | UD Korean-GSD（二段構成） |
 | english_pos.model | 約 3.6 MB | UD English-EWT（二段構成） |
 
-`RWCP.model` と `JEITA_Genpaku_ChaSen_IPAdic.model` は本当にキロバイト級で、アプリケーションへの直接埋め込みや最小限のオーバーヘッドでの HTTP 配信に最も適しています。再学習された `japanese.model`・`chinese.model`・`korean.model`・`english.model`（[事前学習済みモデル](../pre-trained-models.md)を参照）は、その一部のコンパクトさを引き換えに大幅な品質向上を得ています: キロバイト級ではなく約 86 KB〜2.0 MB になりましたが、それでも二段構成モデル（`*_pos.model`）の数メガバイトに比べれば小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。
+単語分割モデル `japanese.model`・`chinese.model`・`korean.model`・`english.model`（[事前学習済みモデル](../pre-trained-models.md)を参照）は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 配信に十分な小ささです。二段構成モデル（`*_pos.model`）の数メガバイトに比べても小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。
 
 ## 互換性
 

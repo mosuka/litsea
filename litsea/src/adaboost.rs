@@ -633,16 +633,16 @@ impl AdaBoost {
     /// # Errors
     /// Returns `LitseaError::InvalidData` if the content cannot be parsed or
     /// violates the model format: the file must consist of unique
-    /// tab-separated weight lines plus exactly one bias line (a single
-    /// number), and every value must be finite. An empty file, a file
-    /// without a bias line (e.g. a truncated download), or a file with more
-    /// than one bias line is rejected. The learner is not modified on error.
+    /// tab-separated weight lines followed by exactly one bias line (a
+    /// single number) as its last line, and every value must be finite. An
+    /// empty file, a file without a bias line (e.g. a truncated download), a
+    /// file with more than one bias line, or a file with a weight line after
+    /// the bias line is rejected. The learner is not modified on error.
     ///
-    /// `save_model` always writes the bias line last; weight lines after the
-    /// bias line are nevertheless accepted for compatibility with legacy
-    /// models (e.g. `RWCP.model`), with the bias-bucket weight computed from
-    /// the weights preceding the bias line exactly as the historical loader
-    /// did.
+    /// `save_model` always writes the bias line last, and the loader
+    /// requires it there: the bias-bucket weight is reconstructed from the
+    /// bias value and the sum of all weights, so a weight line after the
+    /// bias line would leave the bias inconsistent with the file.
     pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()> {
         let mut m: FxHashMap<String, f64> = FxHashMap::default();
         let mut weight_sum = 0.0;
@@ -667,6 +667,13 @@ impl AdaBoost {
             })?;
 
             if let Some(v) = parts.next() {
+                if bias_seen {
+                    return Err(LitseaError::InvalidData(format!(
+                        "Weight line after the bias line at line {}; the bias line must be the \
+                         last line",
+                        line_num + 1
+                    )));
+                }
                 let value: f64 = v.parse().map_err(|e| {
                     LitseaError::InvalidData(format!(
                         "Invalid value at line {}: {}",
@@ -712,9 +719,10 @@ impl AdaBoost {
                 }
                 bias_seen = true;
                 // Reconstruct the bias-bucket weight from the bias value and
-                // the running sum of the weights seen so far (the inverse of
-                // save_model's computation; also matches the historical
-                // loader for legacy files whose bias line is not last).
+                // the sum of all weights (the inverse of save_model's
+                // computation). The bias line is the last line — a weight
+                // line after it is rejected above — so every weight has
+                // already been read.
                 m.insert("".to_string(), -b * 2.0 - weight_sum);
             }
         }
@@ -1241,17 +1249,31 @@ mod tests {
     }
 
     #[test]
-    fn test_load_model_allows_weight_lines_after_bias() {
-        // #101: save_model always writes the bias line last, but legacy
-        // models (e.g. the shipped RWCP.model) place it mid-file. Such files
-        // must keep loading, with the bias bucket computed from the weights
-        // preceding the bias line (the historical loader's semantics).
+    fn test_load_model_rejects_weight_lines_after_bias() {
+        // save_model always writes the bias line last. A weight line after
+        // it would leave the reconstructed bias bucket inconsistent with the
+        // file (the bias of the removed RWCP.model, whose bias line was
+        // first, came out as -0.43 instead of -0.0332), so such a file is
+        // rejected (#267) and the learner keeps its previous model.
         let mut learner = AdaBoost::new(0.01, 10);
-        learner.load_model_from_reader("0.5\nfeat1\t0.5\n".as_bytes()).unwrap();
-        // Bias bucket from the bias line only: -0.5 * 2 - 0 = -1.0.
-        let bias_idx = learner.feature_index[""];
-        assert!((learner.model[bias_idx] + 1.0).abs() < 1e-9);
-        assert!(learner.feature_index.contains_key("feat1"));
+        learner.load_model_from_reader("feat0\t0.25\n0.5\n".as_bytes()).unwrap();
+        let (features, model, bias) =
+            (learner.features.clone(), learner.model.clone(), learner.bias());
+
+        for (content, line) in
+            [("0.5\nfeat1\t0.5\n", "line 2"), ("feat0\t0.1\n0.5\nfeat1\t0.5\n", "line 3")]
+        {
+            match learner.load_model_from_reader(content.as_bytes()) {
+                Err(LitseaError::InvalidData(msg)) => {
+                    assert!(msg.contains("after the bias line"), "{msg}");
+                    assert!(msg.contains(line), "{msg}");
+                }
+                other => panic!("expected InvalidData for {content:?}, got {other:?}"),
+            }
+            assert_eq!(learner.features, features);
+            assert_eq!(learner.model, model);
+            assert_eq!(learner.bias(), bias);
+        }
     }
 
     #[test]

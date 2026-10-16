@@ -38,27 +38,15 @@
 - **アルゴリズム**: 二段構成の単語分割＋品詞推定（二値境界分類器 + 候補タグ語彙表付き単語単位タガー）
 - **詳細**: [事前学習済みモデル](../pre-trained-models.md#japanese_posmodel)を参照
 
-### RWCP.model
-
-- **出典**: オリジナルのTinySegmenterから抽出
-- **ライセンス**: BSD 3-Clause（工藤拓）
-- **サイズ**: 約22 KB
-
-### JEITA_Genpaku_ChaSen_IPAdic.model
-
-- **学習コーパス**: JEITA杉田玄白プロジェクトのコーパス
-- **トークナイザ**: ChaSen（IPAdic辞書使用）
-- **サイズ**: 約16 KB
-
 ## 使用例
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/RWCP.model
+  | litsea segment -l japanese ./models/japanese.model
 ```
 
 出力:
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```

@@ -40,27 +40,15 @@ Patterns are evaluated in order. Notably:
   classifier plus a word-level tagger with a candidate-tag lexicon)
 - **Details**: see [Pre-trained Models](../pre-trained-models.md#japanese_posmodel)
 
-### RWCP.model
-
-- **Source**: Extracted from the original TinySegmenter
-- **License**: BSD 3-Clause (Taku Kudo)
-- **Size**: ~22 KB
-
-### JEITA_Genpaku_ChaSen_IPAdic.model
-
-- **Training corpus**: JEITA Project Sugita Genpaku corpus
-- **Tokenizer**: ChaSen with IPAdic dictionary
-- **Size**: ~16 KB
-
 ## Example
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/RWCP.model
+  | litsea segment -l japanese ./models/japanese.model
 ```
 
 Output:
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```

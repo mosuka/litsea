@@ -122,32 +122,13 @@ the same space-preserving recipe.
 | Boundary F1 (held-out) | 95.64% |
 | File Size | ~2.0 MB |
 
-### RWCP.model
-
-| Property | Value |
-|----------|-------|
-| Language | Japanese |
-| Source | Extracted from the original [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) |
-| License | BSD 3-Clause (Taku Kudo) |
-| File Size | ~22 KB |
-
-### JEITA_Genpaku_ChaSen_IPAdic.model
-
-| Property | Value |
-|----------|-------|
-| Language | Japanese |
-| Training Corpus | JEITA Project Sugita Genpaku corpus |
-| Tokenizer | ChaSen with IPAdic |
-| File Size | ~16 KB |
-
 ## Training Procedure
 
-`RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model` are legacy/compatibility
-models and are trained (or sourced) as before -- see [Training
-Models](training-guide/training-models.md) for the plain AdaBoost procedure.
 `japanese.model`, `chinese.model`, and `korean.model` are retrained with the
 binary-perceptron-collapse procedure (#165), which needs no engine changes
-but does need a few extra steps beyond plain `litsea train`:
+but does need a few extra steps beyond plain `litsea train` (see [Training
+Models](training-guide/training-models.md) for the plain AdaBoost
+procedure):
 
 ```sh
 # 1. Extract plain boundary features (the same step as before). Add
@@ -362,7 +343,7 @@ Output:
 
 ## Choosing a Model
 
-- For **Japanese**, use `japanese.model` for the best accuracy, or `RWCP.model` for compatibility with the original TinySegmenter
+- For **Japanese**, use `japanese.model`
 - For **Chinese**, use `chinese.model`
 - For **Korean**, use `korean.model`
 - For **English**, use `english.model`

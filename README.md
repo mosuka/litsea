@@ -126,16 +126,16 @@ Result Metrics:
 
 ## How to segment sentences into words
 
-Use a trained model to segment sentences. Specify the language with `-l` and the model file. Here we use the bundled `RWCP.model` (the original TinySegmenter model):
+Use a trained model to segment sentences. Specify the language with `-l` and the model file. Here we use the bundled `japanese.model`:
 
 ```sh
-echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment -l japanese ./models/RWCP.model
+echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" | ./target/release/litsea segment -l japanese ./models/japanese.model
 ```
 
 The output is:
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
 For Korean, Chinese, and English:
@@ -261,12 +261,6 @@ The output will look like:
 
 - **japanese_pos.model** / **chinese_pos.model** / **korean_pos.model** / **english_pos.model**
   Two-stage word segmentation and POS tagging models trained on the UD GSD/EWT Treebanks (see [How to train two-stage POS models](#how-to-train-two-stage-pos-models)). Held-out word/tagged-word F1: Japanese 96.78% / 92.95%, Chinese 90.82% / 82.29%, Korean 99.88% / 93.95%, English 98.30% / 90.55%. Korean and English are trained and evaluated on the same space-preserving corpus as `korean.model` and `english.model` above (issue #198), so their word F1 is directly comparable to those models' — see [docs/src/pre-trained-models.md](docs/src/pre-trained-models.md#two-stage-pos-tagging-models) for the protocol notes and the pre-#198 history.
-
-- **JEITA_Genpaku_ChaSen_IPAdic.model**
-  This model is trained using the morphologically analyzed corpus published by the Japan Electronics and Information Technology Industries Association (JEITA). It employs data from Project Sugita Genpaku analyzed with ChaSen+IPAdic.
-
-- **RWCP.model**
-  Extracted from the original [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/), this model contains only the segmentation component.
 
 ## How to retrain existing models
 

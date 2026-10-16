@@ -141,11 +141,7 @@ Use the `--pos` flag with the `train` command. Use `--num-epochs` to set the num
 
 ## Pre-trained models
 
-- **JEITA_Genpaku_ChaSen_IPAdic.model**  
-  This model is trained using the morphologically analyzed corpus published by the Japan Electronics and Information Technology Industries Association (JEITA). It employs data from [Project Sugita Genpaku] analyzed with ChaSen+IPAdic.
-
-- **RWCP.model**  
-  Extracted from the original [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/), this model contains only the segmentation component.
+The repository's `models/` directory holds the bundled segmentation models (`japanese.model`, `chinese.model`, `korean.model`, `english.model`) and two-stage POS models (`*_pos.model`). See [Pre-trained Models](https://mosuka.github.io/litsea/en/pre-trained-models.html) for their training corpora and held-out accuracy.
 
 ## How to retrain existing models
 

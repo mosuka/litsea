@@ -7,7 +7,7 @@
 ## 主な特徴
 
 - **高速かつ安全な Rust 実装** -- Rust の安全性保証とパフォーマンスを活用
-- **コンパクトな学習済みモデル** -- レガシーな `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` はキロバイト級。品質を最適化した `japanese`/`chinese`/`korean`/`english.model` は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ
+- **コンパクトな学習済みモデル** -- 単語分割モデル `japanese`/`chinese`/`korean`/`english.model` は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 経由の配信に十分な小ささ
 - **辞書は不要** -- 統計モデルで分割を実行。任意のユーザー辞書（`UserDictionary`、`segment --user-words`）を使えば、再学習なしに指定した語を 1 トークンにできる
 - **二段構成の品詞推定** -- 二値境界分類器での分割と、候補タグ語彙表 + 単語単位タガーによる各単語のタグ付けを組み合わせ、通常の単語分割にわずかなコストしか追加しない
 - **多言語対応** -- 日本語、中国語（簡体字/繁体字）、韓国語、英語
@@ -22,7 +22,7 @@ Litsea は単語分割を**二値分類問題**として扱います。文中の
 ```text
 Input:  "これはテストです。"
          こ れ は テ ス ト で す 。
-         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (japanese.model)
 Output: ["これ", "は", "テスト", "です", "。"]
 ```
 

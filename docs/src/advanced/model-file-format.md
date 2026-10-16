@@ -31,14 +31,12 @@ UC4:I	0.2345
 When loading a model, the bias is reconstructed using:
 
 ```text
-bias_bucket_weight = -bias_value * 2 - sum(feature_weights_before_the_bias_line)
+bias_bucket_weight = -bias_value * 2 - sum(feature_weights)
 ```
 
-Files written by `save_model` always place the bias line last, so this equals
-the sum of all feature weights. Legacy models (e.g. `RWCP.model`) place the
-bias line mid-file; their trailing weight lines are accepted and the bias
-bucket is computed from the weights preceding the bias line, matching the
-historical loader.
+The bias line must be the last line of the file, as `save_model` writes it,
+so that every feature weight has been read when the bias bucket is
+reconstructed; with this, the model's bias equals the bias line's value.
 
 ## Validation
 
@@ -49,6 +47,7 @@ them silently:
 - a file **without a bias line** (the typical symptom of a truncated
   download or interrupted copy)
 - **more than one** bias line
+- a **weight line after the bias line** (the bias line must be last)
 - **duplicate** feature lines
 - **non-finite** weights or bias values (`NaN`, `inf`, `-inf`), which would
   otherwise poison every score comparison
@@ -125,14 +124,12 @@ Model file sizes vary considerably by model type and language:
 | chinese.model | ~2.0 MB | UD Chinese-GSD |
 | korean.model | ~86 KB | UD Korean-GSD |
 | english.model | ~125 KB | UD English-EWT |
-| RWCP.model | ~22 KB | Original TinySegmenter |
-| JEITA_Genpaku_ChaSen_IPAdic.model | ~16 KB | JEITA corpus |
 | japanese_pos.model | ~5.4 MB | UD Japanese-GSD (two-stage) |
 | chinese_pos.model | ~8.0 MB | UD Chinese-GSD (two-stage) |
 | korean_pos.model | ~5.0 MB | UD Korean-GSD (two-stage) |
 | english_pos.model | ~3.6 MB | UD English-EWT (two-stage) |
 
-`RWCP.model` and `JEITA_Genpaku_ChaSen_IPAdic.model` are genuinely tiny (kilobyte-scale) and are the easiest to embed directly in applications or serve over HTTP with minimal overhead. The retrained `japanese.model`, `chinese.model`, `korean.model`, and `english.model` (see [Pre-trained Models](../pre-trained-models.md)) trade some of that compactness for substantial quality gains: they are now ~86 KB-2.0 MB rather than kilobyte-scale, though still small compared to the multi-megabyte two-stage (`*_pos.model`) models, which are larger because they carry per-class and per-stage weights.
+The segmentation models `japanese.model`, `chinese.model`, `korean.model`, and `english.model` (see [Pre-trained Models](../pre-trained-models.md)) are ~86 KB-2.0 MB, small enough to embed directly in applications or serve over HTTP, and small compared to the multi-megabyte two-stage (`*_pos.model`) models, which are larger because they carry per-class and per-stage weights.
 
 ## Compatibility
 

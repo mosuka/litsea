@@ -827,7 +827,7 @@ impl Segmenter {
     /// use litsea::segmenter::Segmenter;
     ///
     /// let model_file =
-    ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("RWCP.model");
+    ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("japanese.model");
     /// let mut learner = AdaBoost::new(0.01, 100);
     /// learner.load_model_from_path(&model_file).unwrap();
     ///
@@ -879,7 +879,7 @@ impl Segmenter {
     /// use litsea::segmenter::{SegmentBuffer, Segmenter};
     ///
     /// let model_file =
-    ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("RWCP.model");
+    ///     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("japanese.model");
     /// let mut learner = AdaBoost::new(0.01, 100);
     /// learner.load_model_from_path(&model_file).unwrap();
     /// let segmenter = Segmenter::with_learner(Language::Japanese, learner);
@@ -1458,8 +1458,9 @@ mod tests {
     fn test_segment() {
         let sentence = "これはテストです。";
 
-        let model_file =
-            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join("RWCP.model");
+        let model_file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../models")
+            .join("japanese.model");
         let mut learner = AdaBoost::new(0.01, 100);
         learner.load_model_from_path(&model_file).unwrap();
 
@@ -1469,7 +1470,7 @@ mod tests {
 
         assert!(!result.is_empty());
         // "これはテストです。" segments into: "これ", "は", "テスト", "です", "。"
-        // The RWCP model predicts word boundaries after these positions.
+        // japanese.model predicts word boundaries after these positions.
         assert_eq!(result.len(), 5);
         assert_eq!(result[0], "これ");
         assert_eq!(result[1], "は");
@@ -1838,10 +1839,16 @@ mod tests {
             "価格は1000円です。",
             "RustでNLPを実装する。",
         ];
-        for model in ["japanese.model", "RWCP.model", "JEITA_Genpaku_ChaSen_IPAdic.model"] {
-            let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost(model));
-            assert_segment_matches_reference(&segmenter, &sentences);
-            assert_segment_matches_reference(&segmenter, &STRESS_SENTENCES);
+        // japanese.model exercises the WC merged rows; its WC-free copy
+        // exercises the skip of an empty WC table.
+        let without_wc =
+            Segmenter::with_learner(Language::Japanese, load_adaboost_without_wc("japanese.model"));
+        assert!(without_wc.with_packed(|p| p.wc.is_empty()), "WC features must be filtered out");
+        let with_wc = Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"));
+        assert!(with_wc.with_packed(|p| !p.wc.is_empty()));
+        for segmenter in [&with_wc, &without_wc] {
+            assert_segment_matches_reference(segmenter, &sentences);
+            assert_segment_matches_reference(segmenter, &STRESS_SENTENCES);
         }
     }
 
@@ -1880,12 +1887,13 @@ mod tests {
     #[test]
     fn test_segment_differential_bocchan_corpus() {
         // Broad-coverage differential run over real text: the first 100
-        // non-empty lines of bocchan.txt against the RWCP model.
+        // non-empty lines of bocchan.txt against japanese.model.
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
         let text = std::fs::read_to_string(&path).unwrap();
         let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).take(100).collect();
         assert!(!lines.is_empty());
-        let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost("RWCP.model"));
+        let segmenter =
+            Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"));
         assert_segment_matches_reference(&segmenter, &lines);
     }
 
@@ -1925,9 +1933,10 @@ mod tests {
             "価格は1000円です。",
             "RustでNLPを実装する。",
         ];
-        // Tagged path (bundled models with tag features) and legacy models.
-        for model in ["japanese.model", "RWCP.model", "JEITA_Genpaku_ChaSen_IPAdic.model"] {
-            let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost(model));
+        // Tagged path, with and without the WC merged rows.
+        for learner in [load_adaboost("japanese.model"), load_adaboost_without_wc("japanese.model")]
+        {
+            let segmenter = Segmenter::with_learner(Language::Japanese, learner);
             assert_segment_into_matches(&segmenter, &sentences);
             assert_segment_into_matches(&segmenter, &STRESS_SENTENCES);
         }
@@ -1991,6 +2000,24 @@ mod tests {
             .filter(|l| !crate::packed_model::is_tag_dependent_feature(l))
             .collect::<Vec<_>>()
             .join("\n");
+        let mut learner = AdaBoost::default();
+        learner.load_model_from_reader(filtered.as_bytes()).unwrap();
+        learner
+    }
+
+    /// Loads a bundled model with its `WC*` (char/type mixed) feature lines
+    /// filtered out. Every bundled Japanese model carries `WC*` weights, so
+    /// this filtered model is what exercises `segment()`'s skip of an empty
+    /// `WC` table for a language that uses all 42 templates.
+    fn load_adaboost_without_wc(model: &str) -> AdaBoost {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model);
+        let text = std::fs::read_to_string(&path).unwrap();
+        let is_wc = |line: &str| {
+            crate::packed_model::TEMPLATES[crate::packed_model::WC_IDS]
+                .iter()
+                .any(|t| line.strip_prefix(t.prefix).is_some_and(|rest| rest.starts_with(':')))
+        };
+        let filtered: String = text.lines().filter(|l| !is_wc(l)).collect::<Vec<_>>().join("\n");
         let mut learner = AdaBoost::default();
         learner.load_model_from_reader(filtered.as_bytes()).unwrap();
         learner
@@ -2093,8 +2120,10 @@ mod tests {
             Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"));
         let before = segmenter.segment(sentence);
 
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models/RWCP.model");
-        segmenter.learner_mut().load_model_from_path(&path).unwrap();
+        // A one-feature model whose weight forbids a boundary before "テ",
+        // so the merged learner must segment the sentence differently.
+        let model = "UW4:テ\t-1000000\n0\n";
+        segmenter.learner_mut().load_model_from_reader(model.as_bytes()).unwrap();
         let after = segmenter.segment(sentence);
 
         assert_eq!(after, segmenter.segment_reference(sentence));
@@ -2465,16 +2494,19 @@ mod tests {
     fn test_segment_differential_bocchan_full() {
         // Full-corpus differential net for the packed AdaBoost scorer:
         // every non-empty bocchan line must match the string-keyed
-        // reference exactly, for every bundled Japanese model. Added with
-        // the WC merged-row restructuring (#157); japanese.model exercises
-        // the WC scatter path (6384 WC features, per the #165 retraining),
-        // RWCP.model the empty-map skip, and JEITA the small-model path.
+        // reference exactly. Added with the WC merged-row restructuring
+        // (#157); japanese.model exercises the WC scatter path (6384 WC
+        // features, per the #165 retraining) and its WC-free copy the
+        // empty-map skip.
         let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
         let text = std::fs::read_to_string(&path).unwrap();
         let lines: Vec<&str> = text.lines().filter(|l| !l.trim().is_empty()).collect();
         assert!(lines.len() > 400, "bocchan corpus unexpectedly small: {}", lines.len());
-        for model in ["japanese.model", "RWCP.model", "JEITA_Genpaku_ChaSen_IPAdic.model"] {
-            let segmenter = Segmenter::with_learner(Language::Japanese, load_adaboost(model));
+        for (model, learner) in [
+            ("japanese.model", load_adaboost("japanese.model")),
+            ("japanese.model without WC", load_adaboost_without_wc("japanese.model")),
+        ] {
+            let segmenter = Segmenter::with_learner(Language::Japanese, learner);
             let mut diverged = 0usize;
             for line in &lines {
                 if segmenter.segment(line) != segmenter.segment_reference(line) {
