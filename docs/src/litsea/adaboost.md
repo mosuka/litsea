@@ -58,7 +58,7 @@ Returns the maximum number of boosting iterations.
 pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
 ```
 
-Loads model weights from a local file, synchronously. Malformed files (empty, missing bias line, duplicate bias lines or features, non-finite weights) are rejected with `LitseaError::InvalidData`. This is the preferred method for local files -- no async runtime is needed.
+Loads model weights from a local file, synchronously. Malformed files (empty, missing bias line, duplicate bias lines or features, a weight line after the bias line, non-finite weights) are rejected with `LitseaError::InvalidData`. This is the preferred method for local files -- no async runtime is needed.
 
 ```rust
 use std::path::Path;

@@ -125,7 +125,8 @@ bias_value
 - The last line contains the bias term (a single number)
 
 Malformed files (empty, truncated before the bias line, duplicate bias lines or
-features, non-finite weights) are rejected at load time. See
+features, a weight line after the bias line, non-finite weights) are rejected
+at load time. See
 [Model File Format](../advanced/model-file-format.md) for details.
 
 > **This page describes the AdaBoost *training algorithm*.** The file

@@ -7,7 +7,7 @@ Unlike traditional morphological analyzers such as [MeCab](https://taku910.githu
 ## Key Features
 
 - **Fast and safe Rust implementation** -- built with Rust's safety guarantees and performance
-- **Compact pre-trained models** -- the legacy `RWCP.model` / `JEITA_Genpaku_ChaSen_IPAdic.model` files are kilobyte-scale; the quality-optimized `japanese`/`chinese`/`korean`/`english.model` files are ~86 KB-2.0 MB, still small enough to embed directly in applications or serve over HTTP
+- **Compact pre-trained models** -- the `japanese`/`chinese`/`korean`/`english.model` segmentation models are ~86 KB-2.0 MB, small enough to embed directly in applications or serve over HTTP
 - **No dictionary required** -- segmentation is driven by a statistical model; an optional user dictionary (`UserDictionary`, `segment --user-words`) forces words of your choice into single tokens without retraining
 - **Two-stage POS tagging** -- segments with a binary boundary classifier and tags each word via a candidate-tag lexicon plus a word-level tagger, adding little cost over plain segmentation
 - **Multilingual support** -- Japanese, Chinese (Simplified/Traditional), Korean, and English
@@ -22,7 +22,7 @@ Litsea treats word segmentation as a **binary classification problem**: for each
 ```text
 Input:  "これはテストです。"
          こ れ は テ ス ト で す 。
-         B  O  B  B  O  O  B  O  B   ← word-start predictions (RWCP.model)
+         B  O  B  B  O  O  B  O  B   ← word-start predictions (japanese.model)
 Output: ["これ", "は", "テスト", "です", "。"]
 ```
 

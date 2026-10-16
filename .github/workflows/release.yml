@@ -313,8 +313,8 @@ jobs:
           # the `remote_model` feature) and the WebAssembly binding's
           # fetch-then-`fromBytes` flow can point straight at one, and a
           # caller downloads only the language they need rather than 24 MB.
-          # Listed explicitly rather than globbed, so the legacy
-          # RWCP / JEITA compatibility models stay out.
+          # Listed explicitly rather than globbed, so a file added to
+          # models/ is attached only once it is listed here.
           files: |
             models/chinese.model
             models/chinese_pos.model

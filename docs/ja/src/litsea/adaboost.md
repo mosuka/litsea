@@ -58,7 +58,7 @@ pub fn num_iterations(&self) -> usize
 pub fn load_model_from_path(&mut self, path: &Path) -> litsea::Result<()>
 ```
 
-ローカルファイルからモデルの重みを同期的に読み込みます。不正な形式のファイル（空、bias 行の欠落、bias 行や特徴量の重複、非有限の重み）は `LitseaError::InvalidData` で拒否されます。ローカルファイルにはこのメソッドが推奨されます -- 非同期ランタイムは不要です。
+ローカルファイルからモデルの重みを同期的に読み込みます。不正な形式のファイル（空、bias 行の欠落、bias 行や特徴量の重複、bias 行の後の重み行、非有限の重み）は `LitseaError::InvalidData` で拒否されます。ローカルファイルにはこのメソッドが推奨されます -- 非同期ランタイムは不要です。
 
 ```rust
 use std::path::Path;

@@ -38,11 +38,11 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された。" \
-  | litsea segment -l japanese ./models/RWCP.model
+  | litsea segment -l japanese ./models/japanese.model
 ```
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
+Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 。
 ```
 
 **中国語:**

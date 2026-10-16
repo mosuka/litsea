@@ -116,32 +116,12 @@ held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回りま�
 | 境界 F1（held-out） | 95.64% |
 | ファイルサイズ | 約 2.0 MB |
 
-### RWCP.model
-
-| プロパティ | 値 |
-|----------|-------|
-| 言語 | 日本語 |
-| ソース | オリジナルの [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) から抽出 |
-| ライセンス | BSD 3-Clause (Taku Kudo) |
-| ファイルサイズ | 約 22 KB |
-
-### JEITA_Genpaku_ChaSen_IPAdic.model
-
-| プロパティ | 値 |
-|----------|-------|
-| 言語 | 日本語 |
-| 学習コーパス | JEITA プロジェクト 杉田玄白コーパス |
-| トークナイザ | ChaSen with IPAdic |
-| ファイルサイズ | 約 16 KB |
-
 ## 学習手順
 
-`RWCP.model` と `JEITA_Genpaku_ChaSen_IPAdic.model` はレガシー・互換用モデルで、
-従来どおりに学習（または取得）しています -- 通常の AdaBoost 手順は
-[モデルの学習](training-guide/training-models.md)を参照してください。
 `japanese.model`、`chinese.model`、`korean.model` は binary-perceptron 畳み込み手順
 （issue #165）で再学習しています。エンジンの変更は不要ですが、通常の
-`litsea train` に加えて数ステップが必要です:
+`litsea train` に加えて数ステップが必要です（通常の AdaBoost 手順は
+[モデルの学習](training-guide/training-models.md)を参照してください）:
 
 ```sh
 # 1. プレーンな境界特徴量を抽出（従来と同じステップ）。--tag-free を付けると
@@ -356,7 +336,7 @@ echo "これはテストです。" | litsea segment --pos -l japanese models/jap
 
 ## モデルの選択
 
-- **日本語**には、最高精度を求める場合は `japanese.model` を、オリジナルの TinySegmenter との互換性を重視する場合は `RWCP.model` を使用
+- **日本語**には `japanese.model` を使用
 - **中国語**には `chinese.model` を使用
 - **韓国語**には `korean.model` を使用
 - **英語**には `english.model` を使用

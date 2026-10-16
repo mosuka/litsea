@@ -40,6 +40,28 @@
   dictionary column), and the Node.js typings and PHP stubs are
   regenerated.
 
+### Changed (breaking)
+
+- The legacy TinySegmenter models `models/RWCP.model` and
+  `models/JEITA_Genpaku_ChaSen_IPAdic.model` are removed (#267). litsea
+  did not reproduce TinySegmenter with them: on the 543 sentences of the
+  UD Japanese GSD test set, `RWCP.model` matched TinySegmenter 0.2 on 51
+  sentences (Word F1 73.13 against TinySegmenter's 87.19), because of the
+  bias line below, the `TW*` features removed in #59 and the character
+  classes changed in #56, #58 and #134. Neither file was a release asset.
+  Migration: use `models/japanese.model` (Word F1 96.70 on the same
+  sentences); the examples in the docs and READMEs now run it.
+- `AdaBoost::load_model_from_reader` rejects a model file with a weight
+  line after its bias line, returning `LitseaError::InvalidData` that
+  names the line (#267). The loader rebuilt the bias from the weights read
+  before the bias line, so such a file silently loaded with a different
+  bias: `RWCP.model`, whose bias line was first, got -0.43255 instead of
+  -0.0332. #101 had kept that behavior for legacy files. Every loader
+  built on it is affected, including the `[stage1]` section of two-stage
+  models, the CLI and the bindings. `save_model` has always written the
+  bias line last, and every bundled model loads unchanged. Migration: put
+  the bias line last in a hand-written model file.
+
 ## 0.14.3 (2026-09-25)
 
 ### Fixed

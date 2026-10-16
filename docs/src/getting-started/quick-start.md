@@ -6,17 +6,17 @@
 
 Litsea ships with pre-trained models in the `models/` directory. Pipe text into the `segment` command:
 
-**Japanese** (using the bundled `RWCP.model`, the original TinySegmenter model):
+**Japanese** (using the bundled `japanese.model`):
 
 ```sh
 echo "LitseaはTinySegmenterを参考に開発された、Rustで実装された極めてコンパクトな単語分割ソフトウェアです。" \
-  | litsea segment -l japanese ./models/RWCP.model
+  | litsea segment -l japanese ./models/japanese.model
 ```
 
 Output:
 
 ```text
-Litsea は TinySegmenter を 参考 に 開発 さ れ た 、Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
+Litsea は Tiny Segmenter を 参考 に 開発 さ れ た 、 Rust で 実装 さ れ た 極めて コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
 **Chinese:**
@@ -68,7 +68,7 @@ use litsea::segmenter::Segmenter;
 fn main() -> litsea::Result<()> {
     // Load the pre-trained model
     let mut learner = AdaBoost::new(0.01, 100);
-    learner.load_model_from_path(Path::new("./models/RWCP.model"))?;
+    learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 
     // Create a segmenter
     let segmenter = Segmenter::with_learner(Language::Japanese, learner);
