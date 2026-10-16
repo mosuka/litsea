@@ -7,6 +7,7 @@ Litsea is an extremely compact word segmentation and POS (Part-of-Speech) taggin
 - **Word Segmentation** using AdaBoost binary classification on character n-gram features
 - **POS Tagging** with the UPOS (Universal POS) tagset from [Universal Dependencies](https://universaldependencies.org/u/pos/) (17 tags), via a two-stage architecture: a binary boundary classifier plus a word-level tagger with a candidate-tag lexicon (`--pos`)
 - **Multilingual Support** for Japanese, Korean, Chinese, and English
+- **User Dictionary** — force words of your choice into single tokens at runtime, without retraining (`--user-words`, with an optional confidence gate)
 - **Backward Compatible** — existing segmentation-only workflows continue to work as before
 
 ## Language bindings
@@ -142,6 +143,20 @@ echo "한국어 단어 분할 테스트입니다." | ./target/release/litsea seg
 echo "中文分词测试。" | ./target/release/litsea segment -l chinese ./models/chinese.model
 echo "I don't know." | ./target/release/litsea segment -l english ./models/english.model
 ```
+
+To keep specific words together without retraining, pass a user dictionary (a UTF-8 file with one word per line) with `--user-words`:
+
+```sh
+printf '雪だるま\n新幹線\n' > words.txt
+printf '雪だるまを作る\n新幹線で帰る\n' | ./target/release/litsea segment --user-words words.txt -l japanese ./models/japanese.model
+```
+
+```text
+雪だるま を 作る
+新幹線 で 帰る
+```
+
+Without the dictionary, `japanese.model` splits these as `雪 だる ま を 作る` and `新 幹線 で 帰る`. See the [segment](https://mosuka.github.io/litsea/en/litsea-cli/segment.html) documentation for the semantics and the optional `--user-words-gate`.
 
 ## How to segment sentences with POS tagging
 

@@ -4,10 +4,10 @@
 use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use litsea::{Language, SegmentBuffer, Segmenter};
+use litsea::{Language, SegmentBuffer, Segmenter, UserDictionary};
 
 use crate::error::CoreResult;
-use crate::model::{BuiltSegmenter, build_segmenter, read_model_uri};
+use crate::model::{BuiltSegmenter, build_segmenter_with, read_model_uri};
 use crate::token::TokenView;
 
 /// A ready-to-use segmenter with a reusable scratch buffer.
@@ -51,10 +51,33 @@ impl CoreSegmenter {
     /// The new [`CoreSegmenter`].
     ///
     /// # Errors
-    /// Returns the error from [`build_segmenter`] if the bytes are not a
-    /// supported model.
+    /// Returns the error from [`build_segmenter_with`] if the bytes are not
+    /// a supported model.
     pub fn from_bytes(language: Language, bytes: &[u8]) -> CoreResult<Self> {
-        Ok(Self::from_built(build_segmenter(language, bytes)?))
+        Self::from_bytes_with(language, bytes, None)
+    }
+
+    /// Builds a segmenter from raw model bytes with an optional user
+    /// dictionary (issue #263).
+    ///
+    /// # Arguments
+    /// * `language` - The language the model was trained for.
+    /// * `bytes` - The raw model file contents.
+    /// * `dictionary` - Words to emit as single tokens (see
+    ///   [`crate::model::build_user_dictionary`]), or `None`.
+    ///
+    /// # Returns
+    /// The new [`CoreSegmenter`] with the dictionary attached.
+    ///
+    /// # Errors
+    /// Returns the error from [`build_segmenter_with`] if the bytes are not
+    /// a supported model.
+    pub fn from_bytes_with(
+        language: Language,
+        bytes: &[u8],
+        dictionary: Option<UserDictionary>,
+    ) -> CoreResult<Self> {
+        Ok(Self::from_built(build_segmenter_with(language, bytes, dictionary)?))
     }
 
     /// Builds a segmenter from a model file on the local filesystem.
@@ -68,11 +91,33 @@ impl CoreSegmenter {
     ///
     /// # Errors
     /// Returns an I/O error if the file cannot be read, or the error from
-    /// [`build_segmenter`] if its contents are not a supported model.
+    /// [`build_segmenter_with`] if its contents are not a supported model.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn from_path(language: Language, path: &Path) -> CoreResult<Self> {
+        Self::from_path_with(language, path, None)
+    }
+
+    /// Builds a segmenter from a model file with an optional user
+    /// dictionary (issue #263).
+    ///
+    /// # Arguments
+    /// * `language` - The language the model was trained for.
+    /// * `path` - Path to the model file.
+    /// * `dictionary` - Words to emit as single tokens, or `None`.
+    ///
+    /// # Returns
+    /// The new [`CoreSegmenter`] with the dictionary attached.
+    ///
+    /// # Errors
+    /// The same errors as [`CoreSegmenter::from_path`].
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_path_with(
+        language: Language,
+        path: &Path,
+        dictionary: Option<UserDictionary>,
+    ) -> CoreResult<Self> {
         let bytes = crate::model::read_model_file(path)?;
-        Self::from_bytes(language, &bytes)
+        Self::from_bytes_with(language, &bytes, dictionary)
     }
 
     /// Builds a segmenter from a model URI.
@@ -92,8 +137,29 @@ impl CoreSegmenter {
     /// Returns an error if the URI cannot be resolved or its contents are
     /// not a supported model.
     pub async fn from_uri(language: Language, uri: &str) -> CoreResult<Self> {
+        Self::from_uri_with(language, uri, None).await
+    }
+
+    /// Builds a segmenter from a model URI with an optional user dictionary
+    /// (issue #263).
+    ///
+    /// # Arguments
+    /// * `language` - The language the model was trained for.
+    /// * `uri` - The model URI.
+    /// * `dictionary` - Words to emit as single tokens, or `None`.
+    ///
+    /// # Returns
+    /// The new [`CoreSegmenter`] with the dictionary attached.
+    ///
+    /// # Errors
+    /// The same errors as [`CoreSegmenter::from_uri`].
+    pub async fn from_uri_with(
+        language: Language,
+        uri: &str,
+        dictionary: Option<UserDictionary>,
+    ) -> CoreResult<Self> {
         let bytes = read_model_uri(uri).await?;
-        Self::from_bytes(language, &bytes)
+        Self::from_bytes_with(language, &bytes, dictionary)
     }
 
     /// Builds a segmenter from a model URI, blocking until it is loaded.
@@ -113,7 +179,29 @@ impl CoreSegmenter {
     /// cannot be resolved, or if its contents are not a supported model.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn from_uri_blocking(language: Language, uri: &str) -> CoreResult<Self> {
-        crate::runtime::block_on(Self::from_uri(language, uri))?
+        Self::from_uri_blocking_with(language, uri, None)
+    }
+
+    /// Builds a segmenter from a model URI with an optional user dictionary
+    /// (issue #263), blocking until it is loaded.
+    ///
+    /// # Arguments
+    /// * `language` - The language the model was trained for.
+    /// * `uri` - The model URI.
+    /// * `dictionary` - Words to emit as single tokens, or `None`.
+    ///
+    /// # Returns
+    /// The new [`CoreSegmenter`] with the dictionary attached.
+    ///
+    /// # Errors
+    /// The same errors as [`CoreSegmenter::from_uri_blocking`].
+    #[cfg(not(target_arch = "wasm32"))]
+    pub fn from_uri_blocking_with(
+        language: Language,
+        uri: &str,
+        dictionary: Option<UserDictionary>,
+    ) -> CoreResult<Self> {
+        crate::runtime::block_on(Self::from_uri_with(language, uri, dictionary))?
     }
 
     /// Wraps an already-built segmenter.
@@ -483,5 +571,78 @@ mod tests {
         for handle in handles {
             assert_eq!(handle.join().unwrap(), expected);
         }
+    }
+
+    #[test]
+    fn test_user_dictionary_matches_litsea_for_every_constructor() {
+        // #263: the three loaders attach the dictionary alike, and the
+        // output equals `litsea::Segmenter` carrying the same dictionary.
+        let path = model_path("japanese.model");
+        let words = ["雪だるま", "新幹線"];
+        let sentence = "雪だるまと新幹線";
+        let dictionary = || crate::model::build_user_dictionary(&words, None).unwrap();
+
+        let plain = CoreSegmenter::from_path(Language::Japanese, &path).unwrap();
+        let from_path =
+            CoreSegmenter::from_path_with(Language::Japanese, &path, dictionary()).unwrap();
+        let bytes = std::fs::read(&path).unwrap();
+        let from_bytes =
+            CoreSegmenter::from_bytes_with(Language::Japanese, &bytes, dictionary()).unwrap();
+        let from_uri = CoreSegmenter::from_uri_blocking_with(
+            Language::Japanese,
+            &path.display().to_string(),
+            dictionary(),
+        )
+        .unwrap();
+
+        let expected = from_path.segmenter().segment(sentence);
+        assert!(expected.iter().any(|w| w == "雪だるま"), "{expected:?}");
+        assert!(expected.iter().any(|w| w == "新幹線"), "{expected:?}");
+        assert_ne!(expected, plain.segment(sentence), "the dictionary must change the output");
+        assert_eq!(from_path.segment(sentence), expected);
+        assert_eq!(from_bytes.segment(sentence), expected);
+        assert_eq!(from_uri.segment(sentence), expected);
+        assert!(from_path.segmenter().user_dictionary().is_some());
+        assert!(plain.segmenter().user_dictionary().is_none());
+        assert_eq!(from_path.segment_tokens(sentence)[0].surface, "雪だるま");
+    }
+
+    #[test]
+    fn test_user_dictionary_applies_to_pos_model() {
+        let dictionary = crate::model::build_user_dictionary(&["雪だるま"], None).unwrap();
+        let core = CoreSegmenter::from_path_with(
+            Language::Japanese,
+            &model_path("japanese_pos.model"),
+            dictionary,
+        )
+        .unwrap();
+        assert!(core.has_pos());
+        let tokens = core.segment_with_pos("雪だるまを作る").unwrap();
+        assert_eq!(tokens[0].surface, "雪だるま");
+        assert!(tokens[0].pos.is_some());
+        assert_eq!(core.segment("雪だるまを作る")[0], "雪だるま");
+    }
+
+    #[test]
+    fn test_user_dictionary_gate_is_honored() {
+        // Gate 0 applies a word only where the model already agrees;
+        // japanese.model splits 雪だるま, so the output stays the model's.
+        let path = model_path("japanese.model");
+        let sentence = "雪だるまを作る";
+        let plain = CoreSegmenter::from_path(Language::Japanese, &path).unwrap();
+        let gated = CoreSegmenter::from_path_with(
+            Language::Japanese,
+            &path,
+            crate::model::build_user_dictionary(&["雪だるま"], Some(0.0)).unwrap(),
+        )
+        .unwrap();
+        let open = CoreSegmenter::from_path_with(
+            Language::Japanese,
+            &path,
+            crate::model::build_user_dictionary(&["雪だるま"], None).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(gated.segment(sentence), plain.segment(sentence));
+        assert_eq!(open.segment(sentence)[0], "雪だるま");
     }
 }

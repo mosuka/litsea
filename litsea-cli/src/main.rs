@@ -12,7 +12,7 @@
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, BufRead, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,7 +22,7 @@ use clap::{Args, Parser, Subcommand};
 use litsea::version;
 use litsea::{
     AdaBoost, Extractor, Language, LitseaError, PerceptronTrainer, SegmentBuffer, Segmenter,
-    Trainer, TwoStageFeatureSet, TwoStageLearner, TwoStageTrainer, evaluation,
+    Trainer, TwoStageFeatureSet, TwoStageLearner, TwoStageTrainer, UserDictionary, evaluation,
 };
 
 /// Arguments for the extract command.
@@ -139,6 +139,21 @@ struct SegmentArgs {
     #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u16).range(1..))]
     threads: u16,
 
+    /// User dictionary (issue #263): a UTF-8 file with one word per line.
+    /// Every occurrence of a registered word is emitted as one token
+    /// (a boundary at each edge, none inside; overlapping occurrences are
+    /// resolved leftmost-longest). Words of one character and empty lines
+    /// are ignored
+    #[arg(long, value_name = "FILE")]
+    user_words: Option<PathBuf>,
+
+    /// Flip-ratio gate for --user-words, in 0.0..=1.0: an occurrence is
+    /// applied only if the share of the model's margin it overturns is at
+    /// most this value (0.0: only where the model already agrees; 1.0:
+    /// always). Without it every occurrence is applied
+    #[arg(long, value_name = "RATIO", requires = "user_words")]
+    user_words_gate: Option<f64>,
+
     /// Model URI: a plain path, file:// path, or http(s):// URL
     model_uri: String,
 }
@@ -166,6 +181,16 @@ struct EvaluateArgs {
     /// "word/POS" gold formats (see --pos)
     #[arg(long, default_value = "space", value_parser = ["space", "tsv"])]
     format: String,
+
+    /// User dictionary applied during evaluation (issue #263); same file
+    /// format and semantics as `segment --user-words`
+    #[arg(long, value_name = "FILE")]
+    user_words: Option<PathBuf>,
+
+    /// Flip-ratio gate for --user-words, in 0.0..=1.0 (see `segment
+    /// --user-words-gate`)
+    #[arg(long, value_name = "RATIO", requires = "user_words")]
+    user_words_gate: Option<f64>,
 
     /// URI of the model to evaluate (path, file://, or http(s):// with remote_model)
     model_uri: String,
@@ -506,13 +531,15 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
     let mut writer = io::BufWriter::new(stdout.lock());
 
     let threads = usize::from(args.threads);
+    let dictionary = load_user_dictionary(args.user_words.as_deref(), args.user_words_gate)?;
 
     if args.pos {
         // Two-stage segmentation + POS tagging (issue #147). The loader
         // rejects non-two-stage files with a precise error message.
         let mut learner = TwoStageLearner::new();
         learner.load_model(args.model_uri.as_str()).await?;
-        let segmenter = Segmenter::with_two_stage_learner(language, learner);
+        let mut segmenter = Segmenter::with_two_stage_learner(language, learner);
+        segmenter.set_user_dictionary(dictionary);
 
         if threads > 1 {
             // Parallel path (#185): workers need no reusable scratch for
@@ -556,7 +583,8 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
         let mut learner = AdaBoost::new(0.01, 100);
         learner.load_model(args.model_uri.as_str()).await?;
 
-        let segmenter = Segmenter::with_learner(language, learner);
+        let mut segmenter = Segmenter::with_learner(language, learner);
+        segmenter.set_user_dictionary(dictionary);
 
         if threads > 1 {
             // Parallel path (#185): one reusable SegmentBuffer per worker
@@ -627,13 +655,15 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
 async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
     let gold_file = File::open(args.gold_file.as_path())?;
     let reader = io::BufReader::new(gold_file);
+    let dictionary = load_user_dictionary(args.user_words.as_deref(), args.user_words_gate)?;
 
     if args.pos {
         // Two-stage model (#147). The loader rejects non-two-stage files
         // with a precise error message.
         let mut learner = TwoStageLearner::new();
         learner.load_model(args.model_uri.as_str()).await?;
-        let segmenter = Segmenter::with_two_stage_learner(args.language, learner);
+        let mut segmenter = Segmenter::with_two_stage_learner(args.language, learner);
+        segmenter.set_user_dictionary(dictionary);
 
         let tsv = args.format == "tsv";
         let gold = reader
@@ -655,7 +685,8 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
     } else {
         let mut learner = AdaBoost::new(0.01, 100);
         learner.load_model(args.model_uri.as_str()).await?;
-        let segmenter = Segmenter::with_learner(args.language, learner);
+        let mut segmenter = Segmenter::with_learner(args.language, learner);
+        segmenter.set_user_dictionary(dictionary);
 
         let tsv = args.format == "tsv";
         let gold = reader
@@ -676,6 +707,49 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
     }
 
     Ok(())
+}
+
+/// Loads the user dictionary named by `--user-words` (issue #263).
+///
+/// The file holds one word per line in UTF-8. Only the line terminator
+/// (`\n` or `\r\n`) is stripped — a word is matched exactly as written, so
+/// leading or trailing spaces are part of it — empty lines are skipped,
+/// and there is no comment syntax. Words of one character are dropped by
+/// [`UserDictionary::add`].
+///
+/// # Arguments
+/// * `path` - The dictionary file, or `None` when `--user-words` was not
+///   given.
+/// * `gate` - The `--user-words-gate` value, validated by
+///   [`UserDictionary::set_gate`].
+///
+/// # Returns
+/// `Ok(None)` without a path; otherwise the loaded dictionary (possibly
+/// empty, which leaves segmentation unchanged).
+///
+/// # Errors
+/// Returns an error naming the file if it cannot be read, or the
+/// [`LitseaError::InvalidInput`] from `set_gate` if the gate is outside
+/// `0.0..=1.0`.
+fn load_user_dictionary(
+    path: Option<&Path>,
+    gate: Option<f64>,
+) -> Result<Option<UserDictionary>, Box<dyn Error>> {
+    let Some(path) = path else {
+        return Ok(None);
+    };
+    let file = File::open(path)
+        .map_err(|e| format!("cannot read user dictionary {}: {}", path.display(), e))?;
+    let mut dictionary = UserDictionary::new();
+    for line in io::BufReader::new(file).lines() {
+        let word = line?;
+        if word.is_empty() {
+            continue;
+        }
+        dictionary.add(&word);
+    }
+    dictionary.set_gate(gate)?;
+    Ok(Some(dictionary))
 }
 
 /// Parses the command-line arguments and dispatches to the selected

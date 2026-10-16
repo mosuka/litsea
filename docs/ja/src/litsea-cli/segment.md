@@ -21,6 +21,8 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | 品詞推定付き分割を有効にします。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --pos`）が必要です |
 | `--threads <N>` | `1` | バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。`N > 1` では入力行を並列に分割しつつ**入力順で**出力するため、出力はどちらでもバイト単位で同一です（`--pos` の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません |
+| `--user-words <FILE>` | なし | ユーザー辞書（issue #263）。1 行 1 語の UTF-8 ファイル。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。1 文字の語と空行は無視されます |
+| `--user-words-gate <RATIO>` | なし | `--user-words` の flip ratio による gate（`0.0..=1.0`）。語が覆すモデルの margin の割合が `RATIO` 以下のときだけ出現箇所を適用します（`0` = モデルがすでに同意している場所だけ、`1` = 常に）。`--user-words` が必要です |
 
 ## 入力 / 出力
 
@@ -125,6 +127,36 @@ litsea segment --threads 8 -l japanese ./models/japanese.model < corpus.txt > se
 計測のままです — CLI レベルのスレッドスケーリングとエンジンスループットは
 別の数値であり、直接比較しないでください
 （[ベンチマーク](../advanced/benchmarking.md)を参照）。
+
+## ユーザー辞書（`--user-words`）
+
+ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
+ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除き、空行は読み飛ばし、
+コメント構文はありません。1 文字の語は無視されます。
+
+```sh
+printf '雪だるま\n新幹線\n' > words.txt
+printf '雪だるまを作る\n新幹線で帰る\n' \
+  | litsea segment --user-words words.txt -l japanese ./models/japanese.model
+```
+
+```text
+雪だるま を 作る
+新幹線 で 帰る
+```
+
+辞書なしでは `japanese.model` は `雪 だる ま を 作る` と `新 幹線 で 帰る` を
+出力します。辞書は `--pos` でも使え（強制した語は他の語と同じようにタグ付け
+されます。この例では `雪だるま/NOUN を/ADP 作る/VERB`）、`--threads` でも
+出力は逐次実行とバイト単位で同一です。
+
+照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、
+`って` のような 2 文字の断片を語として登録すると、それを含む他の語をすべて
+壊します。短い語や曖昧な語を含む辞書には `--user-words-gate RATIO` を使うと、
+語が覆すモデルの margin の割合が `RATIO` 以下のときだけ出現箇所を適用します。
+`--user-words-gate 0` では上の例はモデル自身の `雪 だる ま を 作る` になります。
+そこではモデルがこの語に同意していないためです。意味論の全体は
+[Segmenter](../litsea/segmenter.md)（「ユーザー辞書」）を参照してください。
 
 ## 注意事項
 

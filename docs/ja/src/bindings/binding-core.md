@@ -14,7 +14,7 @@ litsea-binding-core = "0.14.3"
 ```mermaid
 graph LR
     A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
-    C["litsea_binding_core::model"] --- D["build_segmenter, read_model_file, read_model_uri"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, read_model_file, read_model_uri"]
     E["litsea_binding_core::token"] --- F["TokenView"]
     G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
     I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
@@ -26,7 +26,7 @@ graph LR
 | モジュール | 主な型 | 役割 |
 |-----------|-------|------|
 | `segmenter` | `CoreSegmenter` | 分割と POS タグ付け（単発・バッチ）。バッファを再利用する |
-| `model` | `BuiltSegmenter`, `build_segmenter` | モデルの読み込みと種別判定 |
+| `model` | `BuiltSegmenter`, `build_segmenter`, `build_segmenter_with`, `build_user_dictionary` | モデルの読み込みと種別判定、バインディングが取り付けるユーザー辞書 |
 | `token` | `TokenView` | 表層形・バイトオフセット・UPOS タグ（任意）を持つトークン |
 | `language` | `SUPPORTED_LANGUAGES`, `parse_language` | 言語名のパースと列挙 |
 | `trainer` | `CoreExtractor`, `CoreTrainer`, `CorePerceptronTrainer`, `CoreTwoStageTrainer` | 特徴量抽出と学習（ネイティブターゲットのみ） |
@@ -72,8 +72,14 @@ assert_eq!(
 | `CoreSegmenter::from_path(language, path)` | ネイティブターゲット |
 | `CoreSegmenter::from_uri(language, uri).await` | すべての環境（`http(s)://` は `remote_model` feature が必要） |
 | `CoreSegmenter::from_uri_blocking(language, uri)` | ネイティブターゲット |
+| `CoreSegmenter::from_bytes_with(language, bytes, dictionary)` | wasm32 を含むすべての環境 |
+| `CoreSegmenter::from_path_with(language, path, dictionary)` | ネイティブターゲット |
+| `CoreSegmenter::from_uri_with(language, uri, dictionary).await` | すべての環境（`http(s)://` は `remote_model` feature が必要） |
+| `CoreSegmenter::from_uri_blocking_with(language, uri, dictionary)` | ネイティブターゲット |
 
-いずれも `build_segmenter` を経由し、モデルファイル自身から何を構築するかを決定します。
+`*_with` コンストラクタは `Option<UserDictionary>`（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは `None` の場合です。`build_user_dictionary(words, gate)` は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは `None` になり（セグメンタのホットパスには触れません）、`0.0..=1.0` の外の gate は `ErrorKind::InvalidArgument` エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。意味論は [Segmenter](../litsea/segmenter.md)（「ユーザー辞書」）を参照してください。
+
+いずれも `build_segmenter_with`（`build_segmenter` はその `None` の場合）を経由し、モデルファイル自身から何を構築するかを決定します。
 
 | 判定された種別 | 結果 |
 |--------------|------|
@@ -89,7 +95,7 @@ assert_eq!(
 
 | 種別 | `as_str()` | 発生条件 |
 |------|-----------|---------|
-| `InvalidArgument` | `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ |
+| `InvalidArgument` | `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0..=1.0` の外のユーザー辞書 gate |
 | `Model` | `model` | ダウンロード失敗、または種別の異なるモデル |
 | `Io` | `io` | ファイルの読み書き失敗 |
 | `Parse` | `parse` | モデルまたは学習データの形式不正 |

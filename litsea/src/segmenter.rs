@@ -18,6 +18,16 @@ use crate::packed_model::{
 use crate::packed_two_stage::PackedTwoStageModel;
 use crate::two_stage::TwoStageLearner;
 use crate::upos::{SegmentLabel, Upos};
+use crate::user_dictionary::UserDictionary;
+
+/// `SegmentBuffer::forced` value: the model decides this position.
+const FORCE_NONE: u8 = 0;
+/// `SegmentBuffer::forced` value: a user-dictionary occurrence forces a
+/// boundary here (its first character, or the character after it).
+const FORCE_B: u8 = 1;
+/// `SegmentBuffer::forced` value: a user-dictionary occurrence forbids a
+/// boundary here (a character inside the word).
+const FORCE_O: u8 = 2;
 
 /// Reusable scratch and output storage for
 /// [`Segmenter::segment_into`], the allocation-free variant of
@@ -25,7 +35,8 @@ use crate::upos::{SegmentLabel, Upos};
 ///
 /// A `SegmentBuffer` owns every per-call allocation the segmentation hot
 /// path needs — the packed context arrays, the static score buffer, the
-/// boundary-tag scratch, and the output token ranges. Each `segment_into`
+/// boundary-tag scratch, the user-dictionary scratch (#263), and the output
+/// token ranges. Each `segment_into`
 /// call clears and refills it, so a buffer reused across a batch of
 /// sentences reaches a steady state where segmentation allocates nothing:
 /// every vector keeps the capacity of the longest sentence seen so far.
@@ -48,6 +59,16 @@ pub struct SegmentBuffer {
     /// Boundary-tag scratch for the sequential pass (unused on the
     /// pointwise fast path, #183).
     tags: Vec<u8>,
+    /// User-dictionary occurrences `(start, end)` in real-character
+    /// indices, in start order (#263). Untouched without a dictionary.
+    candidates: Vec<(usize, usize)>,
+    /// Forced decision per context index (`FORCE_NONE` / `FORCE_B` /
+    /// `FORCE_O`) from the user dictionary (#263). Only filled when a
+    /// sentence contains a dictionary occurrence.
+    forced: Vec<u8>,
+    /// Unconstrained sequential-pass scores, scratch for the user
+    /// dictionary's gate on tag-dependent models (#263).
+    free_scores: Vec<f64>,
     /// Output: byte ranges of the segmented tokens, in order.
     ranges: Vec<(usize, usize)>,
 }
@@ -63,6 +84,118 @@ impl SegmentBuffer {
     pub fn new() -> Self {
         Self::default()
     }
+}
+
+/// Writes a forced decision into a `SegmentBuffer::forced` slot.
+///
+/// Leftmost-longest selection never lets two occurrences overlap, and two
+/// adjacent occurrences agree on the shared edge (both force `B`), so a
+/// slot is only ever written with one value; the assertion guards that
+/// invariant in debug builds.
+///
+/// # Arguments
+/// * `slot` - The `forced` entry of a decision position.
+/// * `value` - `FORCE_B` or `FORCE_O`.
+fn force(slot: &mut u8, value: u8) {
+    debug_assert!(
+        *slot == FORCE_NONE || *slot == value,
+        "conflicting forced decisions from the user dictionary"
+    );
+    *slot = value;
+}
+
+/// Computes the flip ratio of a user-dictionary occurrence (#263).
+///
+/// The occurrence `[s, e)` (real-character indices, `e - s >= 2`)
+/// constrains the decision positions at its edges (`s` if `s >= 1`, `e` if
+/// `e < m`) to be boundaries and the positions inside it (`s + 1..e`) not
+/// to be. The ratio is the sum of the absolute unconstrained scores at the
+/// constrained positions whose decision the occurrence would flip, divided
+/// by the sum over all constrained positions; `0.0` when every score is
+/// zero (nothing to overturn).
+///
+/// # Arguments
+/// * `s` - Index of the occurrence's first character.
+/// * `e` - Index one past its last character.
+/// * `m` - Number of real characters in the sentence.
+/// * `free_score` - The unconstrained score at a context index (real
+///   character `r` is at context index `r + 3`); a boundary is
+///   `score >= 0.0`.
+///
+/// # Returns
+/// The flip ratio in `0.0..=1.0`.
+fn flip_ratio(s: usize, e: usize, m: usize, free_score: &impl Fn(usize) -> f64) -> f64 {
+    let mut flipped = 0.0f64;
+    let mut total = 0.0f64;
+    let mut consider = |i: usize, boundary: bool| {
+        let score = free_score(i);
+        let magnitude = score.abs();
+        total += magnitude;
+        if (score >= 0.0) != boundary {
+            flipped += magnitude;
+        }
+    };
+    if s >= 1 {
+        consider(s + 3, true);
+    }
+    if e < m {
+        consider(e + 3, true);
+    }
+    for r in s + 1..e {
+        consider(r + 3, false);
+    }
+    if total > 0.0 { flipped / total } else { 0.0 }
+}
+
+/// Resolves user-dictionary occurrences leftmost-longest and writes the
+/// forced decisions they imply (#263).
+///
+/// Scanning the candidates in start order, the longest candidate starting
+/// at a position not covered by the previously selected occurrence wins.
+/// For a selected `[s, e)`, the decision at `s` (if `s >= 1`) and at `e`
+/// (if `e < m`) is forced to a boundary and the decisions at `s + 1..e`
+/// are forced to no boundary. Real character `r` is decided at context
+/// index `r + 3`; the first character has no decision, and the final word
+/// is closed by the caller.
+///
+/// # Arguments
+/// * `forced` - The per-context-index slots; cleared and resized to `n`.
+/// * `candidates` - Occurrences `(start, end)` sorted by start.
+/// * `n` - Length of the context (real characters plus six sentinels).
+/// * `m` - Number of real characters.
+///
+/// # Returns
+/// `true` if at least one occurrence was selected.
+fn fill_forced(forced: &mut Vec<u8>, candidates: &[(usize, usize)], n: usize, m: usize) -> bool {
+    forced.clear();
+    forced.resize(n, FORCE_NONE);
+    let mut selected = false;
+    let mut last_end = 0usize;
+    let mut k = 0usize;
+    while k < candidates.len() {
+        let s = candidates[k].0;
+        let mut e = candidates[k].1;
+        k += 1;
+        while k < candidates.len() && candidates[k].0 == s {
+            e = e.max(candidates[k].1);
+            k += 1;
+        }
+        if s < last_end {
+            continue;
+        }
+        if s >= 1 {
+            force(&mut forced[s + 3], FORCE_B);
+        }
+        if e < m {
+            force(&mut forced[e + 3], FORCE_B);
+        }
+        for r in s + 1..e {
+            force(&mut forced[r + 3], FORCE_O);
+        }
+        last_end = e;
+        selected = true;
+    }
+    selected
 }
 
 /// Text segmenter supporting two modes: word segmentation via AdaBoost
@@ -101,6 +234,12 @@ pub struct Segmenter {
     /// compilation, invalidate on mutation) rather than mutating this field
     /// directly.
     two_stage: Option<PackedTwoStageModel>,
+    /// Optional user dictionary (#263): registered words that
+    /// [`segment_into`](Self::segment_into) emits as single tokens by
+    /// forcing the boundary decisions at their edges and inside them.
+    /// `None` (or an empty dictionary) leaves the hot path untouched. It
+    /// is independent of `packed`, so setting it invalidates nothing.
+    user_dictionary: Option<UserDictionary>,
 }
 
 // Compile-time assertion: parallel batch callers (e.g. the CLI's
@@ -159,6 +298,7 @@ impl Segmenter {
             learner,
             packed,
             two_stage: None,
+            user_dictionary: None,
         }
     }
 
@@ -191,6 +331,7 @@ impl Segmenter {
             learner: stage1,
             packed,
             two_stage: Some(two_stage),
+            user_dictionary: None,
         }
     }
 
@@ -218,6 +359,61 @@ impl Segmenter {
     pub fn learner_mut(&mut self) -> &mut AdaBoost {
         *self.packed.get_mut().unwrap_or_else(PoisonError::into_inner) = None;
         &mut self.learner
+    }
+
+    /// Attaches a user dictionary (issue #263) and returns the segmenter,
+    /// for builder-style construction.
+    ///
+    /// # Arguments
+    /// * `dictionary` - The words to emit as single tokens; see
+    ///   [`UserDictionary`] for the matching semantics and the gate.
+    ///
+    /// # Returns
+    /// The same segmenter with the dictionary attached.
+    ///
+    /// # Example
+    /// ```
+    /// use litsea::language::Language;
+    /// use litsea::segmenter::Segmenter;
+    /// use litsea::user_dictionary::UserDictionary;
+    ///
+    /// // The untrained default learner splits after every character; the
+    /// // registered word is still emitted whole.
+    /// let segmenter = Segmenter::new(Language::Japanese)
+    ///     .with_user_dictionary(UserDictionary::from_words(["雪だるま"]));
+    /// assert_eq!(segmenter.segment("雪だるまを作る"), vec!["雪だるま", "を", "作", "る"]);
+    /// ```
+    #[must_use]
+    pub fn with_user_dictionary(mut self, dictionary: UserDictionary) -> Self {
+        self.user_dictionary = Some(dictionary);
+        self
+    }
+
+    /// Sets or clears the user dictionary (issue #263).
+    ///
+    /// The dictionary only constrains the boundary decisions of
+    /// [`segment`](Self::segment) / [`segment_into`](Self::segment_into)
+    /// (and therefore of [`segment_with_pos`](Self::segment_with_pos)); the
+    /// compiled scoring table is not involved, so this is cheap to change
+    /// at any time.
+    ///
+    /// # Arguments
+    /// * `dictionary` - `Some(dictionary)` to apply it, `None` to segment
+    ///   with the model alone.
+    pub fn set_user_dictionary(&mut self, dictionary: Option<UserDictionary>) {
+        self.user_dictionary = dictionary;
+    }
+
+    /// Returns the user dictionary, if one is set.
+    ///
+    /// # Returns
+    /// `Some(&dictionary)` after
+    /// [`with_user_dictionary`](Self::with_user_dictionary) or
+    /// [`set_user_dictionary`](Self::set_user_dictionary), `None`
+    /// otherwise.
+    #[must_use]
+    pub fn user_dictionary(&self) -> Option<&UserDictionary> {
+        self.user_dictionary.as_ref()
     }
 
     /// Gets the type of a character based on language-specific rules
@@ -611,6 +807,11 @@ impl Segmenter {
     /// features, e.g. one trained with those templates filtered out) the
     /// sequential pass is skipped entirely (issue #183); output is
     /// unaffected, since the skipped loads would all contribute `0.0`.
+    /// With a user dictionary set
+    /// ([`set_user_dictionary`](Self::set_user_dictionary), issue #263),
+    /// occurrences of registered words override the decisions at their
+    /// edges and inside them (see [`UserDictionary`]); without one, or
+    /// when no registered word occurs, the decisions are the model's alone.
     /// No attribute strings are constructed:
     /// the AdaBoost learner (for a two-stage segmenter, a collapsed
     /// perceptron stored in AdaBoost format) is only consulted for its bias
@@ -810,47 +1011,146 @@ impl Segmenter {
             // char_starts[i - 3]; the final word always ends at the last
             // char_starts entry (the sentence length).
             let static_scores = &buf.static_scores;
+            let t = type_radix;
+            let d = &packed.dense;
+            // Tag-dependent score at decision position i given the three
+            // previous boundary tags. Shared by the unconstrained loop, the
+            // user-dictionary loop, and the gate's free pass below. The
+            // summation order is part of the pinned behavior (f64), so it
+            // must not change. Only called when `packed.has_tag_features`.
+            let tag_score = |i: usize, p1: usize, p2: usize, p3: usize| -> f64 {
+                let (c1, c2, c3, c4) = (
+                    type_ids[i - 3] as usize,
+                    type_ids[i - 2] as usize,
+                    type_ids[i - 1] as usize,
+                    type_ids[i] as usize,
+                );
+                bias + static_scores[i]
+                    + d[0][p1]
+                    + d[1][p2]
+                    + d[2][p3]
+                    + d[3][p1 * 3 + p2]
+                    + d[4][p2 * 3 + p3]
+                    + d[27][p1 * t + c1]
+                    + d[28][p2 * t + c2]
+                    + d[29][p3 * t + c3]
+                    + d[30][(p2 * t + c2) * t + c3]
+                    + d[31][(p2 * t + c3) * t + c4]
+                    + d[32][(p3 * t + c2) * t + c3]
+                    + d[33][(p3 * t + c3) * t + c4]
+                    + d[34][((p2 * t + c1) * t + c2) * t + c3]
+                    + d[35][((p2 * t + c2) * t + c3) * t + c4]
+                    + d[36][((p3 * t + c1) * t + c2) * t + c3]
+                    + d[37][((p3 * t + c2) * t + c3) * t + c4]
+            };
+
+            // ---- User dictionary (#263): occurrences of registered words
+            // become forced decisions — B at both edges, O inside —
+            // resolved leftmost-longest and, with a gate, applied only
+            // where the model's margin against them is small enough. On
+            // the no-dictionary path `has_forced` stays false after a
+            // single Option check and the loops below are the plain ones.
+            let m = n - 6; // real-character count
+            let mut has_forced = false;
+            if let Some(dictionary) = self.user_dictionary.as_ref().filter(|d| !d.is_empty()) {
+                let real_codes = &char_codes[3..n - 3];
+                let candidates = &mut buf.candidates;
+                candidates.clear();
+                for s in 0..m {
+                    dictionary.matches_from(real_codes, s, |e| candidates.push((s, e)));
+                }
+                if !candidates.is_empty() {
+                    if let Some(gate) = dictionary.gate() {
+                        // Free pass: the unconstrained decisions the gate
+                        // compares against. Pointwise models read them off
+                        // the static scores; tag-dependent models need one
+                        // sequential pass (its history ignores the words
+                        // an earlier position may force — a documented
+                        // approximation). The static pass is not repeated.
+                        if packed.has_tag_features {
+                            let free_scores = &mut buf.free_scores;
+                            free_scores.clear();
+                            free_scores.resize(n, 0.0);
+                            let tags = &mut buf.tags;
+                            tags.clear();
+                            tags.extend_from_slice(&[TAG_U; 4]);
+                            for i in 4..=hi {
+                                let (p1, p2, p3) = (
+                                    tags[i - 3] as usize,
+                                    tags[i - 2] as usize,
+                                    tags[i - 1] as usize,
+                                );
+                                let score = tag_score(i, p1, p2, p3);
+                                free_scores[i] = score;
+                                tags.push(if score >= 0.0 { TAG_B } else { TAG_O });
+                            }
+                        }
+                        let free_scores = &buf.free_scores;
+                        let free_score = |i: usize| -> f64 {
+                            if packed.has_tag_features {
+                                free_scores[i]
+                            } else {
+                                bias + static_scores[i]
+                            }
+                        };
+                        candidates.retain(|&(s, e)| flip_ratio(s, e, m, &free_score) <= gate);
+                    }
+                    has_forced = fill_forced(&mut buf.forced, candidates, n, m);
+                }
+            }
+
             let ranges = &mut buf.ranges;
             let mut word_start = 0usize; // real-character index
             if packed.has_tag_features {
-                let t = type_radix;
-                let d = &packed.dense;
                 buf.tags.clear();
                 let tags = &mut buf.tags;
                 tags.extend_from_slice(&[TAG_U; 4]);
+                if has_forced {
+                    let forced = &buf.forced;
+                    for i in 4..=hi {
+                        let (p1, p2, p3) =
+                            (tags[i - 3] as usize, tags[i - 2] as usize, tags[i - 1] as usize);
+                        // A forced decision enters the tag history like a
+                        // model decision, so later positions see it.
+                        let boundary = match forced[i] {
+                            FORCE_B => true,
+                            FORCE_O => false,
+                            _ => tag_score(i, p1, p2, p3) >= 0.0,
+                        };
+                        if boundary {
+                            ranges.push((char_starts[word_start], char_starts[i - 3]));
+                            word_start = i - 3;
+                            tags.push(TAG_B);
+                        } else {
+                            tags.push(TAG_O);
+                        }
+                    }
+                } else {
+                    for i in 4..=hi {
+                        let (p1, p2, p3) =
+                            (tags[i - 3] as usize, tags[i - 2] as usize, tags[i - 1] as usize);
+                        if tag_score(i, p1, p2, p3) >= 0.0 {
+                            ranges.push((char_starts[word_start], char_starts[i - 3]));
+                            word_start = i - 3;
+                            tags.push(TAG_B);
+                        } else {
+                            tags.push(TAG_O);
+                        }
+                    }
+                }
+            } else if has_forced {
+                // Pointwise fast path with forced decisions: no tag
+                // bookkeeping, since no later position would read it.
+                let forced = &buf.forced;
                 for i in 4..=hi {
-                    let (p1, p2, p3) =
-                        (tags[i - 3] as usize, tags[i - 2] as usize, tags[i - 1] as usize);
-                    let (c1, c2, c3, c4) = (
-                        type_ids[i - 3] as usize,
-                        type_ids[i - 2] as usize,
-                        type_ids[i - 1] as usize,
-                        type_ids[i] as usize,
-                    );
-                    let score = bias
-                        + static_scores[i]
-                        + d[0][p1]
-                        + d[1][p2]
-                        + d[2][p3]
-                        + d[3][p1 * 3 + p2]
-                        + d[4][p2 * 3 + p3]
-                        + d[27][p1 * t + c1]
-                        + d[28][p2 * t + c2]
-                        + d[29][p3 * t + c3]
-                        + d[30][(p2 * t + c2) * t + c3]
-                        + d[31][(p2 * t + c3) * t + c4]
-                        + d[32][(p3 * t + c2) * t + c3]
-                        + d[33][(p3 * t + c3) * t + c4]
-                        + d[34][((p2 * t + c1) * t + c2) * t + c3]
-                        + d[35][((p2 * t + c2) * t + c3) * t + c4]
-                        + d[36][((p3 * t + c1) * t + c2) * t + c3]
-                        + d[37][((p3 * t + c2) * t + c3) * t + c4];
-                    if score >= 0.0 {
+                    let boundary = match forced[i] {
+                        FORCE_B => true,
+                        FORCE_O => false,
+                        _ => bias + static_scores[i] >= 0.0,
+                    };
+                    if boundary {
                         ranges.push((char_starts[word_start], char_starts[i - 3]));
                         word_start = i - 3;
-                        tags.push(TAG_B);
-                    } else {
-                        tags.push(TAG_O);
                     }
                 }
             } else {
@@ -873,7 +1173,8 @@ impl Segmenter {
     }
 
     /// Reference implementation of [`segment`](Self::segment) using the
-    /// string-keyed lookup path (the pre-#136 hot loop). Kept test-only as
+    /// string-keyed lookup path (the pre-#136 hot loop, without the user
+    /// dictionary). Kept test-only as
     /// the oracle for differential tests: `segment` must produce identical
     /// output for any model and input.
     #[cfg(test)]
@@ -1822,6 +2123,9 @@ mod tests {
         assert!(!format!("{:?}", segmenter).is_empty());
         let extractor = crate::extractor::Extractor::new(Language::Japanese);
         assert!(!format!("{:?}", extractor).is_empty());
+        // #263: the user dictionary shows up in the segmenter's Debug output.
+        let segmenter = segmenter.with_user_dictionary(UserDictionary::from_words(["あい"]));
+        assert!(format!("{segmenter:?}").contains("user_dictionary: Some("));
     }
 
     #[test]
@@ -1843,6 +2147,317 @@ mod tests {
             called = true;
         });
         assert!(!called);
+    }
+
+    // ---- User dictionary (#263) ----
+
+    /// Builds a segmenter from an inline model text (the format of
+    /// `load_model_from_reader`: `feature\tweight` lines, then the bias).
+    fn synthetic_segmenter(language: Language, model: &str) -> Segmenter {
+        let mut learner = AdaBoost::default();
+        learner.load_model_from_reader(model.as_bytes()).unwrap();
+        Segmenter::with_learner(language, learner)
+    }
+
+    /// Bias −1 and no feature: every decision is O (pointwise), so the
+    /// sentence comes out as one token.
+    const JOIN_ALL: &str = "-1.0\n";
+    /// Bias +1 and no feature: every decision is B (pointwise), one token
+    /// per character.
+    const SPLIT_ALL: &str = "1.0\n";
+    /// Tag-dependent: +0.5 at every position except right after a B
+    /// (−2.5), so `あいうえ` is `あ | いう | え`.
+    const AFTER_B_JOINS: &str = "UP3:B\t-3.0\n0.5\n";
+
+    fn dictionary(words: &[&str], gate: Option<f64>) -> UserDictionary {
+        let mut dictionary = UserDictionary::from_words(words);
+        dictionary.set_gate(gate).unwrap();
+        dictionary
+    }
+
+    /// Segments through `segment` after checking that `segment_into` tiles
+    /// the sentence and agrees with it.
+    fn segment_checked(segmenter: &Segmenter, sentence: &str) -> Vec<String> {
+        assert_segment_into_matches(segmenter, &[sentence]);
+        segmenter.segment(sentence)
+    }
+
+    fn with_dictionary(model: &str, words: &[&str], gate: Option<f64>) -> Segmenter {
+        synthetic_segmenter(Language::Japanese, model).with_user_dictionary(dictionary(words, gate))
+    }
+
+    #[test]
+    fn test_synthetic_models_behave_as_documented() {
+        let join = synthetic_segmenter(Language::Japanese, JOIN_ALL);
+        assert_eq!(segment_checked(&join, "あいうえ"), vec!["あいうえ"]);
+        let split = synthetic_segmenter(Language::Japanese, SPLIT_ALL);
+        assert_eq!(segment_checked(&split, "あいうえ"), vec!["あ", "い", "う", "え"]);
+        let tagged = synthetic_segmenter(Language::Japanese, AFTER_B_JOINS);
+        assert_eq!(segment_checked(&tagged, "あいうえ"), vec!["あ", "いう", "え"]);
+        assert_segment_matches_reference(&tagged, &["あいうえ", "あいうえおか"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_accessors() {
+        let mut segmenter = Segmenter::new(Language::Japanese);
+        assert!(segmenter.user_dictionary().is_none());
+        segmenter.set_user_dictionary(Some(dictionary(&["あい"], Some(0.5))));
+        let dictionary = segmenter.user_dictionary().unwrap();
+        assert!(dictionary.contains("あい"));
+        assert_eq!(dictionary.gate(), Some(0.5));
+        segmenter.set_user_dictionary(None);
+        assert!(segmenter.user_dictionary().is_none());
+        let segmenter = segmenter.with_user_dictionary(UserDictionary::from_words(["うえ"]));
+        assert!(segmenter.user_dictionary().unwrap().contains("うえ"));
+    }
+
+    #[test]
+    fn test_user_dictionary_forces_both_edges() {
+        // The model never splits; the word's edges must still become
+        // boundaries.
+        let segmenter = with_dictionary(JOIN_ALL, &["いう"], None);
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あ", "いう", "え"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_joins_inside() {
+        // The model splits everywhere; nothing inside the word may split,
+        // including the single inside position of a two-character word.
+        let segmenter = with_dictionary(SPLIT_ALL, &["いう"], None);
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あ", "いう", "え"]);
+        let segmenter = with_dictionary(SPLIT_ALL, &["あい"], None);
+        assert_eq!(segment_checked(&segmenter, "あい"), vec!["あい"]);
+        assert_eq!(segment_checked(&segmenter, "あいあい"), vec!["あい", "あい"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_at_every_position() {
+        for (model, unchanged) in
+            [(SPLIT_ALL, vec!["あ", "い", "う", "え"]), (JOIN_ALL, vec!["あいうえ"])]
+        {
+            // Start of the sentence: no decision before the first character.
+            let segmenter = with_dictionary(model, &["あい"], None);
+            let expected = if model == SPLIT_ALL {
+                vec!["あい", "う", "え"]
+            } else {
+                vec!["あい", "うえ"]
+            };
+            assert_eq!(segment_checked(&segmenter, "あいうえ"), expected, "{model:?}");
+            // End of the sentence: the final word is closed by the caller.
+            let segmenter = with_dictionary(model, &["うえ"], None);
+            let expected = if model == SPLIT_ALL {
+                vec!["あ", "い", "うえ"]
+            } else {
+                vec!["あい", "うえ"]
+            };
+            assert_eq!(segment_checked(&segmenter, "あいうえ"), expected, "{model:?}");
+            // The whole sentence.
+            let segmenter = with_dictionary(model, &["あいうえ"], None);
+            assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あいうえ"], "{model:?}");
+            // Two adjacent words share the forced edge.
+            let segmenter = with_dictionary(model, &["あい", "うえ"], None);
+            assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あい", "うえ"], "{model:?}");
+            // A word longer than the sentence, or absent from it, changes
+            // nothing.
+            let segmenter = with_dictionary(model, &["あいうえお", "かき"], None);
+            assert_eq!(segment_checked(&segmenter, "あいうえ"), unchanged, "{model:?}");
+        }
+    }
+
+    #[test]
+    fn test_user_dictionary_leftmost_longest() {
+        // Overlap: the leftmost occurrence wins, and among the words
+        // starting there the longest.
+        let segmenter = with_dictionary(SPLIT_ALL, &["あい", "いうえ"], None);
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あい", "う", "え"]);
+        let segmenter = with_dictionary(SPLIT_ALL, &["あい", "あいう"], None);
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あいう", "え"]);
+        let segmenter = with_dictionary(SPLIT_ALL, &["雪だる", "だるま"], None);
+        assert_eq!(
+            segment_checked(&segmenter, "雪だるまを作る"),
+            vec!["雪だる", "ま", "を", "作", "る"]
+        );
+        // After a selected word, matching resumes at its end.
+        let segmenter = with_dictionary(SPLIT_ALL, &["あい", "うえ", "いう"], None);
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あい", "うえ"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_ignores_single_characters() {
+        let dictionary = dictionary(&["あ", "い"], None);
+        assert!(dictionary.is_empty());
+        let segmenter =
+            synthetic_segmenter(Language::Japanese, JOIN_ALL).with_user_dictionary(dictionary);
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あいうえ"]);
+        let segmenter = with_dictionary(SPLIT_ALL, &["あ"], None);
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あ", "い", "う", "え"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_gate_on_pointwise_model() {
+        // SPLIT_ALL scores +1.0 everywhere. `いう` in `あいうえ` constrains
+        // three positions (B, O, B) and flips one: ratio 1/3.
+        for (gate, expected) in [
+            (Some(0.5), vec!["あ", "いう", "え"]),
+            (Some(0.3), vec!["あ", "い", "う", "え"]),
+            (None, vec!["あ", "いう", "え"]),
+        ] {
+            let segmenter = with_dictionary(SPLIT_ALL, &["いう"], gate);
+            assert_eq!(segment_checked(&segmenter, "あいうえ"), expected, "gate {gate:?}");
+        }
+        // The whole sentence flips every constrained position: ratio 1.0.
+        let segmenter = with_dictionary(SPLIT_ALL, &["あいうえ"], Some(1.0));
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あいうえ"]);
+        let segmenter = with_dictionary(SPLIT_ALL, &["あいうえ"], Some(0.99));
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あ", "い", "う", "え"]);
+        // When the longest word is rejected, a shorter one at the same
+        // start can still apply: `いうえ` flips 2 of 4 (0.5 > 0.4), `いう`
+        // flips 1 of 3.
+        let segmenter = with_dictionary(SPLIT_ALL, &["いう", "いうえ"], Some(0.4));
+        assert_eq!(segment_checked(&segmenter, "あいうえお"), vec!["あ", "いう", "え", "お"]);
+        // JOIN_ALL scores −1.0 everywhere: `いう` flips both edges but not
+        // the inside, ratio 2/3.
+        let segmenter = with_dictionary(JOIN_ALL, &["いう"], Some(0.5));
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あいうえ"]);
+        let segmenter = with_dictionary(JOIN_ALL, &["いう"], Some(0.7));
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あ", "いう", "え"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_gate_on_tag_dependent_model() {
+        // AFTER_B_JOINS decides あ | いう | え with margins 0.5, 2.5, 0.5.
+        // `いう` agrees with every decision: ratio 0, applied even at gate 0.
+        let segmenter = with_dictionary(AFTER_B_JOINS, &["いう"], Some(0.0));
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あ", "いう", "え"]);
+        // `あい` flips both of its constrained positions (0.5 inside, 2.5 at
+        // its end): ratio 1.0.
+        let segmenter = with_dictionary(AFTER_B_JOINS, &["あい"], Some(0.9));
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あ", "いう", "え"]);
+        let segmenter = with_dictionary(AFTER_B_JOINS, &["あい"], Some(1.0));
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あい", "うえ"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_forced_tags_enter_the_history() {
+        // With `あい` forced, the B at `う` is in the history when `え` is
+        // decided, so the model joins `うえ`. Pushing the model's own tag
+        // (O) instead would split `う | え`.
+        let segmenter = with_dictionary(AFTER_B_JOINS, &["あい"], None);
+        assert_eq!(segment_checked(&segmenter, "あいうえ"), vec!["あい", "うえ"]);
+        // The positions after the word are still the model's: `新幹線誕生日`
+        // style — the forced B at `誕` then `生 | 日` by the model.
+        let segmenter = with_dictionary(AFTER_B_JOINS, &["あい"], None);
+        assert_eq!(segment_checked(&segmenter, "あいうえお"), vec!["あい", "うえ", "お"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_empty_or_absent_equals_no_dictionary() {
+        let sentences =
+            ["これはテストです。", "東京都に住んでいます。", "価格は1000円です。", "字"];
+        let loaders: [fn(&str) -> AdaBoost; 2] = [load_adaboost, load_adaboost_tag_free];
+        for load in loaders {
+            let plain = Segmenter::with_learner(Language::Japanese, load("japanese.model"));
+            let empty = Segmenter::with_learner(Language::Japanese, load("japanese.model"))
+                .with_user_dictionary(UserDictionary::default());
+            let absent = Segmenter::with_learner(Language::Japanese, load("japanese.model"))
+                .with_user_dictionary(dictionary(&["存在しない語", "xyzzy"], Some(0.5)));
+            for sentence in sentences.iter().chain(STRESS_SENTENCES.iter()) {
+                let want = plain.segment(sentence);
+                assert_eq!(
+                    segment_checked(&empty, sentence),
+                    want,
+                    "empty dictionary on {sentence:?}"
+                );
+                assert_eq!(
+                    segment_checked(&absent, sentence),
+                    want,
+                    "absent words on {sentence:?}"
+                );
+            }
+            assert_segment_matches_reference(&empty, &sentences);
+            assert_segment_matches_reference(&absent, &sentences);
+        }
+    }
+
+    #[test]
+    fn test_user_dictionary_buffer_reuse_is_stateless() {
+        // Dictionary scratch (candidates, forced slots, free scores) must
+        // not leak between sentences: a hit, then a miss, then a hit at a
+        // different offset, with and without a gate, on both branches.
+        let words = ["雪だるま", "新幹線"];
+        let sequence =
+            ["雪だるまを作る", "こんにちは", "東京の新幹線と雪だるま", "", "雪だるま", "字"];
+        let loaders: [fn(&str) -> AdaBoost; 2] = [load_adaboost, load_adaboost_tag_free];
+        for load in loaders {
+            for gate in [None, Some(0.5)] {
+                let segmenter = Segmenter::with_learner(Language::Japanese, load("japanese.model"))
+                    .with_user_dictionary(dictionary(&words, gate));
+                let mut reused = SegmentBuffer::new();
+                for sentence in sequence {
+                    let got: Vec<(usize, usize)> =
+                        segmenter.segment_into(sentence, &mut reused).to_vec();
+                    let mut fresh = SegmentBuffer::new();
+                    let want = segmenter.segment_into(sentence, &mut fresh);
+                    assert_eq!(got, want, "reused buffer diverged on {sentence:?} (gate {gate:?})");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_user_dictionary_word_with_space() {
+        let segmenter = synthetic_segmenter(Language::English, SPLIT_ALL)
+            .with_user_dictionary(dictionary(&["New York"], None));
+        assert_eq!(segment_checked(&segmenter, "in New York"), vec!["i", "n", " ", "New York"]);
+    }
+
+    #[test]
+    fn test_user_dictionary_applies_to_segment_with_pos() {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../models")
+            .join("japanese_pos.model");
+        let mut learner = TwoStageLearner::new();
+        learner.load_model_from_path(&path).unwrap();
+        let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner)
+            .with_user_dictionary(dictionary(&["雪だるま"], None));
+        let tagged = segmenter.segment_with_pos("雪だるまを作る").unwrap();
+        let words: Vec<&str> = tagged.iter().map(|(word, _)| word.as_str()).collect();
+        assert_eq!(words, segment_checked(&segmenter, "雪だるまを作る"));
+        assert_eq!(words[0], "雪だるま");
+    }
+
+    #[test]
+    fn test_user_dictionary_with_bundled_model() {
+        let segmenter =
+            Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"));
+        // Baselines pinned so the dictionary cases below are meaningful.
+        assert_eq!(
+            segment_checked(&segmenter, "雪だるまを作る"),
+            vec!["雪", "だる", "ま", "を", "作る"]
+        );
+        assert_eq!(segment_checked(&segmenter, "新幹線で帰る"), vec!["新", "幹線", "で", "帰る"]);
+        assert_eq!(segment_checked(&segmenter, "山中野球部"), vec!["山中", "野球", "部"]);
+        assert_eq!(
+            segment_checked(&segmenter, "私の名前は中野です"),
+            vec!["私", "の", "名前", "は", "中野", "です"]
+        );
+        let segmenter = segmenter.with_user_dictionary(dictionary(&["雪だるま", "新幹線"], None));
+        assert_eq!(segment_checked(&segmenter, "雪だるまを作る"), vec!["雪だるま", "を", "作る"]);
+        assert_eq!(segment_checked(&segmenter, "新幹線で帰る"), vec!["新幹線", "で", "帰る"]);
+        // Context-free matching: `中野` is applied inside `山中野球部`
+        // without a gate, and skipped with gate 0 (the model disagrees),
+        // while `中野` in `私の名前は中野です` is applied either way.
+        let mut segmenter = segmenter;
+        segmenter.set_user_dictionary(Some(dictionary(&["中野"], None)));
+        let forced = segment_checked(&segmenter, "山中野球部");
+        assert!(forced.iter().any(|w| w == "中野"), "{forced:?}");
+        assert_ne!(forced, vec!["山中", "野球", "部"]);
+        segmenter.set_user_dictionary(Some(dictionary(&["中野"], Some(0.0))));
+        assert_eq!(segment_checked(&segmenter, "山中野球部"), vec!["山中", "野球", "部"]);
+        assert_eq!(
+            segment_checked(&segmenter, "私の名前は中野です"),
+            vec!["私", "の", "名前", "は", "中野", "です"]
+        );
     }
 
     #[test]

@@ -1,5 +1,34 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `litsea segment --user-words FILE` and `litsea evaluate --user-words FILE`
+  (#263): a user dictionary that forces registered words into single
+  tokens at runtime, without retraining. An occurrence of a registered
+  word gets a boundary at each edge and none inside, overlapping
+  occurrences are resolved leftmost-longest, and the forced decisions
+  enter the model's boundary-tag history like model decisions, so
+  tag-dependent models keep consistent features. The optional
+  `--user-words-gate RATIO` applies an occurrence only if the share of
+  the model's margin it would overturn is at most `RATIO`, which guards
+  dictionaries that contain short entries without per-model tuning. In
+  the library the dictionary is `litsea::UserDictionary`, attached with
+  `Segmenter::with_user_dictionary` / `set_user_dictionary` and honored
+  by `segment`, `segment_into` and `segment_with_pos`;
+  `litsea-binding-core` adds `build_user_dictionary`,
+  `build_segmenter_with` and the `*_with` constructors of
+  `CoreSegmenter` for the bindings, which expose the option in a
+  follow-up. Without a dictionary the segmentation hot path is one check
+  per sentence and the differential tests still pin bit-identical output.
+  Measured with `litsea evaluate` on the 543 sentences of the UD Japanese
+  GSD test set with `japanese.model` (Word F1 96.70 without a
+  dictionary): an oracle dictionary of the 259 gold words of two or more
+  characters that the model misses scores 96.54 as is (two-character
+  fragments break other words) and 98.20 with gate 0.5; its 126 words of
+  three or more characters score 98.14 as is and 98.07 with gate 0.5.
+
 ## 0.14.3 (2026-09-25)
 
 ### Fixed

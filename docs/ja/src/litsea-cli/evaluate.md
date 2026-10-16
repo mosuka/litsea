@@ -32,6 +32,8 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 | `-l`, `--language <LANGUAGE>` | `japanese` | モデルとゴールドコーパスの言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | 単語分割と品詞推定を同時に評価します。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --pos`）が必要です。ゴールド形式は下記の `--format` と組み合わせて選択します |
 | `--format <FORMAT>` | `space` | ゴールドコーパスの形式。`--pos` なしの場合: `space`（スペース区切りトークン）または `tsv`（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。`--pos` ありの場合: `space` は `"word/POS word/POS ..."`（二段構成の学習コーパス形式、無空白）を、`tsv` はタブ区切りの `"word/POS"` トークン（トークンは空白文字も可）を選択します（issue #196/#198。韓国語・英語の二段構成モデルが現在学習に使っている空白保持形式であり、これらの言語では学習時と実際の入力の双方に一致するプロトコルです） |
+| `--user-words <FILE>` | なし | 評価時に適用するユーザー辞書（issue #263）。ファイル形式と意味論は [`segment --user-words`](segment.md) と同じです |
+| `--user-words-gate <RATIO>` | なし | `--user-words` の flip ratio による gate（`0.0..=1.0`。`segment --user-words-gate` 参照）。`--user-words` が必要です |
 
 ## メトリクス
 
@@ -73,6 +75,15 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+```
+
+同じゴールドでユーザー辞書の効果を測ります — 辞書は `segment --user-words`
+と全く同じように適用されるため、メトリクスはその辞書の利用者が得るものその
+ものです:
+
+```sh
+litsea evaluate --user-words words.txt -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+litsea evaluate --user-words words.txt --user-words-gate 0.5 -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 ```
 
 韓国語・英語では、`--pos` 単体は #198 以前に二段構成モデルが学習に使っていた

@@ -14,7 +14,7 @@ litsea-binding-core = "0.14.3"
 ```mermaid
 graph LR
     A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
-    C["litsea_binding_core::model"] --- D["build_segmenter, read_model_file, read_model_uri"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, read_model_file, read_model_uri"]
     E["litsea_binding_core::token"] --- F["TokenView"]
     G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
     I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
@@ -26,7 +26,7 @@ graph LR
 | Module | Primary Types | Purpose |
 |--------|--------------|---------|
 | `segmenter` | `CoreSegmenter` | Segmentation and POS tagging, single and batch, with a reusable buffer |
-| `model` | `BuiltSegmenter`, `build_segmenter` | Model loading and model-kind detection |
+| `model` | `BuiltSegmenter`, `build_segmenter`, `build_segmenter_with`, `build_user_dictionary` | Model loading, model-kind detection, and the user dictionary the bindings attach |
 | `token` | `TokenView` | Token with surface, byte offsets, and optional UPOS tag |
 | `language` | `SUPPORTED_LANGUAGES`, `parse_language` | Language-name parsing and enumeration |
 | `trainer` | `CoreExtractor`, `CoreTrainer`, `CorePerceptronTrainer`, `CoreTwoStageTrainer` | Feature extraction and training (native targets only) |
@@ -72,8 +72,14 @@ Note that `segment_with_pos_batch` cannot amortize allocations the way `segment_
 | `CoreSegmenter::from_path(language, path)` | Native targets |
 | `CoreSegmenter::from_uri(language, uri).await` | Everywhere (`http(s)://` needs the `remote_model` feature) |
 | `CoreSegmenter::from_uri_blocking(language, uri)` | Native targets |
+| `CoreSegmenter::from_bytes_with(language, bytes, dictionary)` | Everywhere, including wasm32 |
+| `CoreSegmenter::from_path_with(language, path, dictionary)` | Native targets |
+| `CoreSegmenter::from_uri_with(language, uri, dictionary).await` | Everywhere (`http(s)://` needs the `remote_model` feature) |
+| `CoreSegmenter::from_uri_blocking_with(language, uri, dictionary)` | Native targets |
 
-All of them go through `build_segmenter`, which decides what to build from the model file itself:
+The `*_with` constructors take an `Option<UserDictionary>` (issue #263) and attach it to the built segmenter; the plain constructors are the `None` case. `build_user_dictionary(words, gate)` is the shared helper that turns a host's word list and optional gate into that dictionary: an empty list yields `None` (so the segmenter's hot path stays untouched), and a gate outside `0.0..=1.0` is an `ErrorKind::InvalidArgument` error — also with an empty list, so a bad gate is never ignored. See [Segmenter](../litsea/segmenter.md) ("User Dictionary") for the semantics.
+
+All of them go through `build_segmenter_with` (`build_segmenter` is its `None` case), which decides what to build from the model file itself:
 
 | Detected kind | Result |
 |---------------|--------|
@@ -89,7 +95,7 @@ Because the bytes are read once and then dispatched, a remote model is downloade
 
 | Kind | `as_str()` | Raised when |
 |------|-----------|-------------|
-| `InvalidArgument` | `invalid_argument` | Unknown language name, unknown feature set, unusable trainer |
+| `InvalidArgument` | `invalid_argument` | Unknown language name, unknown feature set, unusable trainer, user-dictionary gate outside `0.0..=1.0` |
 | `Model` | `model` | Failed download, or a model of the wrong kind |
 | `Io` | `io` | A file could not be read or written |
 | `Parse` | `parse` | Malformed model or training data |

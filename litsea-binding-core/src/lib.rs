@@ -58,7 +58,9 @@ pub use error::{CoreError, CoreResult, ErrorKind};
 pub use language::{SUPPORTED_LANGUAGES, language_name, parse_language, supported_language_names};
 #[cfg(not(target_arch = "wasm32"))]
 pub use model::read_model_file;
-pub use model::{BuiltSegmenter, build_segmenter, read_model_uri};
+pub use model::{
+    BuiltSegmenter, build_segmenter, build_segmenter_with, build_user_dictionary, read_model_uri,
+};
 pub use segmenter::CoreSegmenter;
 pub use token::TokenView;
 #[cfg(not(target_arch = "wasm32"))]
