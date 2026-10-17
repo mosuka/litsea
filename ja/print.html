@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-693943b7.js";
+            window.path_to_searchindex_js = "searchindex-0be47bf7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -391,7 +391,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
 <ul>
 <li><strong>辞書は不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルだけで分割する。その上に、任意のユーザー辞書で特定の語を 1 トークンに強制できる（<code>segment --user-words</code>、issue #263）</li>
-<li><strong>コンパクトなモデル</strong> – 単語分割モデル <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB（精度は<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）。二段構成の品詞モデルは約 3.6-8 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
+<li><strong>コンパクトなモデル</strong> – 単語分割モデル <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB（精度は<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照）。二段構成の品詞モデルは約 3.1-8.3 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
 <li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
 <li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
 </ul>
@@ -825,7 +825,7 @@ feature2\tclass2\tweight2
 <tr><td>重みの管理</td><td>特徴量ごとに1つの重み</td><td>クラス×特徴量の重み行列</td></tr>
 <tr><td>汎化手法</td><td>アンサンブル</td><td>重みの平均化</td></tr>
 <tr><td>学習方式</td><td>サンプル再重み付けによる反復ブースティング</td><td>重み平均化によるオンライン学習</td></tr>
-<tr><td>モデルサイズ</td><td>約 86 KB〜2.0 MB（japanese/chinese/korean/english.model）</td><td>約 3.6-8 MB（二段構成モデル）</td></tr>
+<tr><td>モデルサイズ</td><td>約 86 KB〜2.0 MB（japanese/chinese/korean/english.model）</td><td>約 3.1-8.3 MB（二段構成モデル）</td></tr>
 <tr><td>ハイパーパラメータ</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>
@@ -4062,7 +4062,7 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
 <h2 id="設計方針"><a class="header" href="#設計方針">設計方針</a></h2>
 <p>以下はすべてのバインディングに共通します。</p>
 <h3 id="モデルは同梱しない"><a class="header" href="#モデルは同梱しない">モデルは同梱しない</a></h3>
-<p>バインディングのパッケージにはコードのみを含めます。モデルは呼び出し側がバイト列・ファイルパス・<code>file://</code> パス・<code>http(s)://</code> URL のいずれかで渡します。同梱モデルは 1 つあたり 84KB〜8MB あり、4 言語分を埋め込むと wheel や npm パッケージが 20MB を超えてしまうためです。外部に置くことで、バインディングを再公開せずにモデルだけを更新できるという利点もあります。</p>
+<p>バインディングのパッケージにはコードのみを含めます。モデルは呼び出し側がバイト列・ファイルパス・<code>file://</code> パス・<code>http(s)://</code> URL のいずれかで渡します。同梱モデルは 1 つあたり 86KB〜8.3MB あり、4 言語分を埋め込むと wheel や npm パッケージが 20MB を超えてしまうためです。外部に置くことで、バインディングを再公開せずにモデルだけを更新できるという利点もあります。</p>
 <p>モデルの入手方法は<a href="#事前学習済みモデル">事前学習済みモデル</a>を参照してください。</p>
 <h3 id="モデル種別は宣言ではなく判定する"><a class="header" href="#モデル種別は宣言ではなく判定する">モデル種別は宣言ではなく判定する</a></h3>
 <p>CLI では、分割モデルと二段構成 POS モデルのどちらを読み込むかを <code>--pos</code> で指定する必要があります。バインディングではこれが不要です。モデルのバイト列を 1 度だけ読んで種別を判定するため、<code>has_pos</code> は「呼び出し側が正しく指定すべき情報」ではなく「読み込んだモデルの性質」になります。</p>
@@ -4733,7 +4733,7 @@ seg.segment('雪だるまを作る')
 <h2 id="メモリ"><a class="header" href="#メモリ">メモリ</a></h2>
 <p><code>Segmenter</code> はコンパイル済みモデル（POS モデルなら数 MB）を保持し、WebAssembly のオブジェクトは <strong>GC されません</strong>。不要になったら <code>free()</code> を呼んでください。</p>
 <h2 id="モデルのキャッシュ"><a class="header" href="#モデルのキャッシュ">モデルのキャッシュ</a></h2>
-<p>モデルは 84KB〜8MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。補助モジュールを同梱しています。</p>
+<p>モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。補助モジュールを同梱しています。</p>
 <pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
@@ -5447,10 +5447,10 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 <tr><td>chinese.model</td><td>約 2.0 MB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>korean.model</td><td>約 86 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>english.model</td><td>約 125 KB</td><td>UD English-EWT</td></tr>
-<tr><td>japanese_pos.model</td><td>約 5.4 MB</td><td>UD Japanese-GSD（二段構成）</td></tr>
-<tr><td>chinese_pos.model</td><td>約 8.0 MB</td><td>UD Chinese-GSD（二段構成）</td></tr>
-<tr><td>korean_pos.model</td><td>約 5.0 MB</td><td>UD Korean-GSD（二段構成）</td></tr>
-<tr><td>english_pos.model</td><td>約 3.6 MB</td><td>UD English-EWT（二段構成）</td></tr>
+<tr><td>japanese_pos.model</td><td>約 5.7 MB</td><td>UD Japanese-GSD（二段構成）</td></tr>
+<tr><td>chinese_pos.model</td><td>約 8.3 MB</td><td>UD Chinese-GSD（二段構成）</td></tr>
+<tr><td>korean_pos.model</td><td>約 4.1 MB</td><td>UD Korean-GSD（二段構成）</td></tr>
+<tr><td>english_pos.model</td><td>約 3.1 MB</td><td>UD English-EWT（二段構成）</td></tr>
 </tbody>
 </table>
 </div>
@@ -5549,7 +5549,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <tbody>
 <tr><td><code>segment_short/adaboost/{japanese,chinese,korean,english}</code></td><td>短い文の分割（AdaBoost）</td></tr>
 <tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean,english}</code></td><td>短い文の分割+品詞付与</td></tr>
-<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>坊っちゃん全文の処理（約 300 KB）</td></tr>
+<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>坊っちゃん全文の処理（約 314 KB）</td></tr>
 <tr><td><code>external_corpus/*</code></td><td>tokenizer-speed-bench と同一のコーパススループット計測（後述）</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>文字種分類</td></tr>
 <tr><td><code>add_corpus</code></td><td>学習用コーパスの取り込み</td></tr>
@@ -5677,7 +5677,7 @@ chars/sec は CLI のスレッドスケーリングについて何も語りま�
 https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese_pos.model
 ...
 </code></pre>
-<p>これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 24MB に対し、1 つあたり 84KB〜8MB）。これにより次の 2 つが可能になります。</p>
+<p>これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 25MB に対し、1 つあたり 86KB〜8.3MB）。これにより次の 2 つが可能になります。</p>
 <ul>
 <li><code>remote_model</code> feature を有効にすれば、CLI やライブラリが URL を直接受け取れます: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code></li>
 <li><code>fromUri</code> を持たない <a href="#webassembly">WebAssembly バインディング</a>でも、ページ側で <code>fetch</code> してバイト列を <code>Segmenter.fromBytes</code> に渡せます</li>
@@ -5914,7 +5914,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 <tr><td>単語 F1（held-out）</td><td>96.78%</td></tr>
 <tr><td>タグ付き単語 F1（held-out）</td><td>92.95%</td></tr>
 <tr><td>スループット</td><td>4.38M chars/s</td></tr>
-<tr><td>ファイルサイズ</td><td>約 5.4 MB</td></tr>
+<tr><td>ファイルサイズ</td><td>約 5.7 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -5932,7 +5932,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 <tr><td>単語 F1（held-out）</td><td>90.82%</td></tr>
 <tr><td>タグ付き単語 F1（held-out）</td><td>82.29%</td></tr>
 <tr><td>スループット</td><td>3.38M chars/s</td></tr>
-<tr><td>ファイルサイズ</td><td>約 8.0 MB</td></tr>
+<tr><td>ファイルサイズ</td><td>約 8.3 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -5950,7 +5950,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 <tr><td>単語 F1（held-out）</td><td>99.88%</td></tr>
 <tr><td>タグ付き単語 F1（held-out）</td><td>93.95%</td></tr>
 <tr><td>スループット</td><td>4.21M chars/s</td></tr>
-<tr><td>ファイルサイズ</td><td>約 4.0 MB</td></tr>
+<tr><td>ファイルサイズ</td><td>約 4.1 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -6031,7 +6031,7 @@ stage 1 は、英語のほぼすべての語境界を示す空白文字を一度
 <h2 id="サンプルデータ"><a class="header" href="#サンプルデータ">サンプルデータ</a></h2>
 <p><code>resources/</code> ディレクトリには以下も含まれています:</p>
 <ul>
-<li><strong>bocchan.txt</strong> – 坊っちゃん（夏目漱石）、約 307 KB。<code>segment_long_japanese</code> ベンチマークと差分テストに使用。</li>
+<li><strong>bocchan.txt</strong> – 坊っちゃん（夏目漱石）、約 314 KB。<code>segment_long_japanese</code> ベンチマークと差分テストに使用。</li>
 <li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。</li>
 <li><strong>mujeong.txt</strong> – 무정（李光洙、1917）、約 786 KB、ko.wikisource。</li>
 <li><strong>rulin_waishi.txt</strong> – 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。</li>

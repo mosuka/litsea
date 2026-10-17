@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5e65aac3.js";
+            window.path_to_searchindex_js = "searchindex-0eba1dd5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -201,7 +201,7 @@
 <h2 id="design-principles"><a class="header" href="#design-principles">Design principles</a></h2>
 <p>These apply to every binding.</p>
 <h3 id="models-are-never-embedded"><a class="header" href="#models-are-never-embedded">Models are never embedded</a></h3>
-<p>A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a <code>file://</code> path, or an <code>http(s)://</code> URL. The bundled models range from 84 KB to 8 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.</p>
+<p>A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a <code>file://</code> path, or an <code>http(s)://</code> URL. The bundled models range from 86 KB to 8.3 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.</p>
 <p>See <a href="pre-trained-models.html">Pre-trained Models</a> for where to get a model.</p>
 <h3 id="the-model-kind-is-detected-not-declared"><a class="header" href="#the-model-kind-is-detected-not-declared">The model kind is detected, not declared</a></h3>
 <p>The CLI needs <code>--pos</code> to know whether it is loading a segmentation model or a two-stage POS model. Bindings do not: they read the model bytes once and dispatch on the detected kind, so <code>has_pos</code> is a property of the loaded model rather than something the caller has to get right.</p>

@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5e65aac3.js";
+            window.path_to_searchindex_js = "searchindex-0eba1dd5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -392,7 +392,7 @@ fn main() -&gt; litsea::Result&lt;()&gt; {
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
 <li><strong>No dictionary required</strong> – Unlike MeCab or Lindera, Litsea segments with a statistical model learned from character patterns alone; an optional user dictionary can force specific words into single tokens on top of it (<code>segment --user-words</code>, issue #263)</li>
-<li><strong>Compact models</strong> – the word-segmentation models <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> are ~86 KB-2.0 MB (see <a href="#pre-trained-models-4">Pre-trained Models</a> for their accuracy); two-stage POS models are ~3.6-8 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
+<li><strong>Compact models</strong> – the word-segmentation models <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> are ~86 KB-2.0 MB (see <a href="#pre-trained-models-4">Pre-trained Models</a> for their accuracy); two-stage POS models are ~3.1-8.3 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
 <li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
 <li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
 </ul>
@@ -831,7 +831,7 @@ always produces byte-identical files; loading does not depend on the order</li>
 <tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
 <tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>
 <tr><td>Training</td><td>Iterative boosting with sample reweighting</td><td>Online learning with weight averaging</td></tr>
-<tr><td>Model size</td><td>~86 KB-2.0 MB (japanese/chinese/korean/english.model)</td><td>~3.6-8 MB (two-stage models)</td></tr>
+<tr><td>Model size</td><td>~86 KB-2.0 MB (japanese/chinese/korean/english.model)</td><td>~3.1-8.3 MB (two-stage models)</td></tr>
 <tr><td>Hyperparameters</td><td><code>threshold</code>, <code>num_iterations</code></td><td><code>num_epochs</code></td></tr>
 </tbody>
 </table>
@@ -4428,7 +4428,7 @@ published numbers (see
 <h2 id="design-principles-1"><a class="header" href="#design-principles-1">Design principles</a></h2>
 <p>These apply to every binding.</p>
 <h3 id="models-are-never-embedded"><a class="header" href="#models-are-never-embedded">Models are never embedded</a></h3>
-<p>A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a <code>file://</code> path, or an <code>http(s)://</code> URL. The bundled models range from 84 KB to 8 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.</p>
+<p>A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a <code>file://</code> path, or an <code>http(s)://</code> URL. The bundled models range from 86 KB to 8.3 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.</p>
 <p>See <a href="#pre-trained-models-4">Pre-trained Models</a> for where to get a model.</p>
 <h3 id="the-model-kind-is-detected-not-declared"><a class="header" href="#the-model-kind-is-detected-not-declared">The model kind is detected, not declared</a></h3>
 <p>The CLI needs <code>--pos</code> to know whether it is loading a segmentation model or a two-stage POS model. Bindings do not: they read the model bytes once and dispatch on the detected kind, so <code>has_pos</code> is a property of the loaded model rather than something the caller has to get right.</p>
@@ -5099,7 +5099,7 @@ seg.segment('雪だるまを作る')
 <h2 id="memory"><a class="header" href="#memory">Memory</a></h2>
 <p><code>Segmenter</code> holds the compiled model, which is several megabytes for a POS model, and WebAssembly objects are <strong>not</strong> garbage collected. Call <code>free()</code> when one is no longer needed.</p>
 <h2 id="caching-models"><a class="header" href="#caching-models">Caching models</a></h2>
-<p>Models are 84 KB – 8 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper:</p>
+<p>Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper:</p>
 <pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
@@ -5848,10 +5848,10 @@ above, and the parameter range, and reports errors with the section name
 <tr><td>chinese.model</td><td>~2.0 MB</td><td>UD Chinese-GSD</td></tr>
 <tr><td>korean.model</td><td>~86 KB</td><td>UD Korean-GSD</td></tr>
 <tr><td>english.model</td><td>~125 KB</td><td>UD English-EWT</td></tr>
-<tr><td>japanese_pos.model</td><td>~5.4 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
-<tr><td>chinese_pos.model</td><td>~8.0 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
-<tr><td>korean_pos.model</td><td>~5.0 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
-<tr><td>english_pos.model</td><td>~3.6 MB</td><td>UD English-EWT (two-stage)</td></tr>
+<tr><td>japanese_pos.model</td><td>~5.7 MB</td><td>UD Japanese-GSD (two-stage)</td></tr>
+<tr><td>chinese_pos.model</td><td>~8.3 MB</td><td>UD Chinese-GSD (two-stage)</td></tr>
+<tr><td>korean_pos.model</td><td>~4.1 MB</td><td>UD Korean-GSD (two-stage)</td></tr>
+<tr><td>english_pos.model</td><td>~3.1 MB</td><td>UD English-EWT (two-stage)</td></tr>
 </tbody>
 </table>
 </div>
@@ -5953,7 +5953,7 @@ file system access is unavailable, so <code>read_file_bytes</code> returns an
 <tbody>
 <tr><td><code>segment_short/adaboost/{japanese,chinese,korean,english}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
 <tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean,english}</code></td><td>Segment + POS tag a short sentence</td></tr>
-<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~300 KB)</td></tr>
+<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~314 KB)</td></tr>
 <tr><td><code>external_corpus/*</code></td><td>Corpus throughput, mirroring tokenizer-speed-bench (see below)</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>Character type classification</td></tr>
 <tr><td><code>add_corpus</code></td><td>Corpus ingestion for training</td></tr>
@@ -6089,7 +6089,7 @@ representative.</p>
 https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese_pos.model
 ...
 </code></pre>
-<p>Those URLs are stable per release, and small enough to fetch only what you need (84 KB to 8 MB each, rather than 24 MB for all eight). Two consequences:</p>
+<p>Those URLs are stable per release, and small enough to fetch only what you need (86 KB to 8.3 MB each, rather than 25 MB for all eight). Two consequences:</p>
 <ul>
 <li>With the <code>remote_model</code> feature, the CLI and the library take one directly: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code>.</li>
 <li>The <a href="#webassembly">WebAssembly binding</a>, which has no <code>fromUri</code>, can <code>fetch</code> one in the page and pass the bytes to <code>Segmenter.fromBytes</code>.</li>
@@ -6333,7 +6333,7 @@ note</a>).</p>
 <tr><td>Word F1 (held-out)</td><td>96.78%</td></tr>
 <tr><td>Tagged Word F1 (held-out)</td><td>92.95%</td></tr>
 <tr><td>Throughput</td><td>4.38M chars/s</td></tr>
-<tr><td>File Size</td><td>~5.4 MB</td></tr>
+<tr><td>File Size</td><td>~5.7 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -6351,7 +6351,7 @@ note</a>).</p>
 <tr><td>Word F1 (held-out)</td><td>90.82%</td></tr>
 <tr><td>Tagged Word F1 (held-out)</td><td>82.29%</td></tr>
 <tr><td>Throughput</td><td>3.38M chars/s</td></tr>
-<tr><td>File Size</td><td>~8.0 MB</td></tr>
+<tr><td>File Size</td><td>~8.3 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -6369,7 +6369,7 @@ note</a>).</p>
 <tr><td>Word F1 (held-out)</td><td>99.88%</td></tr>
 <tr><td>Tagged Word F1 (held-out)</td><td>93.95%</td></tr>
 <tr><td>Throughput</td><td>4.21M chars/s</td></tr>
-<tr><td>File Size</td><td>~4.0 MB</td></tr>
+<tr><td>File Size</td><td>~4.1 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -6449,7 +6449,7 @@ segmentation quality).</li>
 <h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>
 <p>The <code>resources/</code> directory also contains sample data used for benchmarking:</p>
 <ul>
-<li><strong>bocchan.txt</strong> – 坊っちゃん (Natsume Soseki), ~307 KB. Used by the <code>segment_long_japanese</code> benchmarks and differential tests.</li>
+<li><strong>bocchan.txt</strong> – 坊っちゃん (Natsume Soseki), ~314 KB. Used by the <code>segment_long_japanese</code> benchmarks and differential tests.</li>
 <li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である (Natsume Soseki), ~1.1 MB, Aozora Bunko.</li>
 <li><strong>mujeong.txt</strong> – 무정 (Yi Kwang-su, 1917), ~786 KB, ko.wikisource.</li>
 <li><strong>rulin_waishi.txt</strong> – 儒林外史 (Wu Jingzi), ~985 KB, zh.wikisource.</li>

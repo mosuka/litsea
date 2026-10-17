@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5e65aac3.js";
+            window.path_to_searchindex_js = "../searchindex-0eba1dd5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -241,7 +241,7 @@ seg.segment('雪だるまを作る')
 <h2 id="memory"><a class="header" href="#memory">Memory</a></h2>
 <p><code>Segmenter</code> holds the compiled model, which is several megabytes for a POS model, and WebAssembly objects are <strong>not</strong> garbage collected. Call <code>free()</code> when one is no longer needed.</p>
 <h2 id="caching-models"><a class="header" href="#caching-models">Caching models</a></h2>
-<p>Models are 84 KB – 8 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper:</p>
+<p>Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper:</p>
 <pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')

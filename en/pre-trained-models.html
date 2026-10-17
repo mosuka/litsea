@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5e65aac3.js";
+            window.path_to_searchindex_js = "searchindex-0eba1dd5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -188,7 +188,7 @@
 https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese_pos.model
 ...
 </code></pre>
-<p>Those URLs are stable per release, and small enough to fetch only what you need (84 KB to 8 MB each, rather than 24 MB for all eight). Two consequences:</p>
+<p>Those URLs are stable per release, and small enough to fetch only what you need (86 KB to 8.3 MB each, rather than 25 MB for all eight). Two consequences:</p>
 <ul>
 <li>With the <code>remote_model</code> feature, the CLI and the library take one directly: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code>.</li>
 <li>The <a href="bindings/wasm.html">WebAssembly binding</a>, which has no <code>fromUri</code>, can <code>fetch</code> one in the page and pass the bytes to <code>Segmenter.fromBytes</code>.</li>
@@ -432,7 +432,7 @@ note</a>).</p>
 <tr><td>Word F1 (held-out)</td><td>96.78%</td></tr>
 <tr><td>Tagged Word F1 (held-out)</td><td>92.95%</td></tr>
 <tr><td>Throughput</td><td>4.38M chars/s</td></tr>
-<tr><td>File Size</td><td>~5.4 MB</td></tr>
+<tr><td>File Size</td><td>~5.7 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -450,7 +450,7 @@ note</a>).</p>
 <tr><td>Word F1 (held-out)</td><td>90.82%</td></tr>
 <tr><td>Tagged Word F1 (held-out)</td><td>82.29%</td></tr>
 <tr><td>Throughput</td><td>3.38M chars/s</td></tr>
-<tr><td>File Size</td><td>~8.0 MB</td></tr>
+<tr><td>File Size</td><td>~8.3 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -468,7 +468,7 @@ note</a>).</p>
 <tr><td>Word F1 (held-out)</td><td>99.88%</td></tr>
 <tr><td>Tagged Word F1 (held-out)</td><td>93.95%</td></tr>
 <tr><td>Throughput</td><td>4.21M chars/s</td></tr>
-<tr><td>File Size</td><td>~4.0 MB</td></tr>
+<tr><td>File Size</td><td>~4.1 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -548,7 +548,7 @@ segmentation quality).</li>
 <h2 id="sample-data"><a class="header" href="#sample-data">Sample Data</a></h2>
 <p>The <code>resources/</code> directory also contains sample data used for benchmarking:</p>
 <ul>
-<li><strong>bocchan.txt</strong> – 坊っちゃん (Natsume Soseki), ~307 KB. Used by the <code>segment_long_japanese</code> benchmarks and differential tests.</li>
+<li><strong>bocchan.txt</strong> – 坊っちゃん (Natsume Soseki), ~314 KB. Used by the <code>segment_long_japanese</code> benchmarks and differential tests.</li>
 <li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である (Natsume Soseki), ~1.1 MB, Aozora Bunko.</li>
 <li><strong>mujeong.txt</strong> – 무정 (Yi Kwang-su, 1917), ~786 KB, ko.wikisource.</li>
 <li><strong>rulin_waishi.txt</strong> – 儒林外史 (Wu Jingzi), ~985 KB, zh.wikisource.</li>

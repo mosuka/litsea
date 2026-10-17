@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-693943b7.js";
+            window.path_to_searchindex_js = "searchindex-0be47bf7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -201,7 +201,7 @@
 <h2 id="設計方針"><a class="header" href="#設計方針">設計方針</a></h2>
 <p>以下はすべてのバインディングに共通します。</p>
 <h3 id="モデルは同梱しない"><a class="header" href="#モデルは同梱しない">モデルは同梱しない</a></h3>
-<p>バインディングのパッケージにはコードのみを含めます。モデルは呼び出し側がバイト列・ファイルパス・<code>file://</code> パス・<code>http(s)://</code> URL のいずれかで渡します。同梱モデルは 1 つあたり 84KB〜8MB あり、4 言語分を埋め込むと wheel や npm パッケージが 20MB を超えてしまうためです。外部に置くことで、バインディングを再公開せずにモデルだけを更新できるという利点もあります。</p>
+<p>バインディングのパッケージにはコードのみを含めます。モデルは呼び出し側がバイト列・ファイルパス・<code>file://</code> パス・<code>http(s)://</code> URL のいずれかで渡します。同梱モデルは 1 つあたり 86KB〜8.3MB あり、4 言語分を埋め込むと wheel や npm パッケージが 20MB を超えてしまうためです。外部に置くことで、バインディングを再公開せずにモデルだけを更新できるという利点もあります。</p>
 <p>モデルの入手方法は<a href="pre-trained-models.html">事前学習済みモデル</a>を参照してください。</p>
 <h3 id="モデル種別は宣言ではなく判定する"><a class="header" href="#モデル種別は宣言ではなく判定する">モデル種別は宣言ではなく判定する</a></h3>
 <p>CLI では、分割モデルと二段構成 POS モデルのどちらを読み込むかを <code>--pos</code> で指定する必要があります。バインディングではこれが不要です。モデルのバイト列を 1 度だけ読んで種別を判定するため、<code>has_pos</code> は「呼び出し側が正しく指定すべき情報」ではなく「読み込んだモデルの性質」になります。</p>

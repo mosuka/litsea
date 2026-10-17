@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-693943b7.js";
+            window.path_to_searchindex_js = "../searchindex-0be47bf7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -241,7 +241,7 @@ seg.segment('雪だるまを作る')
 <h2 id="メモリ"><a class="header" href="#メモリ">メモリ</a></h2>
 <p><code>Segmenter</code> はコンパイル済みモデル（POS モデルなら数 MB）を保持し、WebAssembly のオブジェクトは <strong>GC されません</strong>。不要になったら <code>free()</code> を呼んでください。</p>
 <h2 id="モデルのキャッシュ"><a class="header" href="#モデルのキャッシュ">モデルのキャッシュ</a></h2>
-<p>モデルは 84KB〜8MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。補助モジュールを同梱しています。</p>
+<p>モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。補助モジュールを同梱しています。</p>
 <pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')

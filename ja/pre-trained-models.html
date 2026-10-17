@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-693943b7.js";
+            window.path_to_searchindex_js = "searchindex-0be47bf7.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -188,7 +188,7 @@
 https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese_pos.model
 ...
 </code></pre>
-<p>これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 24MB に対し、1 つあたり 84KB〜8MB）。これにより次の 2 つが可能になります。</p>
+<p>これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 25MB に対し、1 つあたり 86KB〜8.3MB）。これにより次の 2 つが可能になります。</p>
 <ul>
 <li><code>remote_model</code> feature を有効にすれば、CLI やライブラリが URL を直接受け取れます: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code></li>
 <li><code>fromUri</code> を持たない <a href="bindings/wasm.html">WebAssembly バインディング</a>でも、ページ側で <code>fetch</code> してバイト列を <code>Segmenter.fromBytes</code> に渡せます</li>
@@ -425,7 +425,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 <tr><td>単語 F1（held-out）</td><td>96.78%</td></tr>
 <tr><td>タグ付き単語 F1（held-out）</td><td>92.95%</td></tr>
 <tr><td>スループット</td><td>4.38M chars/s</td></tr>
-<tr><td>ファイルサイズ</td><td>約 5.4 MB</td></tr>
+<tr><td>ファイルサイズ</td><td>約 5.7 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -443,7 +443,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 <tr><td>単語 F1（held-out）</td><td>90.82%</td></tr>
 <tr><td>タグ付き単語 F1（held-out）</td><td>82.29%</td></tr>
 <tr><td>スループット</td><td>3.38M chars/s</td></tr>
-<tr><td>ファイルサイズ</td><td>約 8.0 MB</td></tr>
+<tr><td>ファイルサイズ</td><td>約 8.3 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -461,7 +461,7 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 <tr><td>単語 F1（held-out）</td><td>99.88%</td></tr>
 <tr><td>タグ付き単語 F1（held-out）</td><td>93.95%</td></tr>
 <tr><td>スループット</td><td>4.21M chars/s</td></tr>
-<tr><td>ファイルサイズ</td><td>約 4.0 MB</td></tr>
+<tr><td>ファイルサイズ</td><td>約 4.1 MB</td></tr>
 </tbody>
 </table>
 </div>
@@ -542,7 +542,7 @@ stage 1 は、英語のほぼすべての語境界を示す空白文字を一度
 <h2 id="サンプルデータ"><a class="header" href="#サンプルデータ">サンプルデータ</a></h2>
 <p><code>resources/</code> ディレクトリには以下も含まれています:</p>
 <ul>
-<li><strong>bocchan.txt</strong> – 坊っちゃん（夏目漱石）、約 307 KB。<code>segment_long_japanese</code> ベンチマークと差分テストに使用。</li>
+<li><strong>bocchan.txt</strong> – 坊っちゃん（夏目漱石）、約 314 KB。<code>segment_long_japanese</code> ベンチマークと差分テストに使用。</li>
 <li><strong>wagahaiwa_nekodearu.txt</strong> – 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。</li>
 <li><strong>mujeong.txt</strong> – 무정（李光洙、1917）、約 786 KB、ko.wikisource。</li>
 <li><strong>rulin_waishi.txt</strong> – 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。</li>
