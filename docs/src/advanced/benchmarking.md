@@ -22,7 +22,7 @@ The benchmarks are defined in `litsea/benches/bench.rs`:
 |-----------|------------|
 | `segment_short/adaboost/{japanese,chinese,korean,english}` | Segment a short sentence (AdaBoost) |
 | `segment_short/averaged_perceptron/{japanese,chinese,korean,english}` | Segment + POS tag a short sentence |
-| `segment_long_japanese/{adaboost,averaged_perceptron}` | Process the full Bocchan novel (~300 KB) |
+| `segment_long_japanese/{adaboost,averaged_perceptron}` | Process the full Bocchan novel (~314 KB) |
 | `external_corpus/*` | Corpus throughput, mirroring tokenizer-speed-bench (see below) |
 | `char_type_hiragana` | Character type classification |
 | `add_corpus` | Corpus ingestion for training |

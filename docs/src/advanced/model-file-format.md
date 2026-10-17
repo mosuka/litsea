@@ -124,10 +124,10 @@ Model file sizes vary considerably by model type and language:
 | chinese.model | ~2.0 MB | UD Chinese-GSD |
 | korean.model | ~86 KB | UD Korean-GSD |
 | english.model | ~125 KB | UD English-EWT |
-| japanese_pos.model | ~5.4 MB | UD Japanese-GSD (two-stage) |
-| chinese_pos.model | ~8.0 MB | UD Chinese-GSD (two-stage) |
-| korean_pos.model | ~5.0 MB | UD Korean-GSD (two-stage) |
-| english_pos.model | ~3.6 MB | UD English-EWT (two-stage) |
+| japanese_pos.model | ~5.7 MB | UD Japanese-GSD (two-stage) |
+| chinese_pos.model | ~8.3 MB | UD Chinese-GSD (two-stage) |
+| korean_pos.model | ~4.1 MB | UD Korean-GSD (two-stage) |
+| english_pos.model | ~3.1 MB | UD English-EWT (two-stage) |
 
 The segmentation models `japanese.model`, `chinese.model`, `korean.model`, and `english.model` (see [Pre-trained Models](../pre-trained-models.md)) are ~86 KB-2.0 MB, small enough to embed directly in applications or serve over HTTP, and small compared to the multi-megabyte two-stage (`*_pos.model`) models, which are larger because they carry per-class and per-stage weights.
 

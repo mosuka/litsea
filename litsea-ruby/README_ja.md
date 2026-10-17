@@ -24,8 +24,8 @@ gem にはコードのみが含まれます。事前学習済みモデルは [Li
 
 | モデル | 用途 | サイズ |
 |-------|------|-------|
-| `japanese.model`, `chinese.model`, `korean.model`, `english.model` | 分割 | 84KB〜2.0MB |
-| `japanese_pos.model`, `chinese_pos.model`, `korean_pos.model`, `english_pos.model` | 分割 + POS | 3.0〜8.0MB |
+| `japanese.model`, `chinese.model`, `korean.model`, `english.model` | 分割 | 86KB〜2.0MB |
+| `japanese_pos.model`, `chinese_pos.model`, `korean_pos.model`, `english_pos.model` | 分割 + POS | 3.1〜8.3MB |
 
 どちらの種別かを指定する必要はありません。モデルファイル自身が種別を持っており、読み込んだモデルで何ができるかは `has_pos?` が示します。
 

@@ -56,7 +56,7 @@ new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.
 
 ### モデルのキャッシュ
 
-モデルは 84KB〜8MB あり、訪問者ごとにネットワークを通ります。Cache Storage に保持する補助モジュールを同梱しています。
+モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。Cache Storage に保持する補助モジュールを同梱しています。
 
 ```js
 import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'

@@ -132,7 +132,7 @@ feature2\tclass2\tweight2
 | Weight management | One weight per feature | Class x feature weight matrix |
 | Generalization | Ensemble | Weight averaging |
 | Training | Iterative boosting with sample reweighting | Online learning with weight averaging |
-| Model size | ~86 KB-2.0 MB (japanese/chinese/korean/english.model) | ~3.6-8 MB (two-stage models) |
+| Model size | ~86 KB-2.0 MB (japanese/chinese/korean/english.model) | ~3.1-8.3 MB (two-stage models) |
 | Hyperparameters | `threshold`, `num_iterations` | `num_epochs` |
 
 ## Hyperparameters

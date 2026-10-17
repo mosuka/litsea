@@ -101,7 +101,7 @@ fn read_file_bytes(_path: &str) -> Result<Vec<u8>> {
 
 /// Maximum accepted size of a remotely downloaded model (256 MiB).
 ///
-/// The largest shipped model is ~19 MB; the cap is a generous safety bound
+/// The largest shipped model is ~8.3 MB; the cap is a generous safety bound
 /// that prevents a misconfigured or malicious URL from buffering an
 /// unbounded body in memory.
 #[cfg(feature = "remote_model")]

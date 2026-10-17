@@ -119,10 +119,10 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 | chinese.model | 約 2.0 MB | UD Chinese-GSD |
 | korean.model | 約 86 KB | UD Korean-GSD |
 | english.model | 約 125 KB | UD English-EWT |
-| japanese_pos.model | 約 5.4 MB | UD Japanese-GSD（二段構成） |
-| chinese_pos.model | 約 8.0 MB | UD Chinese-GSD（二段構成） |
-| korean_pos.model | 約 5.0 MB | UD Korean-GSD（二段構成） |
-| english_pos.model | 約 3.6 MB | UD English-EWT（二段構成） |
+| japanese_pos.model | 約 5.7 MB | UD Japanese-GSD（二段構成） |
+| chinese_pos.model | 約 8.3 MB | UD Chinese-GSD（二段構成） |
+| korean_pos.model | 約 4.1 MB | UD Korean-GSD（二段構成） |
+| english_pos.model | 約 3.1 MB | UD English-EWT（二段構成） |
 
 単語分割モデル `japanese.model`・`chinese.model`・`korean.model`・`english.model`（[事前学習済みモデル](../pre-trained-models.md)を参照）は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 配信に十分な小ささです。二段構成モデル（`*_pos.model`）の数メガバイトに比べても小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。
 

@@ -12,7 +12,7 @@ https://github.com/mosuka/litsea/releases/download/<tag>/japanese_pos.model
 ...
 ```
 
-これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 24MB に対し、1 つあたり 84KB〜8MB）。これにより次の 2 つが可能になります。
+これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 25MB に対し、1 つあたり 86KB〜8.3MB）。これにより次の 2 つが可能になります。
 
 - `remote_model` feature を有効にすれば、CLI やライブラリが URL を直接受け取れます: `litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model`
 - `fromUri` を持たない [WebAssembly バインディング](bindings/wasm.md)でも、ページ側で `fetch` してバイト列を `Segmenter.fromBytes` に渡せます
@@ -241,7 +241,7 @@ held-out 行は UD GSD/EWT テスト分割に対して `litsea evaluate --pos` �
 | 単語 F1（held-out） | 96.78% |
 | タグ付き単語 F1（held-out） | 92.95% |
 | スループット | 4.38M chars/s |
-| ファイルサイズ | 約 5.4 MB |
+| ファイルサイズ | 約 5.7 MB |
 
 ### chinese_pos.model
 
@@ -254,7 +254,7 @@ held-out 行は UD GSD/EWT テスト分割に対して `litsea evaluate --pos` �
 | 単語 F1（held-out） | 90.82% |
 | タグ付き単語 F1（held-out） | 82.29% |
 | スループット | 3.38M chars/s |
-| ファイルサイズ | 約 8.0 MB |
+| ファイルサイズ | 約 8.3 MB |
 
 ### korean_pos.model
 
@@ -267,7 +267,7 @@ held-out 行は UD GSD/EWT テスト分割に対して `litsea evaluate --pos` �
 | 単語 F1（held-out） | 99.88% |
 | タグ付き単語 F1（held-out） | 93.95% |
 | スループット | 4.21M chars/s |
-| ファイルサイズ | 約 4.0 MB |
+| ファイルサイズ | 約 4.1 MB |
 
 韓国語のスループットのプロファイルは語彙表に起因します: held-out
 テキストの 34.5% が未知語（学習時に未出現の表層）で、未知語は常に
@@ -353,7 +353,7 @@ echo "これはテストです。" | litsea segment --pos -l japanese models/jap
 
 `resources/` ディレクトリには以下も含まれています:
 
-- **bocchan.txt** -- 坊っちゃん（夏目漱石）、約 307 KB。`segment_long_japanese` ベンチマークと差分テストに使用。
+- **bocchan.txt** -- 坊っちゃん（夏目漱石）、約 314 KB。`segment_long_japanese` ベンチマークと差分テストに使用。
 - **wagahaiwa_nekodearu.txt** -- 吾輩は猫である（夏目漱石）、約 1.1 MB、青空文庫。
 - **mujeong.txt** -- 무정（李光洙、1917）、約 786 KB、ko.wikisource。
 - **rulin_waishi.txt** -- 儒林外史（呉敬梓）、約 985 KB、zh.wikisource。

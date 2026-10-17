@@ -62,6 +62,17 @@
   bias line last, and every bundled model loads unchanged. Migration: put
   the bias line last in a hand-written model file.
 
+### Documentation
+
+- Model file sizes in the docs, the binding READMEs and code comments are
+  stated in decimal units (1 MB = 1,000,000 bytes) and match the files in
+  `models/` (#269): the two-stage models are ~3.1-8.3 MB
+  (`japanese_pos.model` ~5.7 MB, `chinese_pos.model` ~8.3 MB,
+  `korean_pos.model` ~4.1 MB, `english_pos.model` ~3.1 MB), all models
+  86 KB-8.3 MB and 25 MB together. Some figures were binary units
+  written as MB, and `korean_pos.model` (~5.0 MB) and `english_pos.model`
+  (~3.6 MB) in the model file format page were stale.
+
 ## 0.14.3 (2026-09-25)
 
 ### Fixed

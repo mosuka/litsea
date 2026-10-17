@@ -69,7 +69,7 @@ Matching is context-free, so a short fragment registered as a word breaks every 
 
 ### Caching models
 
-Models are 84 KB – 8 MB and cross the network once per visitor. The package ships an optional helper that keeps them in Cache Storage:
+Models are 86 KB – 8.3 MB and cross the network once per visitor. The package ships an optional helper that keeps them in Cache Storage:
 
 ```js
 import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
