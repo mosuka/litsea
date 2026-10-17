@@ -14,8 +14,8 @@
 //!
 //! # Model loading
 //!
-//! Models are never embedded in a binding package (they range from 84 KB to
-//! 8 MB); the caller supplies one as bytes, a filesystem path, or a URI:
+//! Models are never embedded in a binding package (they range from 86 KB to
+//! 8.3 MB); the caller supplies one as bytes, a filesystem path, or a URI:
 //!
 //! ```no_run
 //! use litsea::Language;

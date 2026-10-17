@@ -37,6 +37,6 @@ flowchart LR
 ## Design Principles
 
 - **No dictionary required** -- Unlike MeCab or Lindera, Litsea segments with a statistical model learned from character patterns alone; an optional user dictionary can force specific words into single tokens on top of it (`segment --user-words`, issue #263)
-- **Compact models** -- the word-segmentation models `japanese`/`chinese`/`korean`/`english.model` are ~86 KB-2.0 MB (see [Pre-trained Models](../pre-trained-models.md) for their accuracy); two-stage POS models are ~3.6-8 MB -- all still small enough to embed directly in applications, containing only the feature weights that matter
+- **Compact models** -- the word-segmentation models `japanese`/`chinese`/`korean`/`english.model` are ~86 KB-2.0 MB (see [Pre-trained Models](../pre-trained-models.md) for their accuracy); two-stage POS models are ~3.1-8.3 MB -- all still small enough to embed directly in applications, containing only the feature weights that matter
 - **Language-agnostic framework** -- The core algorithm is the same for all languages; only the character type patterns differ
 - **Simple extensibility** -- Adding a new language requires only defining character type patterns and training a model

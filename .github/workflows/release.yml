@@ -312,7 +312,7 @@ jobs:
           # each has a stable download URL: `litsea segment -m <url>` (with
           # the `remote_model` feature) and the WebAssembly binding's
           # fetch-then-`fromBytes` flow can point straight at one, and a
-          # caller downloads only the language they need rather than 24 MB.
+          # caller downloads only the language they need rather than 25 MB.
           # Listed explicitly rather than globbed, so a file added to
           # models/ is attached only once it is listed here.
           files: |

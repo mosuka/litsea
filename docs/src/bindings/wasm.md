@@ -82,7 +82,7 @@ Train with the CLI or one of the native bindings, and load the resulting model h
 
 ## Caching models
 
-Models are 84 KB – 8 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper:
+Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper:
 
 ```js
 import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'

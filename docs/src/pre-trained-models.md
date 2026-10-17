@@ -12,7 +12,7 @@ https://github.com/mosuka/litsea/releases/download/<tag>/japanese_pos.model
 ...
 ```
 
-Those URLs are stable per release, and small enough to fetch only what you need (84 KB to 8 MB each, rather than 24 MB for all eight). Two consequences:
+Those URLs are stable per release, and small enough to fetch only what you need (86 KB to 8.3 MB each, rather than 25 MB for all eight). Two consequences:
 
 - With the `remote_model` feature, the CLI and the library take one directly: `litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model`.
 - The [WebAssembly binding](bindings/wasm.md), which has no `fromUri`, can `fetch` one in the page and pass the bytes to `Segmenter.fromBytes`.
@@ -249,7 +249,7 @@ note](algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epoc
 | Word F1 (held-out) | 96.78% |
 | Tagged Word F1 (held-out) | 92.95% |
 | Throughput | 4.38M chars/s |
-| File Size | ~5.4 MB |
+| File Size | ~5.7 MB |
 
 ### chinese_pos.model
 
@@ -262,7 +262,7 @@ note](algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epoc
 | Word F1 (held-out) | 90.82% |
 | Tagged Word F1 (held-out) | 82.29% |
 | Throughput | 3.38M chars/s |
-| File Size | ~8.0 MB |
+| File Size | ~8.3 MB |
 
 ### korean_pos.model
 
@@ -275,7 +275,7 @@ note](algorithm/two-stage-tagging.md#a-methodology-note-use-enough-training-epoc
 | Word F1 (held-out) | 99.88% |
 | Tagged Word F1 (held-out) | 93.95% |
 | Throughput | 4.21M chars/s |
-| File Size | ~4.0 MB |
+| File Size | ~4.1 MB |
 
 Korean's throughput profile traces to its lexicon: held-out text is 34.5%
 unknown words (surfaces never seen in training), and unknown words always
@@ -360,7 +360,7 @@ Output:
 
 The `resources/` directory also contains sample data used for benchmarking:
 
-- **bocchan.txt** -- 坊っちゃん (Natsume Soseki), ~307 KB. Used by the `segment_long_japanese` benchmarks and differential tests.
+- **bocchan.txt** -- 坊っちゃん (Natsume Soseki), ~314 KB. Used by the `segment_long_japanese` benchmarks and differential tests.
 - **wagahaiwa_nekodearu.txt** -- 吾輩は猫である (Natsume Soseki), ~1.1 MB, Aozora Bunko.
 - **mujeong.txt** -- 무정 (Yi Kwang-su, 1917), ~786 KB, ko.wikisource.
 - **rulin_waishi.txt** -- 儒林外史 (Wu Jingzi), ~985 KB, zh.wikisource.

@@ -66,8 +66,8 @@ Download a pre-trained model from the [Litsea repository](https://github.com/mos
 
 | Model | Purpose | Size |
 |-------|---------|------|
-| `japanese.model`, `chinese.model`, `korean.model`, `english.model` | Segmentation | 84 KB – 2.0 MB |
-| `japanese_pos.model`, `chinese_pos.model`, `korean_pos.model`, `english_pos.model` | Segmentation + POS | 3.0 – 8.0 MB |
+| `japanese.model`, `chinese.model`, `korean.model`, `english.model` | Segmentation | 86 KB – 2.0 MB |
+| `japanese_pos.model`, `chinese_pos.model`, `korean_pos.model`, `english_pos.model` | Segmentation + POS | 3.1 – 8.3 MB |
 
 You never have to say which kind you have: the model file identifies itself, and `hasPos()` reports what the loaded model can do.
 

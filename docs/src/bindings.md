@@ -19,7 +19,7 @@ These apply to every binding.
 
 ### Models are never embedded
 
-A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a `file://` path, or an `http(s)://` URL. The bundled models range from 84 KB to 8 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.
+A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a `file://` path, or an `http(s)://` URL. The bundled models range from 86 KB to 8.3 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.
 
 See [Pre-trained Models](pre-trained-models.md) for where to get a model.
 
