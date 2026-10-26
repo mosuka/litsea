@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a73a9a9e.js";
+            window.path_to_searchindex_js = "../searchindex-fbf55468.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -216,13 +216,19 @@ seg.segmentWithPos('これはテストです。')
 </code></pre>
 <p><code>pos</code> is <code>undefined</code> on tokens from <code>segmentTokens</code>, which does no tagging.</p>
 <h2 id="user-dictionary"><a class="header" href="#user-dictionary">User dictionary</a></h2>
-<p>Every constructor takes two optional trailing arguments (<a href="https://github.com/mosuka/litsea/issues/263">#263</a>): <code>userWords</code>, an array of words to emit as single tokens wherever they occur, and <code>userWordsGate</code>, a flip ratio in <code>0</code>–<code>1</code> that applies a word only where the model’s margin against it is small enough.</p>
+<p>Every constructor takes three optional trailing arguments (<a href="https://github.com/mosuka/litsea/issues/263">#263</a>, <a href="https://github.com/mosuka/litsea/issues/264">#264</a>): <code>userWords</code>, an array of words to emit as single tokens wherever they occur; <code>userWordsGate</code>, a flip ratio in <code>0</code>–<code>1</code> that applies a word only where the model’s margin against it is small enough; and <code>userWordTags</code>, an object mapping further words to the UPOS tag that <code>segmentWithPos</code> gives them.</p>
 <pre><code class="language-js">const seg = Segmenter.open('japanese', 'models/japanese.model', ['雪だるま', '新幹線'])
 
 seg.segment('雪だるまを作る')
 // [ '雪だるま', 'を', '作る' ]   (without the dictionary: [ '雪', 'だる', 'ま', 'を', '作る' ])
 </code></pre>
-<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a <code>userWordsGate</code> of <code>0</code> applies a word only where the model already agrees with it. A gate outside <code>0</code>–<code>1</code> throws with the <code>invalid_argument</code> code — synchronously, also from <code>fromUri</code>. See <a href="../litsea/segmenter.html#user-dictionary">Segmenter</a> for the full semantics.</p>
+<p>With a POS model, <code>userWordTags</code> fixes the tag of a word the tagger gets wrong:</p>
+<pre><code class="language-js">const tagged = Segmenter.open('japanese', 'models/japanese_pos.model', undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   (in userWords instead: 'チャットGPT/NOUN')
+</code></pre>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in <code>userWords</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>userWordTags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a <code>userWordsGate</code> of <code>0</code> applies a word only where the model already agrees with it. A gate outside <code>0</code>–<code>1</code>, or a tag that is not one of the 17 UPOS tags (upper case), throws with the <code>invalid_argument</code> code — synchronously, also from <code>fromUri</code>. See <a href="../litsea/segmenter.html#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -230,9 +236,9 @@ seg.segment('雪だるまを作る')
 <tr><th>Call</th><th>Returns</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Segmenter.open(language, path, userWords?, userWordsGate?)</code></td><td>A segmenter (synchronous)</td></tr>
-<tr><td><code>Segmenter.fromBytes(language, buffer, userWords?, userWordsGate?)</code></td><td>A segmenter (synchronous)</td></tr>
-<tr><td><code>Segmenter.fromUri(language, uri, userWords?, userWordsGate?)</code></td><td><code>Promise&lt;Segmenter&gt;</code> — downloads off the event loop</td></tr>
+<tr><td><code>Segmenter.open(language, path, userWords?, userWordsGate?, userWordTags?)</code></td><td>A segmenter (synchronous)</td></tr>
+<tr><td><code>Segmenter.fromBytes(language, buffer, userWords?, userWordsGate?, userWordTags?)</code></td><td>A segmenter (synchronous)</td></tr>
+<tr><td><code>Segmenter.fromUri(language, uri, userWords?, userWordsGate?, userWordTags?)</code></td><td><code>Promise&lt;Segmenter&gt;</code> — downloads off the event loop</td></tr>
 <tr><td><code>segment(text)</code></td><td><code>string[]</code></td></tr>
 <tr><td><code>segmentBatch(texts)</code></td><td><code>string[][]</code></td></tr>
 <tr><td><code>segmentTokens(text)</code></td><td><code>Token[]</code> with byte offsets</td></tr>
@@ -267,7 +273,7 @@ const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese
 <tr><th><code>err.code</code></th><th>Raised when</th></tr>
 </thead>
 <tbody>
-<tr><td><code>invalid_argument</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>userWordsGate</code> outside <code>0</code>–<code>1</code></td></tr>
+<tr><td><code>invalid_argument</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>userWordsGate</code> outside <code>0</code>–<code>1</code>, a <code>userWordTags</code> value that is not a UPOS tag</td></tr>
 <tr><td><code>model</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
 <tr><td><code>io</code></td><td>A file could not be read or written</td></tr>
 <tr><td><code>parse</code></td><td>The model or training data is malformed</td></tr>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b66adfa1.js";
+            window.path_to_searchindex_js = "../searchindex-ce5d1bca.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -226,13 +226,19 @@ end
 <pre><code class="language-ruby">text.byteslice(token.start, token.end - token.start)   # == token.surface
 </code></pre>
 <h2 id="ユーザー辞書"><a class="header" href="#ユーザー辞書">ユーザー辞書</a></h2>
-<p>すべてのコンストラクタは、キーワード引数を 2 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>）。<code>user_words:</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>user_words_gate:</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0.0</code>〜<code>1.0</code>）です。</p>
+<p>すべてのコンストラクタは、キーワード引数を 3 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>、<a href="https://github.com/mosuka/litsea/issues/264">#264</a>）。<code>user_words:</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>user_words_gate:</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0.0</code>〜<code>1.0</code>）、<code>user_word_tags:</code> は、さらに登録する語と、<code>segment_with_pos</code> がその語に付ける UPOS タグの Hash（キーと値は String）です。</p>
 <pre><code class="language-ruby">seg = Litsea::Segmenter.open(:japanese, "models/japanese.model", user_words: ["雪だるま", "新幹線"])
 
 seg.segment("雪だるまを作る")
 # =&gt; ["雪だるま", "を", "作る"]   （辞書なしでは ["雪", "だる", "ま", "を", "作る"]）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate: 0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate は <code>Litsea::InvalidArgumentError</code> を、未知のキーワードは <code>ArgumentError</code> を送出します。意味論の全体は <a href="../litsea/segmenter.html#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>POS モデルでは、<code>user_word_tags:</code> でタガーが誤る語のタグを直せます:</p>
+<pre><code class="language-ruby">tagged = Litsea::Segmenter.open(:japanese, "models/japanese_pos.model", user_word_tags: { "チャットGPT" =&gt; "PROPN" })
+
+tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.pos}" }
+# =&gt; ["チャットGPT/PROPN", "に/ADP", "聞く/VERB"]   （user_words: に入れた場合は "チャットGPT/NOUN"）
+</code></pre>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>user_words:</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>user_word_tags:</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate: 0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは <code>Litsea::InvalidArgumentError</code> を、未知のキーワードは <code>ArgumentError</code> を送出します。意味論の全体は <a href="../litsea/segmenter.html#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -240,9 +246,9 @@ seg.segment("雪だるまを作る")
 <tr><th>呼び出し</th><th>戻り値</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil)</code></td><td>セグメンタ</td></tr>
-<tr><td><code>Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil)</code></td><td>セグメンタ（バイナリ String も可）</td></tr>
-<tr><td><code>Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ（バイナリ String も可）</td></tr>
+<tr><td><code>Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ</td></tr>
 <tr><td><code>#segment(text)</code></td><td><code>Array&lt;String&gt;</code></td></tr>
 <tr><td><code>#segment_batch(texts)</code></td><td><code>Array&lt;Array&lt;String&gt;&gt;</code></td></tr>
 <tr><td><code>#segment_tokens(text)</code></td><td>バイトオフセット付き <code>Array&lt;Litsea::Token&gt;</code></td></tr>
@@ -275,7 +281,7 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 <tr><th>エラー</th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea::InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate:</code></td></tr>
+<tr><td><code>Litsea::InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate:</code>、UPOS タグでない <code>user_word_tags:</code> の値</td></tr>
 <tr><td><code>Litsea::ModelError</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
 <tr><td><code>Litsea::IoError</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>Litsea::ParseError</code></td><td>モデルまたは学習データの形式不正</td></tr>

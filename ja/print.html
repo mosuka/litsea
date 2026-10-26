@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b66adfa1.js";
+            window.path_to_searchindex_js = "searchindex-ce5d1bca.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -4340,13 +4340,19 @@ for token in seg.segment_with_pos("これはテストです。"):
 </code></pre>
 <p><code>start</code> と <code>end</code> は入力に対するバイトオフセットです。<code>text.encode()[token.start:token.end].decode()</code> で表層形が得られます。分割専用モデルに対して <code>segment_with_pos</code> を呼ぶと <code>PosUnavailableError</code> が送出されます。</p>
 <h2 id="ユーザー辞書-1"><a class="header" href="#ユーザー辞書-1">ユーザー辞書</a></h2>
-<p>すべてのコンストラクタは、キーワード専用の引数を 2 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>）。<code>user_words</code> は、現れた場所で必ず 1 トークンとして出力する語のシーケンス、<code>user_words_gate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0.0</code>〜<code>1.0</code>）です。</p>
+<p>すべてのコンストラクタは、キーワード専用の引数を 3 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>、<a href="https://github.com/mosuka/litsea/issues/264">#264</a>）。<code>user_words</code> は、現れた場所で必ず 1 トークンとして出力する語のシーケンス、<code>user_words_gate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0.0</code>〜<code>1.0</code>）、<code>user_word_tags</code> は、さらに登録する語と、<code>segment_with_pos</code> がその語に付ける UPOS タグの dict です。</p>
 <pre><code class="language-python">seg = Segmenter.open("ja", "models/japanese.model", user_words=["雪だるま", "新幹線"])
 
 seg.segment("雪だるまを作る")
 # ['雪だるま', 'を', '作る']   （辞書なしでは ['雪', 'だる', 'ま', 'を', '作る']）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate=0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate は <code>InvalidArgumentError</code> を送出します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>POS モデルでは、<code>user_word_tags</code> でタガーが誤る語のタグを直せます:</p>
+<pre><code class="language-python">seg = Segmenter.open("ja", "models/japanese_pos.model", user_word_tags={"チャットGPT": "PROPN"})
+
+[f"{t.surface}/{t.pos.name}" for t in seg.segment_with_pos("チャットGPTに聞く")]
+# ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   （user_words に入れた場合は 'チャットGPT/NOUN'）
+</code></pre>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>user_words</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>user_word_tags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate=0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>InvalidArgumentError</code> を送出します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4354,9 +4360,9 @@ seg.segment("雪だるまを作る")
 <tr><th>呼び出し</th><th>戻り値</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Segmenter.open(language, path, *, user_words=None, user_words_gate=None)</code></td><td>ファイルから読み込んだセグメンタ</td></tr>
-<tr><td><code>Segmenter.from_bytes(language, data, *, user_words=None, user_words_gate=None)</code></td><td>バイト列から読み込んだセグメンタ</td></tr>
-<tr><td><code>Segmenter.from_uri(language, uri, *, user_words=None, user_words_gate=None)</code></td><td>パス・<code>file://</code>・<code>http(s)://</code> から読み込んだセグメンタ</td></tr>
+<tr><td><code>Segmenter.open(language, path, *, user_words=None, user_words_gate=None, user_word_tags=None)</code></td><td>ファイルから読み込んだセグメンタ</td></tr>
+<tr><td><code>Segmenter.from_bytes(language, data, *, user_words=None, user_words_gate=None, user_word_tags=None)</code></td><td>バイト列から読み込んだセグメンタ</td></tr>
+<tr><td><code>Segmenter.from_uri(language, uri, *, user_words=None, user_words_gate=None, user_word_tags=None)</code></td><td>パス・<code>file://</code>・<code>http(s)://</code> から読み込んだセグメンタ</td></tr>
 <tr><td><code>segment(text)</code></td><td><code>list[str]</code></td></tr>
 <tr><td><code>segment_batch(texts)</code></td><td><code>list[list[str]]</code></td></tr>
 <tr><td><code>segment_tokens(text)</code></td><td>バイトオフセット付き <code>list[Token]</code></td></tr>
@@ -4397,7 +4403,7 @@ metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=
 <tr><th>例外</th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate</code></td></tr>
+<tr><td><code>InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate</code>、UPOS タグでない <code>user_word_tags</code> の値</td></tr>
 <tr><td><code>ModelError</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
 <tr><td><code>IoError</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>ParseError</code></td><td>モデルまたは学習データの形式不正</td></tr>
@@ -4453,13 +4459,19 @@ seg.segmentWithPos('これはテストです。')
 </code></pre>
 <p>タグ付けを行わない <code>segmentTokens</code> のトークンでは <code>pos</code> は <code>undefined</code> になります。</p>
 <h2 id="ユーザー辞書-2"><a class="header" href="#ユーザー辞書-2">ユーザー辞書</a></h2>
-<p>すべてのコンストラクタは、省略可能な末尾の引数を 2 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>）。<code>userWords</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>userWordsGate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0</code>〜<code>1</code>）です。</p>
+<p>すべてのコンストラクタは、省略可能な末尾の引数を 3 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>、<a href="https://github.com/mosuka/litsea/issues/264">#264</a>）。<code>userWords</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>userWordsGate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0</code>〜<code>1</code>）、<code>userWordTags</code> は、さらに登録する語と、<code>segmentWithPos</code> がその語に付ける UPOS タグのオブジェクトです。</p>
 <pre><code class="language-js">const seg = Segmenter.open('japanese', 'models/japanese.model', ['雪だるま', '新幹線'])
 
 seg.segment('雪だるまを作る')
 // [ '雪だるま', 'を', '作る' ]   （辞書なしでは [ '雪', 'だる', 'ま', 'を', '作る' ]）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate は <code>invalid_argument</code> コードのエラーを同期的に投げます（<code>fromUri</code> でも同様です）。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>POS モデルでは、<code>userWordTags</code> でタガーが誤る語のタグを直せます:</p>
+<pre><code class="language-js">const tagged = Segmenter.open('japanese', 'models/japanese_pos.model', undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   （userWords に入れた場合は 'チャットGPT/NOUN'）
+</code></pre>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>userWords</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>userWordTags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>invalid_argument</code> コードのエラーを同期的に投げます（<code>fromUri</code> でも同様です）。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api-1"><a class="header" href="#api-1">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4467,9 +4479,9 @@ seg.segment('雪だるまを作る')
 <tr><th>呼び出し</th><th>戻り値</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Segmenter.open(language, path, userWords?, userWordsGate?)</code></td><td>セグメンタ（同期）</td></tr>
-<tr><td><code>Segmenter.fromBytes(language, buffer, userWords?, userWordsGate?)</code></td><td>セグメンタ（同期）</td></tr>
-<tr><td><code>Segmenter.fromUri(language, uri, userWords?, userWordsGate?)</code></td><td><code>Promise&lt;Segmenter&gt;</code>（イベントループ外でダウンロード）</td></tr>
+<tr><td><code>Segmenter.open(language, path, userWords?, userWordsGate?, userWordTags?)</code></td><td>セグメンタ（同期）</td></tr>
+<tr><td><code>Segmenter.fromBytes(language, buffer, userWords?, userWordsGate?, userWordTags?)</code></td><td>セグメンタ（同期）</td></tr>
+<tr><td><code>Segmenter.fromUri(language, uri, userWords?, userWordsGate?, userWordTags?)</code></td><td><code>Promise&lt;Segmenter&gt;</code>（イベントループ外でダウンロード）</td></tr>
 <tr><td><code>segment(text)</code></td><td><code>string[]</code></td></tr>
 <tr><td><code>segmentBatch(texts)</code></td><td><code>string[][]</code></td></tr>
 <tr><td><code>segmentTokens(text)</code></td><td>バイトオフセット付き <code>Token[]</code></td></tr>
@@ -4504,7 +4516,7 @@ const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese
 <tr><th><code>err.code</code></th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0</code>〜<code>1</code> の外の <code>userWordsGate</code></td></tr>
+<tr><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0</code>〜<code>1</code> の外の <code>userWordsGate</code>、UPOS タグでない <code>userWordTags</code> の値</td></tr>
 <tr><td><code>model</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
 <tr><td><code>io</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>parse</code></td><td>モデルまたは学習データの形式不正</td></tr>
@@ -4564,7 +4576,7 @@ foreach ($seg-&gt;segmentWithPos('これはテストです。') as $token) {
 </code></pre>
 <p><code>start</code> と <code>end</code> はバイトオフセットで、PHP の文字列はバイト列です。そのため <code>substr($text, $token-&gt;start, $token-&gt;end - $token-&gt;start)</code> がそのまま表層形を返します（JavaScript のようなエンコーディングを意識した切り出しは不要です）。</p>
 <h2 id="ユーザー辞書-3"><a class="header" href="#ユーザー辞書-3">ユーザー辞書</a></h2>
-<p>すべてのコンストラクタは、省略可能な末尾の引数を 2 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>）。<code>$user_words</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>$user_words_gate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0.0</code>〜<code>1.0</code>）です。どちらも既定値は <code>null</code> で、名前付き引数でも渡せます。</p>
+<p>すべてのコンストラクタは、省略可能な末尾の引数を 3 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>、<a href="https://github.com/mosuka/litsea/issues/264">#264</a>）。<code>$user_words</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>$user_words_gate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0.0</code>〜<code>1.0</code>）、<code>$user_word_tags</code> は、さらに登録する語と、<code>segmentWithPos()</code> がその語に付ける UPOS タグの配列です。3 つとも既定値は <code>null</code> で、名前付き引数でも渡せます。</p>
 <pre><code class="language-php">$seg = Segmenter::open('japanese', 'models/japanese.model', ['雪だるま', '新幹線']);
 
 $seg-&gt;segment('雪だるまを作る');
@@ -4572,7 +4584,13 @@ $seg-&gt;segment('雪だるまを作る');
 
 Segmenter::open('japanese', 'models/japanese.model', user_words: ['雪だるま'], user_words_gate: 0.5);
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。gate を <code>0.0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate は <code>Litsea\InvalidArgumentException</code> を投げます。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>POS モデルでは、<code>$user_word_tags</code> でタガーが誤る語のタグを直せます:</p>
+<pre><code class="language-php">$tagged = Segmenter::open('japanese', 'models/japanese_pos.model', user_word_tags: ['チャットGPT' =&gt; 'PROPN']);
+
+array_map(fn ($t) =&gt; "{$t-&gt;surface}/{$t-&gt;pos}", $tagged-&gt;segmentWithPos('チャットGPTに聞く'));
+// ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   （$user_words に入れた場合は 'チャットGPT/NOUN'）
+</code></pre>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>$user_words</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>$user_word_tags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment()</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。gate を <code>0.0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>Litsea\InvalidArgumentException</code> を投げます。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api-2"><a class="header" href="#api-2">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4580,9 +4598,9 @@ Segmenter::open('japanese', 'models/japanese.model', user_words: ['雪だるま'
 <tr><th>呼び出し</th><th>戻り値</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Segmenter::open($language, $path, $user_words?, $user_words_gate?)</code></td><td>セグメンタ</td></tr>
-<tr><td><code>Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?)</code></td><td>セグメンタ</td></tr>
-<tr><td><code>Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?)</code></td><td>セグメンタ（ダウンロードはブロッキング）</td></tr>
+<tr><td><code>Segmenter::open($language, $path, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>セグメンタ（ダウンロードはブロッキング）</td></tr>
 <tr><td><code>segment($text)</code></td><td><code>string[]</code></td></tr>
 <tr><td><code>segmentBatch($texts)</code></td><td><code>string[][]</code></td></tr>
 <tr><td><code>segmentTokens($text)</code></td><td>バイトオフセット付き <code>Token[]</code></td></tr>
@@ -4615,7 +4633,7 @@ $metrics = (new Litsea\Trainer(0.01, 100000, 'features.txt'))-&gt;train('japanes
 <tr><th>例外</th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea\InvalidArgumentException</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>$user_words_gate</code></td></tr>
+<tr><td><code>Litsea\InvalidArgumentException</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>$user_words_gate</code>、UPOS タグでない <code>$user_word_tags</code> の値</td></tr>
 <tr><td><code>Litsea\ModelException</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
 <tr><td><code>Litsea\IoException</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>Litsea\ParseException</code></td><td>モデルまたは学習データの形式不正</td></tr>
@@ -4680,13 +4698,19 @@ end
 <pre><code class="language-ruby">text.byteslice(token.start, token.end - token.start)   # == token.surface
 </code></pre>
 <h2 id="ユーザー辞書-4"><a class="header" href="#ユーザー辞書-4">ユーザー辞書</a></h2>
-<p>すべてのコンストラクタは、キーワード引数を 2 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>）。<code>user_words:</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>user_words_gate:</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0.0</code>〜<code>1.0</code>）です。</p>
+<p>すべてのコンストラクタは、キーワード引数を 3 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>、<a href="https://github.com/mosuka/litsea/issues/264">#264</a>）。<code>user_words:</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>user_words_gate:</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0.0</code>〜<code>1.0</code>）、<code>user_word_tags:</code> は、さらに登録する語と、<code>segment_with_pos</code> がその語に付ける UPOS タグの Hash（キーと値は String）です。</p>
 <pre><code class="language-ruby">seg = Litsea::Segmenter.open(:japanese, "models/japanese.model", user_words: ["雪だるま", "新幹線"])
 
 seg.segment("雪だるまを作る")
 # =&gt; ["雪だるま", "を", "作る"]   （辞書なしでは ["雪", "だる", "ま", "を", "作る"]）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate: 0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate は <code>Litsea::InvalidArgumentError</code> を、未知のキーワードは <code>ArgumentError</code> を送出します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>POS モデルでは、<code>user_word_tags:</code> でタガーが誤る語のタグを直せます:</p>
+<pre><code class="language-ruby">tagged = Litsea::Segmenter.open(:japanese, "models/japanese_pos.model", user_word_tags: { "チャットGPT" =&gt; "PROPN" })
+
+tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.pos}" }
+# =&gt; ["チャットGPT/PROPN", "に/ADP", "聞く/VERB"]   （user_words: に入れた場合は "チャットGPT/NOUN"）
+</code></pre>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>user_words:</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>user_word_tags:</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate: 0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは <code>Litsea::InvalidArgumentError</code> を、未知のキーワードは <code>ArgumentError</code> を送出します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api-3"><a class="header" href="#api-3">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4694,9 +4718,9 @@ seg.segment("雪だるまを作る")
 <tr><th>呼び出し</th><th>戻り値</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil)</code></td><td>セグメンタ</td></tr>
-<tr><td><code>Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil)</code></td><td>セグメンタ（バイナリ String も可）</td></tr>
-<tr><td><code>Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ（バイナリ String も可）</td></tr>
+<tr><td><code>Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ</td></tr>
 <tr><td><code>#segment(text)</code></td><td><code>Array&lt;String&gt;</code></td></tr>
 <tr><td><code>#segment_batch(texts)</code></td><td><code>Array&lt;Array&lt;String&gt;&gt;</code></td></tr>
 <tr><td><code>#segment_tokens(text)</code></td><td>バイトオフセット付き <code>Array&lt;Litsea::Token&gt;</code></td></tr>
@@ -4729,7 +4753,7 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 <tr><th>エラー</th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea::InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate:</code></td></tr>
+<tr><td><code>Litsea::InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate:</code>、UPOS タグでない <code>user_word_tags:</code> の値</td></tr>
 <tr><td><code>Litsea::ModelError</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
 <tr><td><code>Litsea::IoError</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>Litsea::ParseError</code></td><td>モデルまたは学習データの形式不正</td></tr>
@@ -4778,13 +4802,20 @@ seg.free()
 new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.surface
 </code></pre>
 <h2 id="ユーザー辞書-5"><a class="header" href="#ユーザー辞書-5">ユーザー辞書</a></h2>
-<p><code>fromBytes</code> は、Node.js バインディングと同じ名前の、省略可能な末尾の引数を 2 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>）。<code>userWords</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>userWordsGate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0</code>〜<code>1</code>）です。</p>
+<p><code>fromBytes</code> は、Node.js バインディングと同じ名前の、省略可能な末尾の引数を 3 つ受け取ります（<a href="https://github.com/mosuka/litsea/issues/263">#263</a>、<a href="https://github.com/mosuka/litsea/issues/264">#264</a>）。<code>userWords</code> は、現れた場所で必ず 1 トークンとして出力する語の配列、<code>userWordsGate</code> は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（<code>0</code>〜<code>1</code>）、<code>userWordTags</code> は、さらに登録する語と、<code>segmentWithPos</code> がその語に付ける UPOS タグのオブジェクトです。</p>
 <pre><code class="language-js">const seg = Segmenter.fromBytes('japanese', bytes, ['雪だるま', '新幹線'])
 
 seg.segment('雪だるまを作る')
 // [ '雪だるま', 'を', '作る' ]   （辞書なしでは [ '雪', 'だる', 'ま', 'を', '作る' ]）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>POS モデルでは、<code>userWordTags</code> でタガーが誤る語のタグを直せます:</p>
+<pre><code class="language-js">const posBytes = new Uint8Array(await (await fetch('/models/japanese_pos.model')).arrayBuffer())
+const tagged = Segmenter.fromBytes('japanese', posBytes, undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   （userWords に入れた場合は 'チャットGPT/NOUN'）
+</code></pre>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>userWords</code> の語は他の語と同じようにタグ付けされ、<code>userWordTags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>invalid_argument</code> コードのエラーを投げます。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="ホストの制約で提供しない機能"><a class="header" href="#ホストの制約で提供しない機能">ホストの制約で提供しない機能</a></h2>
 <p>5 つのバインディングの中で最も制約が強く、いずれも推測ではなく実測に基づいて判断しています。</p>
 <div class="table-wrapper">
@@ -4823,7 +4854,7 @@ const bytes = await fetchModel('/models/japanese.model')
 <tr><th><code>err.code</code></th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>invalid_argument</code></td><td>未知の言語名、<code>0</code>〜<code>1</code> の外の <code>userWordsGate</code></td></tr>
+<tr><td><code>invalid_argument</code></td><td>未知の言語名、<code>0</code>〜<code>1</code> の外の <code>userWordsGate</code>、UPOS タグでない（または文字列でない）<code>userWordTags</code> の値</td></tr>
 <tr><td><code>model</code></td><td>旧 joint POS モデル</td></tr>
 <tr><td><code>parse</code></td><td>モデルの形式不正、または UTF-8 でない</td></tr>
 <tr><td><code>pos_unavailable</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>

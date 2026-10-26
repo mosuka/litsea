@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a73a9a9e.js";
+            window.path_to_searchindex_js = "../searchindex-fbf55468.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -215,13 +215,19 @@ for token in seg.segment_with_pos("これはテストです。"):
 </code></pre>
 <p><code>start</code> and <code>end</code> are byte offsets into the input, so <code>text.encode()[token.start:token.end].decode()</code> returns the surface. Calling <code>segment_with_pos</code> on a segmentation-only model raises <code>PosUnavailableError</code>.</p>
 <h2 id="user-dictionary"><a class="header" href="#user-dictionary">User dictionary</a></h2>
-<p>Every constructor accepts two keyword-only arguments (<a href="https://github.com/mosuka/litsea/issues/263">#263</a>): <code>user_words</code>, a sequence of words to emit as single tokens wherever they occur, and <code>user_words_gate</code>, a flip ratio in <code>0.0</code>–<code>1.0</code> that applies a word only where the model’s margin against it is small enough.</p>
+<p>Every constructor accepts three keyword-only arguments (<a href="https://github.com/mosuka/litsea/issues/263">#263</a>, <a href="https://github.com/mosuka/litsea/issues/264">#264</a>): <code>user_words</code>, a sequence of words to emit as single tokens wherever they occur; <code>user_words_gate</code>, a flip ratio in <code>0.0</code>–<code>1.0</code> that applies a word only where the model’s margin against it is small enough; and <code>user_word_tags</code>, a dict mapping further words to the UPOS tag that <code>segment_with_pos</code> gives them.</p>
 <pre><code class="language-python">seg = Segmenter.open("ja", "models/japanese.model", user_words=["雪だるま", "新幹線"])
 
 seg.segment("雪だるまを作る")
 # ['雪だるま', 'を', '作る']   (without the dictionary: ['雪', 'だる', 'ま', 'を', '作る'])
 </code></pre>
-<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; <code>user_words_gate=0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code> raises <code>InvalidArgumentError</code>. See <a href="../litsea/segmenter.html#user-dictionary">Segmenter</a> for the full semantics.</p>
+<p>With a POS model, <code>user_word_tags</code> fixes the tag of a word the tagger gets wrong:</p>
+<pre><code class="language-python">seg = Segmenter.open("ja", "models/japanese_pos.model", user_word_tags={"チャットGPT": "PROPN"})
+
+[f"{t.surface}/{t.pos.name}" for t in seg.segment_with_pos("チャットGPTに聞く")]
+# ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   (in user_words instead: 'チャットGPT/NOUN')
+</code></pre>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in <code>user_words</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>user_word_tags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; <code>user_words_gate=0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code>, or a tag that is not one of the 17 UPOS tags (upper case), raises <code>InvalidArgumentError</code>. See <a href="../litsea/segmenter.html#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -229,9 +235,9 @@ seg.segment("雪だるまを作る")
 <tr><th>Call</th><th>Returns</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Segmenter.open(language, path, *, user_words=None, user_words_gate=None)</code></td><td>A segmenter loaded from a file</td></tr>
-<tr><td><code>Segmenter.from_bytes(language, data, *, user_words=None, user_words_gate=None)</code></td><td>A segmenter loaded from bytes</td></tr>
-<tr><td><code>Segmenter.from_uri(language, uri, *, user_words=None, user_words_gate=None)</code></td><td>A segmenter loaded from a path, <code>file://</code>, or <code>http(s)://</code> URL</td></tr>
+<tr><td><code>Segmenter.open(language, path, *, user_words=None, user_words_gate=None, user_word_tags=None)</code></td><td>A segmenter loaded from a file</td></tr>
+<tr><td><code>Segmenter.from_bytes(language, data, *, user_words=None, user_words_gate=None, user_word_tags=None)</code></td><td>A segmenter loaded from bytes</td></tr>
+<tr><td><code>Segmenter.from_uri(language, uri, *, user_words=None, user_words_gate=None, user_word_tags=None)</code></td><td>A segmenter loaded from a path, <code>file://</code>, or <code>http(s)://</code> URL</td></tr>
 <tr><td><code>segment(text)</code></td><td><code>list[str]</code></td></tr>
 <tr><td><code>segment_batch(texts)</code></td><td><code>list[list[str]]</code></td></tr>
 <tr><td><code>segment_tokens(text)</code></td><td><code>list[Token]</code> with byte offsets</td></tr>
@@ -272,7 +278,7 @@ metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=
 <tr><th>Exception</th><th>Raised when</th></tr>
 </thead>
 <tbody>
-<tr><td><code>InvalidArgumentError</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>user_words_gate</code> outside <code>0.0</code>–<code>1.0</code></td></tr>
+<tr><td><code>InvalidArgumentError</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>user_words_gate</code> outside <code>0.0</code>–<code>1.0</code>, a <code>user_word_tags</code> value that is not a UPOS tag</td></tr>
 <tr><td><code>ModelError</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
 <tr><td><code>IoError</code></td><td>A file could not be read or written</td></tr>
 <tr><td><code>ParseError</code></td><td>The model or training data is malformed</td></tr>
