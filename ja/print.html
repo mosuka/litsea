@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ce5d1bca.js";
+            window.path_to_searchindex_js = "searchindex-18c9145d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -3937,7 +3937,8 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 （<a href="#ベンチマーク">ベンチマーク</a>を参照）。</p>
 <h2 id="ユーザー辞書--user-words"><a class="header" href="#ユーザー辞書--user-words">ユーザー辞書（<code>--user-words</code>）</a></h2>
 <p>ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
-ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除くので語は書かれたとおりに
+ファイルは 1 行 1 語の UTF-8 です。ファイル先頭のバイトオーダーマーク（BOM）は
+無視します（issue #275）。それ以外は行末の改行だけを取り除くので語は書かれたとおりに
 照合され、空行は読み飛ばし、コメント構文はありません。1 文字の語は無視されます。
 語の後ろに TAB と <code>--pos</code> 用の UPOS タグを続けることもできます
 （<a href="#タグ付きの語">タグ付きの語</a>を参照）。</p>

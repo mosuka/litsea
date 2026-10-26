@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-fbf55468.js";
+            window.path_to_searchindex_js = "../searchindex-ef6fbe4a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -278,10 +278,11 @@ numbers and should not be compared directly (see
 <a href="../advanced/benchmarking.html">Benchmarking</a>).</p>
 <h2 id="user-dictionary---user-words"><a class="header" href="#user-dictionary---user-words">User Dictionary (<code>--user-words</code>)</a></h2>
 <p>A user dictionary forces registered words to come out as single tokens
-without retraining (issue #263). The file is UTF-8 with one word per line;
-only the line terminator is stripped, so a word is matched exactly as
-written, empty lines are skipped, and there is no comment syntax. Words of
-one character are ignored. A word may be followed by a TAB and a UPOS tag
+without retraining (issue #263). The file is UTF-8 with one word per line.
+A byte order mark at the start of the file is ignored (issue #275);
+otherwise only the line terminator is stripped, so a word is matched
+exactly as written, empty lines are skipped, and there is no comment
+syntax. Words of one character are ignored. A word may be followed by a TAB and a UPOS tag
 for <code>--pos</code> (see <a href="#tagged-entries">Tagged Entries</a>).</p>
 <pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
 printf '雪だるまを作る\n新幹線で帰る\n' \
