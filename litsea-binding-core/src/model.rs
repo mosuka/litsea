@@ -11,7 +11,7 @@
 #[cfg(not(target_arch = "wasm32"))]
 use std::path::Path;
 
-use litsea::{AdaBoost, Language, ModelKind, Segmenter, TwoStageLearner, UserDictionary};
+use litsea::{AdaBoost, Language, ModelKind, Segmenter, TwoStageLearner, Upos, UserDictionary};
 
 use crate::error::{CoreError, CoreResult, ErrorKind};
 
@@ -97,7 +97,8 @@ pub fn build_segmenter_with(
 }
 
 /// Builds the user dictionary a binding received as a word list and an
-/// optional gate (issue #263) - the one place the five bindings share.
+/// optional gate (issue #263); [`build_user_dictionary_with_tags`] is this
+/// with tagged words as well.
 ///
 /// # Arguments
 /// * `words` - The words to register; words of one character or less are
@@ -117,9 +118,61 @@ pub fn build_user_dictionary<S: AsRef<str>>(
     words: &[S],
     gate: Option<f64>,
 ) -> CoreResult<Option<UserDictionary>> {
+    build_user_dictionary_with_tags::<S, &str, &str>(words, &[], gate)
+}
+
+/// Builds the user dictionary a binding received as a word list, a
+/// word-to-tag mapping and an optional gate (issues #263, #264) - the one
+/// place the five bindings share.
+///
+/// # Arguments
+/// * `words` - The untagged words to register; words of one character or
+///   less are ignored (see [`UserDictionary::add`]).
+/// * `word_tags` - `(word, UPOS tag)` pairs to register with their tag
+///   (see [`UserDictionary::add_with_pos`]); a word that is also in
+///   `words` keeps the tag. The pairs are applied in sorted order, so
+///   neither the result nor the reported error depends on the order a
+///   host's map iterates in.
+/// * `gate` - The flip-ratio gate in `0.0..=1.0`, or `None` to apply every
+///   occurrence (see [`UserDictionary::set_gate`]).
+///
+/// # Returns
+/// `Ok(None)` when both `words` and `word_tags` are empty (nothing to
+/// apply, so the segmenter's hot path stays untouched); otherwise the
+/// dictionary with the gate set.
+///
+/// # Errors
+/// Returns an [`ErrorKind::InvalidArgument`] error if a tag is not one of
+/// the 17 UPOS tags (the tag of a one-character word included), or if
+/// `gate` is outside `0.0..=1.0` or NaN - also when no word is given, so a
+/// bad gate is never silently ignored.
+pub fn build_user_dictionary_with_tags<W, K, T>(
+    words: &[W],
+    word_tags: &[(K, T)],
+    gate: Option<f64>,
+) -> CoreResult<Option<UserDictionary>>
+where
+    W: AsRef<str>,
+    K: AsRef<str>,
+    T: AsRef<str>,
+{
     let mut dictionary = UserDictionary::from_words(words);
+    let mut tagged: Vec<(&str, &str)> =
+        word_tags.iter().map(|(word, tag)| (word.as_ref(), tag.as_ref())).collect();
+    tagged.sort_unstable();
+    for (word, tag) in tagged {
+        let pos: Upos = tag.parse().map_err(|_| {
+            let expected: Vec<String> = Upos::ALL.iter().map(Upos::to_string).collect();
+            CoreError::invalid_argument(format!(
+                "unknown UPOS tag {tag:?} for the user dictionary word {word:?} (expected one \
+                 of {})",
+                expected.join(", ")
+            ))
+        })?;
+        dictionary.add_with_pos(word, pos);
+    }
     dictionary.set_gate(gate)?;
-    Ok(if words.is_empty() { None } else { Some(dictionary) })
+    Ok(if words.is_empty() && word_tags.is_empty() { None } else { Some(dictionary) })
 }
 
 /// Reads a model file from the local filesystem.
@@ -239,6 +292,76 @@ mod tests {
             assert_eq!(error.kind(), ErrorKind::InvalidArgument, "{words:?}");
             assert!(error.message().contains("0.0..=1.0"), "{}", error.message());
         }
+    }
+
+    #[test]
+    fn test_build_user_dictionary_with_tags() {
+        // #264: tagged words alone make a dictionary; nothing at all is
+        // still "no dictionary".
+        let none: [(&str, &str); 0] = [];
+        assert!(
+            build_user_dictionary_with_tags::<&str, _, _>(&[], &none, None)
+                .unwrap()
+                .is_none()
+        );
+        let dictionary = build_user_dictionary_with_tags::<&str, _, _>(
+            &[],
+            &[("チャットGPT", "PROPN")],
+            Some(0.5),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(dictionary.pos("チャットGPT"), Some(litsea::Upos::PROPN));
+        assert_eq!(dictionary.gate(), Some(0.5));
+        // A word in both lists keeps its tag; one-character words are
+        // dropped with their tag.
+        let dictionary = build_user_dictionary_with_tags(
+            &["雪だるま", "新幹線"],
+            &[("雪だるま", "NOUN"), ("猫", "NOUN")],
+            None,
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(dictionary.len(), 2);
+        assert_eq!(dictionary.pos("雪だるま"), Some(litsea::Upos::NOUN));
+        assert_eq!(dictionary.pos("新幹線"), None);
+        assert!(!dictionary.contains("猫"));
+    }
+
+    #[test]
+    fn test_build_user_dictionary_with_tags_errors() {
+        // A tag that is not UPOS is an InvalidArgument error naming the tag
+        // and the word - also for a one-character word. The pairs are
+        // checked in sorted order, so the first bad pair in that order is
+        // reported whatever order the caller passed them in.
+        for word_tags in [
+            vec![("ポケモン", "Noun"), ("猫", "CAT")],
+            vec![("猫", "CAT"), ("ポケモン", "Noun")],
+        ] {
+            let error =
+                build_user_dictionary_with_tags::<&str, _, _>(&[], &word_tags, None).unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::InvalidArgument);
+            assert!(
+                error.message().contains("unknown UPOS tag \"Noun\"")
+                    && error.message().contains("\"ポケモン\"")
+                    && error.message().contains("expected one of ADJ, ADP"),
+                "{}",
+                error.message()
+            );
+        }
+        let error =
+            build_user_dictionary_with_tags::<&str, _, _>(&[], &[("猫", "CAT")], None).unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::InvalidArgument);
+        assert!(error.message().contains("\"CAT\""), "{}", error.message());
+        // A bad gate is still an error when only tagged words are given.
+        let error = build_user_dictionary_with_tags::<&str, _, _>(
+            &[],
+            &[("チャットGPT", "PROPN")],
+            Some(1.5),
+        )
+        .unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::InvalidArgument);
+        assert!(error.message().contains("0.0..=1.0"), "{}", error.message());
     }
 
     #[test]

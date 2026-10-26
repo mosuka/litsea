@@ -522,6 +522,148 @@ fn test_evaluate_user_words() {
     assert_eq!(gated.stderr, plain.stderr, "gate 0 must reproduce the plain metrics");
 }
 
+/// Pins tagged `--user-words` entries (issue #264): with `--pos`, a token
+/// that is a tagged word gets the registered tag and every other token
+/// keeps the tagger's; without `--pos` the tags change nothing. The file
+/// accepts a trailing space or CR after the tag, keeps a tag across an
+/// untagged repetition of the word, and ignores a tagged one-character
+/// word.
+#[test]
+fn test_segment_user_words_tags() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let untagged = dir.path().join("untagged.txt");
+    std::fs::write(&untagged, "ポケモン\nチャットGPT\n雪だるま\n").expect("write words");
+    let untagged = untagged.to_str().unwrap();
+    let tagged = dir.path().join("tagged.txt");
+    std::fs::write(
+        &tagged,
+        "ポケモン\tPROPN\nチャットGPT\tPROPN \r\n雪だるま\n猫\tNOUN\nポケモン\n",
+    )
+    .expect("write words");
+    let tagged = tagged.to_str().unwrap();
+    let input = "ポケモンを集める\nチャットGPTに聞く\n雪だるまを作る\n猫が好き\n";
+    let pos_model_owned = model_path("japanese_pos.model");
+    let pos_model = pos_model_owned.to_str().unwrap();
+
+    let run_pos = |words: &str, extra: &[&str]| {
+        let mut args = vec!["segment", "--pos", "--user-words", words];
+        args.extend_from_slice(extra);
+        args.extend_from_slice(&["-l", "japanese", pos_model]);
+        let output = run_litsea(&args, Some(input));
+        assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+        String::from_utf8(output.stdout).unwrap()
+    };
+    let baseline = run_pos(untagged, &[]);
+    // The tagger's own tags, so the override below is visible.
+    assert!(baseline.contains("ポケモン/NOUN"), "unexpected output: {baseline}");
+    assert!(baseline.contains("チャットGPT/NOUN"), "unexpected output: {baseline}");
+    let expected = baseline
+        .replace("ポケモン/NOUN", "ポケモン/PROPN")
+        .replace("チャットGPT/NOUN", "チャットGPT/PROPN");
+    assert_eq!(run_pos(tagged, &[]), expected);
+    assert_eq!(run_pos(tagged, &["--threads", "2"]), expected, "--threads diverged with tags");
+
+    let model_owned = model_path("japanese.model");
+    let model = model_owned.to_str().unwrap();
+    let run_plain = |words: &str| {
+        run_litsea(&["segment", "--user-words", words, "-l", "japanese", model], Some(input))
+    };
+    let plain_untagged = run_plain(untagged);
+    let plain_tagged = run_plain(tagged);
+    assert!(
+        plain_tagged.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&plain_tagged.stderr)
+    );
+    assert_eq!(plain_tagged.stdout, plain_untagged.stdout, "tags must not change segmentation");
+}
+
+/// Pins the error cases of tagged `--user-words` entries (issue #264): each
+/// names the file's line and the offending part, and the file is validated
+/// with or without `--pos` (a one-character word's tag included).
+#[test]
+fn test_segment_user_words_tag_errors() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let model_owned = model_path("japanese.model");
+    let model = model_owned.to_str().unwrap();
+    let pos_model_owned = model_path("japanese_pos.model");
+    let pos_model = pos_model_owned.to_str().unwrap();
+    let cases: [(&str, &[&str]); 6] = [
+        (
+            "雪だるま\nポケモン\tNoun\n",
+            &["line 2", "unknown UPOS tag \"Noun\"", "expected one of ADJ, ADP"],
+        ),
+        ("猫\tCAT\n", &["line 1", "unknown UPOS tag \"CAT\""]),
+        ("\tNOUN\n", &["line 1", "empty word before the TAB"]),
+        ("ポケモン\tPROPN\tX\n", &["line 1", "too many columns"]),
+        ("ポケモン\t \n", &["line 1", "empty UPOS tag after \"ポケモン\""]),
+        (
+            "ポケモン\tPROPN\n\nポケモン\tNOUN\n",
+            &["line 3", "\"ポケモン\" is tagged NOUN here but PROPN on line 1"],
+        ),
+    ];
+    for (index, (content, needles)) in cases.iter().enumerate() {
+        let words = dir.path().join(format!("words{index}.txt"));
+        std::fs::write(&words, content).expect("write words");
+        let words = words.to_str().unwrap();
+        for args in [
+            vec!["segment", "--user-words", words, "-l", "japanese", model],
+            vec!["segment", "--pos", "--user-words", words, "-l", "japanese", pos_model],
+        ] {
+            let output = run_litsea(&args, Some("ポケモンを集める\n"));
+            assert!(!output.status.success(), "{content:?} with {args:?} succeeded");
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            assert!(stderr.contains("user dictionary"), "{content:?}: {stderr}");
+            for needle in *needles {
+                assert!(stderr.contains(needle), "{content:?}: missing {needle:?} in {stderr}");
+            }
+        }
+    }
+}
+
+/// Pins `evaluate --pos --user-words` with tags (issue #264): the tag fixes
+/// the tagged metrics while the segmentation metrics stay as they are.
+#[test]
+fn test_evaluate_user_words_tags() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let gold = dir.path().join("gold.txt");
+    std::fs::write(&gold, "ポケモン/PROPN を/ADP 集める/VERB\n").expect("write gold");
+    let gold = gold.to_str().unwrap();
+    let untagged = dir.path().join("untagged.txt");
+    std::fs::write(&untagged, "ポケモン\n").expect("write words");
+    let tagged = dir.path().join("tagged.txt");
+    std::fs::write(&tagged, "ポケモン\tPROPN\n").expect("write words");
+    let pos_model_owned = model_path("japanese_pos.model");
+    let pos_model = pos_model_owned.to_str().unwrap();
+
+    let evaluate = |words: &PathBuf| {
+        let output = run_litsea(
+            &[
+                "evaluate",
+                "--pos",
+                "--user-words",
+                words.to_str().unwrap(),
+                "-l",
+                "japanese",
+                pos_model,
+                gold,
+            ],
+            None,
+        );
+        assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+        String::from_utf8(output.stderr).unwrap()
+    };
+    let without_tag = evaluate(&untagged);
+    assert!(without_tag.contains("  Word F1: 100.00%"), "unexpected output: {without_tag}");
+    assert!(
+        !without_tag.contains("Tagged Word F1: 100.00%"),
+        "unexpected output: {without_tag}"
+    );
+    let with_tag = evaluate(&tagged);
+    assert!(with_tag.contains("  Word F1: 100.00%"), "unexpected output: {with_tag}");
+    assert!(with_tag.contains("Tagged Word F1: 100.00%"), "unexpected output: {with_tag}");
+}
+
 /// Pins the evaluate subcommand: known model + tiny gold corpus must print
 /// the metrics block with plausible percentages.
 #[test]

@@ -207,7 +207,7 @@ AdaBoost 経路の学習器になり（`segment` は自然に動作します）�
 pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>>
 ```
 
-stage-1 境界分類器で文を単語に分割し（`segment` と全く同じ）、二段構成のタグ付け経路で各単語に UPOS タグを付与します。空の文に対しては、空のベクターを持つ `Ok` を返します。
+stage-1 境界分類器で文を単語に分割し（`segment` と全く同じ）、二段構成のタグ付け経路で各単語に UPOS タグを付与します。ユーザー辞書がタグ付きで登録した語には、代わりにそのタグを付けます（[タグ](#タグ)を参照）。空の文に対しては、空のベクターを持つ `Ok` を返します。
 
 **エラー**: 二段構成学習器が設定されていない場合は `LitseaError::PosLearnerNotSet` を返します — まず `with_two_stage_learner()` で Segmenter を作成してください。
 
@@ -239,7 +239,7 @@ POS タグ付きコーパス（`word/POS word/POS ...`）の文字レベル学�
 
 ## ユーザー辞書
 
-`UserDictionary`（issue #263）は、入力に現れたら必ず 1 トークンとして出力する語の集合で、任意に設定できます。モデルを変えるものではなく、境界判定への制約です。モデルは引き続きすべての位置を採点し、辞書は出現箇所の両端（境界を強制）と内側（非境界を強制）の判定を上書きします。本節の出力例は `japanese.model` によるものです。
+`UserDictionary`（issue #263）は、入力に現れたら必ず 1 トークンとして出力する語の集合で、任意に設定できます。モデルを変えるものではなく、境界判定への制約です。モデルは引き続きすべての位置を採点し、辞書は出現箇所の両端（境界を強制）と内側（非境界を強制）の判定を上書きします。語には、`segment_with_pos` がそのトークンに付ける UPOS タグを持たせることもできます（issue #264、[タグ](#タグ)を参照）。本節の出力例は `japanese.model` によるもので、タグの例は `japanese_pos.model` によるものです。
 
 ### `UserDictionary`
 
@@ -253,7 +253,9 @@ impl UserDictionary {
         I: IntoIterator<Item = S>,
         S: AsRef<str>
     pub fn add(&mut self, word: &str) -> bool
+    pub fn add_with_pos(&mut self, word: &str, pos: Upos) -> bool
     pub fn contains(&self, word: &str) -> bool
+    pub fn pos(&self, word: &str) -> Option<Upos>
     pub fn len(&self) -> usize
     pub fn is_empty(&self) -> bool
     pub fn set_gate(&mut self, gate: Option<f64>) -> Result<()>
@@ -261,7 +263,7 @@ impl UserDictionary {
 }
 ```
 
-語は Unicode スカラー値をキーとする trie に格納され、与えられたまま照合されます — 大文字小文字の同一視や、全角半角・Unicode の正規化は行いません。語に空白を含めることもできます。モデルが空白をトークンとして出力する言語（韓国語・英語）では、そのような語は空白を含む 1 トークンになります。1 文字の語には結合すべき内側がないため、`add` は格納せずに `false` を返します（重複の場合も `false` を返します）。この型は `litsea::UserDictionary` として再エクスポートされています。
+語は Unicode スカラー値をキーとする trie に格納され、与えられたまま照合されます — 大文字小文字の同一視や、全角半角・Unicode の正規化は行いません。語に空白を含めることもできます。モデルが空白をトークンとして出力する言語（韓国語・英語）では、そのような語は空白を含む 1 トークンになります。1 文字の語には結合すべき内側がないため、`add` と `add_with_pos` は（タグごと）格納せずに `false` を返します。どちらも、登録済みの語に対しては `false` を返します。この型は `litsea::UserDictionary` として再エクスポートされています。
 
 ### 意味論
 
@@ -269,7 +271,7 @@ impl UserDictionary {
 - 強制した判定は、モデルの判定と全く同じようにモデルの境界タグ履歴（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*` 特徴量）に入るため、語の後ろの位置は一貫した特徴量で採点されます。`korean.model` や `english.model` のようなタグ非依存（pointwise）モデルでは、辞書の影響は出現箇所そのものに限られます。
 - 重なった出現箇所は leftmost-longest で解決します。左から走査し、現在位置から始まる最長の登録語が勝ち、その後ろから照合を再開します。
 - 照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、`って` や `いま` のような 2 文字の断片を語として登録すると、それを含む他の語をすべて壊します。語全体を登録し、短い語を含む辞書では後述の gate を検討してください。
-- 辞書は品詞情報を持ちません。`segment_with_pos` では、語彙表に未知の強制語は stage-2 タガーの全候補 argmax でタグ付けされます。
+- タグなしで登録した語は、`segment_with_pos` で他の語と同じようにタグ付けされます。語彙表がその表層を知っていれば語彙表で、知らなければ stage-2 タガーの全候補 argmax で決まります。`add_with_pos` で登録したタグは、そのどちらよりも優先します（[タグ](#タグ)を参照）。
 - 空の辞書、または登録語が一度も現れない辞書は、辞書なしの分割とバイト単位で同一の出力を残します。
 
 ### Gate
@@ -279,6 +281,38 @@ impl UserDictionary {
 gate は短い語や曖昧な語を含む辞書のためのものです。`中野` を登録して gate を `0.0` にすると、`山中野球部` は `山中 | 野球 | 部` のまま（そこではモデルの `中野` に対する margin が大きい）ですが、`私の名前は中野です` では引き続き `中野` が 1 トークンになります（モデルが同意している）。gate なしでは両方の文に語が適用されます。
 
 タグ依存モデルでは、候補を含む文に限り逐次採点パスが 1 回余分にかかります — 比較対象となる制約なしの判定は、前の位置が強制するかもしれない語を考慮せずに計算されるため、近似であることを明記しておきます。pointwise モデルでは追加コストはありません。
+
+### タグ
+
+`add_with_pos(word, pos)` は、`add` と全く同じように語を登録し（分割への制約も同じです）、その語に UPOS タグを付けます（issue #264）。登録済みの語に対して呼ぶとタグを設定し、前のタグがあれば置き換えます。`add` がタグを消すことはありません。`pos(word)` は登録されたタグを返し、未登録の語やタグなしの語には `None` を返します。
+
+`segment_with_pos` では、表層がタグ付きの語と一致するトークンすべてに、登録されたタグを付けます。語彙表の固定タグと stage-2 タガーのどちらよりも優先し、それ以外のトークンはタガーのタグのままです。stage-2 タガーは各語を、その語自身の表層と前後の文字から採点し、他の語のタグは使わないため、登録したタグが他のトークンのタグを変えることはありません。
+
+- gate なしでは、タグが付くトークンは、辞書が強制した出現箇所とちょうど一致します。
+- gate ありでは、gate が却下した出現箇所でも、モデルが結局登録どおりに切り出せばタグが付きます。たとえば、受理された隣の語の強制した境界で、その語が切り出される場合です。トークンとして出てこない出現箇所にはタグは付きません。
+- `segment` と `segment_into` はタグを無視します。タグを持たない辞書では、`segment_with_pos` の処理は増えません。
+
+```rust
+use std::path::Path;
+
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
+use litsea::upos::Upos;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+let mut dictionary = UserDictionary::new();
+dictionary.add_with_pos("チャットGPT", Upos::PROPN);
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner)
+    .with_user_dictionary(dictionary);
+let tokens = segmenter.segment_with_pos("チャットGPTに聞く")?;
+// [("チャットGPT", Upos::PROPN), ("に", Upos::ADP), ("聞く", Upos::VERB)]
+// タグなしで登録すると ("チャットGPT", Upos::NOUN)、
+// 辞書なしでは ("チャット", Upos::NOUN), ("GPT", Upos::NOUN) になります。
+```
 
 ### `with_user_dictionary` / `set_user_dictionary` / `user_dictionary`
 

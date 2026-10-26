@@ -14,7 +14,7 @@ litsea-binding-core = "0.14.3"
 ```mermaid
 graph LR
     A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
-    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, read_model_file, read_model_uri"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, build_user_dictionary_with_tags, read_model_file, read_model_uri"]
     E["litsea_binding_core::token"] --- F["TokenView"]
     G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
     I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
@@ -26,7 +26,7 @@ graph LR
 | Module | Primary Types | Purpose |
 |--------|--------------|---------|
 | `segmenter` | `CoreSegmenter` | Segmentation and POS tagging, single and batch, with a reusable buffer |
-| `model` | `BuiltSegmenter`, `build_segmenter`, `build_segmenter_with`, `build_user_dictionary` | Model loading, model-kind detection, and the user dictionary the bindings attach |
+| `model` | `BuiltSegmenter`, `build_segmenter`, `build_segmenter_with`, `build_user_dictionary`, `build_user_dictionary_with_tags` | Model loading, model-kind detection, and the user dictionary the bindings attach |
 | `token` | `TokenView` | Token with surface, byte offsets, and optional UPOS tag |
 | `language` | `SUPPORTED_LANGUAGES`, `parse_language` | Language-name parsing and enumeration |
 | `trainer` | `CoreExtractor`, `CoreTrainer`, `CorePerceptronTrainer`, `CoreTwoStageTrainer` | Feature extraction and training (native targets only) |
@@ -77,7 +77,7 @@ Note that `segment_with_pos_batch` cannot amortize allocations the way `segment_
 | `CoreSegmenter::from_uri_with(language, uri, dictionary).await` | Everywhere (`http(s)://` needs the `remote_model` feature) |
 | `CoreSegmenter::from_uri_blocking_with(language, uri, dictionary)` | Native targets |
 
-The `*_with` constructors take an `Option<UserDictionary>` (issue #263) and attach it to the built segmenter; the plain constructors are the `None` case. `build_user_dictionary(words, gate)` is the shared helper that turns a host's word list and optional gate into that dictionary: an empty list yields `None` (so the segmenter's hot path stays untouched), and a gate outside `0.0..=1.0` is an `ErrorKind::InvalidArgument` error — also with an empty list, so a bad gate is never ignored. See [Segmenter](../litsea/segmenter.md) ("User Dictionary") for the semantics.
+The `*_with` constructors take an `Option<UserDictionary>` (issue #263) and attach it to the built segmenter; the plain constructors are the `None` case. `build_user_dictionary(words, gate)` is the shared helper that turns a host's word list and optional gate into that dictionary: an empty list yields `None` (so the segmenter's hot path stays untouched), and a gate outside `0.0..=1.0` is an `ErrorKind::InvalidArgument` error — also with an empty list, so a bad gate is never ignored. `build_user_dictionary_with_tags(words, word_tags, gate)` (issue #264) also takes `(word, UPOS tag)` pairs, a host's word-to-tag mapping, and registers those words with their tag: a tag that is not one of the 17 UPOS tags is an `ErrorKind::InvalidArgument` error naming the word, the pairs are applied in sorted order so neither the result nor the error depends on the order a host map iterates in, and only two empty lists yield `None`. `build_user_dictionary` is the case without pairs. See [Segmenter](../litsea/segmenter.md) ("User Dictionary") for the semantics.
 
 All of them go through `build_segmenter_with` (`build_segmenter` is its `None` case), which decides what to build from the model file itself:
 

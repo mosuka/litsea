@@ -39,6 +39,30 @@
   `litsea segment --user-words` (the WebAssembly fixtures gain a
   dictionary column), and the Node.js typings and PHP stubs are
   regenerated.
+- UPOS tags on user dictionary entries (#264): `segment --pos` and
+  `evaluate --pos` give every token that is a tagged dictionary word the
+  registered tag, ahead of both the model's lexicon and its stage-2
+  tagger, while every other token keeps the tagger's tag (the stage-2
+  tagger never reads another word's tag). In the `--user-words` file a
+  word may be followed by a TAB and one of the 17 UPOS tags; an empty
+  word, an extra column, an empty or unknown tag, and a word tagged
+  differently on two lines are errors that name the line, with or without
+  `--pos`. In the library, `UserDictionary::add_with_pos(word, Upos)`
+  registers a tagged word and `UserDictionary::pos(word)` reads the tag
+  back; `Segmenter::segment_with_pos` applies the tags, and `segment` /
+  `segment_into` ignore them (their code is unchanged). Without a gate the
+  tagged tokens are exactly the occurrences the dictionary forces; with a
+  gate, a rejected occurrence that the model emits exactly as registered
+  anyway is tagged too. `litsea-binding-core` adds
+  `build_user_dictionary_with_tags(words, word_tags, gate)`. Measured with
+  `litsea evaluate --pos` on the 543 sentences of the UD Japanese GSD test
+  set with `japanese_pos.model` (Word F1 96.78 and Tagged Word F1 92.95
+  without a dictionary): an oracle dictionary of the 531 gold words of two
+  or more characters that the model does not produce at the gold span with
+  the gold tag scores Tagged Word F1 92.30 untagged and 94.09 with each
+  word's most frequent gold tag (93.82 and 95.58 with gate 0.5); its 213
+  words of three or more characters score 94.13 and 94.97. Word F1 is the
+  same with and without the tags.
 
 ### Changed (breaking)
 

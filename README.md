@@ -7,7 +7,7 @@ Litsea is an extremely compact word segmentation and POS (Part-of-Speech) taggin
 - **Word Segmentation** using AdaBoost binary classification on character n-gram features
 - **POS Tagging** with the UPOS (Universal POS) tagset from [Universal Dependencies](https://universaldependencies.org/u/pos/) (17 tags), via a two-stage architecture: a binary boundary classifier plus a word-level tagger with a candidate-tag lexicon (`--pos`)
 - **Multilingual Support** for Japanese, Korean, Chinese, and English
-- **User Dictionary** — force words of your choice into single tokens at runtime, without retraining (`--user-words`, with an optional confidence gate)
+- **User Dictionary** — force words of your choice into single tokens at runtime, without retraining, and optionally fix their POS tags (`--user-words`, with an optional confidence gate)
 - **Backward Compatible** — existing segmentation-only workflows continue to work as before
 
 ## Language bindings
@@ -158,7 +158,7 @@ printf '雪だるまを作る\n新幹線で帰る\n' | ./target/release/litsea s
 新幹線 で 帰る
 ```
 
-Without the dictionary, `japanese.model` splits these as `雪 だる ま を 作る` and `新 幹線 で 帰る`. See the [segment](https://mosuka.github.io/litsea/en/litsea-cli/segment.html) documentation for the semantics and the optional `--user-words-gate`.
+Without the dictionary, `japanese.model` splits these as `雪 だる ま を 作る` and `新 幹線 で 帰る`. With `--pos`, a word may also carry a UPOS tag after a TAB (`チャットGPT<TAB>PROPN`), which its tokens then get instead of the tagger's. See the [segment](https://mosuka.github.io/litsea/en/litsea-cli/segment.html) documentation for the semantics, the tags and the optional `--user-words-gate`.
 
 ## How to segment sentences with POS tagging
 
