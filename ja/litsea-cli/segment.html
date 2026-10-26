@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0be47bf7.js";
+            window.path_to_searchindex_js = "../searchindex-b66adfa1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -206,7 +206,7 @@
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
-<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263）。1 行 1 語の UTF-8 ファイル。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。1 文字の語と空行は無視されます</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263、#264）。1 行 1 語の UTF-8 ファイルで、語の後ろに TAB と UPOS タグを続けることもできます。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。<code>--pos</code> では、タグ付きの語のトークンに登録されたタグを付けます。1 文字の語と空行は無視されます</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>）。語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します（<code>0</code> = モデルがすでに同意している場所だけ、<code>1</code> = 常に）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
@@ -277,8 +277,10 @@
 （<a href="../advanced/benchmarking.html">ベンチマーク</a>を参照）。</p>
 <h2 id="ユーザー辞書--user-words"><a class="header" href="#ユーザー辞書--user-words">ユーザー辞書（<code>--user-words</code>）</a></h2>
 <p>ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
-ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除き、空行は読み飛ばし、
-コメント構文はありません。1 文字の語は無視されます。</p>
+ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除くので語は書かれたとおりに
+照合され、空行は読み飛ばし、コメント構文はありません。1 文字の語は無視されます。
+語の後ろに TAB と <code>--pos</code> 用の UPOS タグを続けることもできます
+（<a href="#タグ付きの語">タグ付きの語</a>を参照）。</p>
 <pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
 printf '雪だるまを作る\n新幹線で帰る\n' \
   | litsea segment --user-words words.txt -l japanese ./models/japanese.model
@@ -287,7 +289,7 @@ printf '雪だるまを作る\n新幹線で帰る\n' \
 新幹線 で 帰る
 </code></pre>
 <p>辞書なしでは <code>japanese.model</code> は <code>雪 だる ま を 作る</code> と <code>新 幹線 で 帰る</code> を
-出力します。辞書は <code>--pos</code> でも使え（強制した語は他の語と同じようにタグ付け
+出力します。辞書は <code>--pos</code> でも使え（タグなしの語は他の語と同じようにタグ付け
 されます。この例では <code>雪だるま/NOUN を/ADP 作る/VERB</code>）、<code>--threads</code> でも
 出力は逐次実行とバイト単位で同一です。</p>
 <p>照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、
@@ -297,6 +299,44 @@ printf '雪だるまを作る\n新幹線で帰る\n' \
 <code>--user-words-gate 0</code> では上の例はモデル自身の <code>雪 だる ま を 作る</code> になります。
 そこではモデルがこの語に同意していないためです。意味論の全体は
 <a href="../litsea/segmenter.html">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
+<h3 id="タグ付きの語"><a class="header" href="#タグ付きの語">タグ付きの語</a></h3>
+<p>行には、TAB の後ろに UPOS タグを書けます（<code>語&lt;TAB&gt;UPOS</code>、issue #264）。
+<code>--pos</code> では、タグ付きの語のトークンすべてに、タガーのタグの代わりに登録された
+タグを付けます。モデルの語彙表がタグを固定していても、タガーが決めるはずでも
+同じです。それ以外のトークンはタガーのタグのままです。<code>--pos</code> なしでは、タグは
+何も変えません。</p>
+<pre><code class="language-sh">printf 'チャットGPT\tPROPN\nポケモン\tPROPN\n雪だるま\n' &gt; words.txt
+printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作る\n' \
+  | litsea segment --pos --user-words words.txt -l japanese ./models/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">チャットGPT/PROPN に/ADP 聞く/VERB
+ポケモン/PROPN を/ADP 集める/VERB
+雪だるま/NOUN を/ADP 作る/VERB
+</code></pre>
+<p>タグなしで登録すると、<code>チャットGPT</code> と <code>ポケモン</code> は <code>NOUN</code> になります。
+<code>--user-words-gate</code> を使う場合、gate が却下した出現箇所でも、モデルが結局登録
+どおりに切り出せばタグが付きます。</p>
+<p>行は最初の TAB で分けます。タグは前後の空白を取り除いてから（末尾の CR や空白は
+受け付けます）解釈し、大文字で書いた 17 個の UPOS タグのどれかでなければなりません。
+語は今までどおり書かれたとおりに照合します。同じ語を複数の行に書けますが、異なる
+タグを付けるとエラーになり、タグなしで繰り返した行はタグを保ちます。ファイルは
+<code>--pos</code> の有無にかかわらず検査し、エラーには行番号が付きます:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>行</th><th>エラー</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;TAB&gt;NOUN</code></td><td>TAB の前の語が空</td></tr>
+<tr><td><code>word&lt;TAB&gt;NOUN&lt;TAB&gt;X</code></td><td>列が多すぎる</td></tr>
+<tr><td><code>word&lt;TAB&gt;</code></td><td>UPOS タグが空</td></tr>
+<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>未知の UPOS タグ（それ以外は無視される 1 文字の語でも検査します）</td></tr>
+<tr><td><code>word&lt;TAB&gt;PROPN</code> の後の <code>word&lt;TAB&gt;NOUN</code></td><td>同じ語に 2 つの行で異なるタグ</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-text">Error: user dictionary words.txt, line 2: unknown UPOS tag "Noun" (expected one of ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X)
+</code></pre>
 <h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
 <ul>
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>

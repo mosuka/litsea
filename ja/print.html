@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0be47bf7.js";
+            window.path_to_searchindex_js = "searchindex-b66adfa1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -2183,7 +2183,7 @@ AdaBoost 経路の学習器になり（<code>segment</code> は自然に動作�
 </span><span class="boring">fn main() {
 </span>pub fn segment_with_pos(&amp;self, sentence: &amp;str) -&gt; Result&lt;Vec&lt;(String, Upos)&gt;&gt;
 <span class="boring">}</span></code></pre>
-<p>stage-1 境界分類器で文を単語に分割し（<code>segment</code> と全く同じ）、二段構成のタグ付け経路で各単語に UPOS タグを付与します。空の文に対しては、空のベクターを持つ <code>Ok</code> を返します。</p>
+<p>stage-1 境界分類器で文を単語に分割し（<code>segment</code> と全く同じ）、二段構成のタグ付け経路で各単語に UPOS タグを付与します。ユーザー辞書がタグ付きで登録した語には、代わりにそのタグを付けます（<a href="#タグ">タグ</a>を参照）。空の文に対しては、空のベクターを持つ <code>Ok</code> を返します。</p>
 <p><strong>エラー</strong>: 二段構成学習器が設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を返します — まず <code>with_two_stage_learner()</code> で Segmenter を作成してください。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2210,7 +2210,7 @@ where
 <span class="boring">}</span></code></pre>
 <p>POS タグ付きコーパス（<code>word/POS word/POS ...</code>）の文字レベル学習用特徴量を、最初の位置を含めて、Segmenter を変更することなくカスタムライターへストリーミングします。これは <code>Extractor::extract_two_stage</code> が stage-1 境界特徴量を構築する際の基盤となっています。</p>
 <h2 id="ユーザー辞書"><a class="header" href="#ユーザー辞書">ユーザー辞書</a></h2>
-<p><code>UserDictionary</code>（issue #263）は、入力に現れたら必ず 1 トークンとして出力する語の集合で、任意に設定できます。モデルを変えるものではなく、境界判定への制約です。モデルは引き続きすべての位置を採点し、辞書は出現箇所の両端（境界を強制）と内側（非境界を強制）の判定を上書きします。本節の出力例は <code>japanese.model</code> によるものです。</p>
+<p><code>UserDictionary</code>（issue #263）は、入力に現れたら必ず 1 トークンとして出力する語の集合で、任意に設定できます。モデルを変えるものではなく、境界判定への制約です。モデルは引き続きすべての位置を採点し、辞書は出現箇所の両端（境界を強制）と内側（非境界を強制）の判定を上書きします。語には、<code>segment_with_pos</code> がそのトークンに付ける UPOS タグを持たせることもできます（issue #264、<a href="#タグ">タグ</a>を参照）。本節の出力例は <code>japanese.model</code> によるもので、タグの例は <code>japanese_pos.model</code> によるものです。</p>
 <h3 id="userdictionary"><a class="header" href="#userdictionary"><code>UserDictionary</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2223,27 +2223,59 @@ impl UserDictionary {
         I: IntoIterator&lt;Item = S&gt;,
         S: AsRef&lt;str&gt;
     pub fn add(&amp;mut self, word: &amp;str) -&gt; bool
+    pub fn add_with_pos(&amp;mut self, word: &amp;str, pos: Upos) -&gt; bool
     pub fn contains(&amp;self, word: &amp;str) -&gt; bool
+    pub fn pos(&amp;self, word: &amp;str) -&gt; Option&lt;Upos&gt;
     pub fn len(&amp;self) -&gt; usize
     pub fn is_empty(&amp;self) -&gt; bool
     pub fn set_gate(&amp;mut self, gate: Option&lt;f64&gt;) -&gt; Result&lt;()&gt;
     pub fn gate(&amp;self) -&gt; Option&lt;f64&gt;
 }
 <span class="boring">}</span></code></pre>
-<p>語は Unicode スカラー値をキーとする trie に格納され、与えられたまま照合されます — 大文字小文字の同一視や、全角半角・Unicode の正規化は行いません。語に空白を含めることもできます。モデルが空白をトークンとして出力する言語（韓国語・英語）では、そのような語は空白を含む 1 トークンになります。1 文字の語には結合すべき内側がないため、<code>add</code> は格納せずに <code>false</code> を返します（重複の場合も <code>false</code> を返します）。この型は <code>litsea::UserDictionary</code> として再エクスポートされています。</p>
+<p>語は Unicode スカラー値をキーとする trie に格納され、与えられたまま照合されます — 大文字小文字の同一視や、全角半角・Unicode の正規化は行いません。語に空白を含めることもできます。モデルが空白をトークンとして出力する言語（韓国語・英語）では、そのような語は空白を含む 1 トークンになります。1 文字の語には結合すべき内側がないため、<code>add</code> と <code>add_with_pos</code> は（タグごと）格納せずに <code>false</code> を返します。どちらも、登録済みの語に対しては <code>false</code> を返します。この型は <code>litsea::UserDictionary</code> として再エクスポートされています。</p>
 <h3 id="意味論"><a class="header" href="#意味論">意味論</a></h3>
 <ul>
 <li>登録語の出現箇所は厳密に 1 トークンとして出力されます。先頭文字の前と末尾文字の後に境界を強制し、内側には境界を置きません。</li>
 <li>強制した判定は、モデルの判定と全く同じようにモデルの境界タグ履歴（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code> 特徴量）に入るため、語の後ろの位置は一貫した特徴量で採点されます。<code>korean.model</code> や <code>english.model</code> のようなタグ非依存（pointwise）モデルでは、辞書の影響は出現箇所そのものに限られます。</li>
 <li>重なった出現箇所は leftmost-longest で解決します。左から走査し、現在位置から始まる最長の登録語が勝ち、その後ろから照合を再開します。</li>
 <li>照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、<code>って</code> や <code>いま</code> のような 2 文字の断片を語として登録すると、それを含む他の語をすべて壊します。語全体を登録し、短い語を含む辞書では後述の gate を検討してください。</li>
-<li>辞書は品詞情報を持ちません。<code>segment_with_pos</code> では、語彙表に未知の強制語は stage-2 タガーの全候補 argmax でタグ付けされます。</li>
+<li>タグなしで登録した語は、<code>segment_with_pos</code> で他の語と同じようにタグ付けされます。語彙表がその表層を知っていれば語彙表で、知らなければ stage-2 タガーの全候補 argmax で決まります。<code>add_with_pos</code> で登録したタグは、そのどちらよりも優先します（<a href="#タグ">タグ</a>を参照）。</li>
 <li>空の辞書、または登録語が一度も現れない辞書は、辞書なしの分割とバイト単位で同一の出力を残します。</li>
 </ul>
 <h3 id="gate"><a class="header" href="#gate">Gate</a></h3>
 <p><code>set_gate(Some(ratio))</code> を設定すると、出現箇所は <strong>flip ratio</strong> が <code>ratio</code> 以下のときだけ適用されます。flip ratio は、語が制約する位置のうち制約なしの判定を覆す位置のモデルスコアの絶対値の和を、語が制約するすべての位置の絶対値の和で割ったものです。<code>0.0..=1.0</code> に収まり、モデルごとの調整は不要です。<code>0.0</code> はモデルがすでに同意している場所だけに語を適用し、<code>1.0</code> はすべてに適用し、<code>None</code>（既定）は判定を省きます。<code>0.0..=1.0</code> の外の値（または NaN）は <code>LitseaError::InvalidInput</code> で拒否されます。</p>
 <p>gate は短い語や曖昧な語を含む辞書のためのものです。<code>中野</code> を登録して gate を <code>0.0</code> にすると、<code>山中野球部</code> は <code>山中 | 野球 | 部</code> のまま（そこではモデルの <code>中野</code> に対する margin が大きい）ですが、<code>私の名前は中野です</code> では引き続き <code>中野</code> が 1 トークンになります（モデルが同意している）。gate なしでは両方の文に語が適用されます。</p>
 <p>タグ依存モデルでは、候補を含む文に限り逐次採点パスが 1 回余分にかかります — 比較対象となる制約なしの判定は、前の位置が強制するかもしれない語を考慮せずに計算されるため、近似であることを明記しておきます。pointwise モデルでは追加コストはありません。</p>
+<h3 id="タグ"><a class="header" href="#タグ">タグ</a></h3>
+<p><code>add_with_pos(word, pos)</code> は、<code>add</code> と全く同じように語を登録し（分割への制約も同じです）、その語に UPOS タグを付けます（issue #264）。登録済みの語に対して呼ぶとタグを設定し、前のタグがあれば置き換えます。<code>add</code> がタグを消すことはありません。<code>pos(word)</code> は登録されたタグを返し、未登録の語やタグなしの語には <code>None</code> を返します。</p>
+<p><code>segment_with_pos</code> では、表層がタグ付きの語と一致するトークンすべてに、登録されたタグを付けます。語彙表の固定タグと stage-2 タガーのどちらよりも優先し、それ以外のトークンはタガーのタグのままです。stage-2 タガーは各語を、その語自身の表層と前後の文字から採点し、他の語のタグは使わないため、登録したタグが他のトークンのタグを変えることはありません。</p>
+<ul>
+<li>gate なしでは、タグが付くトークンは、辞書が強制した出現箇所とちょうど一致します。</li>
+<li>gate ありでは、gate が却下した出現箇所でも、モデルが結局登録どおりに切り出せばタグが付きます。たとえば、受理された隣の語の強制した境界で、その語が切り出される場合です。トークンとして出てこない出現箇所にはタグは付きません。</li>
+<li><code>segment</code> と <code>segment_into</code> はタグを無視します。タグを持たない辞書では、<code>segment_with_pos</code> の処理は増えません。</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::path::Path;
+
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
+use litsea::upos::Upos;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+let mut dictionary = UserDictionary::new();
+dictionary.add_with_pos("チャットGPT", Upos::PROPN);
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner)
+    .with_user_dictionary(dictionary);
+let tokens = segmenter.segment_with_pos("チャットGPTに聞く")?;
+// [("チャットGPT", Upos::PROPN), ("に", Upos::ADP), ("聞く", Upos::VERB)]
+// タグなしで登録すると ("チャットGPT", Upos::NOUN)、
+// 辞書なしでは ("チャット", Upos::NOUN), ("GPT", Upos::NOUN) になります。
+<span class="boring">}</span></code></pre>
 <h3 id="with_user_dictionary--set_user_dictionary--user_dictionary"><a class="header" href="#with_user_dictionary--set_user_dictionary--user_dictionary"><code>with_user_dictionary</code> / <code>set_user_dictionary</code> / <code>user_dictionary</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -3834,7 +3866,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
-<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263）。1 行 1 語の UTF-8 ファイル。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。1 文字の語と空行は無視されます</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263、#264）。1 行 1 語の UTF-8 ファイルで、語の後ろに TAB と UPOS タグを続けることもできます。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。<code>--pos</code> では、タグ付きの語のトークンに登録されたタグを付けます。1 文字の語と空行は無視されます</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>）。語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します（<code>0</code> = モデルがすでに同意している場所だけ、<code>1</code> = 常に）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
@@ -3905,8 +3937,10 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 （<a href="#ベンチマーク">ベンチマーク</a>を参照）。</p>
 <h2 id="ユーザー辞書--user-words"><a class="header" href="#ユーザー辞書--user-words">ユーザー辞書（<code>--user-words</code>）</a></h2>
 <p>ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
-ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除き、空行は読み飛ばし、
-コメント構文はありません。1 文字の語は無視されます。</p>
+ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除くので語は書かれたとおりに
+照合され、空行は読み飛ばし、コメント構文はありません。1 文字の語は無視されます。
+語の後ろに TAB と <code>--pos</code> 用の UPOS タグを続けることもできます
+（<a href="#タグ付きの語">タグ付きの語</a>を参照）。</p>
 <pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
 printf '雪だるまを作る\n新幹線で帰る\n' \
   | litsea segment --user-words words.txt -l japanese ./models/japanese.model
@@ -3915,7 +3949,7 @@ printf '雪だるまを作る\n新幹線で帰る\n' \
 新幹線 で 帰る
 </code></pre>
 <p>辞書なしでは <code>japanese.model</code> は <code>雪 だる ま を 作る</code> と <code>新 幹線 で 帰る</code> を
-出力します。辞書は <code>--pos</code> でも使え（強制した語は他の語と同じようにタグ付け
+出力します。辞書は <code>--pos</code> でも使え（タグなしの語は他の語と同じようにタグ付け
 されます。この例では <code>雪だるま/NOUN を/ADP 作る/VERB</code>）、<code>--threads</code> でも
 出力は逐次実行とバイト単位で同一です。</p>
 <p>照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、
@@ -3925,6 +3959,44 @@ printf '雪だるまを作る\n新幹線で帰る\n' \
 <code>--user-words-gate 0</code> では上の例はモデル自身の <code>雪 だる ま を 作る</code> になります。
 そこではモデルがこの語に同意していないためです。意味論の全体は
 <a href="#segmenter">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
+<h3 id="タグ付きの語"><a class="header" href="#タグ付きの語">タグ付きの語</a></h3>
+<p>行には、TAB の後ろに UPOS タグを書けます（<code>語&lt;TAB&gt;UPOS</code>、issue #264）。
+<code>--pos</code> では、タグ付きの語のトークンすべてに、タガーのタグの代わりに登録された
+タグを付けます。モデルの語彙表がタグを固定していても、タガーが決めるはずでも
+同じです。それ以外のトークンはタガーのタグのままです。<code>--pos</code> なしでは、タグは
+何も変えません。</p>
+<pre><code class="language-sh">printf 'チャットGPT\tPROPN\nポケモン\tPROPN\n雪だるま\n' &gt; words.txt
+printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作る\n' \
+  | litsea segment --pos --user-words words.txt -l japanese ./models/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">チャットGPT/PROPN に/ADP 聞く/VERB
+ポケモン/PROPN を/ADP 集める/VERB
+雪だるま/NOUN を/ADP 作る/VERB
+</code></pre>
+<p>タグなしで登録すると、<code>チャットGPT</code> と <code>ポケモン</code> は <code>NOUN</code> になります。
+<code>--user-words-gate</code> を使う場合、gate が却下した出現箇所でも、モデルが結局登録
+どおりに切り出せばタグが付きます。</p>
+<p>行は最初の TAB で分けます。タグは前後の空白を取り除いてから（末尾の CR や空白は
+受け付けます）解釈し、大文字で書いた 17 個の UPOS タグのどれかでなければなりません。
+語は今までどおり書かれたとおりに照合します。同じ語を複数の行に書けますが、異なる
+タグを付けるとエラーになり、タグなしで繰り返した行はタグを保ちます。ファイルは
+<code>--pos</code> の有無にかかわらず検査し、エラーには行番号が付きます:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>行</th><th>エラー</th></tr>
+</thead>
+<tbody>
+<tr><td><code>&lt;TAB&gt;NOUN</code></td><td>TAB の前の語が空</td></tr>
+<tr><td><code>word&lt;TAB&gt;NOUN&lt;TAB&gt;X</code></td><td>列が多すぎる</td></tr>
+<tr><td><code>word&lt;TAB&gt;</code></td><td>UPOS タグが空</td></tr>
+<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>未知の UPOS タグ（それ以外は無視される 1 文字の語でも検査します）</td></tr>
+<tr><td><code>word&lt;TAB&gt;PROPN</code> の後の <code>word&lt;TAB&gt;NOUN</code></td><td>同じ語に 2 つの行で異なるタグ</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code class="language-text">Error: user dictionary words.txt, line 2: unknown UPOS tag "Noun" (expected one of ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X)
+</code></pre>
 <h2 id="注意事項"><a class="header" href="#注意事項">注意事項</a></h2>
 <ul>
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
@@ -3969,7 +4041,7 @@ train 分割で学習されているため、この条件を満たします。</
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。<a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です。ゴールド形式は下記の <code>--format</code> と組み合わせて選択します</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式。<code>--pos</code> なしの場合: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> ありの場合: <code>space</code> は <code>"word/POS word/POS ..."</code>（二段構成の学習コーパス形式、無空白）を、<code>tsv</code> はタブ区切りの <code>"word/POS"</code> トークン（トークンは空白文字も可）を選択します（issue #196/#198。韓国語・英語の二段構成モデルが現在学習に使っている空白保持形式であり、これらの言語では学習時と実際の入力の双方に一致するプロトコルです）</td></tr>
-<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>評価時に適用するユーザー辞書（issue #263）。ファイル形式と意味論は <a href="#segment-1"><code>segment --user-words</code></a> と同じです</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>評価時に適用するユーザー辞書（issue #263、#264）。ファイル形式と意味論は <a href="#segment-1"><code>segment --user-words</code></a> と同じで、<code>--pos</code> ではタグも適用します</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>。<code>segment --user-words-gate</code> 参照）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
@@ -4020,6 +4092,10 @@ litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japan
 ものです:</p>
 <pre><code class="language-sh">litsea evaluate --user-words words.txt -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate --user-words words.txt --user-words-gate 0.5 -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+</code></pre>
+<p><code>--pos</code> では、タグ付きの語（<code>語&lt;TAB&gt;UPOS</code>）のタグも適用されるため、タグ付きの
+メトリクスでタグの効果が分かります:</p>
+<pre><code class="language-sh">litsea evaluate --pos --user-words words.txt -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 </code></pre>
 <p>韓国語・英語では、<code>--pos</code> 単体は #198 以前に二段構成モデルが学習に使っていた
 空白非保持プロトコルを再現します。現在のモデルの品質を測るには、
@@ -4080,7 +4156,7 @@ litsea-binding-core = "0.14.3"
 <h2 id="モジュール構成-1"><a class="header" href="#モジュール構成-1">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
-    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, read_model_file, read_model_uri"]
+    C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, build_user_dictionary_with_tags, read_model_file, read_model_uri"]
     E["litsea_binding_core::token"] --- F["TokenView"]
     G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
     I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
@@ -4095,7 +4171,7 @@ litsea-binding-core = "0.14.3"
 </thead>
 <tbody>
 <tr><td><code>segmenter</code></td><td><code>CoreSegmenter</code></td><td>分割と POS タグ付け（単発・バッチ）。バッファを再利用する</td></tr>
-<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code>, <code>build_segmenter_with</code>, <code>build_user_dictionary</code></td><td>モデルの読み込みと種別判定、バインディングが取り付けるユーザー辞書</td></tr>
+<tr><td><code>model</code></td><td><code>BuiltSegmenter</code>, <code>build_segmenter</code>, <code>build_segmenter_with</code>, <code>build_user_dictionary</code>, <code>build_user_dictionary_with_tags</code></td><td>モデルの読み込みと種別判定、バインディングが取り付けるユーザー辞書</td></tr>
 <tr><td><code>token</code></td><td><code>TokenView</code></td><td>表層形・バイトオフセット・UPOS タグ（任意）を持つトークン</td></tr>
 <tr><td><code>language</code></td><td><code>SUPPORTED_LANGUAGES</code>, <code>parse_language</code></td><td>言語名のパースと列挙</td></tr>
 <tr><td><code>trainer</code></td><td><code>CoreExtractor</code>, <code>CoreTrainer</code>, <code>CorePerceptronTrainer</code>, <code>CoreTwoStageTrainer</code></td><td>特徴量抽出と学習（ネイティブターゲットのみ）</td></tr>
@@ -4154,7 +4230,7 @@ assert_eq!(
 </tbody>
 </table>
 </div>
-<p><code>*_with</code> コンストラクタは <code>Option&lt;UserDictionary&gt;</code>（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは <code>None</code> の場合です。<code>build_user_dictionary(words, gate)</code> は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは <code>None</code> になり（セグメンタのホットパスには触れません）、<code>0.0..=1.0</code> の外の gate は <code>ErrorKind::InvalidArgument</code> エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。意味論は <a href="#segmenter">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
+<p><code>*_with</code> コンストラクタは <code>Option&lt;UserDictionary&gt;</code>（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは <code>None</code> の場合です。<code>build_user_dictionary(words, gate)</code> は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは <code>None</code> になり（セグメンタのホットパスには触れません）、<code>0.0..=1.0</code> の外の gate は <code>ErrorKind::InvalidArgument</code> エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。<code>build_user_dictionary_with_tags(words, word_tags, gate)</code>（issue #264）は、さらにホスト言語の語→タグのマッピングを <code>(語, UPOS タグ)</code> の組で受け取り、それらの語をタグ付きで登録します。17 個の UPOS タグ以外のタグは、その語を示す <code>ErrorKind::InvalidArgument</code> エラーになります。組は整列した順に適用するため、結果もエラーも、ホスト言語のマップを走査する順序に左右されません。両方のリストが空のときだけ <code>None</code> になります。<code>build_user_dictionary</code> は、組がない場合にあたります。意味論は <a href="#segmenter">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
 <p>いずれも <code>build_segmenter_with</code>（<code>build_segmenter</code> はその <code>None</code> の場合）を経由し、モデルファイル自身から何を構築するかを決定します。</p>
 <div class="table-wrapper">
 <table>

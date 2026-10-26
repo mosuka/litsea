@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-0be47bf7.js";
+            window.path_to_searchindex_js = "../searchindex-b66adfa1.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -216,7 +216,7 @@ train 分割で学習されているため、この条件を満たします。</
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>モデルとゴールドコーパスの言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>単語分割と品詞推定を同時に評価します。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です。ゴールド形式は下記の <code>--format</code> と組み合わせて選択します</td></tr>
 <tr><td><code>--format &lt;FORMAT&gt;</code></td><td><code>space</code></td><td>ゴールドコーパスの形式。<code>--pos</code> なしの場合: <code>space</code>（スペース区切りトークン）または <code>tsv</code>（タブ区切りトークン。韓国語/英語の空白保持コーパスのように、トークンとして空白文字そのものを含められます）。<code>--pos</code> ありの場合: <code>space</code> は <code>"word/POS word/POS ..."</code>（二段構成の学習コーパス形式、無空白）を、<code>tsv</code> はタブ区切りの <code>"word/POS"</code> トークン（トークンは空白文字も可）を選択します（issue #196/#198。韓国語・英語の二段構成モデルが現在学習に使っている空白保持形式であり、これらの言語では学習時と実際の入力の双方に一致するプロトコルです）</td></tr>
-<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>評価時に適用するユーザー辞書（issue #263）。ファイル形式と意味論は <a href="segment.html"><code>segment --user-words</code></a> と同じです</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>評価時に適用するユーザー辞書（issue #263、#264）。ファイル形式と意味論は <a href="segment.html"><code>segment --user-words</code></a> と同じで、<code>--pos</code> ではタグも適用します</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>。<code>segment --user-words-gate</code> 参照）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
@@ -267,6 +267,10 @@ litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japan
 ものです:</p>
 <pre><code class="language-sh">litsea evaluate --user-words words.txt -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate --user-words words.txt --user-words-gate 0.5 -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
+</code></pre>
+<p><code>--pos</code> では、タグ付きの語（<code>語&lt;TAB&gt;UPOS</code>）のタグも適用されるため、タグ付きの
+メトリクスでタグの効果が分かります:</p>
+<pre><code class="language-sh">litsea evaluate --pos --user-words words.txt -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 </code></pre>
 <p>韓国語・英語では、<code>--pos</code> 単体は #198 以前に二段構成モデルが学習に使っていた
 空白非保持プロトコルを再現します。現在のモデルの品質を測るには、
