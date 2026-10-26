@@ -6,11 +6,12 @@
 
 - `litsea segment --user-words FILE` and `litsea evaluate --user-words FILE`
   (#263): a user dictionary that forces registered words into single
-  tokens at runtime, without retraining. An occurrence of a registered
-  word gets a boundary at each edge and none inside, overlapping
-  occurrences are resolved leftmost-longest, and the forced decisions
-  enter the model's boundary-tag history like model decisions, so
-  tag-dependent models keep consistent features. The optional
+  tokens at runtime, without retraining. The file is UTF-8 with one word
+  per line; a byte order mark at its start is ignored (#275). An
+  occurrence of a registered word gets a boundary at each edge and none
+  inside, overlapping occurrences are resolved leftmost-longest, and the
+  forced decisions enter the model's boundary-tag history like model
+  decisions, so tag-dependent models keep consistent features. The optional
   `--user-words-gate RATIO` applies an occurrence only if the share of
   the model's margin it would overturn is at most `RATIO`, which guards
   dictionaries that contain short entries without per-model tuning. In

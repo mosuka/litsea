@@ -132,10 +132,11 @@ numbers and should not be compared directly (see
 ## User Dictionary (`--user-words`)
 
 A user dictionary forces registered words to come out as single tokens
-without retraining (issue #263). The file is UTF-8 with one word per line;
-only the line terminator is stripped, so a word is matched exactly as
-written, empty lines are skipped, and there is no comment syntax. Words of
-one character are ignored. A word may be followed by a TAB and a UPOS tag
+without retraining (issue #263). The file is UTF-8 with one word per line.
+A byte order mark at the start of the file is ignored (issue #275);
+otherwise only the line terminator is stripped, so a word is matched
+exactly as written, empty lines are skipped, and there is no comment
+syntax. Words of one character are ignored. A word may be followed by a TAB and a UPOS tag
 for `--pos` (see [Tagged Entries](#tagged-entries)).
 
 ```sh
