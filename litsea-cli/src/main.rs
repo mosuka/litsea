@@ -717,9 +717,11 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
 /// Loads the user dictionary named by `--user-words` (issues #263, #264).
 ///
 /// The file is UTF-8 with one entry per line: a word, optionally followed
-/// by a TAB and a UPOS tag (`word<TAB>UPOS`). Only the line terminator
-/// (`\n` or `\r\n`) is stripped — a word is matched exactly as written, so
-/// leading or trailing spaces are part of it — empty lines are skipped,
+/// by a TAB and a UPOS tag (`word<TAB>UPOS`). A byte order mark (U+FEFF)
+/// at the start of the file is dropped (issue #275); anywhere else it is
+/// part of its word. Otherwise only the line terminator (`\n` or `\r\n`)
+/// is stripped — a word is matched exactly as written, so leading or
+/// trailing spaces are part of it — empty lines are skipped,
 /// and there is no comment syntax. A line is split at its first TAB; the
 /// tag is trimmed of surrounding whitespace and must be one of the 17
 /// UPOS tags. Words of one character are dropped by
@@ -758,7 +760,13 @@ fn load_user_dictionary(
     // is tagged differently on two lines.
     let mut tagged: HashMap<String, (Upos, usize)> = HashMap::new();
     for (index, line) in io::BufReader::new(file).lines().enumerate() {
-        let line = line?;
+        let mut line = line?;
+        // Editors that save "UTF-8 with BOM" put U+FEFF before the first
+        // word, where it would keep that word from ever matching. Dropping
+        // it first lets a BOM-only line count as empty.
+        if index == 0 && line.starts_with('\u{FEFF}') {
+            line.drain(..'\u{FEFF}'.len_utf8());
+        }
         if line.is_empty() {
             continue;
         }

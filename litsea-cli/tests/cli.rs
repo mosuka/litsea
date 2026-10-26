@@ -621,6 +621,62 @@ fn test_segment_user_words_tag_errors() {
     }
 }
 
+/// Pins the byte order mark rule of `--user-words` (issue #275): a U+FEFF at
+/// the start of the file is dropped, so a file saved as "UTF-8 with BOM"
+/// loads the same dictionary as without it, whether its first line is
+/// untagged or tagged, and a BOM-only first line counts as empty. A U+FEFF
+/// anywhere else stays part of its word, which then never matches.
+#[test]
+fn test_segment_user_words_bom() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let words_owned = dir.path().join("words.txt");
+    let words = words_owned.to_str().unwrap();
+    let model_owned = model_path("japanese.model");
+    let model = model_owned.to_str().unwrap();
+    let pos_model_owned = model_path("japanese_pos.model");
+    let pos_model = pos_model_owned.to_str().unwrap();
+    let segment = |content: &str, pos: bool| {
+        std::fs::write(words, content).expect("write words");
+        let (args, input) = if pos {
+            (
+                vec!["segment", "--pos", "--user-words", words, "-l", "japanese", pos_model],
+                "チャットGPTに聞く\n",
+            )
+        } else {
+            (
+                vec!["segment", "--user-words", words, "-l", "japanese", model],
+                "雪だるまを作る\n新幹線で帰る\n",
+            )
+        };
+        let output = run_litsea(&args, Some(input));
+        assert!(
+            output.status.success(),
+            "{content:?}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout).unwrap()
+    };
+
+    let plain = segment("雪だるま\n新幹線\n", false);
+    assert_eq!(plain, "雪だるま を 作る\n新幹線 で 帰る\n");
+    assert_eq!(segment("\u{FEFF}雪だるま\n新幹線\n", false), plain);
+    assert_eq!(segment("\u{FEFF}\n雪だるま\n新幹線\n", false), plain, "BOM-only first line");
+
+    let tagged = segment("チャットGPT\tPROPN\n", true);
+    assert_eq!(tagged, "チャットGPT/PROPN に/ADP 聞く/VERB\n");
+    assert_eq!(segment("\u{FEFF}チャットGPT\tPROPN\n", true), tagged);
+
+    assert_eq!(
+        segment("雪だるま\n\u{FEFF}新幹線\n", false),
+        "雪だるま を 作る\n新 幹線 で 帰る\n"
+    );
+    assert_eq!(
+        segment("\u{FEFF}\u{FEFF}雪だるま\n新幹線\n", false),
+        "雪 だる ま を 作る\n新幹線 で 帰る\n",
+        "only one BOM is dropped"
+    );
+}
+
 /// Pins `evaluate --pos --user-words` with tags (issue #264): the tag fixes
 /// the tagged metrics while the segmentation metrics stay as they are.
 #[test]
