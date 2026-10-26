@@ -70,6 +70,28 @@ Buffer.from(text).subarray(token.start, token.end).toString()   // === token.sur
 
 分割専用モデルに対して `segmentWithPos` を呼ぶと、`code === 'pos_unavailable'` のエラーが送出されます。
 
+### ユーザー辞書
+
+`userWords` に渡した語は、再学習なしで、現れた場所で必ず 1 トークンとして出力されます。すべてのコンストラクタが、省略可能な末尾の引数として受け取ります。
+
+```js
+const seg = Segmenter.open('japanese', 'models/japanese.model', ['雪だるま', '新幹線'])
+
+seg.segment('雪だるまを作る')
+// [ '雪だるま', 'を', '作る' ]   （辞書なしでは [ '雪', 'だる', 'ま', 'を', '作る' ]）
+```
+
+照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。次の引数 `userWordsGate`（`0`〜`1`）は、モデルの margin が十分小さい場所にだけ語を適用します。`0` では、モデルがすでに同意している場所だけに適用します。
+
+POS モデルでは、最後の引数 `userWordTags`（語と UPOS タグのオブジェクト）で、さらに語を登録できます。`segmentWithPos` は、その語のトークンに、モデル自身のタグ付けより優先して、登録したタグを付けます:
+
+```js
+const tagged = Segmenter.open('japanese', 'models/japanese_pos.model', undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   （userWords に入れた場合は 'チャットGPT/NOUN'）
+```
+
 ### その他のモデル読み込み方法
 
 ```js
@@ -124,7 +146,7 @@ const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese
 
 | `err.code` | 発生条件 |
 |-----------|---------|
-| `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ |
+| `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ、`0`〜`1` の外の `userWordsGate`、UPOS タグでない `userWordTags` の値 |
 | `model` | ダウンロード失敗、または旧 joint POS モデル |
 | `io` | ファイルの読み書き失敗 |
 | `parse` | モデルまたは学習データの形式不正 |

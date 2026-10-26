@@ -118,6 +118,28 @@ substr($text, $token->start, $token->end - $token->start);   // === $token->surf
 
 分割専用モデルに対して `segmentWithPos()` を呼ぶと `Litsea\PosUnavailableException` が送出されます。
 
+### ユーザー辞書
+
+`$user_words` に渡した語は、再学習なしで、現れた場所で必ず 1 トークンとして出力されます。すべてのコンストラクタが、省略可能な末尾の引数として受け取ります（名前付き引数でも渡せます）。
+
+```php
+$seg = Segmenter::open('japanese', 'models/japanese.model', ['雪だるま', '新幹線']);
+
+$seg->segment('雪だるまを作る');
+// ['雪だるま', 'を', '作る']   （辞書なしでは ['雪', 'だる', 'ま', 'を', '作る']）
+```
+
+照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`$user_words_gate`（`0.0`〜`1.0`）は、モデルの margin が十分小さい場所にだけ語を適用します。`0.0` では、モデルがすでに同意している場所だけに適用します。
+
+POS モデルでは、`$user_word_tags`（語と UPOS タグの配列）で、さらに語を登録できます。`segmentWithPos()` は、その語のトークンに、モデル自身のタグ付けより優先して、登録したタグを付けます:
+
+```php
+$tagged = Segmenter::open('japanese', 'models/japanese_pos.model', user_word_tags: ['チャットGPT' => 'PROPN']);
+
+array_map(fn ($t) => "{$t->surface}/{$t->pos}", $tagged->segmentWithPos('チャットGPTに聞く'));
+// ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   （$user_words に入れた場合は 'チャットGPT/NOUN'）
+```
+
 ### その他のモデル読み込み方法
 
 ```php
@@ -178,7 +200,7 @@ $metrics = (new Trainer(0.01, 100000, 'features.txt'))->train('japanese.model', 
 
 | 例外 | 発生条件 |
 |------|---------|
-| `Litsea\InvalidArgumentException` | 未知の言語名、未知の feature set、使用済みトレーナ |
+| `Litsea\InvalidArgumentException` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `$user_words_gate`、UPOS タグでない `$user_word_tags` の値 |
 | `Litsea\ModelException` | ダウンロード失敗、または旧 joint POS モデル |
 | `Litsea\IoException` | ファイルの読み書き失敗 |
 | `Litsea\ParseException` | モデルまたは学習データの形式不正 |

@@ -76,6 +76,28 @@ for token in seg.segment_with_pos("これはテストです。"):
 
 分割専用モデルに対して `segment_with_pos` を呼ぶと `PosUnavailableError` が送出されます。
 
+### ユーザー辞書
+
+`user_words` に渡した語は、再学習なしで、現れた場所で必ず 1 トークンとして出力されます。すべてのコンストラクタが、キーワード専用の引数として受け取ります。
+
+```python
+seg = Segmenter.open(Language.JAPANESE, "models/japanese.model", user_words=["雪だるま", "新幹線"])
+
+seg.segment("雪だるまを作る")
+# ['雪だるま', 'を', '作る']   （辞書なしでは ['雪', 'だる', 'ま', 'を', '作る']）
+```
+
+照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`user_words_gate`（`0.0`〜`1.0`）は、モデルの margin が十分小さい場所にだけ語を適用します。`0.0` では、モデルがすでに同意している場所だけに適用します。
+
+POS モデルでは、`user_word_tags`（語と UPOS タグの dict）で、さらに語を登録できます。`segment_with_pos` は、その語のトークンに、モデル自身のタグ付けより優先して、登録したタグを付けます:
+
+```python
+seg = Segmenter.open(Language.JAPANESE, "models/japanese_pos.model", user_word_tags={"チャットGPT": "PROPN"})
+
+[f"{t.surface}/{t.pos.name}" for t in seg.segment_with_pos("チャットGPTに聞く")]
+# ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   （user_words に入れた場合は 'チャットGPT/NOUN'）
+```
+
 ### その他のモデル読み込み方法
 
 ```python
@@ -132,7 +154,7 @@ metrics = trainer.train("japanese.model", cancel=cancel)
 
 | 例外 | 発生条件 |
 |------|---------|
-| `InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ |
+| `InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `user_words_gate`、UPOS タグでない `user_word_tags` の値 |
 | `ModelError` | ダウンロード失敗、または旧 joint POS モデル |
 | `IoError` | ファイルの読み書き失敗 |
 | `ParseError` | モデルまたは学習データの形式不正 |

@@ -54,6 +54,28 @@ new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.
 
 分割専用モデルに対して `segmentWithPos` を呼ぶと `code === 'pos_unavailable'` のエラーが送出されます。モデルファイル自身が種別を持つため、読み込んだモデルで何ができるかは `hasPos` が示します。
 
+### ユーザー辞書
+
+`userWords` に渡した語は、再学習なしで、現れた場所で必ず 1 トークンとして出力されます。`fromBytes` が、省略可能な末尾の引数として受け取ります。
+
+```js
+const seg = Segmenter.fromBytes('japanese', bytes, ['雪だるま', '新幹線'])
+
+seg.segment('雪だるまを作る')
+// [ '雪だるま', 'を', '作る' ]   （辞書なしでは [ '雪', 'だる', 'ま', 'を', '作る' ]）
+```
+
+照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。次の引数 `userWordsGate`（`0`〜`1`）は、モデルの margin が十分小さい場所にだけ語を適用します。`0` では、モデルがすでに同意している場所だけに適用します。
+
+POS モデルでは、最後の引数 `userWordTags`（語と UPOS タグのオブジェクト）で、さらに語を登録できます。`segmentWithPos` は、その語のトークンに、モデル自身のタグ付けより優先して、登録したタグを付けます:
+
+```js
+const tagged = Segmenter.fromBytes('japanese', posBytes, undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   （userWords に入れた場合は 'チャットGPT/NOUN'）
+```
+
 ### モデルのキャッシュ
 
 モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。Cache Storage に保持する補助モジュールを同梱しています。
@@ -84,7 +106,7 @@ Cache Storage が使えない環境（非セキュアコンテキストなど）
 
 | `err.code` | 発生条件 |
 |-----------|---------|
-| `invalid_argument` | 未知の言語名 |
+| `invalid_argument` | 未知の言語名、`0`〜`1` の外の `userWordsGate`、UPOS タグでない（または文字列でない）`userWordTags` の値 |
 | `model` | 旧 joint POS モデル |
 | `parse` | モデルの形式不正、または UTF-8 でない |
 | `pos_unavailable` | 分割専用モデルに対する POS タグ付けの要求 |
