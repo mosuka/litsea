@@ -162,6 +162,71 @@ def test_user_words_invalid_arguments(models_dir: Path) -> None:
         Segmenter.open("japanese", path, ["雪だるま"])  # type: ignore[misc]
 
 
+# Tagged user dictionary entries (#264): the tagger gives both words NOUN
+# without a tag (`ポケモン` through the lexicon, `チャットGPT` through the full
+# argmax).
+USER_WORD_TAGS = {"チャットGPT": "PROPN", "ポケモン": "PROPN"}
+TAGGED_SENTENCES = ["チャットGPTに聞く", "ポケモンを集める", "雪だるまを作る"]
+
+
+def tagged(segmenter: Segmenter, sentence: str) -> str:
+    """Render `segment_with_pos` the way `litsea segment --pos` prints it."""
+    return " ".join(f"{token.surface}/{token.pos.name}" for token in segmenter.segment_with_pos(sentence))
+
+
+def test_user_word_tags_match_the_cli(models_dir: Path, litsea_cli: Path, tmp_path: Path) -> None:
+    """`user_word_tags` must produce what a tagged `--user-words` file does."""
+    model = models_dir / "japanese_pos.model"
+    words_file = tmp_path / "words.txt"
+    words_file.write_text(
+        "".join(f"{word}\t{tag}\n" for word, tag in USER_WORD_TAGS.items()) + "雪だるま\n",
+        encoding="utf-8",
+    )
+    expected = run_cli(
+        litsea_cli,
+        ["segment", "-l", "japanese", "--pos", "--user-words", str(words_file), str(model)],
+        "".join(sentence + "\n" for sentence in TAGGED_SENTENCES),
+    )
+
+    seg = Segmenter.open("japanese", model, user_words=["雪だるま"], user_word_tags=USER_WORD_TAGS)
+    assert [tagged(seg, sentence) for sentence in TAGGED_SENTENCES] == expected
+    assert tagged(seg, "チャットGPTに聞く").startswith("チャットGPT/PROPN ")
+    # The tags must actually matter: untagged, the same words come out as NOUN.
+    untagged = Segmenter.open("japanese", model, user_words=["雪だるま", *USER_WORD_TAGS])
+    assert tagged(untagged, "チャットGPTに聞く").startswith("チャットGPT/NOUN ")
+    assert tagged(seg, "ポケモンを集める") != tagged(untagged, "ポケモンを集める")
+
+
+def test_user_word_tags_on_every_constructor(models_dir: Path) -> None:
+    """`open`, `from_bytes`, and `from_uri` all accept tags, also without `user_words`."""
+    path = models_dir / "japanese_pos.model"
+    sentence = "チャットGPTに聞く"
+
+    from_path = Segmenter.open(Language.JAPANESE, path, user_word_tags=USER_WORD_TAGS)
+    from_bytes = Segmenter.from_bytes(Language.JAPANESE, path.read_bytes(), user_word_tags=USER_WORD_TAGS)
+    from_uri = Segmenter.from_uri(Language.JAPANESE, str(path), user_word_tags=USER_WORD_TAGS)
+
+    tokens = from_path.segment_with_pos(sentence)
+    assert (tokens[0].surface, tokens[0].pos) == ("チャットGPT", Upos.PROPN)
+    assert tagged(from_bytes, sentence) == tagged(from_path, sentence)
+    assert tagged(from_uri, sentence) == tagged(from_path, sentence)
+    # Segmentation alone ignores the tags.
+    assert from_path.segment(sentence) == ["チャットGPT", "に", "聞く"]
+
+
+def test_user_word_tags_invalid_arguments(models_dir: Path) -> None:
+    """A tag that is not UPOS is an `InvalidArgumentError`; the tags must be a dict of strings."""
+    path = models_dir / "japanese_pos.model"
+    with pytest.raises(InvalidArgumentError, match=r'unknown UPOS tag "Noun"'):
+        Segmenter.open("japanese", path, user_word_tags={"ポケモン": "Noun"})
+    with pytest.raises(InvalidArgumentError, match=r"0\.0\.\.=1\.0"):
+        Segmenter.open("japanese", path, user_word_tags=USER_WORD_TAGS, user_words_gate=1.5)
+    with pytest.raises(TypeError):
+        Segmenter.open("japanese", path, user_word_tags=["ポケモン"])  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        Segmenter.open("japanese", path, user_word_tags={"ポケモン": 1})  # type: ignore[dict-item]
+
+
 @pytest.mark.parametrize(("language", "model", "sentence"), SEGMENTATION_CASES)
 def test_offsets_reconstruct_the_input(models_dir: Path, language: str, model: str, sentence: str) -> None:
     """Byte offsets must tile the input exactly, with no gaps."""

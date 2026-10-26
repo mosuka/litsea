@@ -131,6 +131,15 @@ $seg->segment('雪だるまを作る');
 
 Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. `$user_words_gate` (`0.0`-`1.0`) applies a word only where the model's margin against it is small enough: `0.0` only where the model already agrees with it.
 
+With a POS model, `$user_word_tags` (an array of words and UPOS tags) registers further words whose tokens `segmentWithPos()` gives the registered tag, ahead of the model's own tagging:
+
+```php
+$tagged = Segmenter::open('japanese', 'models/japanese_pos.model', user_word_tags: ['チャットGPT' => 'PROPN']);
+
+array_map(fn ($t) => "{$t->surface}/{$t->pos}", $tagged->segmentWithPos('チャットGPTに聞く'));
+// ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   (in $user_words instead: 'チャットGPT/NOUN')
+```
+
 ### Other model sources
 
 ```php
@@ -191,7 +200,7 @@ Every exception derives from `Litsea\LitseaException`, so one `catch` handles th
 
 | Exception | Thrown when |
 |-----------|-------------|
-| `Litsea\InvalidArgumentException` | Unknown language name, unknown feature set, reused trainer, `$user_words_gate` outside `0.0`-`1.0` |
+| `Litsea\InvalidArgumentException` | Unknown language name, unknown feature set, reused trainer, `$user_words_gate` outside `0.0`-`1.0`, a `$user_word_tags` value that is not a UPOS tag |
 | `Litsea\ModelException` | Download failed, or the file is a legacy joint POS model |
 | `Litsea\IoException` | A file could not be read or written |
 | `Litsea\ParseException` | The model or training data is malformed |

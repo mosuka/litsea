@@ -137,6 +137,86 @@ final class SegmenterTest extends LitseaTestCase
         }
     }
 
+    /**
+     * Tagged user dictionary entries (#264): the tagger gives both words NOUN
+     * without a tag (`ポケモン` through the lexicon, `チャットGPT` through the
+     * full argmax).
+     */
+    private const USER_WORD_TAGS = ['チャットGPT' => 'PROPN', 'ポケモン' => 'PROPN'];
+
+    private const TAGGED_SENTENCES = ['チャットGPTに聞く', 'ポケモンを集める', '雪だるまを作る'];
+
+    /** Renders `segmentWithPos()` the way `litsea segment --pos` prints it. */
+    private static function tagged(Segmenter $segmenter, string $sentence): string
+    {
+        return implode(' ', array_map(
+            static fn (Token $token) => $token->surface . '/' . $token->pos,
+            $segmenter->segmentWithPos($sentence)
+        ));
+    }
+
+    public function testUserWordTagsMatchTheCli(): void
+    {
+        $model = self::modelPath('japanese_pos.model');
+        $lines = [];
+        foreach (self::USER_WORD_TAGS as $word => $tag) {
+            $lines[] = $word . "\t" . $tag;
+        }
+        $lines[] = '雪だるま';
+        $expected = self::runCli(
+            ['segment', '-l', 'japanese', '--pos', '--user-words', self::writeWords($lines), $model],
+            implode('', array_map(static fn (string $sentence) => $sentence . "\n", self::TAGGED_SENTENCES))
+        );
+
+        $seg = Segmenter::open('japanese', $model, ['雪だるま'], null, self::USER_WORD_TAGS);
+        $actual = array_map(static fn (string $sentence) => self::tagged($seg, $sentence), self::TAGGED_SENTENCES);
+        $this->assertSame($expected, $actual);
+        $this->assertStringStartsWith('チャットGPT/PROPN ', self::tagged($seg, 'チャットGPTに聞く'));
+        // The tags must actually matter: untagged, the same words come out as NOUN.
+        $untagged = Segmenter::open('japanese', $model, ['雪だるま', ...array_keys(self::USER_WORD_TAGS)]);
+        $this->assertStringStartsWith('チャットGPT/NOUN ', self::tagged($untagged, 'チャットGPTに聞く'));
+        $this->assertNotSame(self::tagged($untagged, 'ポケモンを集める'), self::tagged($seg, 'ポケモンを集める'));
+    }
+
+    public function testUserWordTagsOnEveryConstructor(): void
+    {
+        $path = self::modelPath('japanese_pos.model');
+        $sentence = 'チャットGPTに聞く';
+
+        $fromPath = Segmenter::open('japanese', $path, null, null, self::USER_WORD_TAGS);
+        $fromBytes = Segmenter::fromBytes('japanese', file_get_contents($path), null, null, self::USER_WORD_TAGS);
+        $fromUri = Segmenter::fromUri('japanese', $path, null, null, self::USER_WORD_TAGS);
+        // Named arguments work too, without $user_words.
+        $named = Segmenter::open('japanese', $path, user_word_tags: self::USER_WORD_TAGS);
+
+        $tokens = $fromPath->segmentWithPos($sentence);
+        $this->assertSame('チャットGPT', $tokens[0]->surface);
+        $this->assertSame('PROPN', $tokens[0]->pos);
+        $this->assertSame(self::tagged($fromPath, $sentence), self::tagged($fromBytes, $sentence));
+        $this->assertSame(self::tagged($fromPath, $sentence), self::tagged($fromUri, $sentence));
+        $this->assertSame(self::tagged($fromPath, $sentence), self::tagged($named, $sentence));
+        // Segmentation alone ignores the tags.
+        $this->assertSame(['チャットGPT', 'に', '聞く'], $fromPath->segment($sentence));
+    }
+
+    public function testInvalidUserWordTagsThrow(): void
+    {
+        $path = self::modelPath('japanese_pos.model');
+        try {
+            Segmenter::open('japanese', $path, user_word_tags: ['ポケモン' => 'Noun']);
+            $this->fail('expected InvalidArgumentException');
+        } catch (InvalidArgumentException $error) {
+            $this->assertStringContainsString('unknown UPOS tag "Noun"', $error->getMessage());
+        }
+        // A bad gate is still reported when only tagged words are given.
+        try {
+            Segmenter::open('japanese', $path, null, 1.5, self::USER_WORD_TAGS);
+            $this->fail('expected InvalidArgumentException');
+        } catch (InvalidArgumentException $error) {
+            $this->assertMatchesRegularExpression('/0\.0\.\.=1\.0/', $error->getMessage());
+        }
+    }
+
     #[DataProvider('segmentationCases')]
     public function testSegmentMatchesTheCli(string $language, string $model, string $sentence): void
     {

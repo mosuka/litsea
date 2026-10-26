@@ -26,10 +26,11 @@ words_file="$(mktemp)"
 trap 'rm -f "${words_file}"' EXIT
 
 # language <TAB> model <TAB> mode <TAB> words <TAB> sentence, where mode is
-# "seg" or "pos" and words is a comma-separated user dictionary (#263), or
-# "-" for none. Explicit tokens rather than empty fields: tab counts as
-# whitespace for IFS, so `read` collapses consecutive tabs and an empty
-# field would shift every column after it.
+# "seg" or "pos" and words is a comma-separated user dictionary (#263), with
+# `word=TAG` for a word that carries a UPOS tag (#264; written to the CLI's
+# file as `word<TAB>TAG`), or "-" for none. Explicit tokens rather than
+# empty fields: tab counts as whitespace for IFS, so `read` collapses
+# consecutive tabs and an empty field would shift every column after it.
 cases=(
   $'japanese\tjapanese.model\tseg\t-\tこれはテストです。'
   $'chinese\tchinese.model\tseg\t-\t我喜欢吃中国菜。'
@@ -41,6 +42,8 @@ cases=(
   $'japanese\tjapanese.model\tseg\t雪だるま,新幹線\t新幹線で帰る'
   $'english\tenglish.model\tseg\tNew York\tI live in New York.'
   $'japanese\tjapanese_pos.model\tpos\t雪だるま\t雪だるまを作る'
+  $'japanese\tjapanese_pos.model\tpos\t雪だるま,チャットGPT=PROPN,ポケモン=PROPN\tチャットGPTに聞く'
+  $'japanese\tjapanese_pos.model\tpos\t雪だるま,チャットGPT=PROPN,ポケモン=PROPN\tポケモンを集める'
 )
 
 : > "${out}"
@@ -49,7 +52,8 @@ for row in "${cases[@]}"; do
   args=(segment -l "${language}")
   [ "${mode}" = "pos" ] && args+=(--pos)
   if [ "${words}" != "-" ]; then
-    printf '%s\n' "${words//,/$'\n'}" > "${words_file}"
+    entries="${words//,/$'\n'}"
+    printf '%s\n' "${entries//=/$'\t'}" > "${words_file}"
     args+=(--user-words "${words_file}")
   fi
   args+=("${repo_root}/models/${model}")

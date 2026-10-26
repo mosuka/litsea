@@ -8,3 +8,5 @@ japanese	japanese.model	seg	雪だるま,新幹線	雪だるまを作る	雪だ�
 japanese	japanese.model	seg	雪だるま,新幹線	新幹線で帰る	新幹線 で 帰る
 english	english.model	seg	New York	I live in New York.	I   live   in   New York .
 japanese	japanese_pos.model	pos	雪だるま	雪だるまを作る	雪だるま/NOUN を/ADP 作る/VERB
+japanese	japanese_pos.model	pos	雪だるま,チャットGPT=PROPN,ポケモン=PROPN	チャットGPTに聞く	チャットGPT/PROPN に/ADP 聞く/VERB
+japanese	japanese_pos.model	pos	雪だるま,チャットGPT=PROPN,ポケモン=PROPN	ポケモンを集める	ポケモン/PROPN を/ADP 集める/VERB

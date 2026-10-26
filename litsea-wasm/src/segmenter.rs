@@ -1,11 +1,45 @@
 //! The `Segmenter` class.
 
-use js_sys::Array;
-use litsea_binding_core::{CoreSegmenter, build_user_dictionary, parse_language};
+use js_sys::{Array, Object};
+use litsea_binding_core::{CoreSegmenter, build_user_dictionary_with_tags, parse_language};
 use wasm_bindgen::prelude::*;
 
-use crate::error::map_err;
+use crate::error::{invalid_argument, map_err};
 use crate::token::Token;
+
+/// Reads the `userWordTags` object of `fromBytes` (issue #264) into
+/// `(word, tag)` pairs.
+///
+/// # Arguments
+/// * `user_word_tags` - An object mapping words to UPOS tags, or
+///   `undefined` / `null`.
+///
+/// # Returns
+/// The object's own enumerable string-keyed entries, empty without an
+/// object.
+///
+/// # Errors
+/// Throws an error with the `invalid_argument` code if a value is not a
+/// string; whether a string is a UPOS tag is checked by the caller.
+fn word_tags(user_word_tags: Option<Object>) -> Result<Vec<(String, String)>, JsValue> {
+    let Some(user_word_tags) = user_word_tags else {
+        return Ok(Vec::new());
+    };
+    Object::entries(&user_word_tags)
+        .iter()
+        .map(|entry| {
+            let entry = Array::from(&entry);
+            // `Object.entries` keys are always strings.
+            let word = entry.get(0).as_string().unwrap_or_default();
+            let tag = entry.get(1).as_string().ok_or_else(|| {
+                invalid_argument(format!(
+                    "the UPOS tag for the user dictionary word {word:?} must be a string"
+                ))
+            })?;
+            Ok((word, tag))
+        })
+        .collect()
+}
 
 /// A word segmenter, optionally with POS tagging.
 ///
@@ -33,23 +67,40 @@ impl Segmenter {
     ///   #263); `userWords` in JavaScript.
     /// * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
     ///   `0.0..=1.0`; `userWordsGate` in JavaScript.
+    /// * `user_word_tags` - Optional object mapping words to emit as single
+    ///   tokens to the UPOS tag `segmentWithPos` gives them (issue #264);
+    ///   `userWordTags` in JavaScript.
     ///
     /// # Returns
     /// The new segmenter.
     ///
     /// # Errors
-    /// Throws an error whose `code` is `invalid_argument` (also for a gate
-    /// outside `0.0..=1.0`), `parse`, or `model`.
+    /// Throws an error whose `code` is `invalid_argument` (also for a tag
+    /// that is not a UPOS tag or a gate outside `0.0..=1.0`), `parse`, or
+    /// `model`.
     #[wasm_bindgen(js_name = fromBytes)]
     pub fn from_bytes(
         language: &str,
         data: &[u8],
-        #[wasm_bindgen(js_name = userWords)] user_words: Option<Vec<String>>,
-        #[wasm_bindgen(js_name = userWordsGate)] user_words_gate: Option<f64>,
+        // Every trailing argument names its optional TypeScript type. With
+        // an override on `userWordTags` alone, wasm-bindgen 0.2.127 emitted
+        // `userWords` and `userWordsGate` without `?`, which would make them
+        // required for TypeScript callers.
+        #[wasm_bindgen(js_name = userWords, unchecked_optional_param_type = "string[] | null")]
+        user_words: Option<Vec<String>>,
+        #[wasm_bindgen(js_name = userWordsGate, unchecked_optional_param_type = "number | null")]
+        user_words_gate: Option<f64>,
+        #[wasm_bindgen(
+            js_name = userWordTags,
+            unchecked_optional_param_type = "Record<string, string> | null"
+        )]
+        user_word_tags: Option<Object>,
     ) -> Result<Segmenter, JsValue> {
         let language = map_err(parse_language(language))?;
-        let dictionary = map_err(build_user_dictionary(
+        let word_tags = word_tags(user_word_tags)?;
+        let dictionary = map_err(build_user_dictionary_with_tags(
             user_words.as_deref().unwrap_or_default(),
+            &word_tags,
             user_words_gate,
         ))?;
         Ok(Self {

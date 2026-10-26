@@ -63,6 +63,18 @@
   word's most frequent gold tag (93.82 and 95.58 with gate 0.5); its 213
   words of three or more characters score 94.13 and 94.97. Word F1 is the
   same with and without the tags.
+- UPOS tags on user dictionary entries in all five bindings (#264): every
+  segmenter constructor accepts a word-to-tag mapping next to the user
+  words — the keyword argument `user_word_tags=` (a dict) in Python and
+  `user_word_tags:` (a Hash) in Ruby, the optional trailing argument
+  `userWordTags` (an object) in Node.js and WebAssembly (`fromBytes`), and
+  `$user_word_tags` (an array) in PHP, where named arguments work too.
+  Those words are registered like the user words, and `segment_with_pos`
+  gives their tokens the registered tag; a tag that is not one of the 17
+  UPOS tags raises each host's invalid-argument error. Each binding's
+  parity test compares its output with `litsea segment --pos` on a tagged
+  `--user-words` file (the WebAssembly fixtures gain tagged rows), and the
+  Python typings, the Node.js typings and the PHP stubs are updated.
 
 ### Changed (breaking)
 

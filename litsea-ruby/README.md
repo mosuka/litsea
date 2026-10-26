@@ -89,6 +89,15 @@ seg.segment("雪だるまを作る")
 
 Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. `user_words_gate:` (`0.0`-`1.0`) applies a word only where the model's margin against it is small enough: `0.0` only where the model already agrees with it.
 
+With a POS model, `user_word_tags:` (a Hash of words and UPOS tags, as Strings) registers further words whose tokens `segment_with_pos` gives the registered tag, ahead of the model's own tagging:
+
+```ruby
+tagged = Litsea::Segmenter.open(:japanese, "models/japanese_pos.model", user_word_tags: { "チャットGPT" => "PROPN" })
+
+tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.pos}" }
+# => ["チャットGPT/PROPN", "に/ADP", "聞く/VERB"]   (in user_words: instead: "チャットGPT/NOUN")
+```
+
 ### Other model sources
 
 ```ruby
@@ -135,7 +144,7 @@ Every error derives from `Litsea::Error`, so one `rescue` handles them all.
 
 | Error | Raised when |
 |-------|-------------|
-| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate:` outside `0.0`-`1.0` |
+| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate:` outside `0.0`-`1.0`, a `user_word_tags:` value that is not a UPOS tag |
 | `Litsea::ModelError` | Download failed, or the file is a legacy joint POS model |
 | `Litsea::IoError` | A file could not be read or written |
 | `Litsea::ParseError` | The model or training data is malformed |

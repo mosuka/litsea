@@ -114,6 +114,82 @@ test('an out-of-range userWordsGate throws with a code', async () => {
   )
 })
 
+// Tagged user dictionary entries (#264): the tagger gives both words NOUN
+// without a tag (`ポケモン` through the lexicon, `チャットGPT` through the full
+// argmax).
+const USER_WORD_TAGS = { チャットGPT: 'PROPN', ポケモン: 'PROPN' }
+const TAGGED_SENTENCES = ['チャットGPTに聞く', 'ポケモンを集める', '雪だるまを作る']
+
+/**
+ * Renders `segmentWithPos` the way `litsea segment --pos` prints it.
+ *
+ * @param {Segmenter} segmenter - The segmenter to run.
+ * @param {string} sentence - The sentence to tag.
+ * @returns {string} The tagged tokens, `surface/TAG` joined by spaces.
+ */
+function tagged(segmenter, sentence) {
+  return segmenter
+    .segmentWithPos(sentence)
+    .map((token) => `${token.surface}/${token.pos}`)
+    .join(' ')
+}
+
+test('userWordTags matches a tagged --user-words file', () => {
+  const model = modelPath('japanese_pos.model')
+  const lines = Object.entries(USER_WORD_TAGS).map(([word, tag]) => `${word}\t${tag}`)
+  const expected = runCli(
+    ['segment', '-l', 'japanese', '--pos', '--user-words', writeWords([...lines, '雪だるま']), model],
+    TAGGED_SENTENCES.map((sentence) => `${sentence}\n`).join(''),
+  )
+  const seg = Segmenter.open('japanese', model, ['雪だるま'], undefined, USER_WORD_TAGS)
+  assert.deepEqual(
+    TAGGED_SENTENCES.map((sentence) => tagged(seg, sentence)),
+    expected,
+  )
+  assert.match(tagged(seg, 'チャットGPTに聞く'), /^チャットGPT\/PROPN /)
+  // The tags must actually matter: untagged, the same words come out as NOUN.
+  const untagged = Segmenter.open('japanese', model, ['雪だるま', ...Object.keys(USER_WORD_TAGS)])
+  assert.match(tagged(untagged, 'チャットGPTに聞く'), /^チャットGPT\/NOUN /)
+  assert.notEqual(tagged(seg, 'ポケモンを集める'), tagged(untagged, 'ポケモンを集める'))
+})
+
+test('userWordTags on every constructor, also without userWords', async () => {
+  const path = modelPath('japanese_pos.model')
+  const sentence = 'チャットGPTに聞く'
+  const fromPath = Segmenter.open('japanese', path, undefined, undefined, USER_WORD_TAGS)
+  const fromBytes = Segmenter.fromBytes('japanese', readFileSync(path), null, null, USER_WORD_TAGS)
+  const fromUri = await Segmenter.fromUri('japanese', path, undefined, undefined, USER_WORD_TAGS)
+
+  const [first] = fromPath.segmentWithPos(sentence)
+  assert.equal(first.surface, 'チャットGPT')
+  assert.equal(first.pos, 'PROPN')
+  assert.equal(tagged(fromBytes, sentence), tagged(fromPath, sentence))
+  assert.equal(tagged(fromUri, sentence), tagged(fromPath, sentence))
+  // Segmentation alone ignores the tags.
+  assert.deepEqual(fromPath.segment(sentence), ['チャットGPT', 'に', '聞く'])
+})
+
+test('a userWordTags value that is not a UPOS tag throws with a code', () => {
+  const path = modelPath('japanese_pos.model')
+  assert.throws(
+    () => Segmenter.open('japanese', path, undefined, undefined, { ポケモン: 'Noun' }),
+    (error) => {
+      assert.equal(error.code, 'invalid_argument')
+      assert.match(error.message, /unknown UPOS tag "Noun"/)
+      return true
+    },
+  )
+  // A bad gate is still reported when only tagged words are given.
+  assert.throws(
+    () => Segmenter.fromUri('japanese', path, undefined, 1.5, USER_WORD_TAGS),
+    (error) => {
+      assert.equal(error.code, 'invalid_argument')
+      assert.match(error.message, /0\.0\.\.=1\.0/)
+      return true
+    },
+  )
+})
+
 for (const [language, model, sentence] of SEGMENTATION_CASES) {
   test(`segment matches the CLI (${language})`, () => {
     // Compare the rendered line, not a re-split of it: the CLI joins tokens

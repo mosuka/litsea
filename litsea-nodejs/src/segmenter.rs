@@ -1,10 +1,11 @@
 //! The `Segmenter` class.
 
+use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 
 use litsea::{Language, UserDictionary};
-use litsea_binding_core::{CoreSegmenter, build_user_dictionary, parse_language};
+use litsea_binding_core::{CoreSegmenter, build_user_dictionary_with_tags, parse_language};
 use napi::bindgen_prelude::{AsyncTask, Buffer};
 use napi::{Env, Task};
 
@@ -12,26 +13,32 @@ use crate::error::{KindError, error_with_code, map_err, task_call};
 use crate::token::Token;
 
 /// Builds the user dictionary from the constructors' optional trailing
-/// arguments (issue #263).
+/// arguments (issues #263, #264).
 ///
 /// # Arguments
 /// * `user_words` - The words to emit as single tokens, or `undefined` /
 ///   `null`.
 /// * `user_words_gate` - The flip-ratio gate in `0.0..=1.0`, or `undefined`
 ///   / `null`.
+/// * `user_word_tags` - Words to emit as single tokens with the UPOS tag
+///   `segmentWithPos` gives them, or `undefined` / `null`.
 ///
 /// # Returns
 /// `None` when no words were given, otherwise the dictionary.
 ///
 /// # Errors
-/// Returns an error with the `invalid_argument` code if the gate is outside
-/// `0.0..=1.0`, also when no words were given.
+/// Returns an error with the `invalid_argument` code if a tag is not one of
+/// the 17 UPOS tags, or if the gate is outside `0.0..=1.0`, also when no
+/// words were given.
 fn user_dictionary(
     user_words: Option<Vec<String>>,
     user_words_gate: Option<f64>,
+    user_word_tags: Option<HashMap<String, String>>,
 ) -> Result<Option<UserDictionary>, KindError> {
-    map_err(build_user_dictionary(
+    let word_tags: Vec<(String, String)> = user_word_tags.unwrap_or_default().into_iter().collect();
+    map_err(build_user_dictionary_with_tags(
         user_words.as_deref().unwrap_or_default(),
+        &word_tags,
         user_words_gate,
     ))
 }
@@ -41,10 +48,11 @@ fn user_dictionary(
 /// Build one with `Segmenter.open`, `Segmenter.fromBytes`, or
 /// `Segmenter.fromUri`. The kind of model is detected from the file itself,
 /// so `hasPos` describes what was loaded rather than something the caller
-/// has to declare. Every constructor takes two optional trailing arguments:
-/// `userWords`, words to emit as single tokens, and `userWordsGate`, a flip
-/// ratio in `0.0..=1.0` that applies a word only where the model's margin
-/// against it is small enough.
+/// has to declare. Every constructor takes three optional trailing
+/// arguments: `userWords`, words to emit as single tokens; `userWordsGate`,
+/// a flip ratio in `0.0..=1.0` that applies a word only where the model's
+/// margin against it is small enough; and `userWordTags`, an object mapping
+/// further words to the UPOS tag `segmentWithPos` gives them.
 #[napi(js_name = "Segmenter")]
 pub struct JsSegmenter {
     /// The wrapped core segmenter, shared with the async loaders.
@@ -121,22 +129,26 @@ impl JsSegmenter {
     /// * `user_words` - Optional words to emit as single tokens.
     /// * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
     ///   `0.0..=1.0`.
+    /// * `user_word_tags` - Optional object mapping words to emit as single
+    ///   tokens to the UPOS tag `segmentWithPos` gives them.
     ///
     /// # Returns
     /// The new `Segmenter`.
     ///
     /// # Errors
-    /// Throws an error whose `code` is `invalid_argument` (also for a gate
-    /// outside `0.0..=1.0`), `io`, `parse`, or `model`.
+    /// Throws an error whose `code` is `invalid_argument` (also for a tag
+    /// that is not a UPOS tag or a gate outside `0.0..=1.0`), `io`, `parse`,
+    /// or `model`.
     #[napi(factory)]
     pub fn open(
         language: String,
         path: String,
         user_words: Option<Vec<String>>,
         user_words_gate: Option<f64>,
+        user_word_tags: Option<HashMap<String, String>>,
     ) -> Result<Self, KindError> {
         let language = map_err(parse_language(&language))?;
-        let dictionary = user_dictionary(user_words, user_words_gate)?;
+        let dictionary = user_dictionary(user_words, user_words_gate, user_word_tags)?;
         Ok(Self {
             inner: Arc::new(map_err(CoreSegmenter::from_path_with(
                 language,
@@ -154,22 +166,26 @@ impl JsSegmenter {
     /// * `user_words` - Optional words to emit as single tokens.
     /// * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
     ///   `0.0..=1.0`.
+    /// * `user_word_tags` - Optional object mapping words to emit as single
+    ///   tokens to the UPOS tag `segmentWithPos` gives them.
     ///
     /// # Returns
     /// The new `Segmenter`.
     ///
     /// # Errors
-    /// Throws an error whose `code` is `invalid_argument` (also for a gate
-    /// outside `0.0..=1.0`), `parse`, or `model`.
+    /// Throws an error whose `code` is `invalid_argument` (also for a tag
+    /// that is not a UPOS tag or a gate outside `0.0..=1.0`), `parse`, or
+    /// `model`.
     #[napi(factory)]
     pub fn from_bytes(
         language: String,
         data: Buffer,
         user_words: Option<Vec<String>>,
         user_words_gate: Option<f64>,
+        user_word_tags: Option<HashMap<String, String>>,
     ) -> Result<Self, KindError> {
         let language = map_err(parse_language(&language))?;
-        let dictionary = user_dictionary(user_words, user_words_gate)?;
+        let dictionary = user_dictionary(user_words, user_words_gate, user_word_tags)?;
         Ok(Self {
             inner: Arc::new(map_err(CoreSegmenter::from_bytes_with(language, &data, dictionary))?),
         })
@@ -187,13 +203,16 @@ impl JsSegmenter {
     /// * `user_words` - Optional words to emit as single tokens.
     /// * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
     ///   `0.0..=1.0`.
+    /// * `user_word_tags` - Optional object mapping words to emit as single
+    ///   tokens to the UPOS tag `segmentWithPos` gives them.
     ///
     /// # Returns
     /// A promise resolving to the new `Segmenter`.
     ///
     /// # Errors
     /// Throws synchronously with the `invalid_argument` code for an unknown
-    /// language or a gate outside `0.0..=1.0`; otherwise rejects with an
+    /// language, a tag that is not a UPOS tag, or a gate outside
+    /// `0.0..=1.0`; otherwise rejects with an
     /// error whose `code` is `model`, `io`, or `parse`.
     #[napi(ts_return_type = "Promise<Segmenter>")]
     pub fn from_uri(
@@ -201,9 +220,10 @@ impl JsSegmenter {
         uri: String,
         user_words: Option<Vec<String>>,
         user_words_gate: Option<f64>,
+        user_word_tags: Option<HashMap<String, String>>,
     ) -> Result<AsyncTask<FromUriTask>, KindError> {
         let language = map_err(parse_language(&language))?;
-        let dictionary = user_dictionary(user_words, user_words_gate)?;
+        let dictionary = user_dictionary(user_words, user_words_gate, user_word_tags)?;
         Ok(AsyncTask::new(FromUriTask {
             language,
             uri,

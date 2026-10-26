@@ -54,7 +54,7 @@ for token in seg.segment_with_pos("これはテストです。"):
 
 ## User dictionary
 
-Every constructor accepts two keyword-only arguments ([#263](https://github.com/mosuka/litsea/issues/263)): `user_words`, a sequence of words to emit as single tokens wherever they occur, and `user_words_gate`, a flip ratio in `0.0`–`1.0` that applies a word only where the model's margin against it is small enough.
+Every constructor accepts three keyword-only arguments ([#263](https://github.com/mosuka/litsea/issues/263), [#264](https://github.com/mosuka/litsea/issues/264)): `user_words`, a sequence of words to emit as single tokens wherever they occur; `user_words_gate`, a flip ratio in `0.0`–`1.0` that applies a word only where the model's margin against it is small enough; and `user_word_tags`, a dict mapping further words to the UPOS tag that `segment_with_pos` gives them.
 
 ```python
 seg = Segmenter.open("ja", "models/japanese.model", user_words=["雪だるま", "新幹線"])
@@ -63,15 +63,24 @@ seg.segment("雪だるまを作る")
 # ['雪だるま', 'を', '作る']   (without the dictionary: ['雪', 'だる', 'ま', 'を', '作る'])
 ```
 
-A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; `user_words_gate=0.0` applies a word only where the model already agrees with it. A gate outside `0.0`–`1.0` raises `InvalidArgumentError`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
+With a POS model, `user_word_tags` fixes the tag of a word the tagger gets wrong:
+
+```python
+seg = Segmenter.open("ja", "models/japanese_pos.model", user_word_tags={"チャットGPT": "PROPN"})
+
+[f"{t.surface}/{t.pos.name}" for t in seg.segment_with_pos("チャットGPTに聞く")]
+# ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   (in user_words instead: 'チャットGPT/NOUN')
+```
+
+A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in `user_words` is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`), while a token that is a word in `user_word_tags` gets its tag, ahead of the model's lexicon and its tagger; `segment` ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; `user_words_gate=0.0` applies a word only where the model already agrees with it. A gate outside `0.0`–`1.0`, or a tag that is not one of the 17 UPOS tags (upper case), raises `InvalidArgumentError`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
 
 ## API
 
 | Call | Returns |
 |------|---------|
-| `Segmenter.open(language, path, *, user_words=None, user_words_gate=None)` | A segmenter loaded from a file |
-| `Segmenter.from_bytes(language, data, *, user_words=None, user_words_gate=None)` | A segmenter loaded from bytes |
-| `Segmenter.from_uri(language, uri, *, user_words=None, user_words_gate=None)` | A segmenter loaded from a path, `file://`, or `http(s)://` URL |
+| `Segmenter.open(language, path, *, user_words=None, user_words_gate=None, user_word_tags=None)` | A segmenter loaded from a file |
+| `Segmenter.from_bytes(language, data, *, user_words=None, user_words_gate=None, user_word_tags=None)` | A segmenter loaded from bytes |
+| `Segmenter.from_uri(language, uri, *, user_words=None, user_words_gate=None, user_word_tags=None)` | A segmenter loaded from a path, `file://`, or `http(s)://` URL |
 | `segment(text)` | `list[str]` |
 | `segment_batch(texts)` | `list[list[str]]` |
 | `segment_tokens(text)` | `list[Token]` with byte offsets |
@@ -118,7 +127,7 @@ Every exception derives from `LitseaError`.
 
 | Exception | Raised when |
 |-----------|-------------|
-| `InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate` outside `0.0`–`1.0` |
+| `InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate` outside `0.0`–`1.0`, a `user_word_tags` value that is not a UPOS tag |
 | `ModelError` | Download failed, or the file is a legacy joint POS model |
 | `IoError` | A file could not be read or written |
 | `ParseError` | The model or training data is malformed |

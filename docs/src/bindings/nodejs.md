@@ -57,7 +57,7 @@ Buffer.from(text).subarray(token.start, token.end).toString()   // === token.sur
 
 ## User dictionary
 
-Every constructor takes two optional trailing arguments ([#263](https://github.com/mosuka/litsea/issues/263)): `userWords`, an array of words to emit as single tokens wherever they occur, and `userWordsGate`, a flip ratio in `0`–`1` that applies a word only where the model's margin against it is small enough.
+Every constructor takes three optional trailing arguments ([#263](https://github.com/mosuka/litsea/issues/263), [#264](https://github.com/mosuka/litsea/issues/264)): `userWords`, an array of words to emit as single tokens wherever they occur; `userWordsGate`, a flip ratio in `0`–`1` that applies a word only where the model's margin against it is small enough; and `userWordTags`, an object mapping further words to the UPOS tag that `segmentWithPos` gives them.
 
 ```js
 const seg = Segmenter.open('japanese', 'models/japanese.model', ['雪だるま', '新幹線'])
@@ -66,15 +66,24 @@ seg.segment('雪だるまを作る')
 // [ '雪だるま', 'を', '作る' ]   (without the dictionary: [ '雪', 'だる', 'ま', 'を', '作る' ])
 ```
 
-A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a `userWordsGate` of `0` applies a word only where the model already agrees with it. A gate outside `0`–`1` throws with the `invalid_argument` code — synchronously, also from `fromUri`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
+With a POS model, `userWordTags` fixes the tag of a word the tagger gets wrong:
+
+```js
+const tagged = Segmenter.open('japanese', 'models/japanese_pos.model', undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   (in userWords instead: 'チャットGPT/NOUN')
+```
+
+A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in `userWords` is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`), while a token that is a word in `userWordTags` gets its tag, ahead of the model's lexicon and its tagger; `segment` ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a `userWordsGate` of `0` applies a word only where the model already agrees with it. A gate outside `0`–`1`, or a tag that is not one of the 17 UPOS tags (upper case), throws with the `invalid_argument` code — synchronously, also from `fromUri`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
 
 ## API
 
 | Call | Returns |
 |------|---------|
-| `Segmenter.open(language, path, userWords?, userWordsGate?)` | A segmenter (synchronous) |
-| `Segmenter.fromBytes(language, buffer, userWords?, userWordsGate?)` | A segmenter (synchronous) |
-| `Segmenter.fromUri(language, uri, userWords?, userWordsGate?)` | `Promise<Segmenter>` — downloads off the event loop |
+| `Segmenter.open(language, path, userWords?, userWordsGate?, userWordTags?)` | A segmenter (synchronous) |
+| `Segmenter.fromBytes(language, buffer, userWords?, userWordsGate?, userWordTags?)` | A segmenter (synchronous) |
+| `Segmenter.fromUri(language, uri, userWords?, userWordsGate?, userWordTags?)` | `Promise<Segmenter>` — downloads off the event loop |
 | `segment(text)` | `string[]` |
 | `segmentBatch(texts)` | `string[][]` |
 | `segmentTokens(text)` | `Token[]` with byte offsets |
@@ -113,7 +122,7 @@ Every error carries a `code`, matching the error kinds the other bindings expose
 
 | `err.code` | Raised when |
 |-----------|-------------|
-| `invalid_argument` | Unknown language name, unknown feature set, reused trainer, `userWordsGate` outside `0`–`1` |
+| `invalid_argument` | Unknown language name, unknown feature set, reused trainer, `userWordsGate` outside `0`–`1`, a `userWordTags` value that is not a UPOS tag |
 | `model` | Download failed, or the file is a legacy joint POS model |
 | `io` | A file could not be read or written |
 | `parse` | The model or training data is malformed |
