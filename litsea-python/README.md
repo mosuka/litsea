@@ -89,6 +89,15 @@ seg.segment("雪だるまを作る")
 
 Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. `user_words_gate` (`0.0`-`1.0`) applies a word only where the model's margin against it is small enough: `0.0` only where the model already agrees with it.
 
+With a POS model, `user_word_tags` (a dict of words and UPOS tags) registers further words whose tokens `segment_with_pos` gives the registered tag, ahead of the model's own tagging:
+
+```python
+seg = Segmenter.open(Language.JAPANESE, "models/japanese_pos.model", user_word_tags={"チャットGPT": "PROPN"})
+
+[f"{t.surface}/{t.pos.name}" for t in seg.segment_with_pos("チャットGPTに聞く")]
+# ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   (in user_words instead: 'チャットGPT/NOUN')
+```
+
 ### Other model sources
 
 ```python
@@ -145,7 +154,7 @@ Every exception derives from `LitseaError`, so one `except` clause catches them 
 
 | Exception | Raised when |
 |-----------|-------------|
-| `InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate` outside `0.0`-`1.0` |
+| `InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate` outside `0.0`-`1.0`, a `user_word_tags` value that is not a UPOS tag |
 | `ModelError` | Download failed, or the file is a legacy joint POS model |
 | `IoError` | A file could not be read or written |
 | `ParseError` | The model or training data is malformed |

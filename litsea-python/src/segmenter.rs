@@ -1,9 +1,10 @@
 //! The `Segmenter` class.
 
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use litsea::UserDictionary;
-use litsea_binding_core::{CoreSegmenter, build_user_dictionary};
+use litsea_binding_core::{CoreSegmenter, build_user_dictionary_with_tags};
 use pyo3::prelude::*;
 
 use crate::error::{PyLitseaResult, map_err};
@@ -11,24 +12,29 @@ use crate::language::{LanguageArg, PyLanguage};
 use crate::upos::PyToken;
 
 /// Builds the user dictionary from the constructors' keyword arguments
-/// (issue #263).
+/// (issues #263, #264).
 ///
 /// # Arguments
 /// * `user_words` - The words to emit as single tokens, or `None`.
 /// * `user_words_gate` - The flip-ratio gate in `0.0..=1.0`, or `None`.
+/// * `user_word_tags` - Words to emit as single tokens with the UPOS tag
+///   `segment_with_pos` gives them, or `None`.
 ///
 /// # Returns
 /// `None` when no words were given, otherwise the dictionary.
 ///
 /// # Errors
-/// Raises `InvalidArgumentError` if the gate is outside `0.0..=1.0`, also
-/// when no words were given.
+/// Raises `InvalidArgumentError` if a tag is not one of the 17 UPOS tags, or
+/// if the gate is outside `0.0..=1.0`, also when no words were given.
 fn user_dictionary(
     user_words: Option<Vec<String>>,
     user_words_gate: Option<f64>,
+    user_word_tags: Option<HashMap<String, String>>,
 ) -> PyLitseaResult<Option<UserDictionary>> {
-    map_err(build_user_dictionary(
+    let word_tags: Vec<(String, String)> = user_word_tags.unwrap_or_default().into_iter().collect();
+    map_err(build_user_dictionary_with_tags(
         user_words.as_deref().unwrap_or_default(),
+        &word_tags,
         user_words_gate,
     ))
 }
@@ -42,8 +48,10 @@ fn user_dictionary(
 /// raises `PosUnavailableError`.
 ///
 /// Every constructor accepts the keyword-only arguments `user_words` (a
-/// sequence of words to emit as single tokens) and `user_words_gate` (a
-/// flip ratio in `0.0..=1.0`); see the `litsea` crate's `UserDictionary`.
+/// sequence of words to emit as single tokens), `user_words_gate` (a flip
+/// ratio in `0.0..=1.0`) and `user_word_tags` (a dict of words to emit as
+/// single tokens and the UPOS tag `segment_with_pos` gives them); see the
+/// `litsea` crate's `UserDictionary`.
 ///
 /// Instances are immutable and safe to share between threads. Reusing one
 /// across calls is the intended usage: an internal scratch buffer reaches a
@@ -64,6 +72,8 @@ impl PySegmenter {
     /// * `user_words` - Keyword-only: words to emit as single tokens.
     /// * `user_words_gate` - Keyword-only: the flip-ratio gate for
     ///   `user_words`, in `0.0..=1.0`.
+    /// * `user_word_tags` - Keyword-only: a dict mapping words to emit as
+    ///   single tokens to the UPOS tag `segment_with_pos` gives them.
     ///
     /// # Returns
     /// The new `Segmenter`.
@@ -71,19 +81,20 @@ impl PySegmenter {
     /// # Errors
     /// Raises `IoError` if the file cannot be read, `ParseError` if it is
     /// malformed, `ModelError` if it is a legacy joint POS model, or
-    /// `InvalidArgumentError` for an unknown language or a gate outside
-    /// `0.0..=1.0`.
+    /// `InvalidArgumentError` for an unknown language, a tag that is not a
+    /// UPOS tag, or a gate outside `0.0..=1.0`.
     #[staticmethod]
-    #[pyo3(signature = (language, path, *, user_words=None, user_words_gate=None))]
+    #[pyo3(signature = (language, path, *, user_words=None, user_words_gate=None, user_word_tags=None))]
     fn open(
         py: Python<'_>,
         language: LanguageArg,
         path: PathBuf,
         user_words: Option<Vec<String>>,
         user_words_gate: Option<f64>,
+        user_word_tags: Option<HashMap<String, String>>,
     ) -> PyResult<Self> {
         let language = language.resolve()?;
-        let dictionary = user_dictionary(user_words, user_words_gate)?;
+        let dictionary = user_dictionary(user_words, user_words_gate, user_word_tags)?;
         let inner =
             py.detach(|| map_err(CoreSegmenter::from_path_with(language, &path, dictionary)))?;
         Ok(Self { inner })
@@ -97,6 +108,8 @@ impl PySegmenter {
     /// * `user_words` - Keyword-only: words to emit as single tokens.
     /// * `user_words_gate` - Keyword-only: the flip-ratio gate for
     ///   `user_words`, in `0.0..=1.0`.
+    /// * `user_word_tags` - Keyword-only: a dict mapping words to emit as
+    ///   single tokens to the UPOS tag `segment_with_pos` gives them.
     ///
     /// # Returns
     /// The new `Segmenter`.
@@ -104,17 +117,19 @@ impl PySegmenter {
     /// # Errors
     /// Raises `ParseError` if the bytes are malformed, `ModelError` if they
     /// are a legacy joint POS model, or `InvalidArgumentError` for an
-    /// unknown language or a gate outside `0.0..=1.0`.
+    /// unknown language, a tag that is not a UPOS tag, or a gate outside
+    /// `0.0..=1.0`.
     #[staticmethod]
-    #[pyo3(signature = (language, data, *, user_words=None, user_words_gate=None))]
+    #[pyo3(signature = (language, data, *, user_words=None, user_words_gate=None, user_word_tags=None))]
     fn from_bytes(
         language: LanguageArg,
         data: &[u8],
         user_words: Option<Vec<String>>,
         user_words_gate: Option<f64>,
+        user_word_tags: Option<HashMap<String, String>>,
     ) -> PyResult<Self> {
         let language = language.resolve()?;
-        let dictionary = user_dictionary(user_words, user_words_gate)?;
+        let dictionary = user_dictionary(user_words, user_words_gate, user_word_tags)?;
         Ok(Self {
             inner: map_err(CoreSegmenter::from_bytes_with(language, data, dictionary))?,
         })
@@ -131,6 +146,8 @@ impl PySegmenter {
     /// * `user_words` - Keyword-only: words to emit as single tokens.
     /// * `user_words_gate` - Keyword-only: the flip-ratio gate for
     ///   `user_words`, in `0.0..=1.0`.
+    /// * `user_word_tags` - Keyword-only: a dict mapping words to emit as
+    ///   single tokens to the UPOS tag `segment_with_pos` gives them.
     ///
     /// # Returns
     /// The new `Segmenter`.
@@ -139,16 +156,17 @@ impl PySegmenter {
     /// Raises `ModelError` if the download fails, plus the same errors as
     /// `Segmenter.open`.
     #[staticmethod]
-    #[pyo3(signature = (language, uri, *, user_words=None, user_words_gate=None))]
+    #[pyo3(signature = (language, uri, *, user_words=None, user_words_gate=None, user_word_tags=None))]
     fn from_uri(
         py: Python<'_>,
         language: LanguageArg,
         uri: String,
         user_words: Option<Vec<String>>,
         user_words_gate: Option<f64>,
+        user_word_tags: Option<HashMap<String, String>>,
     ) -> PyResult<Self> {
         let language = language.resolve()?;
-        let dictionary = user_dictionary(user_words, user_words_gate)?;
+        let dictionary = user_dictionary(user_words, user_words_gate, user_word_tags)?;
         let inner = py.detach(|| {
             map_err(CoreSegmenter::from_uri_blocking_with(language, &uri, dictionary))
         })?;

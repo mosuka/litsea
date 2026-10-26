@@ -105,12 +105,16 @@ class Segmenter:
         *,
         user_words: Sequence[str] | None = None,
         user_words_gate: float | None = None,
+        user_word_tags: dict[str, str] | None = None,
     ) -> Segmenter:
         """Load a model from a filesystem path.
 
         ``user_words`` are emitted as single tokens wherever they occur;
         ``user_words_gate`` (``0.0``-``1.0``) applies a word only where the
-        model's margin against it is small enough.
+        model's margin against it is small enough. ``user_word_tags`` maps
+        further words to a UPOS tag (``{"チャットGPT": "PROPN"}``): they are
+        emitted as single tokens too, and ``segment_with_pos`` gives their
+        tokens that tag.
         """
 
     @staticmethod
@@ -120,6 +124,7 @@ class Segmenter:
         *,
         user_words: Sequence[str] | None = None,
         user_words_gate: float | None = None,
+        user_word_tags: dict[str, str] | None = None,
     ) -> Segmenter:
         """Load a model from raw bytes."""
 
@@ -130,6 +135,7 @@ class Segmenter:
         *,
         user_words: Sequence[str] | None = None,
         user_words_gate: float | None = None,
+        user_word_tags: dict[str, str] | None = None,
     ) -> Segmenter:
         """Load a model from a path, ``file://`` path, or ``http(s)://`` URL."""
 

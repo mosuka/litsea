@@ -83,6 +83,15 @@ seg.segment('雪だるまを作る')
 
 Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. The next argument, `userWordsGate` (`0`-`1`), applies a word only where the model's margin against it is small enough: `0` only where the model already agrees with it.
 
+With a POS model, the last argument, `userWordTags` (an object of words and UPOS tags), registers further words whose tokens `segmentWithPos` gives the registered tag, ahead of the model's own tagging:
+
+```js
+const tagged = Segmenter.open('japanese', 'models/japanese_pos.model', undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   (in userWords instead: 'チャットGPT/NOUN')
+```
+
 ### Other model sources
 
 ```js
@@ -137,7 +146,7 @@ Every error carries a `code`:
 
 | `err.code` | Raised when |
 |-----------|-------------|
-| `invalid_argument` | Unknown language name, unknown feature set, reused trainer, `userWordsGate` outside `0`-`1` |
+| `invalid_argument` | Unknown language name, unknown feature set, reused trainer, `userWordsGate` outside `0`-`1`, a `userWordTags` value that is not a UPOS tag |
 | `model` | Download failed, or the file is a legacy joint POS model |
 | `io` | A file could not be read or written |
 | `parse` | The model or training data is malformed |

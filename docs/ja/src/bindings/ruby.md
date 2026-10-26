@@ -65,7 +65,7 @@ text.byteslice(token.start, token.end - token.start)   # == token.surface
 
 ## ユーザー辞書
 
-すべてのコンストラクタは、キーワード引数を 2 つ受け取ります（[#263](https://github.com/mosuka/litsea/issues/263)）。`user_words:` は、現れた場所で必ず 1 トークンとして出力する語の配列、`user_words_gate:` は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（`0.0`〜`1.0`）です。
+すべてのコンストラクタは、キーワード引数を 3 つ受け取ります（[#263](https://github.com/mosuka/litsea/issues/263)、[#264](https://github.com/mosuka/litsea/issues/264)）。`user_words:` は、現れた場所で必ず 1 トークンとして出力する語の配列、`user_words_gate:` は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（`0.0`〜`1.0`）、`user_word_tags:` は、さらに登録する語と、`segment_with_pos` がその語に付ける UPOS タグの Hash（キーと値は String）です。
 
 ```ruby
 seg = Litsea::Segmenter.open(:japanese, "models/japanese.model", user_words: ["雪だるま", "新幹線"])
@@ -74,15 +74,24 @@ seg.segment("雪だるまを作る")
 # => ["雪だるま", "を", "作る"]   （辞書なしでは ["雪", "だる", "ま", "を", "作る"]）
 ```
 
-登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、登録語も他の語と同じようにタグ付けされます（`japanese_pos.model` では `雪だるま/NOUN`）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`user_words_gate: 0.0` は、モデルがすでに同意している場所だけに語を適用します。`0.0`〜`1.0` の外の gate は `Litsea::InvalidArgumentError` を、未知のキーワードは `ArgumentError` を送出します。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
+POS モデルでは、`user_word_tags:` でタガーが誤る語のタグを直せます:
+
+```ruby
+tagged = Litsea::Segmenter.open(:japanese, "models/japanese_pos.model", user_word_tags: { "チャットGPT" => "PROPN" })
+
+tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.pos}" }
+# => ["チャットGPT/PROPN", "に/ADP", "聞く/VERB"]   （user_words: に入れた場合は "チャットGPT/NOUN"）
+```
+
+登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、`user_words:` の語は他の語と同じようにタグ付けされます（`japanese_pos.model` では `雪だるま/NOUN`）。`user_word_tags:` の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。`segment` はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`user_words_gate: 0.0` は、モデルがすでに同意している場所だけに語を適用します。`0.0`〜`1.0` の外の gate と、17 個の UPOS タグ（大文字）以外のタグは `Litsea::InvalidArgumentError` を、未知のキーワードは `ArgumentError` を送出します。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
 
 ## API
 
 | 呼び出し | 戻り値 |
 |---------|-------|
-| `Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil)` | セグメンタ |
-| `Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil)` | セグメンタ（バイナリ String も可） |
-| `Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil)` | セグメンタ |
+| `Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | セグメンタ |
+| `Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | セグメンタ（バイナリ String も可） |
+| `Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | セグメンタ |
 | `#segment(text)` | `Array<String>` |
 | `#segment_batch(texts)` | `Array<Array<String>>` |
 | `#segment_tokens(text)` | バイトオフセット付き `Array<Litsea::Token>` |
@@ -119,7 +128,7 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 
 | エラー | 発生条件 |
 |-------|---------|
-| `Litsea::InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `user_words_gate:` |
+| `Litsea::InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `user_words_gate:`、UPOS タグでない `user_word_tags:` の値 |
 | `Litsea::ModelError` | ダウンロード失敗、または旧 joint POS モデル |
 | `Litsea::IoError` | ファイルの読み書き失敗 |
 | `Litsea::ParseError` | モデルまたは学習データの形式不正 |

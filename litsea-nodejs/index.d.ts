@@ -122,10 +122,11 @@ export type JsPerceptronTrainer = PerceptronTrainer
  * Build one with `Segmenter.open`, `Segmenter.fromBytes`, or
  * `Segmenter.fromUri`. The kind of model is detected from the file itself,
  * so `hasPos` describes what was loaded rather than something the caller
- * has to declare. Every constructor takes two optional trailing arguments:
- * `userWords`, words to emit as single tokens, and `userWordsGate`, a flip
- * ratio in `0.0..=1.0` that applies a word only where the model's margin
- * against it is small enough.
+ * has to declare. Every constructor takes three optional trailing
+ * arguments: `userWords`, words to emit as single tokens; `userWordsGate`,
+ * a flip ratio in `0.0..=1.0` that applies a word only where the model's
+ * margin against it is small enough; and `userWordTags`, an object mapping
+ * further words to the UPOS tag `segmentWithPos` gives them.
  */
 export declare class Segmenter {
   /**
@@ -137,15 +138,18 @@ export declare class Segmenter {
    * * `user_words` - Optional words to emit as single tokens.
    * * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
    *   `0.0..=1.0`.
+   * * `user_word_tags` - Optional object mapping words to emit as single
+   *   tokens to the UPOS tag `segmentWithPos` gives them.
    *
    * # Returns
    * The new `Segmenter`.
    *
    * # Errors
-   * Throws an error whose `code` is `invalid_argument` (also for a gate
-   * outside `0.0..=1.0`), `io`, `parse`, or `model`.
+   * Throws an error whose `code` is `invalid_argument` (also for a tag
+   * that is not a UPOS tag or a gate outside `0.0..=1.0`), `io`, `parse`,
+   * or `model`.
    */
-  static open(language: string, path: string, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null): Segmenter
+  static open(language: string, path: string, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null, userWordTags?: Record<string, string> | undefined | null): Segmenter
   /**
    * Loads a model from raw bytes.
    *
@@ -155,15 +159,18 @@ export declare class Segmenter {
    * * `user_words` - Optional words to emit as single tokens.
    * * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
    *   `0.0..=1.0`.
+   * * `user_word_tags` - Optional object mapping words to emit as single
+   *   tokens to the UPOS tag `segmentWithPos` gives them.
    *
    * # Returns
    * The new `Segmenter`.
    *
    * # Errors
-   * Throws an error whose `code` is `invalid_argument` (also for a gate
-   * outside `0.0..=1.0`), `parse`, or `model`.
+   * Throws an error whose `code` is `invalid_argument` (also for a tag
+   * that is not a UPOS tag or a gate outside `0.0..=1.0`), `parse`, or
+   * `model`.
    */
-  static fromBytes(language: string, data: Buffer, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null): Segmenter
+  static fromBytes(language: string, data: Buffer, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null, userWordTags?: Record<string, string> | undefined | null): Segmenter
   /**
    * Loads a model from a URI, resolving once it is available.
    *
@@ -177,16 +184,19 @@ export declare class Segmenter {
    * * `user_words` - Optional words to emit as single tokens.
    * * `user_words_gate` - Optional flip-ratio gate for `userWords`, in
    *   `0.0..=1.0`.
+   * * `user_word_tags` - Optional object mapping words to emit as single
+   *   tokens to the UPOS tag `segmentWithPos` gives them.
    *
    * # Returns
    * A promise resolving to the new `Segmenter`.
    *
    * # Errors
    * Throws synchronously with the `invalid_argument` code for an unknown
-   * language or a gate outside `0.0..=1.0`; otherwise rejects with an
+   * language, a tag that is not a UPOS tag, or a gate outside
+   * `0.0..=1.0`; otherwise rejects with an
    * error whose `code` is `model`, `io`, or `parse`.
    */
-  static fromUri(language: string, uri: string, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null): Promise<Segmenter>
+  static fromUri(language: string, uri: string, userWords?: Array<string> | undefined | null, userWordsGate?: number | undefined | null, userWordTags?: Record<string, string> | undefined | null): Promise<Segmenter>
   /** The language this segmenter was built for. */
   get language(): string
   /** Whether this segmenter can tag parts of speech. */

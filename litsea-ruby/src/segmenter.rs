@@ -1,9 +1,10 @@
 //! The `Litsea::Segmenter` class.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use litsea::UserDictionary;
-use litsea_binding_core::{CoreSegmenter, TokenView, build_user_dictionary};
+use litsea_binding_core::{CoreSegmenter, TokenView, build_user_dictionary_with_tags};
 use magnus::scan_args::{get_kwargs, scan_args};
 use magnus::{Module, Object, RArray, RModule, RString, Ruby, TryConvert, Value, error::Error};
 
@@ -12,14 +13,17 @@ use crate::gvl::without_gvl;
 use crate::language::language_from_value;
 use crate::token::Token;
 
-/// The keyword arguments every constructor accepts (issue #263): the
-/// optional `user_words:` and `user_words_gate:`, each of which may also be
-/// passed as `nil`.
+/// The keyword arguments every constructor accepts (issues #263, #264): the
+/// optional `user_words:`, `user_words_gate:` and `user_word_tags:`, each of
+/// which may also be passed as `nil`.
 struct UserWordsArgs {
     /// The words to emit as single tokens.
     user_words: Option<Vec<String>>,
     /// The flip-ratio gate in `0.0..=1.0`.
     user_words_gate: Option<f64>,
+    /// Words to emit as single tokens with the UPOS tag `segment_with_pos`
+    /// gives them.
+    user_word_tags: Option<HashMap<String, String>>,
 }
 
 impl UserWordsArgs {
@@ -29,11 +33,15 @@ impl UserWordsArgs {
     /// `None` when no words were given, otherwise the dictionary.
     ///
     /// # Errors
-    /// Raises `Litsea::InvalidArgumentError` if the gate is outside
-    /// `0.0..=1.0`, also when no words were given.
+    /// Raises `Litsea::InvalidArgumentError` if a tag is not one of the 17
+    /// UPOS tags, or if the gate is outside `0.0..=1.0`, also when no words
+    /// were given.
     fn dictionary(self) -> Result<Option<UserDictionary>, Error> {
-        map_err(build_user_dictionary(
+        let word_tags: Vec<(String, String)> =
+            self.user_word_tags.unwrap_or_default().into_iter().collect();
+        map_err(build_user_dictionary_with_tags(
             self.user_words.as_deref().unwrap_or_default(),
+            &word_tags,
             self.user_words_gate,
         ))
     }
@@ -41,7 +49,7 @@ impl UserWordsArgs {
 
 /// Splits the arguments of `open`, `from_bytes`, and `from_uri`: the
 /// language and the model source as required positionals, then the
-/// `user_words:` / `user_words_gate:` keywords.
+/// `user_words:` / `user_words_gate:` / `user_word_tags:` keywords.
 ///
 /// magnus cannot express optional keyword arguments in a `function!`
 /// arity, so the constructors take their arguments through `scan_args`,
@@ -61,18 +69,24 @@ fn scan_constructor_args<T: TryConvert>(
 ) -> Result<(Value, T, UserWordsArgs), Error> {
     let args = scan_args::<(Value, T), (), (), (), _, ()>(args)?;
     let (language, source) = args.required;
-    let kwargs = get_kwargs::<_, (), (Option<Option<Vec<String>>>, Option<Option<f64>>), ()>(
-        args.keywords,
-        &[],
-        &["user_words", "user_words_gate"],
-    )?;
-    let (user_words, user_words_gate) = kwargs.optional;
+    let kwargs = get_kwargs::<
+        _,
+        (),
+        (
+            Option<Option<Vec<String>>>,
+            Option<Option<f64>>,
+            Option<Option<HashMap<String, String>>>,
+        ),
+        (),
+    >(args.keywords, &[], &["user_words", "user_words_gate", "user_word_tags"])?;
+    let (user_words, user_words_gate, user_word_tags) = kwargs.optional;
     Ok((
         language,
         source,
         UserWordsArgs {
             user_words: user_words.flatten(),
             user_words_gate: user_words_gate.flatten(),
+            user_word_tags: user_word_tags.flatten(),
         },
     ))
 }
@@ -83,9 +97,10 @@ fn scan_constructor_args<T: TryConvert>(
 /// `Segmenter.from_uri`. The kind of model is detected from the file itself,
 /// so `has_pos?` describes what was loaded rather than something the caller
 /// declares. Every constructor accepts the keyword arguments `user_words:`,
-/// an array of words to emit as single tokens, and `user_words_gate:`, a
-/// flip ratio in `0.0..=1.0` that applies a word only where the model's
-/// margin against it is small enough.
+/// an array of words to emit as single tokens; `user_words_gate:`, a flip
+/// ratio in `0.0..=1.0` that applies a word only where the model's margin
+/// against it is small enough; and `user_word_tags:`, a Hash mapping further
+/// words to the UPOS tag `segment_with_pos` gives them.
 #[magnus::wrap(class = "Litsea::Segmenter", free_immediately, size)]
 pub struct Segmenter {
     /// The wrapped core segmenter.
@@ -98,15 +113,15 @@ impl Segmenter {
     /// # Arguments
     /// * `args` - `language` (a language name or ISO 639-1 code, as a String
     ///   or Symbol), `path` (the model file), and the optional
-    ///   `user_words:` / `user_words_gate:` keywords.
+    ///   `user_words:` / `user_words_gate:` / `user_word_tags:` keywords.
     ///
     /// # Returns
     /// The new segmenter.
     ///
     /// # Errors
-    /// Raises `Litsea::InvalidArgumentError` (also for a gate outside
-    /// `0.0..=1.0`), `Litsea::IoError`, `Litsea::ParseError`, or
-    /// `Litsea::ModelError`.
+    /// Raises `Litsea::InvalidArgumentError` (also for a tag that is not a
+    /// UPOS tag or a gate outside `0.0..=1.0`), `Litsea::IoError`,
+    /// `Litsea::ParseError`, or `Litsea::ModelError`.
     fn open(args: &[Value]) -> Result<Self, Error> {
         let (language, path, user_words): (_, String, _) = scan_constructor_args(args)?;
         let language = language_from_value(language)?;
@@ -128,14 +143,15 @@ impl Segmenter {
     /// # Arguments
     /// * `args` - `language` (a language name or ISO 639-1 code, as a String
     ///   or Symbol), `data` (the model file contents), and the optional
-    ///   `user_words:` / `user_words_gate:` keywords.
+    ///   `user_words:` / `user_words_gate:` / `user_word_tags:` keywords.
     ///
     /// # Returns
     /// The new segmenter.
     ///
     /// # Errors
-    /// Raises `Litsea::InvalidArgumentError` (also for a gate outside
-    /// `0.0..=1.0`), `Litsea::ParseError`, or `Litsea::ModelError`.
+    /// Raises `Litsea::InvalidArgumentError` (also for a tag that is not a
+    /// UPOS tag or a gate outside `0.0..=1.0`), `Litsea::ParseError`, or
+    /// `Litsea::ModelError`.
     fn from_bytes(args: &[Value]) -> Result<Self, Error> {
         let (language, data, user_words): (_, RString, _) = scan_constructor_args(args)?;
         let language = language_from_value(language)?;
@@ -157,7 +173,7 @@ impl Segmenter {
     /// # Arguments
     /// * `args` - `language` (a language name or ISO 639-1 code, as a String
     ///   or Symbol), `uri` (the model URI), and the optional `user_words:` /
-    ///   `user_words_gate:` keywords.
+    ///   `user_words_gate:` / `user_word_tags:` keywords.
     ///
     /// # Returns
     /// The new segmenter.

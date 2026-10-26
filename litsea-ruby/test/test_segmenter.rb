@@ -99,6 +99,65 @@ class TestSegmenter < LitseaTest
     assert_raises(TypeError) { Litsea::Segmenter.open(:japanese, path, user_words: '雪だるま') }
   end
 
+  # Tagged user dictionary entries (#264): the tagger gives both words NOUN
+  # without a tag (`ポケモン` through the lexicon, `チャットGPT` through the
+  # full argmax).
+  USER_WORD_TAGS = { 'チャットGPT' => 'PROPN', 'ポケモン' => 'PROPN' }.freeze
+  TAGGED_SENTENCES = %w[チャットGPTに聞く ポケモンを集める 雪だるまを作る].freeze
+
+  # Renders `segment_with_pos` the way `litsea segment --pos` prints it.
+  def tagged(segmenter, sentence)
+    segmenter.segment_with_pos(sentence).map { |t| "#{t.surface}/#{t.pos}" }.join(' ')
+  end
+
+  def test_user_word_tags_match_the_cli
+    model = model_path('japanese_pos.model')
+    lines = USER_WORD_TAGS.map { |word, tag| "#{word}\t#{tag}" } + ['雪だるま']
+    Dir.mktmpdir do |dir|
+      expected = run_cli(
+        ['segment', '-l', 'japanese', '--pos', '--user-words', write_words(dir, lines), model],
+        TAGGED_SENTENCES.map { |sentence| "#{sentence}\n" }.join
+      )
+      seg = Litsea::Segmenter.open(:japanese, model, user_words: ['雪だるま'], user_word_tags: USER_WORD_TAGS)
+      assert_equal(expected, TAGGED_SENTENCES.map { |sentence| tagged(seg, sentence) })
+      assert tagged(seg, 'チャットGPTに聞く').start_with?('チャットGPT/PROPN ')
+      # The tags must actually matter: untagged, the same words come out as NOUN.
+      untagged = Litsea::Segmenter.open(:japanese, model, user_words: ['雪だるま', *USER_WORD_TAGS.keys])
+      assert tagged(untagged, 'チャットGPTに聞く').start_with?('チャットGPT/NOUN ')
+      refute_equal tagged(untagged, 'ポケモンを集める'), tagged(seg, 'ポケモンを集める')
+    end
+  end
+
+  def test_user_word_tags_on_every_constructor
+    path = model_path('japanese_pos.model')
+    sentence = 'チャットGPTに聞く'
+
+    from_path = Litsea::Segmenter.open(:japanese, path, user_word_tags: USER_WORD_TAGS)
+    from_bytes = Litsea::Segmenter.from_bytes(:japanese, File.binread(path), user_word_tags: USER_WORD_TAGS)
+    from_uri = Litsea::Segmenter.from_uri(:japanese, path, user_word_tags: USER_WORD_TAGS)
+
+    token = from_path.segment_with_pos(sentence).first
+    assert_equal %w[チャットGPT PROPN], [token.surface, token.pos]
+    assert_equal tagged(from_path, sentence), tagged(from_bytes, sentence)
+    assert_equal tagged(from_path, sentence), tagged(from_uri, sentence)
+    # Segmentation alone ignores the tags.
+    assert_equal %w[チャットGPT に 聞く], from_path.segment(sentence)
+  end
+
+  def test_user_word_tags_invalid_arguments
+    path = model_path('japanese_pos.model')
+    error = assert_raises(Litsea::InvalidArgumentError) do
+      Litsea::Segmenter.open(:japanese, path, user_word_tags: { 'ポケモン' => 'Noun' })
+    end
+    assert_match(/unknown UPOS tag "Noun"/, error.message)
+    # A bad gate is still reported when only tagged words are given.
+    error = assert_raises(Litsea::InvalidArgumentError) do
+      Litsea::Segmenter.open(:japanese, path, user_word_tags: USER_WORD_TAGS, user_words_gate: 1.5)
+    end
+    assert_match(/0\.0\.\.=1\.0/, error.message)
+    assert_raises(TypeError) { Litsea::Segmenter.open(:japanese, path, user_word_tags: ['ポケモン']) }
+  end
+
   def test_segment_matches_the_cli
     SEGMENTATION_CASES.each do |language, model, sentence|
       # Compare the rendered line rather than a re-split of it: the CLI joins

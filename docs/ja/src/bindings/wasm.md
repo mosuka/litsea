@@ -46,7 +46,7 @@ new TextDecoder().decode(bytes.subarray(token.start, token.end))   // === token.
 
 ## ユーザー辞書
 
-`fromBytes` は、Node.js バインディングと同じ名前の、省略可能な末尾の引数を 2 つ受け取ります（[#263](https://github.com/mosuka/litsea/issues/263)）。`userWords` は、現れた場所で必ず 1 トークンとして出力する語の配列、`userWordsGate` は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（`0`〜`1`）です。
+`fromBytes` は、Node.js バインディングと同じ名前の、省略可能な末尾の引数を 3 つ受け取ります（[#263](https://github.com/mosuka/litsea/issues/263)、[#264](https://github.com/mosuka/litsea/issues/264)）。`userWords` は、現れた場所で必ず 1 トークンとして出力する語の配列、`userWordsGate` は、モデルの margin が十分小さい場所にだけ語を適用する flip ratio（`0`〜`1`）、`userWordTags` は、さらに登録する語と、`segmentWithPos` がその語に付ける UPOS タグのオブジェクトです。
 
 ```js
 const seg = Segmenter.fromBytes('japanese', bytes, ['雪だるま', '新幹線'])
@@ -55,7 +55,17 @@ seg.segment('雪だるまを作る')
 // [ '雪だるま', 'を', '作る' ]   （辞書なしでは [ '雪', 'だる', 'ま', 'を', '作る' ]）
 ```
 
-登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`userWordsGate` を `0` にすると、モデルがすでに同意している場所だけに語を適用します。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
+POS モデルでは、`userWordTags` でタガーが誤る語のタグを直せます:
+
+```js
+const posBytes = new Uint8Array(await (await fetch('/models/japanese_pos.model')).arrayBuffer())
+const tagged = Segmenter.fromBytes('japanese', posBytes, undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   （userWords に入れた場合は 'チャットGPT/NOUN'）
+```
+
+登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、`userWords` の語は他の語と同じようにタグ付けされ、`userWordTags` の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。`segment` はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`userWordsGate` を `0` にすると、モデルがすでに同意している場所だけに語を適用します。`0`〜`1` の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、`invalid_argument` コードのエラーを投げます。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
 
 ## ホストの制約で提供しない機能
 
@@ -98,7 +108,7 @@ URL をキーに Cache Storage へ保存し、利用できない環境（非セ�
 
 | `err.code` | 発生条件 |
 |-----------|---------|
-| `invalid_argument` | 未知の言語名、`0`〜`1` の外の `userWordsGate` |
+| `invalid_argument` | 未知の言語名、`0`〜`1` の外の `userWordsGate`、UPOS タグでない（または文字列でない）`userWordTags` の値 |
 | `model` | 旧 joint POS モデル |
 | `parse` | モデルの形式不正、または UTF-8 でない |
 | `pos_unavailable` | 分割専用モデルに対する POS タグ付けの要求 |

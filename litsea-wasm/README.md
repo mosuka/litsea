@@ -67,6 +67,15 @@ seg.segment('雪だるまを作る')
 
 Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in. The next argument, `userWordsGate` (`0`-`1`), applies a word only where the model's margin against it is small enough: `0` only where the model already agrees with it.
 
+With a POS model, the last argument, `userWordTags` (an object of words and UPOS tags), registers further words whose tokens `segmentWithPos` gives the registered tag, ahead of the model's own tagging:
+
+```js
+const tagged = Segmenter.fromBytes('japanese', posBytes, undefined, undefined, { チャットGPT: 'PROPN' })
+
+tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.pos}`)
+// [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   (in userWords instead: 'チャットGPT/NOUN')
+```
+
 ### Caching models
 
 Models are 86 KB – 8.3 MB and cross the network once per visitor. The package ships an optional helper that keeps them in Cache Storage:
@@ -97,7 +106,7 @@ Every error carries a `code`, matching the Node.js binding:
 
 | `err.code` | Raised when |
 |-----------|-------------|
-| `invalid_argument` | Unknown language name, `userWordsGate` outside `0`-`1` |
+| `invalid_argument` | Unknown language name, `userWordsGate` outside `0`-`1`, a `userWordTags` value that is not a UPOS tag (or not a string) |
 | `model` | The file is a legacy joint POS model |
 | `parse` | The model is malformed or not UTF-8 |
 | `pos_unavailable` | POS tagging requested from a segmentation-only model |

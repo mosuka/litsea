@@ -65,7 +65,7 @@ text.byteslice(token.start, token.end - token.start)   # == token.surface
 
 ## User dictionary
 
-Every constructor accepts two keyword arguments ([#263](https://github.com/mosuka/litsea/issues/263)): `user_words:`, an array of words to emit as single tokens wherever they occur, and `user_words_gate:`, a flip ratio in `0.0`–`1.0` that applies a word only where the model's margin against it is small enough.
+Every constructor accepts three keyword arguments ([#263](https://github.com/mosuka/litsea/issues/263), [#264](https://github.com/mosuka/litsea/issues/264)): `user_words:`, an array of words to emit as single tokens wherever they occur; `user_words_gate:`, a flip ratio in `0.0`–`1.0` that applies a word only where the model's margin against it is small enough; and `user_word_tags:`, a Hash mapping further words to the UPOS tag that `segment_with_pos` gives them (String keys and values).
 
 ```ruby
 seg = Litsea::Segmenter.open(:japanese, "models/japanese.model", user_words: ["雪だるま", "新幹線"])
@@ -74,15 +74,24 @@ seg.segment("雪だるまを作る")
 # => ["雪だるま", "を", "作る"]   (without the dictionary: ["雪", "だる", "ま", "を", "作る"])
 ```
 
-A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model the word is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; `user_words_gate: 0.0` applies a word only where the model already agrees with it. A gate outside `0.0`–`1.0` raises `Litsea::InvalidArgumentError`, and an unknown keyword raises `ArgumentError`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
+With a POS model, `user_word_tags:` fixes the tag of a word the tagger gets wrong:
+
+```ruby
+tagged = Litsea::Segmenter.open(:japanese, "models/japanese_pos.model", user_word_tags: { "チャットGPT" => "PROPN" })
+
+tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.pos}" }
+# => ["チャットGPT/PROPN", "に/ADP", "聞く/VERB"]   (in user_words: instead: "チャットGPT/NOUN")
+```
+
+A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in `user_words:` is tagged like any other word (`雪だるま/NOUN` with `japanese_pos.model`), while a token that is a word in `user_word_tags:` gets its tag, ahead of the model's lexicon and its tagger; `segment` ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; `user_words_gate: 0.0` applies a word only where the model already agrees with it. A gate outside `0.0`–`1.0`, or a tag that is not one of the 17 UPOS tags (upper case), raises `Litsea::InvalidArgumentError`, and an unknown keyword raises `ArgumentError`. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
 
 ## API
 
 | Call | Returns |
 |------|---------|
-| `Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil)` | A segmenter |
-| `Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil)` | A segmenter (accepts a binary String) |
-| `Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil)` | A segmenter |
+| `Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | A segmenter |
+| `Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | A segmenter (accepts a binary String) |
+| `Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | A segmenter |
 | `#segment(text)` | `Array<String>` |
 | `#segment_batch(texts)` | `Array<Array<String>>` |
 | `#segment_tokens(text)` | `Array<Litsea::Token>` with byte offsets |
@@ -119,7 +128,7 @@ Every error derives from `Litsea::Error`, so one `rescue` handles them all — t
 
 | Error | Raised when |
 |-------|-------------|
-| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate:` outside `0.0`–`1.0` |
+| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate:` outside `0.0`–`1.0`, a `user_word_tags:` value that is not a UPOS tag |
 | `Litsea::ModelError` | Download failed, or the file is a legacy joint POS model |
 | `Litsea::IoError` | A file could not be read or written |
 | `Litsea::ParseError` | The model or training data is malformed |
