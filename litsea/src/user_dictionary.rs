@@ -1,5 +1,5 @@
 //! User dictionary: words the segmenter must emit as single tokens (issue
-//! #263).
+//! #263), optionally with a UPOS tag for POS tagging (issue #264).
 //!
 //! A [`UserDictionary`] stores registered words in a trie keyed by Unicode
 //! scalar values, the same `u32` codes that `Segmenter::segment_into` packs
@@ -7,12 +7,13 @@
 //! without decoding the sentence again. The matching semantics (both edges
 //! of an occurrence forced to be boundaries, no boundary inside it,
 //! leftmost-longest resolution of overlapping occurrences, and the optional
-//! gate) are documented on [`UserDictionary`] and implemented in
-//! `crate::segmenter`.
+//! gate) and the tag semantics are documented on [`UserDictionary`] and
+//! implemented in `crate::segmenter`.
 
 use rustc_hash::FxHashMap;
 
 use crate::error::{LitseaError, Result};
+use crate::upos::Upos;
 
 /// Node id of the trie root.
 const ROOT: u32 = 0;
@@ -35,10 +36,23 @@ const ROOT: u32 = 0;
 ///   models emit spaces as tokens (Korean, English), such a word becomes
 ///   one token that contains the space.
 /// - Words of one character or less have no inside and are not stored
-///   ([`add`](Self::add) returns `false` for them).
-/// - The dictionary carries no part-of-speech information. In
-///   `segment_with_pos`, a forced word that the lexicon does not know is
-///   tagged by the stage-2 tagger's full argmax.
+///   ([`add`](Self::add) and [`add_with_pos`](Self::add_with_pos) return
+///   `false` for them, and their tag is dropped too).
+///
+/// # Tags
+///
+/// A word registered with [`add_with_pos`](Self::add_with_pos) carries a
+/// UPOS tag (issue #264). In
+/// [`Segmenter::segment_with_pos`](crate::segmenter::Segmenter::segment_with_pos),
+/// every token whose surface is a tagged word gets that tag instead of
+/// the tagger's — whether the lexicon would have fixed the tag or the
+/// stage-2 tagger would have decided it — and every other token keeps the
+/// tagger's tag. Without a gate the tagged tokens are exactly the
+/// occurrences the dictionary forces; with a gate, a rejected occurrence
+/// that the model segments exactly as registered anyway is tagged as
+/// well. An untagged word is tagged by the two-stage path like any other
+/// word, and [`Segmenter::segment`](crate::segmenter::Segmenter::segment)
+/// ignores tags altogether.
 ///
 /// # Gate
 ///
@@ -56,12 +70,16 @@ const ROOT: u32 = 0;
 /// # Example
 ///
 /// ```
+/// use litsea::upos::Upos;
 /// use litsea::user_dictionary::UserDictionary;
 ///
 /// let mut dictionary = UserDictionary::from_words(["雪だるま", "新幹線"]);
 /// assert_eq!(dictionary.len(), 2);
 /// assert!(dictionary.contains("新幹線"));
 /// assert!(!dictionary.add("あ")); // one character: not stored
+/// assert!(dictionary.add_with_pos("チャットGPT", Upos::PROPN));
+/// assert_eq!(dictionary.pos("チャットGPT"), Some(Upos::PROPN));
+/// assert_eq!(dictionary.pos("新幹線"), None); // registered without a tag
 /// dictionary.set_gate(Some(0.5)).unwrap();
 /// assert_eq!(dictionary.gate(), Some(0.5));
 /// ```
@@ -72,6 +90,10 @@ pub struct UserDictionary {
     /// Whether the node with the given id ends a registered word. Index 0
     /// is the root.
     terminal: Vec<bool>,
+    /// UPOS tags of the words registered with a tag (#264), keyed by the
+    /// word's terminal node. Untagged words have no entry, so a dictionary
+    /// without tags keeps this map empty.
+    tags: FxHashMap<u32, Upos>,
     /// Number of registered words.
     len: usize,
     /// Length in characters of the longest registered word (0 when empty).
@@ -97,6 +119,7 @@ impl UserDictionary {
         Self {
             edges: FxHashMap::default(),
             terminal: vec![false],
+            tags: FxHashMap::default(),
             len: 0,
             max_len: 0,
             gate: None,
@@ -128,6 +151,8 @@ impl UserDictionary {
 
     /// Registers a word.
     ///
+    /// A word that is already registered keeps its tag, if it has one.
+    ///
     /// # Arguments
     /// * `word` - The word to register, matched later exactly as given.
     ///
@@ -136,9 +161,48 @@ impl UserDictionary {
     /// than two characters (there is no inside to keep together) or was
     /// already registered.
     pub fn add(&mut self, word: &str) -> bool {
+        self.insert(word).is_some_and(|(_, added)| added)
+    }
+
+    /// Registers a word with a UPOS tag (issue #264).
+    ///
+    /// The word constrains segmentation exactly like one registered with
+    /// [`add`](Self::add); the tag only affects
+    /// [`Segmenter::segment_with_pos`](crate::segmenter::Segmenter::segment_with_pos),
+    /// which gives every token whose surface is this word the tag (see the
+    /// type documentation).
+    ///
+    /// # Arguments
+    /// * `word` - The word to register, matched later exactly as given.
+    /// * `pos` - The tag to give the word's tokens. If the word is already
+    ///   registered, its tag is set to `pos`, replacing any earlier one.
+    ///
+    /// # Returns
+    /// `true` if the word was newly registered; `false` if it has fewer
+    /// than two characters (nothing is stored, the tag included) or was
+    /// already registered (its tag is still set).
+    pub fn add_with_pos(&mut self, word: &str, pos: Upos) -> bool {
+        let Some((node, added)) = self.insert(word) else {
+            return false;
+        };
+        self.tags.insert(node, pos);
+        added
+    }
+
+    /// Inserts a word into the trie, shared by [`add`](Self::add) and
+    /// [`add_with_pos`](Self::add_with_pos).
+    ///
+    /// # Arguments
+    /// * `word` - The word to register.
+    ///
+    /// # Returns
+    /// `None` if the word has fewer than two characters (nothing is
+    /// stored); otherwise the word's terminal node and whether the word
+    /// was newly registered.
+    fn insert(&mut self, word: &str) -> Option<(u32, bool)> {
         let char_count = word.chars().count();
         if char_count < 2 {
-            return false;
+            return None;
         }
         let mut node = ROOT;
         for ch in word.chars() {
@@ -155,12 +219,29 @@ impl UserDictionary {
         }
         let slot = &mut self.terminal[node as usize];
         if *slot {
-            return false;
+            return Some((node, false));
         }
         *slot = true;
         self.len += 1;
         self.max_len = self.max_len.max(char_count);
-        true
+        Some((node, true))
+    }
+
+    /// Returns the trie node a word leads to.
+    ///
+    /// # Arguments
+    /// * `word` - The word to walk, compared exactly as given.
+    ///
+    /// # Returns
+    /// The node reached after the word's last character, or `None` if the
+    /// trie has no path for the word. The node ends a registered word only
+    /// if it is marked terminal.
+    fn node(&self, word: &str) -> Option<u32> {
+        let mut node = ROOT;
+        for ch in word.chars() {
+            node = *self.edges.get(&(node, u32::from(ch)))?;
+        }
+        Some(node)
     }
 
     /// Returns whether a word is registered.
@@ -169,18 +250,39 @@ impl UserDictionary {
     /// * `word` - The word to look up, compared exactly as given.
     ///
     /// # Returns
-    /// `true` if `word` was registered through [`add`](Self::add) or
+    /// `true` if `word` was registered through [`add`](Self::add),
+    /// [`add_with_pos`](Self::add_with_pos) or
     /// [`from_words`](Self::from_words).
     #[must_use]
     pub fn contains(&self, word: &str) -> bool {
-        let mut node = ROOT;
-        for ch in word.chars() {
-            match self.edges.get(&(node, u32::from(ch))) {
-                Some(&next) => node = next,
-                None => return false,
-            }
+        self.node(word).is_some_and(|node| self.terminal[node as usize])
+    }
+
+    /// Returns the UPOS tag registered for a word (issue #264).
+    ///
+    /// # Arguments
+    /// * `word` - The word to look up, compared exactly as given.
+    ///
+    /// # Returns
+    /// The tag set by [`add_with_pos`](Self::add_with_pos), or `None` if
+    /// the word is not registered or was registered without a tag.
+    #[must_use]
+    pub fn pos(&self, word: &str) -> Option<Upos> {
+        if self.tags.is_empty() {
+            return None;
         }
-        self.terminal[node as usize]
+        // Only terminal nodes are ever keyed in `tags`.
+        self.tags.get(&self.node(word)?).copied()
+    }
+
+    /// Returns whether any registered word carries a tag.
+    ///
+    /// # Returns
+    /// `true` after a successful [`add_with_pos`](Self::add_with_pos);
+    /// lets `segment_with_pos` skip the tag lookups for an untagged
+    /// dictionary.
+    pub(crate) fn has_tags(&self) -> bool {
+        !self.tags.is_empty()
     }
 
     /// Returns the number of registered words.
@@ -355,6 +457,65 @@ mod tests {
     }
 
     #[test]
+    fn test_add_with_pos_registers_word_and_tag() {
+        let mut dictionary = UserDictionary::new();
+        assert!(!dictionary.has_tags());
+        assert!(dictionary.add_with_pos("チャットGPT", Upos::PROPN));
+        assert!(dictionary.has_tags());
+        assert!(dictionary.contains("チャットGPT"));
+        assert_eq!(dictionary.pos("チャットGPT"), Some(Upos::PROPN));
+        assert_eq!(dictionary.len(), 1);
+        assert_eq!(dictionary.max_len(), 7);
+        // A prefix or an extension of a tagged word is not tagged.
+        assert_eq!(dictionary.pos("チャット"), None);
+        assert_eq!(dictionary.pos("チャットGPTに"), None);
+    }
+
+    #[test]
+    fn test_add_with_pos_on_a_registered_word_sets_and_replaces_the_tag() {
+        let mut dictionary = UserDictionary::from_words(["雪だるま"]);
+        assert_eq!(dictionary.pos("雪だるま"), None);
+        // Already registered: not new, but the tag is set...
+        assert!(!dictionary.add_with_pos("雪だるま", Upos::NOUN));
+        assert_eq!(dictionary.pos("雪だるま"), Some(Upos::NOUN));
+        // ...and a later tag replaces it (last wins).
+        assert!(!dictionary.add_with_pos("雪だるま", Upos::PROPN));
+        assert_eq!(dictionary.pos("雪だるま"), Some(Upos::PROPN));
+        assert_eq!(dictionary.len(), 1);
+    }
+
+    #[test]
+    fn test_add_keeps_an_existing_tag() {
+        let mut dictionary = UserDictionary::new();
+        assert!(dictionary.add_with_pos("新幹線", Upos::NOUN));
+        assert!(!dictionary.add("新幹線"));
+        assert_eq!(dictionary.pos("新幹線"), Some(Upos::NOUN));
+    }
+
+    #[test]
+    fn test_add_with_pos_drops_short_words_with_their_tag() {
+        let mut dictionary = UserDictionary::new();
+        assert!(!dictionary.add_with_pos("猫", Upos::NOUN));
+        assert!(!dictionary.add_with_pos("", Upos::NOUN));
+        assert!(dictionary.is_empty());
+        assert!(!dictionary.has_tags());
+        assert_eq!(dictionary.pos("猫"), None);
+    }
+
+    #[test]
+    fn test_pos_of_untagged_and_unregistered_words() {
+        let mut dictionary = UserDictionary::from_words(["あいう"]);
+        dictionary.add_with_pos("あい", Upos::VERB);
+        // "あいう" is untagged; "あ" is a trie node on the path but not a
+        // word; "かき" is not in the trie at all.
+        assert_eq!(dictionary.pos("あいう"), None);
+        assert_eq!(dictionary.pos("あい"), Some(Upos::VERB));
+        assert_eq!(dictionary.pos("あ"), None);
+        assert_eq!(dictionary.pos("かき"), None);
+        assert_eq!(dictionary.pos(""), None);
+    }
+
+    #[test]
     fn test_set_gate_accepts_the_closed_unit_interval() {
         let mut dictionary = UserDictionary::new();
         for ratio in [0.0, 0.5, 1.0] {
@@ -412,12 +573,15 @@ mod tests {
     #[test]
     fn test_clone_and_debug() {
         let mut dictionary = UserDictionary::from_words(["あい"]);
+        dictionary.add_with_pos("うえ", Upos::ADJ);
         dictionary.set_gate(Some(0.25)).unwrap();
         let cloned = dictionary.clone();
         assert!(cloned.contains("あい"));
+        assert_eq!(cloned.pos("うえ"), Some(Upos::ADJ));
         assert_eq!(cloned.gate(), Some(0.25));
         let debug = format!("{dictionary:?}");
         assert!(debug.starts_with("UserDictionary"));
         assert!(debug.contains("gate: Some(0.25)"));
+        assert!(debug.contains("ADJ"));
     }
 }

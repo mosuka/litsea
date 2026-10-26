@@ -9,6 +9,7 @@
 //! `segment` (segment sentences from standard input with a trained model),
 //! and `evaluate` (measure held-out quality against a gold corpus).
 
+use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::{self, BufRead, Write};
@@ -22,7 +23,8 @@ use clap::{Args, Parser, Subcommand};
 use litsea::version;
 use litsea::{
     AdaBoost, Extractor, Language, LitseaError, PerceptronTrainer, SegmentBuffer, Segmenter,
-    Trainer, TwoStageFeatureSet, TwoStageLearner, TwoStageTrainer, UserDictionary, evaluation,
+    Trainer, TwoStageFeatureSet, TwoStageLearner, TwoStageTrainer, Upos, UserDictionary,
+    evaluation,
 };
 
 /// Arguments for the extract command.
@@ -139,11 +141,13 @@ struct SegmentArgs {
     #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u16).range(1..))]
     threads: u16,
 
-    /// User dictionary (issue #263): a UTF-8 file with one word per line.
-    /// Every occurrence of a registered word is emitted as one token
-    /// (a boundary at each edge, none inside; overlapping occurrences are
-    /// resolved leftmost-longest). Words of one character and empty lines
-    /// are ignored
+    /// User dictionary (issues #263, #264): a UTF-8 file with one word per
+    /// line, optionally followed by a TAB and a UPOS tag. Every occurrence
+    /// of a registered word is emitted as one token (a boundary at each
+    /// edge, none inside; overlapping occurrences are resolved
+    /// leftmost-longest). With --pos, a token that is a tagged word gets
+    /// the registered tag. Words of one character and empty lines are
+    /// ignored
     #[arg(long, value_name = "FILE")]
     user_words: Option<PathBuf>,
 
@@ -182,8 +186,9 @@ struct EvaluateArgs {
     #[arg(long, default_value = "space", value_parser = ["space", "tsv"])]
     format: String,
 
-    /// User dictionary applied during evaluation (issue #263); same file
-    /// format and semantics as `segment --user-words`
+    /// User dictionary applied during evaluation (issues #263, #264); same
+    /// file format and semantics as `segment --user-words`, including the
+    /// tags with --pos
     #[arg(long, value_name = "FILE")]
     user_words: Option<PathBuf>,
 
@@ -709,13 +714,19 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Loads the user dictionary named by `--user-words` (issue #263).
+/// Loads the user dictionary named by `--user-words` (issues #263, #264).
 ///
-/// The file holds one word per line in UTF-8. Only the line terminator
+/// The file is UTF-8 with one entry per line: a word, optionally followed
+/// by a TAB and a UPOS tag (`word<TAB>UPOS`). Only the line terminator
 /// (`\n` or `\r\n`) is stripped — a word is matched exactly as written, so
 /// leading or trailing spaces are part of it — empty lines are skipped,
-/// and there is no comment syntax. Words of one character are dropped by
-/// [`UserDictionary::add`].
+/// and there is no comment syntax. A line is split at its first TAB; the
+/// tag is trimmed of surrounding whitespace and must be one of the 17
+/// UPOS tags. Words of one character are dropped by
+/// [`UserDictionary::add`] / [`UserDictionary::add_with_pos`], but their
+/// tag is still validated. A word may appear on several lines; giving it
+/// two different tags is an error, while an untagged repetition of a
+/// tagged word keeps the tag.
 ///
 /// # Arguments
 /// * `path` - The dictionary file, or `None` when `--user-words` was not
@@ -728,9 +739,11 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
 /// empty, which leaves segmentation unchanged).
 ///
 /// # Errors
-/// Returns an error naming the file if it cannot be read, or the
-/// [`LitseaError::InvalidInput`] from `set_gate` if the gate is outside
-/// `0.0..=1.0`.
+/// Returns an error naming the file if it cannot be read; an error naming
+/// the file and the line for an empty word before a TAB, more than two
+/// columns, an empty or unknown tag, or a word tagged differently on two
+/// lines; or the [`LitseaError::InvalidInput`] from `set_gate` if the gate
+/// is outside `0.0..=1.0`.
 fn load_user_dictionary(
     path: Option<&Path>,
     gate: Option<f64>,
@@ -741,12 +754,51 @@ fn load_user_dictionary(
     let file = File::open(path)
         .map_err(|e| format!("cannot read user dictionary {}: {}", path.display(), e))?;
     let mut dictionary = UserDictionary::new();
-    for line in io::BufReader::new(file).lines() {
-        let word = line?;
-        if word.is_empty() {
+    // The tag and line number of each tagged word, to report a word that
+    // is tagged differently on two lines.
+    let mut tagged: HashMap<String, (Upos, usize)> = HashMap::new();
+    for (index, line) in io::BufReader::new(file).lines().enumerate() {
+        let line = line?;
+        if line.is_empty() {
             continue;
         }
-        dictionary.add(&word);
+        let line_number = index + 1;
+        let invalid = |message: String| -> Box<dyn Error> {
+            format!("user dictionary {}, line {}: {}", path.display(), line_number, message).into()
+        };
+        let Some((word, tag)) = line.split_once('\t') else {
+            dictionary.add(&line);
+            continue;
+        };
+        if word.is_empty() {
+            return Err(invalid("empty word before the TAB".to_string()));
+        }
+        if tag.contains('\t') {
+            return Err(invalid(
+                "too many columns (expected a word, optionally followed by a TAB and a UPOS tag)"
+                    .to_string(),
+            ));
+        }
+        let tag = tag.trim();
+        if tag.is_empty() {
+            return Err(invalid(format!("empty UPOS tag after {word:?}")));
+        }
+        let pos: Upos = tag.parse().map_err(|_| {
+            let expected: Vec<String> = Upos::ALL.iter().map(Upos::to_string).collect();
+            invalid(format!("unknown UPOS tag {tag:?} (expected one of {})", expected.join(", ")))
+        })?;
+        match tagged.get(word) {
+            Some(&(first, first_line)) if first != pos => {
+                return Err(invalid(format!(
+                    "{word:?} is tagged {pos} here but {first} on line {first_line}"
+                )));
+            }
+            Some(_) => {}
+            None => {
+                tagged.insert(word.to_string(), (pos, line_number));
+                dictionary.add_with_pos(word, pos);
+            }
+        }
     }
     dictionary.set_gate(gate)?;
     Ok(Some(dictionary))

@@ -624,6 +624,33 @@ mod tests {
     }
 
     #[test]
+    fn test_user_dictionary_tags_match_litsea() {
+        // #264: the tags reach CoreSegmenter::segment_with_pos exactly as
+        // litsea::Segmenter returns them.
+        let word_tags = [("チャットGPT", "PROPN"), ("ポケモン", "PROPN")];
+        let dictionary =
+            || crate::model::build_user_dictionary_with_tags::<&str, _, _>(&[], &word_tags, None);
+        let path = model_path("japanese_pos.model");
+        let core = CoreSegmenter::from_path_with(Language::Japanese, &path, dictionary().unwrap())
+            .unwrap();
+        let mut learner = litsea::TwoStageLearner::new();
+        learner.load_model_from_path(&path).unwrap();
+        let reference = litsea::Segmenter::with_two_stage_learner(Language::Japanese, learner)
+            .with_user_dictionary(dictionary().unwrap().unwrap());
+        for sentence in ["チャットGPTに聞く", "ポケモンを集める", "これはテストです。"]
+        {
+            let tokens = core.segment_with_pos(sentence).unwrap();
+            let expected = reference.segment_with_pos(sentence).unwrap();
+            let got: Vec<(String, litsea::Upos)> =
+                tokens.into_iter().map(|t| (t.surface, t.pos.unwrap())).collect();
+            assert_eq!(got, expected, "{sentence}");
+        }
+        let tokens = core.segment_with_pos("チャットGPTに聞く").unwrap();
+        assert_eq!(tokens[0].surface, "チャットGPT");
+        assert_eq!(tokens[0].pos, Some(litsea::Upos::PROPN));
+    }
+
+    #[test]
     fn test_user_dictionary_gate_is_honored() {
         // Gate 0 applies a word only where the model already agrees;
         // japanese.model splits 雪だるま, so the output stays the model's.

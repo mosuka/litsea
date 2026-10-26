@@ -391,11 +391,12 @@ impl Segmenter {
 
     /// Sets or clears the user dictionary (issue #263).
     ///
-    /// The dictionary only constrains the boundary decisions of
+    /// The dictionary constrains the boundary decisions of
     /// [`segment`](Self::segment) / [`segment_into`](Self::segment_into)
-    /// (and therefore of [`segment_with_pos`](Self::segment_with_pos)); the
-    /// compiled scoring table is not involved, so this is cheap to change
-    /// at any time.
+    /// (and therefore of [`segment_with_pos`](Self::segment_with_pos)), and
+    /// its tagged words (issue #264) fix the tags `segment_with_pos`
+    /// returns for them; the compiled scoring tables are not involved, so
+    /// this is cheap to change at any time.
     ///
     /// # Arguments
     /// * `dictionary` - `Some(dictionary)` to apply it, `None` to segment
@@ -1215,6 +1216,12 @@ impl Segmenter {
     /// with the stage-2 word-level tagger deciding ambiguous surfaces
     /// (candidate-masked argmax) and unknown surfaces (full argmax).
     ///
+    /// With a user dictionary whose words carry UPOS tags
+    /// ([`UserDictionary::add_with_pos`], issue #264), every word whose
+    /// surface is a tagged dictionary word gets the registered tag instead,
+    /// ahead of the lexicon and the tagger; every other word keeps the
+    /// tagger's tag.
+    ///
     /// # Arguments
     /// * `sentence` - The sentence to segment
     ///
@@ -1232,7 +1239,19 @@ impl Segmenter {
         }
         let packed = self.two_stage.as_ref().ok_or(LitseaError::PosLearnerNotSet)?;
         let words = self.segment(sentence);
-        let tags = packed.tag_words(self.language, &words);
+        let mut tags = packed.tag_words(self.language, &words);
+        // User-dictionary tags (#264): a word whose surface is a tagged
+        // dictionary word takes the registered tag. Stage 2 scores each
+        // word from its own surface and the neighboring characters, never
+        // from another word's tag, so replacing a tag after tagging is the
+        // same as fixing it before: the other words' tags do not change.
+        if let Some(dictionary) = self.user_dictionary.as_ref().filter(|d| d.has_tags()) {
+            for (word, tag) in words.iter().zip(tags.iter_mut()) {
+                if let Some(pos) = dictionary.pos(word) {
+                    *tag = pos;
+                }
+            }
+        }
         Ok(words.into_iter().zip(tags).collect())
     }
 
@@ -1323,6 +1342,8 @@ mod tests {
 
     use std::path::PathBuf;
     use std::sync::atomic::AtomicBool;
+
+    use crate::perceptron::AveragedPerceptron;
 
     #[test]
     fn test_char_type_japanese() {
@@ -2487,6 +2508,300 @@ mod tests {
             segment_checked(&segmenter, "私の名前は中野です"),
             vec!["私", "の", "名前", "は", "中野", "です"]
         );
+    }
+
+    // ---- User dictionary tags (#264) ----
+
+    /// Stage-2 tagger for the tag tests: classes NOUN and VERB, with
+    /// surface features that lean `うえ` and `おか` to VERB. Any other
+    /// unknown word scores all zeros and gets class 0 (NOUN).
+    const TAG_STAGE2: &str = "2\nNOUN\nVERB\nWS:うえ\tVERB\t1\nWS:おか\tVERB\t1\n";
+
+    /// A synthetic two-stage segmenter over the stage-1 model `stage1`
+    /// whose stage 2 reaches every tagging path on `あいうえおか`: `あい`
+    /// is lexicon-fixed (NOUN), `うえ` is ambiguous in the lexicon and
+    /// decided by the candidate-masked argmax (VERB), and `おか` is
+    /// unknown and decided by the full argmax (VERB).
+    fn two_stage_segmenter(stage1: &str) -> Segmenter {
+        let mut stage1_learner = AdaBoost::default();
+        stage1_learner.load_model_from_reader(stage1.as_bytes()).unwrap();
+        let mut stage2 = AveragedPerceptron::new();
+        stage2.load_model_from_reader(TAG_STAGE2.as_bytes()).unwrap();
+        let lexicon = vec![
+            ("あい".to_string(), vec![(Upos::NOUN, 1)]),
+            ("うえ".to_string(), vec![(Upos::NOUN, 3), (Upos::VERB, 2)]),
+        ];
+        let learner = TwoStageLearner::from_parts(stage1_learner, stage2, lexicon, 0.99).unwrap();
+        Segmenter::with_two_stage_learner(Language::Japanese, learner)
+    }
+
+    /// A dictionary of untagged `words` and `tagged` words with their tags.
+    fn tagged_dictionary(
+        words: &[&str],
+        tagged: &[(&str, Upos)],
+        gate: Option<f64>,
+    ) -> UserDictionary {
+        let mut dictionary = dictionary(words, gate);
+        for &(word, pos) in tagged {
+            dictionary.add_with_pos(word, pos);
+        }
+        dictionary
+    }
+
+    /// Tags through `segment_with_pos` after checking that its words are
+    /// exactly what `segment` produces.
+    fn pos_checked(segmenter: &Segmenter, sentence: &str) -> Vec<(String, Upos)> {
+        let tagged = segmenter.segment_with_pos(sentence).unwrap();
+        let words: Vec<String> = tagged.iter().map(|(word, _)| word.clone()).collect();
+        assert_eq!(words, segment_checked(segmenter, sentence), "words of {sentence:?}");
+        tagged
+    }
+
+    fn owned(pairs: &[(&str, Upos)]) -> Vec<(String, Upos)> {
+        pairs.iter().map(|&(word, pos)| (word.to_string(), pos)).collect()
+    }
+
+    fn load_two_stage(model: &str) -> TwoStageLearner {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../models").join(model);
+        let mut learner = TwoStageLearner::new();
+        learner.load_model_from_path(&path).unwrap();
+        learner
+    }
+
+    #[test]
+    fn test_user_dictionary_tags_beat_every_stage2_path() {
+        // The three words tile the sentence, so every stage-1 model emits
+        // the same tokens and only the tags are under test.
+        for stage1 in [JOIN_ALL, SPLIT_ALL, AFTER_B_JOINS] {
+            let untagged = two_stage_segmenter(stage1)
+                .with_user_dictionary(dictionary(&["あい", "うえ", "おか"], None));
+            assert_eq!(
+                pos_checked(&untagged, "あいうえおか"),
+                owned(&[("あい", Upos::NOUN), ("うえ", Upos::VERB), ("おか", Upos::VERB)]),
+                "untagged, stage 1 {stage1:?}"
+            );
+            let tagged = two_stage_segmenter(stage1).with_user_dictionary(tagged_dictionary(
+                &[],
+                &[("あい", Upos::PROPN), ("うえ", Upos::NOUN), ("おか", Upos::ADJ)],
+                None,
+            ));
+            assert_eq!(
+                pos_checked(&tagged, "あいうえおか"),
+                owned(&[("あい", Upos::PROPN), ("うえ", Upos::NOUN), ("おか", Upos::ADJ)]),
+                "tagged, stage 1 {stage1:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_user_dictionary_tags_at_every_position() {
+        let tag =
+            |tagged: &[(&str, Upos)], sentence: &str| {
+                let segmenter = two_stage_segmenter(SPLIT_ALL)
+                    .with_user_dictionary(tagged_dictionary(&[], tagged, None));
+                pos_checked(&segmenter, sentence)
+            };
+        // Sentence start, sentence end, the whole sentence.
+        assert_eq!(
+            tag(&[("あい", Upos::PROPN)], "あいうえ"),
+            owned(&[("あい", Upos::PROPN), ("う", Upos::NOUN), ("え", Upos::NOUN)])
+        );
+        assert_eq!(
+            tag(&[("うえ", Upos::ADJ)], "あいうえ"),
+            owned(&[("あ", Upos::NOUN), ("い", Upos::NOUN), ("うえ", Upos::ADJ)])
+        );
+        assert_eq!(tag(&[("あいうえ", Upos::ADJ)], "あいうえ"), owned(&[("あいうえ", Upos::ADJ)]));
+        // Two adjacent words with different tags.
+        assert_eq!(
+            tag(&[("あい", Upos::PROPN), ("うえ", Upos::ADJ)], "あいうえ"),
+            owned(&[("あい", Upos::PROPN), ("うえ", Upos::ADJ)])
+        );
+    }
+
+    #[test]
+    fn test_user_dictionary_tags_follow_leftmost_longest() {
+        let tag = |words: &[&str], tagged: &[(&str, Upos)], gate, sentence: &str| {
+            let segmenter = two_stage_segmenter(SPLIT_ALL)
+                .with_user_dictionary(tagged_dictionary(words, tagged, gate));
+            pos_checked(&segmenter, sentence)
+        };
+        // The longer untagged `あいう` wins, so the tagged `いう` inside it
+        // is no token and its tag appears nowhere.
+        assert_eq!(
+            tag(&["あいう"], &[("いう", Upos::PROPN)], None, "あいうえ"),
+            owned(&[("あいう", Upos::NOUN), ("え", Upos::NOUN)])
+        );
+        // The longer tagged word wins over a shorter untagged one.
+        assert_eq!(
+            tag(&["いう"], &[("いうえ", Upos::PROPN)], None, "あいうえお"),
+            owned(&[("あ", Upos::NOUN), ("いうえ", Upos::PROPN), ("お", Upos::NOUN)])
+        );
+        // The gate rejects the longer `いうえ` (flips 2 of 4), so the
+        // shorter tagged `いう` (1 of 3) applies with its tag.
+        assert_eq!(
+            tag(&["いうえ"], &[("いう", Upos::PROPN)], Some(0.4), "あいうえお"),
+            owned(&[
+                ("あ", Upos::NOUN),
+                ("いう", Upos::PROPN),
+                ("え", Upos::NOUN),
+                ("お", Upos::NOUN)
+            ])
+        );
+    }
+
+    #[test]
+    fn test_user_dictionary_tags_follow_the_surface_under_a_gate() {
+        // JOIN_ALL scores −1.0 everywhere. With gate 0.4, `えお` alone
+        // flips 1 of its 2 constrained positions (0.5) and is rejected:
+        // the sentence stays one token and the tag appears nowhere.
+        let alone = two_stage_segmenter(JOIN_ALL).with_user_dictionary(tagged_dictionary(
+            &[],
+            &[("えお", Upos::PROPN)],
+            Some(0.4),
+        ));
+        assert_eq!(pos_checked(&alone, "あいうえお"), owned(&[("あいうえお", Upos::NOUN)]));
+        // `あいう` flips 1 of 3 and is accepted; its forced end boundary
+        // makes the model emit `えお` exactly as registered, so the tag
+        // applies even though the occurrence of `えお` itself was rejected.
+        let both = two_stage_segmenter(JOIN_ALL).with_user_dictionary(tagged_dictionary(
+            &["あいう"],
+            &[("えお", Upos::PROPN)],
+            Some(0.4),
+        ));
+        assert_eq!(
+            pos_checked(&both, "あいうえお"),
+            owned(&[("あいう", Upos::NOUN), ("えお", Upos::PROPN)])
+        );
+    }
+
+    #[test]
+    fn test_user_dictionary_tags_change_only_the_tagged_tokens() {
+        // Differential on the bundled model: a tagged dictionary and the
+        // same words untagged must give identical tokens, and identical
+        // tags on every token that is not a tagged word. The nicknames in
+        // `bocchan.txt` get several different tags from the tagger
+        // depending on the context, so the override is visible.
+        // `無鉄砲` stays untagged on both sides.
+        let tagged_words =
+            [("山嵐", Upos::PROPN), ("赤シャツ", Upos::PROPN), ("うらなり", Upos::PROPN)];
+        let words: Vec<&str> = tagged_words.iter().map(|&(word, _)| word).collect();
+        let all_words: Vec<&str> = words.iter().copied().chain(["無鉄砲"]).collect();
+        let untagged = Segmenter::with_two_stage_learner(
+            Language::Japanese,
+            load_two_stage("japanese_pos.model"),
+        )
+        .with_user_dictionary(dictionary(&all_words, None));
+        let tagged = Segmenter::with_two_stage_learner(
+            Language::Japanese,
+            load_two_stage("japanese_pos.model"),
+        )
+        .with_user_dictionary(tagged_dictionary(&["無鉄砲"], &tagged_words, None));
+
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
+        let text = std::fs::read_to_string(&path).unwrap();
+        let hits = text.lines().filter(|line| words.iter().any(|word| line.contains(word)));
+        let sentences: Vec<&str> =
+            hits.take(80).chain(text.lines().take(100)).chain(STRESS_SENTENCES).collect();
+        let (mut overridden, mut changed) = (0usize, 0usize);
+        for sentence in sentences.iter().filter(|s| !s.trim().is_empty()) {
+            assert_eq!(tagged.segment(sentence), untagged.segment(sentence), "{sentence:?}");
+            let want = pos_checked(&untagged, sentence);
+            let got = pos_checked(&tagged, sentence);
+            assert_eq!(got.len(), want.len(), "{sentence:?}");
+            for ((word, got_tag), (want_word, want_tag)) in got.iter().zip(&want) {
+                assert_eq!(word, want_word, "{sentence:?}");
+                match tagged_words.iter().find(|&&(w, _)| w == word) {
+                    Some(&(_, pos)) => {
+                        assert_eq!(*got_tag, pos, "{word:?} in {sentence:?}");
+                        overridden += 1;
+                        changed += usize::from(want_tag != got_tag);
+                    }
+                    None => assert_eq!(got_tag, want_tag, "{word:?} in {sentence:?}"),
+                }
+            }
+        }
+        // Not vacuous: tagged words occurred, and the tagger had chosen a
+        // different tag for some of them.
+        assert!(overridden > 50, "only {overridden} tagged tokens");
+        assert!(changed > 0, "the tagger already agreed on every tagged token");
+    }
+
+    #[test]
+    fn test_user_dictionary_tags_with_bundled_models() {
+        let japanese = |dictionary: UserDictionary| {
+            Segmenter::with_two_stage_learner(
+                Language::Japanese,
+                load_two_stage("japanese_pos.model"),
+            )
+            .with_user_dictionary(dictionary)
+        };
+        // Baselines: `ポケモン` is lexicon-fixed to NOUN, and `チャットGPT`
+        // is unknown to the lexicon and gets NOUN from the full argmax.
+        let untagged = japanese(dictionary(&["ポケモン", "チャットGPT"], None));
+        assert_eq!(
+            pos_checked(&untagged, "ポケモンを集める"),
+            owned(&[("ポケモン", Upos::NOUN), ("を", Upos::ADP), ("集める", Upos::VERB)])
+        );
+        assert_eq!(
+            pos_checked(&untagged, "チャットGPTに聞く"),
+            owned(&[("チャットGPT", Upos::NOUN), ("に", Upos::ADP), ("聞く", Upos::VERB)])
+        );
+        let tagged = japanese(tagged_dictionary(
+            &[],
+            &[("ポケモン", Upos::PROPN), ("チャットGPT", Upos::PROPN)],
+            None,
+        ));
+        assert_eq!(
+            pos_checked(&tagged, "ポケモンを集める"),
+            owned(&[("ポケモン", Upos::PROPN), ("を", Upos::ADP), ("集める", Upos::VERB)])
+        );
+        assert_eq!(
+            pos_checked(&tagged, "チャットGPTに聞く"),
+            owned(&[("チャットGPT", Upos::PROPN), ("に", Upos::ADP), ("聞く", Upos::VERB)])
+        );
+
+        // A word containing a space is looked up whole. The tagger already
+        // says PROPN for `New York`, so a different tag shows the override.
+        let english = |dictionary: UserDictionary| {
+            Segmenter::with_two_stage_learner(
+                Language::English,
+                load_two_stage("english_pos.model"),
+            )
+            .with_user_dictionary(dictionary)
+        };
+        let untagged = english(dictionary(&["New York"], None));
+        let tagged = english(tagged_dictionary(&[], &[("New York", Upos::NOUN)], None));
+        let want = pos_checked(&untagged, "I live in New York.");
+        let got = pos_checked(&tagged, "I live in New York.");
+        assert!(want.contains(&("New York".to_string(), Upos::PROPN)), "{want:?}");
+        let expected: Vec<(String, Upos)> = want
+            .into_iter()
+            .map(|(word, pos)| {
+                let pos = if word == "New York" { Upos::NOUN } else { pos };
+                (word, pos)
+            })
+            .collect();
+        assert_eq!(got, expected);
+    }
+
+    #[test]
+    fn test_user_dictionary_tags_on_segmentation_only_model() {
+        // `segment` ignores tags: a tagged and an untagged dictionary give
+        // the same tokens, and `segment_with_pos` still needs a two-stage
+        // model.
+        let untagged = Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"))
+            .with_user_dictionary(dictionary(&["雪だるま"], None));
+        let tagged = Segmenter::with_learner(Language::Japanese, load_adaboost("japanese.model"))
+            .with_user_dictionary(tagged_dictionary(&[], &[("雪だるま", Upos::PROPN)], None));
+        for sentence in
+            ["雪だるまを作る", "これはテストです。"].iter().chain(STRESS_SENTENCES.iter())
+        {
+            assert_eq!(segment_checked(&tagged, sentence), untagged.segment(sentence));
+        }
+        assert!(matches!(
+            tagged.segment_with_pos("雪だるまを作る"),
+            Err(LitseaError::PosLearnerNotSet)
+        ));
     }
 
     #[test]

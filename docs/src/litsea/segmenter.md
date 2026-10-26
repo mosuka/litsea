@@ -233,7 +233,9 @@ pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>>
 
 Segments a sentence with the stage-1 boundary classifier (exactly as
 `segment`) and tags each word with its UPOS tag through the two-stage
-tagging path. An empty sentence yields `Ok` with an empty vector.
+tagging path. A word that a user dictionary registered with a tag gets
+that tag instead (see [Tags](#tags)). An empty sentence yields `Ok` with an
+empty vector.
 
 **Errors** with `LitseaError::PosLearnerNotSet` if no two-stage learner is
 set — build the segmenter with `with_two_stage_learner()` first.
@@ -274,8 +276,10 @@ segmenter emits as single tokens whenever they occur in the input. It is
 a constraint on the boundary decisions, not a change to the model: the
 model still scores every position, and the dictionary overrides the
 decisions at the edges of an occurrence (forced boundaries) and inside it
-(forced non-boundaries). Output examples in this section come from
-`japanese.model`.
+(forced non-boundaries). A word may also carry a UPOS tag that
+`segment_with_pos` gives its tokens (issue #264, see [Tags](#tags)).
+Output examples in this section come from `japanese.model`, and from
+`japanese_pos.model` for the tags.
 
 ### `UserDictionary`
 
@@ -289,7 +293,9 @@ impl UserDictionary {
         I: IntoIterator<Item = S>,
         S: AsRef<str>
     pub fn add(&mut self, word: &str) -> bool
+    pub fn add_with_pos(&mut self, word: &str, pos: Upos) -> bool
     pub fn contains(&self, word: &str) -> bool
+    pub fn pos(&self, word: &str) -> Option<Upos>
     pub fn len(&self) -> usize
     pub fn is_empty(&self) -> bool
     pub fn set_gate(&mut self, gate: Option<f64>) -> Result<()>
@@ -302,8 +308,9 @@ exactly as given — no case folding, no width or Unicode normalization. A
 word may contain a space; for languages whose models emit spaces as
 tokens (Korean, English) such a word becomes one token containing the
 space. Words of one character have no inside to keep together, so `add`
-drops them and returns `false` (it also returns `false` for a duplicate).
-The type is re-exported as `litsea::UserDictionary`.
+and `add_with_pos` drop them (with their tag) and return `false`; both
+also return `false` for a word that is already registered. The type is
+re-exported as `litsea::UserDictionary`.
 
 ### Semantics
 
@@ -323,9 +330,10 @@ The type is re-exported as `litsea::UserDictionary`.
   registered as a word breaks every other word it occurs in. Register
   whole words, and consider the gate below for dictionaries that contain
   short entries.
-- The dictionary carries no part-of-speech information. In
-  `segment_with_pos`, a forced word unknown to the lexicon is tagged by
-  the stage-2 tagger's full argmax.
+- A word registered without a tag is tagged by `segment_with_pos` like any
+  other word: through the lexicon if it knows the surface, otherwise by
+  the stage-2 tagger's full argmax. A tag registered with `add_with_pos`
+  overrides both (see [Tags](#tags)).
 - An empty dictionary, or one whose words never occur, leaves the output
   byte-identical to segmentation without a dictionary.
 
@@ -350,6 +358,53 @@ On tag-dependent models the gate costs one extra sequential scoring pass
 for sentences that contain a candidate — the unconstrained decisions it
 compares against are computed without the words an earlier position may
 force, a documented approximation; on pointwise models it is free.
+
+### Tags
+
+`add_with_pos(word, pos)` registers a word exactly as `add` does — it
+constrains segmentation the same way — and attaches a UPOS tag to it
+(issue #264). Calling it for a word that is already registered sets the
+tag, replacing any earlier one; `add` never removes a tag. `pos(word)`
+returns the registered tag, or `None` for a word that is unregistered or
+untagged.
+
+In `segment_with_pos`, every token whose surface is a tagged word gets the
+registered tag, ahead of both the lexicon's fixed tags and the stage-2
+tagger; every other token keeps the tagger's tag. The stage-2 tagger
+scores each word from its own surface and the neighboring characters,
+never from the tags of other words, so a registered tag changes no other
+token's tag.
+
+- Without a gate, the tagged tokens are exactly the occurrences the
+  dictionary forces.
+- With a gate, an occurrence the gate rejects is still tagged if the model
+  emits it exactly as registered anyway — for example because the forced
+  boundary of an accepted neighboring word completes it. An occurrence
+  that does not come out as a token is not tagged.
+- `segment` and `segment_into` ignore tags, and `segment_with_pos` does no
+  extra work for a dictionary without tags.
+
+```rust
+use std::path::Path;
+
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
+use litsea::upos::Upos;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+let mut dictionary = UserDictionary::new();
+dictionary.add_with_pos("チャットGPT", Upos::PROPN);
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner)
+    .with_user_dictionary(dictionary);
+let tokens = segmenter.segment_with_pos("チャットGPTに聞く")?;
+// [("チャットGPT", Upos::PROPN), ("に", Upos::ADP), ("聞く", Upos::VERB)]
+// Registered without a tag, the word comes out as ("チャットGPT", Upos::NOUN);
+// without the dictionary, as ("チャット", Upos::NOUN), ("GPT", Upos::NOUN).
+```
 
 ### `with_user_dictionary` / `set_user_dictionary` / `user_dictionary`
 

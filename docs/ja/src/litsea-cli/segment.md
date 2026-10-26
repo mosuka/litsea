@@ -21,7 +21,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | `-l`, `--language <LANGUAGE>` | `japanese` | 文字タイプ分類に使用する言語。指定可能な値: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | 品詞推定付き分割を有効にします。[二段構成](../advanced/model-file-format.md#二段構成モデル形式litsea-two-stage-v1)モデル（`train --pos`）が必要です |
 | `--threads <N>` | `1` | バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。`N > 1` では入力行を並列に分割しつつ**入力順で**出力するため、出力はどちらでもバイト単位で同一です（`--pos` の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません |
-| `--user-words <FILE>` | なし | ユーザー辞書（issue #263）。1 行 1 語の UTF-8 ファイル。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。1 文字の語と空行は無視されます |
+| `--user-words <FILE>` | なし | ユーザー辞書（issue #263、#264）。1 行 1 語の UTF-8 ファイルで、語の後ろに TAB と UPOS タグを続けることもできます。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。`--pos` では、タグ付きの語のトークンに登録されたタグを付けます。1 文字の語と空行は無視されます |
 | `--user-words-gate <RATIO>` | なし | `--user-words` の flip ratio による gate（`0.0..=1.0`）。語が覆すモデルの margin の割合が `RATIO` 以下のときだけ出現箇所を適用します（`0` = モデルがすでに同意している場所だけ、`1` = 常に）。`--user-words` が必要です |
 
 ## 入力 / 出力
@@ -131,8 +131,10 @@ litsea segment --threads 8 -l japanese ./models/japanese.model < corpus.txt > se
 ## ユーザー辞書（`--user-words`）
 
 ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
-ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除き、空行は読み飛ばし、
-コメント構文はありません。1 文字の語は無視されます。
+ファイルは 1 行 1 語の UTF-8 で、行末の改行だけを取り除くので語は書かれたとおりに
+照合され、空行は読み飛ばし、コメント構文はありません。1 文字の語は無視されます。
+語の後ろに TAB と `--pos` 用の UPOS タグを続けることもできます
+（[タグ付きの語](#タグ付きの語)を参照）。
 
 ```sh
 printf '雪だるま\n新幹線\n' > words.txt
@@ -146,7 +148,7 @@ printf '雪だるまを作る\n新幹線で帰る\n' \
 ```
 
 辞書なしでは `japanese.model` は `雪 だる ま を 作る` と `新 幹線 で 帰る` を
-出力します。辞書は `--pos` でも使え（強制した語は他の語と同じようにタグ付け
+出力します。辞書は `--pos` でも使え（タグなしの語は他の語と同じようにタグ付け
 されます。この例では `雪だるま/NOUN を/ADP 作る/VERB`）、`--threads` でも
 出力は逐次実行とバイト単位で同一です。
 
@@ -157,6 +159,48 @@ printf '雪だるまを作る\n新幹線で帰る\n' \
 `--user-words-gate 0` では上の例はモデル自身の `雪 だる ま を 作る` になります。
 そこではモデルがこの語に同意していないためです。意味論の全体は
 [Segmenter](../litsea/segmenter.md)（「ユーザー辞書」）を参照してください。
+
+### タグ付きの語
+
+行には、TAB の後ろに UPOS タグを書けます（`語<TAB>UPOS`、issue #264）。
+`--pos` では、タグ付きの語のトークンすべてに、タガーのタグの代わりに登録された
+タグを付けます。モデルの語彙表がタグを固定していても、タガーが決めるはずでも
+同じです。それ以外のトークンはタガーのタグのままです。`--pos` なしでは、タグは
+何も変えません。
+
+```sh
+printf 'チャットGPT\tPROPN\nポケモン\tPROPN\n雪だるま\n' > words.txt
+printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作る\n' \
+  | litsea segment --pos --user-words words.txt -l japanese ./models/japanese_pos.model
+```
+
+```text
+チャットGPT/PROPN に/ADP 聞く/VERB
+ポケモン/PROPN を/ADP 集める/VERB
+雪だるま/NOUN を/ADP 作る/VERB
+```
+
+タグなしで登録すると、`チャットGPT` と `ポケモン` は `NOUN` になります。
+`--user-words-gate` を使う場合、gate が却下した出現箇所でも、モデルが結局登録
+どおりに切り出せばタグが付きます。
+
+行は最初の TAB で分けます。タグは前後の空白を取り除いてから（末尾の CR や空白は
+受け付けます）解釈し、大文字で書いた 17 個の UPOS タグのどれかでなければなりません。
+語は今までどおり書かれたとおりに照合します。同じ語を複数の行に書けますが、異なる
+タグを付けるとエラーになり、タグなしで繰り返した行はタグを保ちます。ファイルは
+`--pos` の有無にかかわらず検査し、エラーには行番号が付きます:
+
+| 行 | エラー |
+| --- | --- |
+| `<TAB>NOUN` | TAB の前の語が空 |
+| `word<TAB>NOUN<TAB>X` | 列が多すぎる |
+| `word<TAB>` | UPOS タグが空 |
+| `word<TAB>Noun` | 未知の UPOS タグ（それ以外は無視される 1 文字の語でも検査します） |
+| `word<TAB>PROPN` の後の `word<TAB>NOUN` | 同じ語に 2 つの行で異なるタグ |
+
+```text
+Error: user dictionary words.txt, line 2: unknown UPOS tag "Noun" (expected one of ADJ, ADP, ADV, AUX, CCONJ, DET, INTJ, NOUN, NUM, PART, PRON, PROPN, PUNCT, SCONJ, SYM, VERB, X)
+```
 
 ## 注意事項
 
