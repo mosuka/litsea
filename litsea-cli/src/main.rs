@@ -422,6 +422,30 @@ fn flush_output<W: Write>(writer: &mut W) -> io::Result<()> {
     }
 }
 
+/// Reads the lines of a text input, as [`BufRead::lines`] does, but drops a
+/// byte order mark (U+FEFF) from the start of the first line (issues #275,
+/// #281).
+///
+/// Editors that save "UTF-8 with BOM" put it there, where it would become
+/// part of the first word. Dropping it before anything else lets a
+/// BOM-only first line count as empty. A U+FEFF anywhere else, including a
+/// second one at the start, is kept.
+///
+/// # Arguments
+/// * `reader` - The input: stdin, the gold corpus or the user dictionary.
+///
+/// # Returns
+/// The lines without their terminators, or the read error of a line.
+fn lines_without_bom<R: BufRead>(reader: R) -> impl Iterator<Item = io::Result<String>> {
+    reader.lines().enumerate().map(|(index, line)| {
+        let mut line = line?;
+        if index == 0 && line.starts_with('\u{FEFF}') {
+            line.drain(..'\u{FEFF}'.len_utf8());
+        }
+        Ok(line)
+    })
+}
+
 /// Lines read per parallel chunk (issue #185): large enough to amortize the
 /// per-chunk thread spawns and per-worker state reuse, small enough to
 /// bound memory on unbounded streams.
@@ -436,7 +460,8 @@ const PARALLEL_CHUNK_LINES: usize = 4096;
 /// per-worker output buffer, using its own entry of `states` (worker-local
 /// scratch, reused across chunks). The main thread then writes the worker
 /// buffers in slice order, so the overall output is byte-identical to the
-/// sequential loop: same trim and empty-line-skip behavior, same order. A
+/// sequential loop: same byte order mark, trim and empty-line-skip
+/// behavior (lines come from [`lines_without_bom`]), same order. A
 /// downstream broken pipe terminates successfully, matching
 /// [`write_output_line`].
 ///
@@ -467,7 +492,7 @@ where
     W: Write,
 {
     debug_assert_eq!(states.len(), threads);
-    let mut lines = reader.lines();
+    let mut lines = lines_without_bom(reader);
     let mut chunk: Vec<String> = Vec::with_capacity(PARALLEL_CHUNK_LINES);
     loop {
         chunk.clear();
@@ -518,7 +543,8 @@ where
 /// `file://` path, or an `http(s)://` URL with the `remote_model` feature):
 /// with `--pos`, a two-stage POS model (issue #147); otherwise an AdaBoost
 /// model (word segmentation only). The segmented sentences are written to
-/// standard output.
+/// standard output. A byte order mark at the start of the input is ignored
+/// (issue #281).
 ///
 /// A downstream consumer closing stdout early (broken pipe) terminates the
 /// command successfully instead of reporting an error.
@@ -570,7 +596,7 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
             return flush_output(&mut writer).map_err(Into::into);
         }
 
-        for line in stdin.lock().lines() {
+        for line in lines_without_bom(stdin.lock()) {
             let line = line?;
             let line = line.trim();
             if line.is_empty() {
@@ -621,7 +647,7 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
         // `segment(line).join(" ")` — the ranges are the same tokens.
         let mut buf = SegmentBuffer::new();
         let mut out = String::new();
-        for line in stdin.lock().lines() {
+        for line in lines_without_bom(stdin.lock()) {
             let line = line?;
             let line = line.trim();
             if line.is_empty() {
@@ -651,6 +677,8 @@ async fn segment(args: SegmentArgs) -> Result<(), Box<dyn Error>> {
 /// from the model URI, parses the gold corpus in the selected format
 /// (space-separated tokens, tab-separated `tsv` tokens, or `word/POS` with
 /// `--pos`), and prints held-out precision/recall/F1 one metric per line.
+/// A byte order mark at the start of the gold corpus is ignored (issue
+/// #281).
 ///
 /// # Arguments
 /// * `args` - The arguments for the evaluate command [`EvaluateArgs`].
@@ -671,8 +699,7 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
         segmenter.set_user_dictionary(dictionary);
 
         let tsv = args.format == "tsv";
-        let gold = reader
-            .lines()
+        let gold = lines_without_bom(reader)
             .collect::<Result<Vec<String>, _>>()?
             .into_iter()
             .map(move |line| evaluation::parse_gold_pos_line(&line, tsv));
@@ -694,8 +721,7 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
         segmenter.set_user_dictionary(dictionary);
 
         let tsv = args.format == "tsv";
-        let gold = reader
-            .lines()
+        let gold = lines_without_bom(reader)
             .collect::<Result<Vec<String>, _>>()?
             .into_iter()
             .map(|line| evaluation::parse_gold_line(&line, tsv));
@@ -759,14 +785,8 @@ fn load_user_dictionary(
     // The tag and line number of each tagged word, to report a word that
     // is tagged differently on two lines.
     let mut tagged: HashMap<String, (Upos, usize)> = HashMap::new();
-    for (index, line) in io::BufReader::new(file).lines().enumerate() {
-        let mut line = line?;
-        // Editors that save "UTF-8 with BOM" put U+FEFF before the first
-        // word, where it would keep that word from ever matching. Dropping
-        // it first lets a BOM-only line count as empty.
-        if index == 0 && line.starts_with('\u{FEFF}') {
-            line.drain(..'\u{FEFF}'.len_utf8());
-        }
+    for (index, line) in lines_without_bom(io::BufReader::new(file)).enumerate() {
+        let line = line?;
         if line.is_empty() {
             continue;
         }

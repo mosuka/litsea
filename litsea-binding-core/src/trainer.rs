@@ -463,6 +463,45 @@ mod tests {
         );
     }
 
+    /// Pins issue #281 at the layer the bindings call: a byte order mark at
+    /// the start of the corpus file is ignored by both extractors.
+    #[test]
+    fn test_extraction_ignores_a_leading_bom() {
+        let dir = TempDir::new().unwrap();
+        let extractor = CoreExtractor::new(Language::Japanese);
+        let with_bom = |corpus: &std::path::Path| {
+            let path = dir.path().join("with_bom.txt");
+            let content = fs::read_to_string(corpus).unwrap();
+            fs::write(&path, format!("\u{FEFF}{content}")).unwrap();
+            path
+        };
+
+        let corpus = write_corpus(&dir);
+        let (plain, bom) = (dir.path().join("plain.txt"), dir.path().join("bom.txt"));
+        extractor.extract(&corpus, &plain, CorpusFormat::PlainText, false).unwrap();
+        extractor
+            .extract(&with_bom(&corpus), &bom, CorpusFormat::PlainText, false)
+            .unwrap();
+        assert_eq!(fs::read(&plain).unwrap(), fs::read(&bom).unwrap(), "features changed");
+
+        let corpus = write_pos_corpus(&dir);
+        let set = TwoStageFeatureSet::default();
+        let (plain, bom) = (dir.path().join("plain"), dir.path().join("bom"));
+        extractor
+            .extract_two_stage(&corpus, &plain, set, CorpusFormat::PlainText)
+            .unwrap();
+        extractor
+            .extract_two_stage(&with_bom(&corpus), &bom, set, CorpusFormat::PlainText)
+            .unwrap();
+        for suffix in ["stage1", "stage2", "lexicon"] {
+            assert_eq!(
+                fs::read(dir.path().join(format!("plain.{suffix}"))).unwrap(),
+                fs::read(dir.path().join(format!("bom.{suffix}"))).unwrap(),
+                "{suffix} changed"
+            );
+        }
+    }
+
     #[test]
     fn test_cancelled_training_still_writes_a_model() {
         let dir = TempDir::new().unwrap();

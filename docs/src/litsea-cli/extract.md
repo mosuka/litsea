@@ -34,6 +34,9 @@ Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
+In every corpus format, including the TSV and POS formats below, a byte
+order mark at the start of the file is ignored (issue #281).
+
 ### TSV Corpus Format (`--format tsv`)
 
 With `--format tsv`, tokens are separated by tab characters and a token may

@@ -42,6 +42,10 @@ use crate::word_features::write_word_features;
 /// files for [`extract_two_stage`](Self::extract_two_stage)). The internal
 /// `Segmenter` is used only as the feature generator; its model is never
 /// used to segment.
+///
+/// A byte order mark (U+FEFF) at the start of the corpus is ignored, by
+/// the path-based methods and their in-memory `*_to_writer` twins alike
+/// (issue #281); anywhere else it is read as text.
 #[derive(Debug)]
 pub struct Extractor {
     segmenter: Segmenter,
@@ -101,6 +105,33 @@ struct TwoStageLineState {
     stage1_rows: Vec<String>,
     /// Stage-2 word features for the current word.
     stage2_feats: Vec<String>,
+}
+
+/// The byte order mark (U+FEFF) that editors saving "UTF-8 with BOM" put
+/// at the start of a file.
+const BOM: char = '\u{FEFF}';
+
+/// Drops a byte order mark from the start of an in-memory corpus (issue
+/// #281), as the path-based methods do for a corpus file, so the
+/// `*_to_writer` methods stay byte-identical to them. A U+FEFF anywhere
+/// else, including a second one at the start, is kept.
+fn strip_bom(corpus: &str) -> &str {
+    corpus.strip_prefix(BOM).unwrap_or(corpus)
+}
+
+/// Returns the lines of a corpus file, as [`BufRead::lines`] does, with a
+/// byte order mark dropped from the start of the first line (issue #281),
+/// where it would otherwise become part of the first word. A U+FEFF
+/// anywhere else, including a second one at the start, is kept.
+#[cfg(not(target_arch = "wasm32"))]
+fn lines_without_bom<R: BufRead>(reader: R) -> impl Iterator<Item = io::Result<String>> {
+    reader.lines().enumerate().map(|(index, line)| {
+        let mut line = line?;
+        if index == 0 && line.starts_with(BOM) {
+            line.drain(..BOM.len_utf8());
+        }
+        Ok(line)
+    })
 }
 
 impl Extractor {
@@ -539,7 +570,7 @@ impl Extractor {
         let mut lexicon = LexiconCounts::default();
 
         let mut state = TwoStageLineState::default();
-        for line in corpus.lines() {
+        for line in lines_without_bom(corpus) {
             let line = line?;
             self.extract_two_stage_line(
                 line.trim(),
@@ -595,7 +626,7 @@ impl Extractor {
         let mut lexicon = LexiconCounts::default();
         let mut state = TwoStageLineState::default();
 
-        for line in corpus.lines() {
+        for line in strip_bom(corpus).lines() {
             self.extract_two_stage_line(
                 line.trim(),
                 stage1_out,
@@ -730,7 +761,7 @@ impl Extractor {
         let mut features = io::BufWriter::new(features_file);
 
         let mut rows: Vec<String> = Vec::new();
-        for line in corpus.lines() {
+        for line in lines_without_bom(corpus) {
             let line = line?;
             Self::write_feature_line(line.trim(), &mut features, &mut rows, &mut process_line)?;
         }
@@ -766,7 +797,7 @@ impl Extractor {
         P: FnMut(&str, &mut Vec<String>),
     {
         let mut rows: Vec<String> = Vec::new();
-        for line in corpus.lines() {
+        for line in strip_bom(corpus).lines() {
             Self::write_feature_line(line.trim(), writer, &mut rows, &mut process_line)?;
         }
 
@@ -1174,6 +1205,157 @@ mod tests {
             assert_eq!(a, b, "{suffix} diverged between the space and TSV variants");
         }
 
+        Ok(())
+    }
+
+    /// The six path-based extraction methods, each run together with its
+    /// in-memory twin.
+    #[derive(Clone, Copy, Debug)]
+    enum Method {
+        Plain,
+        Tsv,
+        TagFree,
+        TsvTagFree,
+        TwoStage,
+        TwoStageTsv,
+    }
+
+    impl Method {
+        const ALL: [Method; 6] = [
+            Method::Plain,
+            Method::Tsv,
+            Method::TagFree,
+            Method::TsvTagFree,
+            Method::TwoStage,
+            Method::TwoStageTsv,
+        ];
+
+        /// A two-line corpus in the method's format.
+        fn corpus(self) -> &'static str {
+            match self {
+                Method::Plain | Method::TagFree => "これ は テスト です 。\n雪 だるま を 作る\n",
+                Method::Tsv | Method::TsvTagFree => {
+                    "これ\tは\tテスト\tです\t。\n雪\tだるま\tを\t作る\n"
+                }
+                Method::TwoStage => {
+                    "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT\n\
+                     雪/NOUN だるま/NOUN を/ADP 作る/VERB\n"
+                }
+                Method::TwoStageTsv => {
+                    "これ/PRON\tは/ADP\tテスト/NOUN\tです/AUX\t。/PUNCT\n\
+                     雪/NOUN\tだるま/NOUN\tを/ADP\t作る/VERB\n"
+                }
+            }
+        }
+
+        /// Runs the path-based method on `corpus` written to a file, and
+        /// its in-memory twin on the same string.
+        ///
+        /// # Returns
+        /// The path-based output and the in-memory output. The three
+        /// outputs of a two-stage method are concatenated in the order
+        /// stage 1, stage 2, lexicon.
+        fn run(self, corpus: &str) -> Result<(String, String)> {
+            let extractor = Extractor::default();
+            let dir = tempfile::tempdir()?;
+            let corpus_path = dir.path().join("corpus.txt");
+            std::fs::write(&corpus_path, corpus)?;
+            let out = dir.path().join("out");
+            let mut memory = Vec::new();
+            match self {
+                Method::Plain => {
+                    extractor.extract(&corpus_path, &out)?;
+                    extractor.extract_to_writer(corpus, &mut memory)?;
+                }
+                Method::Tsv => {
+                    extractor.extract_tsv(&corpus_path, &out)?;
+                    extractor.extract_tsv_to_writer(corpus, &mut memory)?;
+                }
+                Method::TagFree => {
+                    extractor.extract_tag_free(&corpus_path, &out)?;
+                    extractor.extract_tag_free_to_writer(corpus, &mut memory)?;
+                }
+                Method::TsvTagFree => {
+                    extractor.extract_tsv_tag_free(&corpus_path, &out)?;
+                    extractor.extract_tsv_tag_free_to_writer(corpus, &mut memory)?;
+                }
+                Method::TwoStage | Method::TwoStageTsv => {
+                    let set = TwoStageFeatureSet::Fast;
+                    let (mut stage1, mut stage2, mut lexicon) =
+                        (Vec::new(), Vec::new(), Vec::new());
+                    if matches!(self, Method::TwoStageTsv) {
+                        extractor.extract_two_stage_tsv(&corpus_path, &out, set)?;
+                        extractor.extract_two_stage_tsv_to_writers(
+                            corpus,
+                            &mut stage1,
+                            &mut stage2,
+                            &mut lexicon,
+                            set,
+                        )?;
+                    } else {
+                        extractor.extract_two_stage(&corpus_path, &out, set)?;
+                        extractor.extract_two_stage_to_writers(
+                            corpus,
+                            &mut stage1,
+                            &mut stage2,
+                            &mut lexicon,
+                            set,
+                        )?;
+                    }
+                    memory = [stage1, stage2, lexicon].concat();
+                    let mut path = String::new();
+                    for suffix in ["stage1", "stage2", "lexicon"] {
+                        path.push_str(&std::fs::read_to_string(
+                            dir.path().join(format!("out.{suffix}")),
+                        )?);
+                    }
+                    return Ok((path, String::from_utf8(memory).expect("UTF-8 output")));
+                }
+            }
+            Ok((std::fs::read_to_string(&out)?, String::from_utf8(memory).expect("UTF-8 output")))
+        }
+    }
+
+    /// Pins issue #281: a byte order mark at the start of the corpus is
+    /// ignored by every path-based method and its in-memory twin, so the
+    /// two stay byte-identical. A BOM-only first line is skipped like an
+    /// empty line.
+    #[test]
+    fn test_extract_ignores_leading_bom() -> Result<()> {
+        for method in Method::ALL {
+            let corpus = method.corpus();
+            let (path, memory) = method.run(corpus)?;
+            assert!(!path.is_empty(), "{method:?}: no output");
+            assert_eq!(memory, path, "{method:?}: the in-memory twin diverged");
+            let expected = (path.clone(), path);
+            assert_eq!(method.run(&format!("{BOM}{corpus}"))?, expected, "{method:?}: BOM");
+            assert_eq!(
+                method.run(&format!("{BOM}\n{corpus}"))?,
+                expected,
+                "{method:?}: BOM-only first line"
+            );
+        }
+        Ok(())
+    }
+
+    /// Pins issue #281: only one U+FEFF at the very start of the corpus is
+    /// dropped. One at the start of a later line, or a second one at the
+    /// start, is read as text, by the path-based method and its in-memory
+    /// twin alike.
+    #[test]
+    fn test_extract_keeps_other_bom() -> Result<()> {
+        for method in Method::ALL {
+            let corpus = method.corpus();
+            let (first, rest) = corpus.split_once('\n').expect("two lines");
+            for (case, input) in [
+                ("second line", format!("{first}\n{BOM}{rest}")),
+                ("second BOM", format!("{BOM}{BOM}{corpus}")),
+            ] {
+                let (path, memory) = method.run(&input)?;
+                assert!(path.contains(BOM), "{method:?}, {case}: the U+FEFF was dropped");
+                assert_eq!(memory, path, "{method:?}, {case}: the in-memory twin diverged");
+            }
+        }
         Ok(())
     }
 }
