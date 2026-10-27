@@ -99,6 +99,19 @@
   bias line last, and every bundled model loads unchanged. Migration: put
   the bias line last in a hand-written model file.
 
+### Fixed
+
+- A UTF-8 byte order mark (U+FEFF) at the start of the standard input of
+  `litsea segment`, the gold corpus of `litsea evaluate` or the corpus of
+  `litsea extract` is ignored (#281). It was read as text: `segment`
+  printed it as a token of its own, a one-sentence gold that
+  `japanese.model` reproduces exactly scored Word F1 72.73% instead of
+  100.00%, and `extract` wrote it into the features and the lexicon. In
+  the library, every `Extractor` method ignores it: the path-based ones,
+  which the bindings' extractors call, and their in-memory `*_to_writer`
+  twins, which stay byte-identical to them. A U+FEFF anywhere else is
+  still read as text.
+
 ### Documentation
 
 - Model file sizes in the docs, the binding READMEs and code comments are

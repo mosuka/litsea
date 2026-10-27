@@ -2,6 +2,8 @@
 
 The `Extractor` struct extracts features from a corpus file for model training.
 
+Every method, path-based or [in-memory](#in-memory-extraction), ignores a byte order mark (U+FEFF) at the start of the corpus; anywhere else it is read as text (issue #281).
+
 ## Definition
 
 ```rust
@@ -161,7 +163,7 @@ extractor.extract_two_stage(
 
 ## In-memory extraction
 
-Every `extract*` method has a `*_to_writer` twin that takes the corpus as a string and writes the feature rows to any `Write`, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method.
+Every `extract*` method has a `*_to_writer` twin that takes the corpus as a string and writes the feature rows to any `Write`, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method, and a byte order mark at the start of the string is ignored the same way.
 
 | Path-based | In-memory |
 |------------|-----------|

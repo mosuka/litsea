@@ -26,7 +26,8 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 
 ## Input / Output
 
-- **Input**: Reads from stdin, one sentence per line. Empty lines are skipped.
+- **Input**: Reads from stdin, one sentence per line. A byte order mark at
+  the start of the input is ignored (issue #281). Empty lines are skipped.
 - **Output**: Writes to stdout, space-separated tokens, one line per input line.
 - **Pipelines**: A downstream consumer closing the pipe early (e.g.
   `litsea segment model | head -1`) terminates the command successfully

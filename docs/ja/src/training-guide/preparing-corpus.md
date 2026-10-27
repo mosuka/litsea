@@ -37,6 +37,8 @@ conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
+ファイル先頭のバイトオーダーマーク（BOM。エディタで「UTF-8 (BOM 付き)」として保存すると付く）は無視します。この形式だけでなく、以下の TSV 形式や品詞付きの形式でも同じです（issue #281）。
+
 ### CoNLL-U から単語分割用コーパスに変換
 
 `scripts/corpus_udtreebank.sh` を使用して、CoNLL-U ファイルからスペース区切りの単語を抽出します:

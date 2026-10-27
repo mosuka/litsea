@@ -37,6 +37,8 @@ For word segmentation (AdaBoost), the corpus must be a plain text file with:
 Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 ```
 
+A byte order mark at the start of the file, which some editors write when saving as "UTF-8 with BOM", is ignored, in this format and in the TSV and POS formats below (issue #281).
+
 ### Convert CoNLL-U to Word Segmentation Corpus
 
 Use `scripts/corpus_udtreebank.sh` to convert a CoNLL-U file to corpus format:

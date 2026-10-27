@@ -7,7 +7,8 @@ quality on text the model has never seen.
 A **gold corpus** is a text file containing the correct answers: one
 sentence per line, already segmented into the correct tokens by human
 annotation (the same file formats used for training corpora — space- or
-tab-separated tokens, or `word/POS` with `--pos`). "Gold" refers to the
+tab-separated tokens, or `word/POS` with `--pos`). A byte order mark at
+the start of the file is ignored (issue #281). "Gold" refers to the
 gold standard the model's output is judged against. For a meaningful
 **held-out** evaluation it must contain sentences that were *not* used to
 train the model — the bundled files in `resources/eval/` are the UD GSD

@@ -163,6 +163,53 @@ fn test_segment_pos_rejects_joint_model() {
     );
 }
 
+/// Pins issue #281: a byte order mark at the start of stdin is ignored on
+/// every read path (plain and `--pos`, single-threaded and `--threads`),
+/// and a BOM-only first line is skipped like an empty line. A U+FEFF
+/// anywhere else, including a second one at the start, is read as text.
+#[test]
+fn test_segment_bom() {
+    let model_owned = model_path("japanese.model");
+    let pos_model_owned = model_path("japanese_pos.model");
+    // Two lines, so that --threads 2 hands one to each worker.
+    let input = "雪だるまを作る\n新幹線で帰る\n";
+    for (pos, model) in [(false, &model_owned), (true, &pos_model_owned)] {
+        for threads in ["1", "2"] {
+            let mut args = vec!["segment", "--threads", threads, "-l", "japanese"];
+            if pos {
+                args.push("--pos");
+            }
+            args.push(model.to_str().unwrap());
+            let segment = |input: &str| {
+                let output = run_litsea(&args, Some(input));
+                assert!(
+                    output.status.success(),
+                    "stderr: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                String::from_utf8(output.stdout).unwrap()
+            };
+            let case = format!("--pos {pos}, --threads {threads}");
+
+            let expected = segment(input);
+            assert_eq!(segment(&format!("\u{FEFF}{input}")), expected, "{case}: BOM");
+            assert_eq!(
+                segment(&format!("\u{FEFF}\n{input}")),
+                expected,
+                "{case}: BOM-only first line"
+            );
+
+            let second_line = segment("雪だるまを作る\n\u{FEFF}新幹線で帰る\n");
+            assert!(
+                second_line.lines().nth(1).is_some_and(|line| line.starts_with('\u{FEFF}')),
+                "{case}: U+FEFF at the start of the second line: {second_line:?}"
+            );
+            let second_bom = segment(&format!("\u{FEFF}\u{FEFF}{input}"));
+            assert!(second_bom.starts_with('\u{FEFF}'), "{case}: second BOM: {second_bom:?}");
+        }
+    }
+}
+
 /// Pins the extract output format: each line is a boundary label (1 / -1)
 /// followed by tab-separated features.
 #[test]
@@ -361,6 +408,51 @@ fn test_extract_pos_tsv_format() {
         lexicon.lines().any(|l| l.starts_with(" \t")),
         "lexicon should record the space surface: {lexicon:?}"
     );
+}
+
+/// Pins issue #281: a byte order mark at the start of the corpus is ignored
+/// in every corpus format, so the output files equal those of the same
+/// corpus without it.
+#[test]
+fn test_extract_bom() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let two_stage: &[&str] = &[".stage1", ".stage2", ".lexicon"];
+    let cases: [(&[&str], &str, &[&str]); 4] = [
+        (&["-l", "japanese"], "これ は テスト です 。\n", &[""]),
+        (&["-l", "korean", "--format", "tsv"], "나는\t \t봄\t.\n", &[""]),
+        (
+            &["--pos", "-l", "japanese"],
+            "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT\n",
+            two_stage,
+        ),
+        (
+            &["--pos", "-l", "korean", "--format", "tsv"],
+            "나는/PRON\t \t봄/NOUN\t./PUNCT\n",
+            two_stage,
+        ),
+    ];
+    for (options, corpus, suffixes) in cases {
+        let extract = |content: &str, name: &str| -> Vec<String> {
+            let corpus_path = dir.path().join(format!("{name}.txt"));
+            std::fs::write(&corpus_path, content).expect("write corpus");
+            let out = dir.path().join(name);
+            let mut args = vec!["extract"];
+            args.extend_from_slice(options);
+            args.push(corpus_path.to_str().unwrap());
+            args.push(out.to_str().unwrap());
+            let output = run_litsea(&args, None);
+            assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+            suffixes
+                .iter()
+                .map(|suffix| {
+                    std::fs::read_to_string(format!("{}{suffix}", out.display())).expect("read")
+                })
+                .collect()
+        };
+        let expected = extract(corpus, "plain");
+        assert!(expected.iter().all(|file| !file.is_empty()), "{options:?}: empty output");
+        assert_eq!(extract(&format!("\u{FEFF}{corpus}"), "bom"), expected, "{options:?}");
+    }
 }
 
 /// Pins `--user-words` (issue #263): a registered word comes out as one
@@ -831,6 +923,63 @@ fn test_evaluate_pos_tsv_format() {
     assert!(stderr.contains("Evaluation Metrics (POS):"), "unexpected output: {stderr}");
     assert!(stderr.contains("Word F1: 100.00%"), "unexpected output: {stderr}");
     assert!(stderr.contains("Tagged Word F1: 100.00%"), "unexpected output: {stderr}");
+}
+
+/// Pins issue #281: a byte order mark at the start of the gold corpus is
+/// ignored in every gold format, while a U+FEFF at the start of a later
+/// line, or a second one at the start, is read as text and changes the
+/// metrics.
+#[test]
+fn test_evaluate_bom() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let gold_owned = dir.path().join("gold.txt");
+    let gold = gold_owned.to_str().unwrap();
+    // The golds of the tests above, which each model reproduces exactly.
+    let cases: [(&[&str], &str, &str); 4] = [
+        (&["-l", "japanese"], "japanese.model", "これ は テスト です 。"),
+        (
+            &["-l", "korean", "--format", "tsv"],
+            "korean.model",
+            "이것은\t \t테스트입니다\t.",
+        ),
+        (
+            &["--pos", "-l", "japanese"],
+            "japanese_pos.model",
+            "これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT",
+        ),
+        (
+            &["--pos", "--format", "tsv", "-l", "english"],
+            "english_pos.model",
+            "I/PRON\t \tdo/AUX\tn't/PART\t \tknow/VERB\t./PUNCT",
+        ),
+    ];
+    for (options, model, sentence) in cases {
+        let model_owned = model_path(model);
+        let mut args = vec!["evaluate"];
+        args.extend_from_slice(options);
+        args.push(model_owned.to_str().unwrap());
+        args.push(gold);
+        let evaluate = |content: String| {
+            std::fs::write(&gold_owned, content).expect("write gold");
+            let output = run_litsea(&args, None);
+            assert!(output.status.success(), "stderr: {}", String::from_utf8_lossy(&output.stderr));
+            String::from_utf8(output.stderr).unwrap()
+        };
+
+        let expected = evaluate(format!("{sentence}\n{sentence}\n"));
+        assert!(expected.contains("  Word F1: 100.00%"), "{model}: {expected}");
+        assert_eq!(evaluate(format!("\u{FEFF}{sentence}\n{sentence}\n")), expected, "{model}");
+        assert_ne!(
+            evaluate(format!("{sentence}\n\u{FEFF}{sentence}\n")),
+            expected,
+            "{model}: U+FEFF at the start of the second line"
+        );
+        assert_ne!(
+            evaluate(format!("\u{FEFF}\u{FEFF}{sentence}\n{sentence}\n")),
+            expected,
+            "{model}: second BOM"
+        );
+    }
 }
 
 /// Smoke-tests both train modes end to end: metrics are reported on stderr
