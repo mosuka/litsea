@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ef6fbe4a.js";
+            window.path_to_searchindex_js = "../searchindex-11ac3800.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -213,7 +213,8 @@
 </div>
 <h2 id="input--output"><a class="header" href="#input--output">Input / Output</a></h2>
 <ul>
-<li><strong>Input</strong>: Reads from stdin, one sentence per line. Empty lines are skipped.</li>
+<li><strong>Input</strong>: Reads from stdin, one sentence per line. A byte order mark at
+the start of the input is ignored (issue #281). Empty lines are skipped.</li>
 <li><strong>Output</strong>: Writes to stdout, space-separated tokens, one line per input line.</li>
 <li><strong>Pipelines</strong>: A downstream consumer closing the pipe early (e.g.
 <code>litsea segment model | head -1</code>) terminates the command successfully

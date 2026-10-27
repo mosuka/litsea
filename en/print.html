@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-ef6fbe4a.js";
+            window.path_to_searchindex_js = "searchindex-11ac3800.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -2619,6 +2619,7 @@ let tokens = segmenter.segment("雪だるまを作る");
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
 <p>The <code>Extractor</code> struct extracts features from a corpus file for model training.</p>
+<p>Every method, path-based or <a href="#in-memory-extraction">in-memory</a>, ignores a byte order mark (U+FEFF) at the start of the corpus; anywhere else it is read as text (issue #281).</p>
 <h2 id="definition-1"><a class="header" href="#definition-1">Definition</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2760,7 +2761,7 @@ extractor.extract_two_stage(
 )?;
 <span class="boring">}</span></code></pre>
 <h2 id="in-memory-extraction"><a class="header" href="#in-memory-extraction">In-memory extraction</a></h2>
-<p>Every <code>extract*</code> method has a <code>*_to_writer</code> twin that takes the corpus as a string and writes the feature rows to any <code>Write</code>, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method.</p>
+<p>Every <code>extract*</code> method has a <code>*_to_writer</code> twin that takes the corpus as a string and writes the feature rows to any <code>Write</code>, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method, and a byte order mark at the start of the string is ignored the same way.</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -3974,6 +3975,8 @@ reference.</p>
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
+<p>In every corpus format, including the TSV and POS formats below, a byte
+order mark at the start of the file is ignored (issue #281).</p>
 <h3 id="tsv-corpus-format---format-tsv"><a class="header" href="#tsv-corpus-format---format-tsv">TSV Corpus Format (<code>--format tsv</code>)</a></h3>
 <p>With <code>--format tsv</code>, tokens are separated by tab characters and a token may
 be a literal space <code>" "</code>. This preserves the original spacing of the
@@ -4250,7 +4253,8 @@ text with <code>litsea evaluate --pos</code> for a realistic quality estimate.</
 </div>
 <h2 id="input--output"><a class="header" href="#input--output">Input / Output</a></h2>
 <ul>
-<li><strong>Input</strong>: Reads from stdin, one sentence per line. Empty lines are skipped.</li>
+<li><strong>Input</strong>: Reads from stdin, one sentence per line. A byte order mark at
+the start of the input is ignored (issue #281). Empty lines are skipped.</li>
 <li><strong>Output</strong>: Writes to stdout, space-separated tokens, one line per input line.</li>
 <li><strong>Pipelines</strong>: A downstream consumer closing the pipe early (e.g.
 <code>litsea segment model | head -1</code>) terminates the command successfully
@@ -4395,7 +4399,8 @@ quality on text the model has never seen.</p>
 <p>A <strong>gold corpus</strong> is a text file containing the correct answers: one
 sentence per line, already segmented into the correct tokens by human
 annotation (the same file formats used for training corpora — space- or
-tab-separated tokens, or <code>word/POS</code> with <code>--pos</code>). “Gold” refers to the
+tab-separated tokens, or <code>word/POS</code> with <code>--pos</code>). A byte order mark at
+the start of the file is ignored (issue #281). “Gold” refers to the
 gold standard the model’s output is judged against. For a meaningful
 <strong>held-out</strong> evaluation it must contain sentences that were <em>not</em> used to
 train the model — the bundled files in <code>resources/eval/</code> are the UD GSD
@@ -5343,6 +5348,7 @@ for the actual recipe.</p>
 <pre><code class="language-text">太郎 は 走っ た 。
 Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
+<p>A byte order mark at the start of the file, which some editors write when saving as “UTF-8 with BOM”, is ignored, in this format and in the TSV and POS formats below (issue #281).</p>
 <h3 id="convert-conll-u-to-word-segmentation-corpus"><a class="header" href="#convert-conll-u-to-word-segmentation-corpus">Convert CoNLL-U to Word Segmentation Corpus</a></h3>
 <p>Use <code>scripts/corpus_udtreebank.sh</code> to convert a CoNLL-U file to corpus format:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)

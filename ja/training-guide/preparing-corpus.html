@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-18c9145d.js";
+            window.path_to_searchindex_js = "../searchindex-fd4f1358.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -212,6 +212,7 @@
 <pre><code class="language-text">太郎 は 走っ た 。
 Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
+<p>ファイル先頭のバイトオーダーマーク（BOM。エディタで「UTF-8 (BOM 付き)」として保存すると付く）は無視します。この形式だけでなく、以下の TSV 形式や品詞付きの形式でも同じです（issue #281）。</p>
 <h3 id="conll-u-から単語分割用コーパスに変換"><a class="header" href="#conll-u-から単語分割用コーパスに変換">CoNLL-U から単語分割用コーパスに変換</a></h3>
 <p><code>scripts/corpus_udtreebank.sh</code> を使用して、CoNLL-U ファイルからスペース区切りの単語を抽出します:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)

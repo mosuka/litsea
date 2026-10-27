@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-18c9145d.js";
+            window.path_to_searchindex_js = "../searchindex-fd4f1358.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -217,6 +217,7 @@
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
+<p>以下の TSV 形式や品詞付きの形式も含め、どのコーパス形式でも、ファイル先頭のバイトオーダーマーク（BOM）は無視します（issue #281）。</p>
 <h3 id="tsv-コーパス形式--format-tsv"><a class="header" href="#tsv-コーパス形式--format-tsv">TSV コーパス形式（<code>--format tsv</code>）</a></h3>
 <p><code>--format tsv</code> を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語や英語のような言語では、これが不可欠です（<a href="../language-support/korean.html">韓国語</a>および<a href="../language-support/english.html">英語</a>を参照）。このようなコーパスは UD Treebank から <code>corpus_udtreebank.sh -s</code> で生成できます:</p>
 <pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt

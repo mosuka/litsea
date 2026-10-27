@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ef6fbe4a.js";
+            window.path_to_searchindex_js = "../searchindex-11ac3800.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -187,7 +187,8 @@ quality on text the model has never seen.</p>
 <p>A <strong>gold corpus</strong> is a text file containing the correct answers: one
 sentence per line, already segmented into the correct tokens by human
 annotation (the same file formats used for training corpora — space- or
-tab-separated tokens, or <code>word/POS</code> with <code>--pos</code>). “Gold” refers to the
+tab-separated tokens, or <code>word/POS</code> with <code>--pos</code>). A byte order mark at
+the start of the file is ignored (issue #281). “Gold” refers to the
 gold standard the model’s output is judged against. For a meaningful
 <strong>held-out</strong> evaluation it must contain sentences that were <em>not</em> used to
 train the model — the bundled files in <code>resources/eval/</code> are the UD GSD

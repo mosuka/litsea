@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-18c9145d.js";
+            window.path_to_searchindex_js = "../searchindex-fd4f1358.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -186,7 +186,8 @@
 見ていないテキストに対する品質を測定します。</p>
 <p><strong>ゴールドコーパス</strong>とは、正解が書かれたテキストファイルです: 1 行 1 文で、
 人手アノテーションにより正しいトークンへ分割済みのもの（学習用コーパスと同じ
-ファイル形式 — 空白区切り・タブ区切り、<code>--pos</code> 時は <code>word/POS</code>）。「ゴールド」は
+ファイル形式 — 空白区切り・タブ区切り、<code>--pos</code> 時は <code>word/POS</code>）。ファイル先頭の
+バイトオーダーマーク（BOM）は無視します（issue #281）。「ゴールド」は
 モデル出力の採点基準となる正解（ゴールドスタンダード）を指します。意味のある
 <strong>held-out</strong> 評価にするには、モデルの学習に使っていない文で構成されている必要が
 あります — 同梱の <code>resources/eval/</code> は UD GSD の <strong>test</strong> 分割で、同梱モデルは

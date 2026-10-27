@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-ef6fbe4a.js";
+            window.path_to_searchindex_js = "../searchindex-11ac3800.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -212,6 +212,7 @@
 <pre><code class="language-text">太郎 は 走っ た 。
 Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
+<p>A byte order mark at the start of the file, which some editors write when saving as “UTF-8 with BOM”, is ignored, in this format and in the TSV and POS formats below (issue #281).</p>
 <h3 id="convert-conll-u-to-word-segmentation-corpus"><a class="header" href="#convert-conll-u-to-word-segmentation-corpus">Convert CoNLL-U to Word Segmentation Corpus</a></h3>
 <p>Use <code>scripts/corpus_udtreebank.sh</code> to convert a CoNLL-U file to corpus format:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)

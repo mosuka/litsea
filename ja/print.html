@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-18c9145d.js";
+            window.path_to_searchindex_js = "searchindex-fd4f1358.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -2304,6 +2304,7 @@ let tokens = segmenter.segment("雪だるまを作る");
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="extractor"><a class="header" href="#extractor">Extractor</a></h1>
 <p><code>Extractor</code> 構造体は、モデル学習用にコーパスファイルから特徴量を抽出します。</p>
+<p>パス版・<a href="#in-memory-での抽出">in-memory 版</a>のどのメソッドも、コーパスの先頭のバイトオーダーマーク（U+FEFF）を無視します。それ以外の位置にある U+FEFF は文字として読みます（issue #281）。</p>
 <h2 id="定義-1"><a class="header" href="#定義-1">定義</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2429,7 +2430,7 @@ extractor.extract_two_stage(
 )?;
 <span class="boring">}</span></code></pre>
 <h2 id="in-memory-での抽出"><a class="header" href="#in-memory-での抽出">in-memory での抽出</a></h2>
-<p><code>extract*</code> の各メソッドには <code>*_to_writer</code> の対応版があり、コーパスを文字列で受け取り、特徴量行を任意の <code>Write</code> へ書き出します。ファイルシステムのない環境（WebAssembly）や、コーパスが既にメモリ上にある場合のためのものです。出力はパス版とバイト単位で一致します。</p>
+<p><code>extract*</code> の各メソッドには <code>*_to_writer</code> の対応版があり、コーパスを文字列で受け取り、特徴量行を任意の <code>Write</code> へ書き出します。ファイルシステムのない環境（WebAssembly）や、コーパスが既にメモリ上にある場合のためのものです。出力はパス版とバイト単位で一致し、文字列の先頭のバイトオーダーマークも同じく無視します。</p>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -3607,6 +3608,7 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
 <pre><code class="language-text">Litsea は TinySegmenter を 参考 に 開発 さ れ た 。
 Rust で 実装 さ れ た コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
+<p>以下の TSV 形式や品詞付きの形式も含め、どのコーパス形式でも、ファイル先頭のバイトオーダーマーク（BOM）は無視します（issue #281）。</p>
 <h3 id="tsv-コーパス形式--format-tsv"><a class="header" href="#tsv-コーパス形式--format-tsv">TSV コーパス形式（<code>--format tsv</code>）</a></h3>
 <p><code>--format tsv</code> を指定すると、トークンはタブ文字で区切られ、トークンとして空白文字そのもの（<code>" "</code>）を含められます。これにより学習テキスト内に元の文の空白が保持されます。空白がほとんどの語境界を示す韓国語や英語のような言語では、これが不可欠です（<a href="#韓国語">韓国語</a>および<a href="#英語">英語</a>を参照）。このようなコーパスは UD Treebank から <code>corpus_udtreebank.sh -s</code> で生成できます:</p>
 <pre><code class="language-sh">litsea extract -l korean --format tsv ./ko_corpus.tsv ./ko_features.txt
@@ -3873,7 +3875,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 </div>
 <h2 id="入力--出力"><a class="header" href="#入力--出力">入力 / 出力</a></h2>
 <ul>
-<li><strong>入力</strong>: stdinから読み取り、1行に1文。空行はスキップされます。</li>
+<li><strong>入力</strong>: stdinから読み取り、1行に1文。入力の先頭のバイトオーダーマーク（BOM）は無視します（issue #281）。空行はスキップされます。</li>
 <li><strong>出力</strong>: stdoutに書き込み、スペース区切りのトークン、入力行ごとに1行。</li>
 <li><strong>パイプライン</strong>: 後段の処理がパイプを早期に閉じた場合（例:
 <code>litsea segment model | head -1</code>）、コマンドは正常終了します（終了コード0）。
@@ -4012,7 +4014,8 @@ printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作�
 見ていないテキストに対する品質を測定します。</p>
 <p><strong>ゴールドコーパス</strong>とは、正解が書かれたテキストファイルです: 1 行 1 文で、
 人手アノテーションにより正しいトークンへ分割済みのもの（学習用コーパスと同じ
-ファイル形式 — 空白区切り・タブ区切り、<code>--pos</code> 時は <code>word/POS</code>）。「ゴールド」は
+ファイル形式 — 空白区切り・タブ区切り、<code>--pos</code> 時は <code>word/POS</code>）。ファイル先頭の
+バイトオーダーマーク（BOM）は無視します（issue #281）。「ゴールド」は
 モデル出力の採点基準となる正解（ゴールドスタンダード）を指します。意味のある
 <strong>held-out</strong> 評価にするには、モデルの学習に使っていない文で構成されている必要が
 あります — 同梱の <code>resources/eval/</code> は UD GSD の <strong>test</strong> 分割で、同梱モデルは
@@ -4952,6 +4955,7 @@ litsea extract -l korean --format tsv corpus.tsv features.txt
 <pre><code class="language-text">太郎 は 走っ た 。
 Litsea は コンパクト な 単語 分割 ソフトウェア です 。
 </code></pre>
+<p>ファイル先頭のバイトオーダーマーク（BOM。エディタで「UTF-8 (BOM 付き)」として保存すると付く）は無視します。この形式だけでなく、以下の TSV 形式や品詞付きの形式でも同じです（issue #281）。</p>
 <h3 id="conll-u-から単語分割用コーパスに変換"><a class="header" href="#conll-u-から単語分割用コーパスに変換">CoNLL-U から単語分割用コーパスに変換</a></h3>
 <p><code>scripts/corpus_udtreebank.sh</code> を使用して、CoNLL-U ファイルからスペース区切りの単語を抽出します:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
