@@ -77,7 +77,7 @@ assert_eq!(
 | `CoreSegmenter::from_uri_with(language, uri, dictionary).await` | すべての環境（`http(s)://` は `remote_model` feature が必要） |
 | `CoreSegmenter::from_uri_blocking_with(language, uri, dictionary)` | ネイティブターゲット |
 
-`*_with` コンストラクタは `Option<UserDictionary>`（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは `None` の場合です。`build_user_dictionary(words, gate)` は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは `None` になり（セグメンタのホットパスには触れません）、`0.0..=1.0` の外の gate は `ErrorKind::InvalidArgument` エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。`build_user_dictionary_with_tags(words, word_tags, gate)`（issue #264）は、さらにホスト言語の語→タグのマッピングを `(語, UPOS タグ)` の組で受け取り、それらの語をタグ付きで登録します。17 個の UPOS タグ以外のタグは、その語を示す `ErrorKind::InvalidArgument` エラーになります。組は整列した順に適用するため、結果もエラーも、ホスト言語のマップを走査する順序に左右されません。両方のリストが空のときだけ `None` になります。`build_user_dictionary` は、組がない場合にあたります。意味論は [Segmenter](../litsea/segmenter.md)（「ユーザー辞書」）を参照してください。
+`*_with` コンストラクタは `Option<UserDictionary>`（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは `None` の場合です。`build_user_dictionary(words, gate)` は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは `None` になり（セグメンタのホットパスには触れません）、`0.0..=1.0` の外の gate は `ErrorKind::InvalidArgument` エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。`build_user_dictionary_with_tags(words, word_tags, gate)`（issue #264）は、さらにホスト言語の語→タグのマッピングを `(語, UPOS タグ)` の組で受け取り、それらの語をタグ付きで登録します（1 文字の語はタグだけのエントリになります。issue #276）。17 個の UPOS タグ以外のタグは、その語を示す `ErrorKind::InvalidArgument` エラーになります。組は整列した順に適用するため、結果もエラーも、ホスト言語のマップを走査する順序に左右されません。両方のリストが空のときだけ `None` になります。`build_user_dictionary` は、組がない場合にあたります。意味論は [Segmenter](../litsea/segmenter.md)（「ユーザー辞書」）を参照してください。
 
 いずれも `build_segmenter_with`（`build_segmenter` はその `None` の場合）を経由し、モデルファイル自身から何を構築するかを決定します。
 

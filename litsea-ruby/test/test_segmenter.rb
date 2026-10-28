@@ -99,11 +99,11 @@ class TestSegmenter < LitseaTest
     assert_raises(TypeError) { Litsea::Segmenter.open(:japanese, path, user_words: '雪だるま') }
   end
 
-  # Tagged user dictionary entries (#264): the tagger gives both words NOUN
+  # Tagged user dictionary entries (#264): the tagger gives these words NOUN
   # without a tag (`ポケモン` through the lexicon, `チャットGPT` through the
-  # full argmax).
-  USER_WORD_TAGS = { 'チャットGPT' => 'PROPN', 'ポケモン' => 'PROPN' }.freeze
-  TAGGED_SENTENCES = %w[チャットGPTに聞く ポケモンを集める 雪だるまを作る].freeze
+  # full argmax). `楓` is a one-character, tag-only entry (#276).
+  USER_WORD_TAGS = { 'チャットGPT' => 'PROPN', 'ポケモン' => 'PROPN', '楓' => 'PROPN' }.freeze
+  TAGGED_SENTENCES = %w[チャットGPTに聞く ポケモンを集める 雪だるまを作る 楓が笑った。].freeze
 
   # Renders `segment_with_pos` the way `litsea segment --pos` prints it.
   def tagged(segmenter, sentence)
@@ -125,6 +125,8 @@ class TestSegmenter < LitseaTest
       untagged = Litsea::Segmenter.open(:japanese, model, user_words: ['雪だるま', *USER_WORD_TAGS.keys])
       assert tagged(untagged, 'チャットGPTに聞く').start_with?('チャットGPT/NOUN ')
       refute_equal tagged(untagged, 'ポケモンを集める'), tagged(seg, 'ポケモンを集める')
+      assert tagged(seg, '楓が笑った。').start_with?('楓/PROPN ')
+      assert tagged(untagged, '楓が笑った。').start_with?('楓/NOUN ')
     end
   end
 

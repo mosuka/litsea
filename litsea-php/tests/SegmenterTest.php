@@ -138,13 +138,13 @@ final class SegmenterTest extends LitseaTestCase
     }
 
     /**
-     * Tagged user dictionary entries (#264): the tagger gives both words NOUN
+     * Tagged user dictionary entries (#264): the tagger gives these words NOUN
      * without a tag (`ポケモン` through the lexicon, `チャットGPT` through the
-     * full argmax).
+     * full argmax). `楓` is a one-character, tag-only entry (#276).
      */
-    private const USER_WORD_TAGS = ['チャットGPT' => 'PROPN', 'ポケモン' => 'PROPN'];
+    private const USER_WORD_TAGS = ['チャットGPT' => 'PROPN', 'ポケモン' => 'PROPN', '楓' => 'PROPN'];
 
-    private const TAGGED_SENTENCES = ['チャットGPTに聞く', 'ポケモンを集める', '雪だるまを作る'];
+    private const TAGGED_SENTENCES = ['チャットGPTに聞く', 'ポケモンを集める', '雪だるまを作る', '楓が笑った。'];
 
     /** Renders `segmentWithPos()` the way `litsea segment --pos` prints it. */
     private static function tagged(Segmenter $segmenter, string $sentence): string
@@ -176,6 +176,8 @@ final class SegmenterTest extends LitseaTestCase
         $untagged = Segmenter::open('japanese', $model, ['雪だるま', ...array_keys(self::USER_WORD_TAGS)]);
         $this->assertStringStartsWith('チャットGPT/NOUN ', self::tagged($untagged, 'チャットGPTに聞く'));
         $this->assertNotSame(self::tagged($untagged, 'ポケモンを集める'), self::tagged($seg, 'ポケモンを集める'));
+        $this->assertStringStartsWith('楓/PROPN ', self::tagged($seg, '楓が笑った。'));
+        $this->assertStringStartsWith('楓/NOUN ', self::tagged($untagged, '楓が笑った。'));
     }
 
     public function testUserWordTagsOnEveryConstructor(): void

@@ -76,6 +76,19 @@
   parity test compares its output with `litsea segment --pos` on a tagged
   `--user-words` file (the WebAssembly fixtures gain tagged rows), and the
   Python typings, the Node.js typings and the PHP stubs are updated.
+- Tags for one-character user dictionary words (#276): a word of one
+  character with a tag (`楓<TAB>PROPN` in a `--user-words` file,
+  `UserDictionary::add_with_pos("楓", Upos::PROPN)` in the library, or an
+  entry of the bindings' word-to-tag mapping) is a tag-only entry. It
+  changes no boundary, and `segment_with_pos` gives its tag only to the
+  tokens that are exactly that character; an untagged one-character word
+  is still ignored, and `len` and `contains` count the entries. It suits
+  one-character names (`楓/NOUN` becomes `楓/PROPN` with
+  `japanese_pos.model`) and symbols that the training data lacks
+  (`★/PUNCT` becomes `★/SYM`). Tags chosen this way from the UD test sets
+  gained nothing on held-out sentences and lost tagged tokens for Chinese
+  and Korean, since most one-character errors are function words whose
+  tag depends on the context; the docs warn against such entries.
 
 ### Changed (breaking)
 

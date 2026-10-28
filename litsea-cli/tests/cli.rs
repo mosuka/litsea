@@ -617,9 +617,10 @@ fn test_evaluate_user_words() {
 /// Pins tagged `--user-words` entries (issue #264): with `--pos`, a token
 /// that is a tagged word gets the registered tag and every other token
 /// keeps the tagger's; without `--pos` the tags change nothing. The file
-/// accepts a trailing space or CR after the tag, keeps a tag across an
-/// untagged repetition of the word, and ignores a tagged one-character
-/// word.
+/// accepts a trailing space or CR after the tag and keeps a tag across an
+/// untagged repetition of the word. A tagged one-character word (issue
+/// #276) retags the token that is exactly that character and changes no
+/// boundary.
 #[test]
 fn test_segment_user_words_tags() {
     let dir = tempfile::tempdir().expect("tempdir");
@@ -629,11 +630,11 @@ fn test_segment_user_words_tags() {
     let tagged = dir.path().join("tagged.txt");
     std::fs::write(
         &tagged,
-        "ポケモン\tPROPN\nチャットGPT\tPROPN \r\n雪だるま\n猫\tNOUN\nポケモン\n",
+        "ポケモン\tPROPN\nチャットGPT\tPROPN \r\n雪だるま\n楓\tPROPN\nポケモン\n",
     )
     .expect("write words");
     let tagged = tagged.to_str().unwrap();
-    let input = "ポケモンを集める\nチャットGPTに聞く\n雪だるまを作る\n猫が好き\n";
+    let input = "ポケモンを集める\nチャットGPTに聞く\n雪だるまを作る\n楓が笑った。\n";
     let pos_model_owned = model_path("japanese_pos.model");
     let pos_model = pos_model_owned.to_str().unwrap();
 
@@ -649,9 +650,11 @@ fn test_segment_user_words_tags() {
     // The tagger's own tags, so the override below is visible.
     assert!(baseline.contains("ポケモン/NOUN"), "unexpected output: {baseline}");
     assert!(baseline.contains("チャットGPT/NOUN"), "unexpected output: {baseline}");
+    assert!(baseline.contains("\n楓/NOUN が/ADP"), "unexpected output: {baseline}");
     let expected = baseline
         .replace("ポケモン/NOUN", "ポケモン/PROPN")
-        .replace("チャットGPT/NOUN", "チャットGPT/PROPN");
+        .replace("チャットGPT/NOUN", "チャットGPT/PROPN")
+        .replace("\n楓/NOUN", "\n楓/PROPN");
     assert_eq!(run_pos(tagged, &[]), expected);
     assert_eq!(run_pos(tagged, &["--threads", "2"]), expected, "--threads diverged with tags");
 
@@ -680,7 +683,7 @@ fn test_segment_user_words_tag_errors() {
     let model = model_owned.to_str().unwrap();
     let pos_model_owned = model_path("japanese_pos.model");
     let pos_model = pos_model_owned.to_str().unwrap();
-    let cases: [(&str, &[&str]); 6] = [
+    let cases: [(&str, &[&str]); 7] = [
         (
             "雪だるま\nポケモン\tNoun\n",
             &["line 2", "unknown UPOS tag \"Noun\"", "expected one of ADJ, ADP"],
@@ -692,6 +695,11 @@ fn test_segment_user_words_tag_errors() {
         (
             "ポケモン\tPROPN\n\nポケモン\tNOUN\n",
             &["line 3", "\"ポケモン\" is tagged NOUN here but PROPN on line 1"],
+        ),
+        // A one-character word is a tag-only entry (#276), checked the same way.
+        (
+            "楓\tPROPN\n楓\tNOUN\n",
+            &["line 2", "\"楓\" is tagged NOUN here but PROPN on line 1"],
         ),
     ];
     for (index, (content, needles)) in cases.iter().enumerate() {

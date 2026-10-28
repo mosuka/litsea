@@ -162,11 +162,11 @@ def test_user_words_invalid_arguments(models_dir: Path) -> None:
         Segmenter.open("japanese", path, ["雪だるま"])  # type: ignore[misc]
 
 
-# Tagged user dictionary entries (#264): the tagger gives both words NOUN
+# Tagged user dictionary entries (#264): the tagger gives these words NOUN
 # without a tag (`ポケモン` through the lexicon, `チャットGPT` through the full
-# argmax).
-USER_WORD_TAGS = {"チャットGPT": "PROPN", "ポケモン": "PROPN"}
-TAGGED_SENTENCES = ["チャットGPTに聞く", "ポケモンを集める", "雪だるまを作る"]
+# argmax). `楓` is a one-character, tag-only entry (#276).
+USER_WORD_TAGS = {"チャットGPT": "PROPN", "ポケモン": "PROPN", "楓": "PROPN"}
+TAGGED_SENTENCES = ["チャットGPTに聞く", "ポケモンを集める", "雪だるまを作る", "楓が笑った。"]
 
 
 def tagged(segmenter: Segmenter, sentence: str) -> str:
@@ -195,6 +195,8 @@ def test_user_word_tags_match_the_cli(models_dir: Path, litsea_cli: Path, tmp_pa
     untagged = Segmenter.open("japanese", model, user_words=["雪だるま", *USER_WORD_TAGS])
     assert tagged(untagged, "チャットGPTに聞く").startswith("チャットGPT/NOUN ")
     assert tagged(seg, "ポケモンを集める") != tagged(untagged, "ポケモンを集める")
+    assert tagged(seg, "楓が笑った。").startswith("楓/PROPN ")
+    assert tagged(untagged, "楓が笑った。").startswith("楓/NOUN ")
 
 
 def test_user_word_tags_on_every_constructor(models_dir: Path) -> None:

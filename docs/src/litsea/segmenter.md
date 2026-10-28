@@ -308,9 +308,11 @@ exactly as given — no case folding, no width or Unicode normalization. A
 word may contain a space; for languages whose models emit spaces as
 tokens (Korean, English) such a word becomes one token containing the
 space. Words of one character have no inside to keep together, so `add`
-and `add_with_pos` drop them (with their tag) and return `false`; both
-also return `false` for a word that is already registered. The type is
-re-exported as `litsea::UserDictionary`.
+does not store them and returns `false`, while `add_with_pos` stores them
+as tag-only entries (see [One-Character Entries](#one-character-entries));
+both return `false` for a word that is already registered, and `len` and
+`contains` count the one-character entries too. The type is re-exported
+as `litsea::UserDictionary`.
 
 ### Semantics
 
@@ -334,8 +336,9 @@ re-exported as `litsea::UserDictionary`.
   other word: through the lexicon if it knows the surface, otherwise by
   the stage-2 tagger's full argmax. A tag registered with `add_with_pos`
   overrides both (see [Tags](#tags)).
-- An empty dictionary, or one whose words never occur, leaves the output
-  byte-identical to segmentation without a dictionary.
+- An empty dictionary, one whose words never occur, or one with only
+  one-character entries leaves the output of `segment` byte-identical to
+  segmentation without a dictionary.
 
 ### Gate
 
@@ -361,9 +364,11 @@ force, a documented approximation; on pointwise models it is free.
 
 ### Tags
 
-`add_with_pos(word, pos)` registers a word exactly as `add` does — it
-constrains segmentation the same way — and attaches a UPOS tag to it
-(issue #264). Calling it for a word that is already registered sets the
+`add_with_pos(word, pos)` registers a word of two or more characters
+exactly as `add` does — it constrains segmentation the same way — and
+attaches a UPOS tag to it (issue #264); a word of one character becomes a
+tag-only entry (see [One-Character Entries](#one-character-entries)).
+Calling it for a word that is already registered sets the
 tag, replacing any earlier one; `add` never removes a tag. `pos(word)`
 returns the registered tag, or `None` for a word that is unregistered or
 untagged.
@@ -404,6 +409,35 @@ let tokens = segmenter.segment_with_pos("チャットGPTに聞く")?;
 // [("チャットGPT", Upos::PROPN), ("に", Upos::ADP), ("聞く", Upos::VERB)]
 // Registered without a tag, the word comes out as ("チャットGPT", Upos::NOUN);
 // without the dictionary, as ("チャット", Upos::NOUN), ("GPT", Upos::NOUN).
+```
+
+### One-Character Entries
+
+A word of one character has no inside to keep together, so it cannot
+constrain segmentation, and `add` ignores it. `add_with_pos` registers it
+as a tag-only entry (issue #276):
+
+- It is never matched. It forces no boundary, `segment` and `segment_into`
+  give the same output as without it, and the gate does not apply to it.
+- In `segment_with_pos`, a token that is exactly that character gets the
+  registered tag, while the character inside a longer token keeps the
+  tagger's tag. Whether an entry applies therefore depends on the model
+  emitting the character as a token of its own.
+- Like every tag it is context-free, so it suits a word whose tag does not
+  depend on the sentence: a one-character name, or a symbol that the
+  training data lacks. An entry for a function word such as `で` or `に`
+  retags every occurrence, whatever its role. Tags chosen this way from
+  the UD test sets gained nothing on held-out sentences, and lost tagged
+  tokens for Chinese and Korean (issue #276).
+
+```rust
+// The segmenter of the example above, with this dictionary instead:
+let mut dictionary = UserDictionary::new();
+dictionary.add_with_pos("楓", Upos::PROPN);
+let tokens = segmenter.segment_with_pos("楓が笑った。")?;
+// [("楓", Upos::PROPN), ("が", Upos::ADP), ("笑っ", Upos::VERB),
+//  ("た", Upos::AUX), ("。", Upos::PUNCT)]
+// Without the entry, the name comes out as ("楓", Upos::NOUN).
 ```
 
 ### `with_user_dictionary` / `set_user_dictionary` / `user_dictionary`

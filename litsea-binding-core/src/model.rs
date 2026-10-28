@@ -122,17 +122,19 @@ pub fn build_user_dictionary<S: AsRef<str>>(
 }
 
 /// Builds the user dictionary a binding received as a word list, a
-/// word-to-tag mapping and an optional gate (issues #263, #264) - the one
-/// place the five bindings share.
+/// word-to-tag mapping and an optional gate (issues #263, #264, #276) -
+/// the one place the five bindings share.
 ///
 /// # Arguments
 /// * `words` - The untagged words to register; words of one character or
 ///   less are ignored (see [`UserDictionary::add`]).
 /// * `word_tags` - `(word, UPOS tag)` pairs to register with their tag
 ///   (see [`UserDictionary::add_with_pos`]); a word that is also in
-///   `words` keeps the tag. The pairs are applied in sorted order, so
-///   neither the result nor the reported error depends on the order a
-///   host's map iterates in.
+///   `words` keeps the tag. A word of one character becomes a tag-only
+///   entry (issue #276) that changes no boundary and retags only the
+///   tokens that are exactly that character. The pairs are applied in
+///   sorted order, so neither the result nor the reported error depends
+///   on the order a host's map iterates in.
 /// * `gate` - The flip-ratio gate in `0.0..=1.0`, or `None` to apply every
 ///   occurrence (see [`UserDictionary::set_gate`]).
 ///
@@ -143,7 +145,7 @@ pub fn build_user_dictionary<S: AsRef<str>>(
 ///
 /// # Errors
 /// Returns an [`ErrorKind::InvalidArgument`] error if a tag is not one of
-/// the 17 UPOS tags (the tag of a one-character word included), or if
+/// the 17 UPOS tags, or if
 /// `gate` is outside `0.0..=1.0` or NaN - also when no word is given, so a
 /// bad gate is never silently ignored.
 pub fn build_user_dictionary_with_tags<W, K, T>(
@@ -313,19 +315,21 @@ mod tests {
         .unwrap();
         assert_eq!(dictionary.pos("チャットGPT"), Some(litsea::Upos::PROPN));
         assert_eq!(dictionary.gate(), Some(0.5));
-        // A word in both lists keeps its tag; one-character words are
-        // dropped with their tag.
+        // A word in both lists keeps its tag; a tagged one-character word
+        // is a tag-only entry (#276), an untagged one is dropped.
         let dictionary = build_user_dictionary_with_tags(
-            &["雪だるま", "新幹線"],
+            &["雪だるま", "新幹線", "犬"],
             &[("雪だるま", "NOUN"), ("猫", "NOUN")],
             None,
         )
         .unwrap()
         .unwrap();
-        assert_eq!(dictionary.len(), 2);
+        assert_eq!(dictionary.len(), 3);
         assert_eq!(dictionary.pos("雪だるま"), Some(litsea::Upos::NOUN));
         assert_eq!(dictionary.pos("新幹線"), None);
-        assert!(!dictionary.contains("猫"));
+        assert!(dictionary.contains("猫"));
+        assert_eq!(dictionary.pos("猫"), Some(litsea::Upos::NOUN));
+        assert!(!dictionary.contains("犬"));
     }
 
     #[test]

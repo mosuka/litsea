@@ -141,12 +141,14 @@ struct SegmentArgs {
     #[arg(long, default_value_t = 1, value_parser = clap::value_parser!(u16).range(1..))]
     threads: u16,
 
-    /// User dictionary (issues #263, #264): a UTF-8 file with one word per
-    /// line, optionally followed by a TAB and a UPOS tag. Every occurrence
-    /// of a registered word is emitted as one token (a boundary at each
-    /// edge, none inside; overlapping occurrences are resolved
+    /// User dictionary (issues #263, #264, #276): a UTF-8 file with one
+    /// word per line, optionally followed by a TAB and a UPOS tag. Every
+    /// occurrence of a registered word is emitted as one token (a boundary
+    /// at each edge, none inside; overlapping occurrences are resolved
     /// leftmost-longest). With --pos, a token that is a tagged word gets
-    /// the registered tag. Words of one character and empty lines are
+    /// the registered tag; a tagged word of one character changes no
+    /// boundary and retags only the tokens that are exactly that
+    /// character. Untagged words of one character and empty lines are
     /// ignored
     #[arg(long, value_name = "FILE")]
     user_words: Option<PathBuf>,
@@ -740,7 +742,8 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-/// Loads the user dictionary named by `--user-words` (issues #263, #264).
+/// Loads the user dictionary named by `--user-words` (issues #263, #264,
+/// #276).
 ///
 /// The file is UTF-8 with one entry per line: a word, optionally followed
 /// by a TAB and a UPOS tag (`word<TAB>UPOS`). A byte order mark (U+FEFF)
@@ -750,11 +753,12 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
 /// trailing spaces are part of it — empty lines are skipped,
 /// and there is no comment syntax. A line is split at its first TAB; the
 /// tag is trimmed of surrounding whitespace and must be one of the 17
-/// UPOS tags. Words of one character are dropped by
-/// [`UserDictionary::add`] / [`UserDictionary::add_with_pos`], but their
-/// tag is still validated. A word may appear on several lines; giving it
-/// two different tags is an error, while an untagged repetition of a
-/// tagged word keeps the tag.
+/// UPOS tags. An untagged word of one character is dropped by
+/// [`UserDictionary::add`]; a tagged one becomes a tag-only entry through
+/// [`UserDictionary::add_with_pos`], which changes no boundary and retags
+/// only the tokens that are exactly that character. A word may appear on
+/// several lines; giving it two different tags is an error, while an
+/// untagged repetition of a tagged word keeps the tag.
 ///
 /// # Arguments
 /// * `path` - The dictionary file, or `None` when `--user-words` was not
