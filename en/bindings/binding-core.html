@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-11ac3800.js";
+            window.path_to_searchindex_js = "../searchindex-ab94a555.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -263,7 +263,7 @@ assert_eq!(
 </tbody>
 </table>
 </div>
-<p>The <code>*_with</code> constructors take an <code>Option&lt;UserDictionary&gt;</code> (issue #263) and attach it to the built segmenter; the plain constructors are the <code>None</code> case. <code>build_user_dictionary(words, gate)</code> is the shared helper that turns a host’s word list and optional gate into that dictionary: an empty list yields <code>None</code> (so the segmenter’s hot path stays untouched), and a gate outside <code>0.0..=1.0</code> is an <code>ErrorKind::InvalidArgument</code> error — also with an empty list, so a bad gate is never ignored. <code>build_user_dictionary_with_tags(words, word_tags, gate)</code> (issue #264) also takes <code>(word, UPOS tag)</code> pairs, a host’s word-to-tag mapping, and registers those words with their tag: a tag that is not one of the 17 UPOS tags is an <code>ErrorKind::InvalidArgument</code> error naming the word, the pairs are applied in sorted order so neither the result nor the error depends on the order a host map iterates in, and only two empty lists yield <code>None</code>. <code>build_user_dictionary</code> is the case without pairs. See <a href="../litsea/segmenter.html">Segmenter</a> (“User Dictionary”) for the semantics.</p>
+<p>The <code>*_with</code> constructors take an <code>Option&lt;UserDictionary&gt;</code> (issue #263) and attach it to the built segmenter; the plain constructors are the <code>None</code> case. <code>build_user_dictionary(words, gate)</code> is the shared helper that turns a host’s word list and optional gate into that dictionary: an empty list yields <code>None</code> (so the segmenter’s hot path stays untouched), and a gate outside <code>0.0..=1.0</code> is an <code>ErrorKind::InvalidArgument</code> error — also with an empty list, so a bad gate is never ignored. <code>build_user_dictionary_with_tags(words, word_tags, gate)</code> (issue #264) also takes <code>(word, UPOS tag)</code> pairs, a host’s word-to-tag mapping, and registers those words with their tag (a word of one character becomes a tag-only entry, issue #276): a tag that is not one of the 17 UPOS tags is an <code>ErrorKind::InvalidArgument</code> error naming the word, the pairs are applied in sorted order so neither the result nor the error depends on the order a host map iterates in, and only two empty lists yield <code>None</code>. <code>build_user_dictionary</code> is the case without pairs. See <a href="../litsea/segmenter.html">Segmenter</a> (“User Dictionary”) for the semantics.</p>
 <p>All of them go through <code>build_segmenter_with</code> (<code>build_segmenter</code> is its <code>None</code> case), which decides what to build from the model file itself:</p>
 <div class="table-wrapper">
 <table>

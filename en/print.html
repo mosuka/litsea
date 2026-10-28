@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-11ac3800.js";
+            window.path_to_searchindex_js = "searchindex-ab94a555.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -2498,9 +2498,11 @@ exactly as given — no case folding, no width or Unicode normalization. A
 word may contain a space; for languages whose models emit spaces as
 tokens (Korean, English) such a word becomes one token containing the
 space. Words of one character have no inside to keep together, so <code>add</code>
-and <code>add_with_pos</code> drop them (with their tag) and return <code>false</code>; both
-also return <code>false</code> for a word that is already registered. The type is
-re-exported as <code>litsea::UserDictionary</code>.</p>
+does not store them and returns <code>false</code>, while <code>add_with_pos</code> stores them
+as tag-only entries (see <a href="#one-character-entries">One-Character Entries</a>);
+both return <code>false</code> for a word that is already registered, and <code>len</code> and
+<code>contains</code> count the one-character entries too. The type is re-exported
+as <code>litsea::UserDictionary</code>.</p>
 <h3 id="semantics"><a class="header" href="#semantics">Semantics</a></h3>
 <ul>
 <li>An occurrence of a registered word is emitted as exactly one token: a
@@ -2523,8 +2525,9 @@ short entries.</li>
 other word: through the lexicon if it knows the surface, otherwise by
 the stage-2 tagger’s full argmax. A tag registered with <code>add_with_pos</code>
 overrides both (see <a href="#tags">Tags</a>).</li>
-<li>An empty dictionary, or one whose words never occur, leaves the output
-byte-identical to segmentation without a dictionary.</li>
+<li>An empty dictionary, one whose words never occur, or one with only
+one-character entries leaves the output of <code>segment</code> byte-identical to
+segmentation without a dictionary.</li>
 </ul>
 <h3 id="gate"><a class="header" href="#gate">Gate</a></h3>
 <p><code>set_gate(Some(ratio))</code> applies an occurrence only if its <strong>flip ratio</strong>
@@ -2545,9 +2548,11 @@ for sentences that contain a candidate — the unconstrained decisions it
 compares against are computed without the words an earlier position may
 force, a documented approximation; on pointwise models it is free.</p>
 <h3 id="tags"><a class="header" href="#tags">Tags</a></h3>
-<p><code>add_with_pos(word, pos)</code> registers a word exactly as <code>add</code> does — it
-constrains segmentation the same way — and attaches a UPOS tag to it
-(issue #264). Calling it for a word that is already registered sets the
+<p><code>add_with_pos(word, pos)</code> registers a word of two or more characters
+exactly as <code>add</code> does — it constrains segmentation the same way — and
+attaches a UPOS tag to it (issue #264); a word of one character becomes a
+tag-only entry (see <a href="#one-character-entries">One-Character Entries</a>).
+Calling it for a word that is already registered sets the
 tag, replacing any earlier one; <code>add</code> never removes a tag. <code>pos(word)</code>
 returns the registered tag, or <code>None</code> for a word that is unregistered or
 untagged.</p>
@@ -2588,6 +2593,34 @@ let tokens = segmenter.segment_with_pos("チャットGPTに聞く")?;
 // [("チャットGPT", Upos::PROPN), ("に", Upos::ADP), ("聞く", Upos::VERB)]
 // Registered without a tag, the word comes out as ("チャットGPT", Upos::NOUN);
 // without the dictionary, as ("チャット", Upos::NOUN), ("GPT", Upos::NOUN).
+<span class="boring">}</span></code></pre>
+<h3 id="one-character-entries"><a class="header" href="#one-character-entries">One-Character Entries</a></h3>
+<p>A word of one character has no inside to keep together, so it cannot
+constrain segmentation, and <code>add</code> ignores it. <code>add_with_pos</code> registers it
+as a tag-only entry (issue #276):</p>
+<ul>
+<li>It is never matched. It forces no boundary, <code>segment</code> and <code>segment_into</code>
+give the same output as without it, and the gate does not apply to it.</li>
+<li>In <code>segment_with_pos</code>, a token that is exactly that character gets the
+registered tag, while the character inside a longer token keeps the
+tagger’s tag. Whether an entry applies therefore depends on the model
+emitting the character as a token of its own.</li>
+<li>Like every tag it is context-free, so it suits a word whose tag does not
+depend on the sentence: a one-character name, or a symbol that the
+training data lacks. An entry for a function word such as <code>で</code> or <code>に</code>
+retags every occurrence, whatever its role. Tags chosen this way from
+the UD test sets gained nothing on held-out sentences, and lost tagged
+tokens for Chinese and Korean (issue #276).</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The segmenter of the example above, with this dictionary instead:
+let mut dictionary = UserDictionary::new();
+dictionary.add_with_pos("楓", Upos::PROPN);
+let tokens = segmenter.segment_with_pos("楓が笑った。")?;
+// [("楓", Upos::PROPN), ("が", Upos::ADP), ("笑っ", Upos::VERB),
+//  ("た", Upos::AUX), ("。", Upos::PUNCT)]
+// Without the entry, the name comes out as ("楓", Upos::NOUN).
 <span class="boring">}</span></code></pre>
 <h3 id="with_user_dictionary--set_user_dictionary--user_dictionary"><a class="header" href="#with_user_dictionary--set_user_dictionary--user_dictionary"><code>with_user_dictionary</code> / <code>set_user_dictionary</code> / <code>user_dictionary</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4246,7 +4279,7 @@ text with <code>litsea evaluate --pos</code> for a realistic quality estimate.</
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
-<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>none</td><td>User dictionary (issues #263, #264): a UTF-8 file with one word per line, optionally followed by a TAB and a UPOS tag. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. With <code>--pos</code>, a token that is a tagged word gets the registered tag. Words of one character and empty lines are ignored</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>none</td><td>User dictionary (issues #263, #264, #276): a UTF-8 file with one word per line, optionally followed by a TAB and a UPOS tag. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. With <code>--pos</code>, a token that is a tagged word gets the registered tag; a tagged word of one character changes no boundary and retags only the tokens that are exactly that character. Untagged words of one character and empty lines are ignored</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>none</td><td>Flip-ratio gate for <code>--user-words</code>, in <code>0.0..=1.0</code>: an occurrence is applied only if the share of the model’s margin it would overturn is at most <code>RATIO</code> (<code>0</code> = only where the model already agrees, <code>1</code> = always). Requires <code>--user-words</code></td></tr>
 </tbody>
 </table>
@@ -4323,8 +4356,9 @@ without retraining (issue #263). The file is UTF-8 with one word per line.
 A byte order mark at the start of the file is ignored (issue #275);
 otherwise only the line terminator is stripped, so a word is matched
 exactly as written, empty lines are skipped, and there is no comment
-syntax. Words of one character are ignored. A word may be followed by a TAB and a UPOS tag
-for <code>--pos</code> (see <a href="#tagged-entries">Tagged Entries</a>).</p>
+syntax. Words of one character are ignored unless they carry a tag. A word
+may be followed by a TAB and a UPOS tag for <code>--pos</code> (see <a href="#tagged-entries">Tagged
+Entries</a>).</p>
 <pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
 printf '雪だるまを作る\n新幹線で帰る\n' \
   | litsea segment --user-words words.txt -l japanese ./models/japanese.model
@@ -4362,6 +4396,21 @@ printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作�
 <p>Registered without tags, <code>チャットGPT</code> and <code>ポケモン</code> come out as <code>NOUN</code>.
 With <code>--user-words-gate</code>, an occurrence the gate rejects still gets its tag
 if the model emits it exactly as registered anyway.</p>
+<p>A tagged word of one character (issue #276) changes no boundary: only a
+token that is exactly that character gets the tag, while the character
+inside a longer token keeps the tagger’s. It suits a one-character name or
+a symbol that the training data lacks:</p>
+<pre><code class="language-sh">printf '楓\tPROPN\n★\tSYM\n' &gt; words.txt
+printf '楓が笑った。\n★が三つ付いた。\n' \
+  | litsea segment --pos --user-words words.txt -l japanese ./models/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">楓/PROPN が/ADP 笑っ/VERB た/AUX 。/PUNCT
+★/SYM が/ADP 三/NUM つ/NOUN 付い/VERB た/AUX 。/PUNCT
+</code></pre>
+<p>Without the file, the model gives <code>楓/NOUN</code> and <code>★/PUNCT</code>. A tag is
+context-free, so an entry for a function word such as <code>で</code> or <code>に</code> retags
+it in every sentence, whatever its role there. An untagged word of one
+character is ignored.</p>
 <p>A line is split at its first TAB. The tag is trimmed of surrounding
 whitespace (so a trailing CR or space is accepted) and must be one of the
 17 UPOS tags, written in upper case; the word is still matched exactly as
@@ -4377,7 +4426,7 @@ validated with or without <code>--pos</code>, and every error names the line:</p
 <tr><td><code>&lt;TAB&gt;NOUN</code></td><td>empty word before the TAB</td></tr>
 <tr><td><code>word&lt;TAB&gt;NOUN&lt;TAB&gt;X</code></td><td>too many columns</td></tr>
 <tr><td><code>word&lt;TAB&gt;</code></td><td>empty UPOS tag</td></tr>
-<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>unknown UPOS tag (also for a one-character word, which is otherwise ignored)</td></tr>
+<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>unknown UPOS tag</td></tr>
 <tr><td><code>word&lt;TAB&gt;NOUN</code> after <code>word&lt;TAB&gt;PROPN</code></td><td>the word is tagged differently on two lines</td></tr>
 </tbody>
 </table>
@@ -4624,7 +4673,7 @@ assert_eq!(
 </tbody>
 </table>
 </div>
-<p>The <code>*_with</code> constructors take an <code>Option&lt;UserDictionary&gt;</code> (issue #263) and attach it to the built segmenter; the plain constructors are the <code>None</code> case. <code>build_user_dictionary(words, gate)</code> is the shared helper that turns a host’s word list and optional gate into that dictionary: an empty list yields <code>None</code> (so the segmenter’s hot path stays untouched), and a gate outside <code>0.0..=1.0</code> is an <code>ErrorKind::InvalidArgument</code> error — also with an empty list, so a bad gate is never ignored. <code>build_user_dictionary_with_tags(words, word_tags, gate)</code> (issue #264) also takes <code>(word, UPOS tag)</code> pairs, a host’s word-to-tag mapping, and registers those words with their tag: a tag that is not one of the 17 UPOS tags is an <code>ErrorKind::InvalidArgument</code> error naming the word, the pairs are applied in sorted order so neither the result nor the error depends on the order a host map iterates in, and only two empty lists yield <code>None</code>. <code>build_user_dictionary</code> is the case without pairs. See <a href="#segmenter">Segmenter</a> (“User Dictionary”) for the semantics.</p>
+<p>The <code>*_with</code> constructors take an <code>Option&lt;UserDictionary&gt;</code> (issue #263) and attach it to the built segmenter; the plain constructors are the <code>None</code> case. <code>build_user_dictionary(words, gate)</code> is the shared helper that turns a host’s word list and optional gate into that dictionary: an empty list yields <code>None</code> (so the segmenter’s hot path stays untouched), and a gate outside <code>0.0..=1.0</code> is an <code>ErrorKind::InvalidArgument</code> error — also with an empty list, so a bad gate is never ignored. <code>build_user_dictionary_with_tags(words, word_tags, gate)</code> (issue #264) also takes <code>(word, UPOS tag)</code> pairs, a host’s word-to-tag mapping, and registers those words with their tag (a word of one character becomes a tag-only entry, issue #276): a tag that is not one of the 17 UPOS tags is an <code>ErrorKind::InvalidArgument</code> error naming the word, the pairs are applied in sorted order so neither the result nor the error depends on the order a host map iterates in, and only two empty lists yield <code>None</code>. <code>build_user_dictionary</code> is the case without pairs. See <a href="#segmenter">Segmenter</a> (“User Dictionary”) for the semantics.</p>
 <p>All of them go through <code>build_segmenter_with</code> (<code>build_segmenter</code> is its <code>None</code> case), which decides what to build from the model file itself:</p>
 <div class="table-wrapper">
 <table>
@@ -4746,7 +4795,7 @@ seg.segment("雪だるまを作る")
 [f"{t.surface}/{t.pos.name}" for t in seg.segment_with_pos("チャットGPTに聞く")]
 # ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   (in user_words instead: 'チャットGPT/NOUN')
 </code></pre>
-<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in <code>user_words</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>user_word_tags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; <code>user_words_gate=0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code>, or a tag that is not one of the 17 UPOS tags (upper case), raises <code>InvalidArgumentError</code>. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and an untagged word of one character is ignored. With a POS model a word in <code>user_words</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>user_word_tags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. A word of one character in <code>user_word_tags</code> changes no boundary and retags only the tokens that are exactly that character (issue #276). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; <code>user_words_gate=0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code>, or a tag that is not one of the 17 UPOS tags (upper case), raises <code>InvalidArgumentError</code>. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4865,7 +4914,7 @@ seg.segment('雪だるまを作る')
 tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${t.pos}`)
 // [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   (in userWords instead: 'チャットGPT/NOUN')
 </code></pre>
-<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in <code>userWords</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>userWordTags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a <code>userWordsGate</code> of <code>0</code> applies a word only where the model already agrees with it. A gate outside <code>0</code>–<code>1</code>, or a tag that is not one of the 17 UPOS tags (upper case), throws with the <code>invalid_argument</code> code — synchronously, also from <code>fromUri</code>. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and an untagged word of one character is ignored. With a POS model a word in <code>userWords</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>userWordTags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. A word of one character in <code>userWordTags</code> changes no boundary and retags only the tokens that are exactly that character (issue #276). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a <code>userWordsGate</code> of <code>0</code> applies a word only where the model already agrees with it. A gate outside <code>0</code>–<code>1</code>, or a tag that is not one of the 17 UPOS tags (upper case), throws with the <code>invalid_argument</code> code — synchronously, also from <code>fromUri</code>. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="api-1"><a class="header" href="#api-1">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4984,7 +5033,7 @@ Segmenter::open('japanese', 'models/japanese.model', user_words: ['雪だるま'
 array_map(fn ($t) =&gt; "{$t-&gt;surface}/{$t-&gt;pos}", $tagged-&gt;segmentWithPos('チャットGPTに聞く'));
 // ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   (in $user_words instead: 'チャットGPT/NOUN')
 </code></pre>
-<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in <code>$user_words</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>$user_word_tags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment()</code> ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a gate of <code>0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code>, or a tag that is not one of the 17 UPOS tags (upper case), throws <code>Litsea\InvalidArgumentException</code>. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and an untagged word of one character is ignored. With a POS model a word in <code>$user_words</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>$user_word_tags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment()</code> ignores the tags. A word of one character in <code>$user_word_tags</code> changes no boundary and retags only the tokens that are exactly that character (issue #276). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a gate of <code>0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code>, or a tag that is not one of the 17 UPOS tags (upper case), throws <code>Litsea\InvalidArgumentException</code>. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="api-2"><a class="header" href="#api-2">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -5104,7 +5153,7 @@ seg.segment("雪だるまを作る")
 tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.pos}" }
 # =&gt; ["チャットGPT/PROPN", "に/ADP", "聞く/VERB"]   (in user_words: instead: "チャットGPT/NOUN")
 </code></pre>
-<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in <code>user_words:</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>user_word_tags:</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; <code>user_words_gate: 0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code>, or a tag that is not one of the 17 UPOS tags (upper case), raises <code>Litsea::InvalidArgumentError</code>, and an unknown keyword raises <code>ArgumentError</code>. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and an untagged word of one character is ignored. With a POS model a word in <code>user_words:</code> is tagged like any other word (<code>雪だるま/NOUN</code> with <code>japanese_pos.model</code>), while a token that is a word in <code>user_word_tags:</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. A word of one character in <code>user_word_tags:</code> changes no boundary and retags only the tokens that are exactly that character (issue #276). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; <code>user_words_gate: 0.0</code> applies a word only where the model already agrees with it. A gate outside <code>0.0</code>–<code>1.0</code>, or a tag that is not one of the 17 UPOS tags (upper case), raises <code>Litsea::InvalidArgumentError</code>, and an unknown keyword raises <code>ArgumentError</code>. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="api-3"><a class="header" href="#api-3">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -5209,7 +5258,7 @@ const tagged = Segmenter.fromBytes('japanese', posBytes, undefined, undefined, {
 tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${t.pos}`)
 // [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   (in userWords instead: 'チャットGPT/NOUN')
 </code></pre>
-<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and words of one character are ignored. With a POS model a word in <code>userWords</code> is tagged like any other word, while a token that is a word in <code>userWordTags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a <code>userWordsGate</code> of <code>0</code> applies a word only where the model already agrees with it. A gate outside <code>0</code>–<code>1</code>, or a tag that is not one of the 17 UPOS tags (upper case), throws with the <code>invalid_argument</code> code. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
+<p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and an untagged word of one character is ignored. With a POS model a word in <code>userWords</code> is tagged like any other word, while a token that is a word in <code>userWordTags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. A word of one character in <code>userWordTags</code> changes no boundary and retags only the tokens that are exactly that character (issue #276). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a <code>userWordsGate</code> of <code>0</code> applies a word only where the model already agrees with it. A gate outside <code>0</code>–<code>1</code>, or a tag that is not one of the 17 UPOS tags (upper case), throws with the <code>invalid_argument</code> code. See <a href="#user-dictionary">Segmenter</a> for the full semantics.</p>
 <h2 id="what-the-host-removes"><a class="header" href="#what-the-host-removes">What the host removes</a></h2>
 <p>This is the most constrained of the five bindings, and each gap was measured rather than assumed.</p>
 <div class="table-wrapper">

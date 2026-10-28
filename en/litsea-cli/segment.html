@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-11ac3800.js";
+            window.path_to_searchindex_js = "../searchindex-ab94a555.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -206,7 +206,7 @@
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
-<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>none</td><td>User dictionary (issues #263, #264): a UTF-8 file with one word per line, optionally followed by a TAB and a UPOS tag. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. With <code>--pos</code>, a token that is a tagged word gets the registered tag. Words of one character and empty lines are ignored</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>none</td><td>User dictionary (issues #263, #264, #276): a UTF-8 file with one word per line, optionally followed by a TAB and a UPOS tag. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. With <code>--pos</code>, a token that is a tagged word gets the registered tag; a tagged word of one character changes no boundary and retags only the tokens that are exactly that character. Untagged words of one character and empty lines are ignored</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>none</td><td>Flip-ratio gate for <code>--user-words</code>, in <code>0.0..=1.0</code>: an occurrence is applied only if the share of the model’s margin it would overturn is at most <code>RATIO</code> (<code>0</code> = only where the model already agrees, <code>1</code> = always). Requires <code>--user-words</code></td></tr>
 </tbody>
 </table>
@@ -283,8 +283,9 @@ without retraining (issue #263). The file is UTF-8 with one word per line.
 A byte order mark at the start of the file is ignored (issue #275);
 otherwise only the line terminator is stripped, so a word is matched
 exactly as written, empty lines are skipped, and there is no comment
-syntax. Words of one character are ignored. A word may be followed by a TAB and a UPOS tag
-for <code>--pos</code> (see <a href="#tagged-entries">Tagged Entries</a>).</p>
+syntax. Words of one character are ignored unless they carry a tag. A word
+may be followed by a TAB and a UPOS tag for <code>--pos</code> (see <a href="#tagged-entries">Tagged
+Entries</a>).</p>
 <pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
 printf '雪だるまを作る\n新幹線で帰る\n' \
   | litsea segment --user-words words.txt -l japanese ./models/japanese.model
@@ -322,6 +323,21 @@ printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作�
 <p>Registered without tags, <code>チャットGPT</code> and <code>ポケモン</code> come out as <code>NOUN</code>.
 With <code>--user-words-gate</code>, an occurrence the gate rejects still gets its tag
 if the model emits it exactly as registered anyway.</p>
+<p>A tagged word of one character (issue #276) changes no boundary: only a
+token that is exactly that character gets the tag, while the character
+inside a longer token keeps the tagger’s. It suits a one-character name or
+a symbol that the training data lacks:</p>
+<pre><code class="language-sh">printf '楓\tPROPN\n★\tSYM\n' &gt; words.txt
+printf '楓が笑った。\n★が三つ付いた。\n' \
+  | litsea segment --pos --user-words words.txt -l japanese ./models/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">楓/PROPN が/ADP 笑っ/VERB た/AUX 。/PUNCT
+★/SYM が/ADP 三/NUM つ/NOUN 付い/VERB た/AUX 。/PUNCT
+</code></pre>
+<p>Without the file, the model gives <code>楓/NOUN</code> and <code>★/PUNCT</code>. A tag is
+context-free, so an entry for a function word such as <code>で</code> or <code>に</code> retags
+it in every sentence, whatever its role there. An untagged word of one
+character is ignored.</p>
 <p>A line is split at its first TAB. The tag is trimmed of surrounding
 whitespace (so a trailing CR or space is accepted) and must be one of the
 17 UPOS tags, written in upper case; the word is still matched exactly as
@@ -337,7 +353,7 @@ validated with or without <code>--pos</code>, and every error names the line:</p
 <tr><td><code>&lt;TAB&gt;NOUN</code></td><td>empty word before the TAB</td></tr>
 <tr><td><code>word&lt;TAB&gt;NOUN&lt;TAB&gt;X</code></td><td>too many columns</td></tr>
 <tr><td><code>word&lt;TAB&gt;</code></td><td>empty UPOS tag</td></tr>
-<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>unknown UPOS tag (also for a one-character word, which is otherwise ignored)</td></tr>
+<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>unknown UPOS tag</td></tr>
 <tr><td><code>word&lt;TAB&gt;NOUN</code> after <code>word&lt;TAB&gt;PROPN</code></td><td>the word is tagged differently on two lines</td></tr>
 </tbody>
 </table>

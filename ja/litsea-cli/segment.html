@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-fd4f1358.js";
+            window.path_to_searchindex_js = "../searchindex-ba96fe20.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -206,7 +206,7 @@
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
-<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263、#264）。1 行 1 語の UTF-8 ファイルで、語の後ろに TAB と UPOS タグを続けることもできます。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。<code>--pos</code> では、タグ付きの語のトークンに登録されたタグを付けます。1 文字の語と空行は無視されます</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263、#264、#276）。1 行 1 語の UTF-8 ファイルで、語の後ろに TAB と UPOS タグを続けることもできます。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。<code>--pos</code> では、タグ付きの語のトークンに登録されたタグを付けます。タグ付きの 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます。タグのない 1 文字の語と空行は無視されます</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>）。語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します（<code>0</code> = モデルがすでに同意している場所だけ、<code>1</code> = 常に）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
@@ -279,8 +279,8 @@
 <p>ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
 ファイルは 1 行 1 語の UTF-8 です。ファイル先頭のバイトオーダーマーク（BOM）は
 無視します（issue #275）。それ以外は行末の改行だけを取り除くので語は書かれたとおりに
-照合され、空行は読み飛ばし、コメント構文はありません。1 文字の語は無視されます。
-語の後ろに TAB と <code>--pos</code> 用の UPOS タグを続けることもできます
+照合され、空行は読み飛ばし、コメント構文はありません。1 文字の語は、タグがなければ
+無視されます。語の後ろに TAB と <code>--pos</code> 用の UPOS タグを続けることもできます
 （<a href="#タグ付きの語">タグ付きの語</a>を参照）。</p>
 <pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
 printf '雪だるまを作る\n新幹線で帰る\n' \
@@ -317,6 +317,19 @@ printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作�
 <p>タグなしで登録すると、<code>チャットGPT</code> と <code>ポケモン</code> は <code>NOUN</code> になります。
 <code>--user-words-gate</code> を使う場合、gate が却下した出現箇所でも、モデルが結局登録
 どおりに切り出せばタグが付きます。</p>
+<p>タグ付きの 1 文字の語（issue #276）は境界を変えません。その 1 文字ちょうどの
+トークンだけにタグが付き、長いトークンの中にある同じ文字はタガーのタグのままです。
+1 文字の名前や、学習データにない記号に向いています:</p>
+<pre><code class="language-sh">printf '楓\tPROPN\n★\tSYM\n' &gt; words.txt
+printf '楓が笑った。\n★が三つ付いた。\n' \
+  | litsea segment --pos --user-words words.txt -l japanese ./models/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">楓/PROPN が/ADP 笑っ/VERB た/AUX 。/PUNCT
+★/SYM が/ADP 三/NUM つ/NOUN 付い/VERB た/AUX 。/PUNCT
+</code></pre>
+<p>このファイルがなければ、モデルは <code>楓/NOUN</code> と <code>★/PUNCT</code> を出力します。タグは
+文脈を見ないので、<code>で</code> や <code>に</code> のような機能語を登録すると、文の中での役割に
+かかわらず、すべての文でタグが置き換わります。タグのない 1 文字の語は無視されます。</p>
 <p>行は最初の TAB で分けます。タグは前後の空白を取り除いてから（末尾の CR や空白は
 受け付けます）解釈し、大文字で書いた 17 個の UPOS タグのどれかでなければなりません。
 語は今までどおり書かれたとおりに照合します。同じ語を複数の行に書けますが、異なる
@@ -331,7 +344,7 @@ printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作�
 <tr><td><code>&lt;TAB&gt;NOUN</code></td><td>TAB の前の語が空</td></tr>
 <tr><td><code>word&lt;TAB&gt;NOUN&lt;TAB&gt;X</code></td><td>列が多すぎる</td></tr>
 <tr><td><code>word&lt;TAB&gt;</code></td><td>UPOS タグが空</td></tr>
-<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>未知の UPOS タグ（それ以外は無視される 1 文字の語でも検査します）</td></tr>
+<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>未知の UPOS タグ</td></tr>
 <tr><td><code>word&lt;TAB&gt;PROPN</code> の後の <code>word&lt;TAB&gt;NOUN</code></td><td>同じ語に 2 つの行で異なるタグ</td></tr>
 </tbody>
 </table>

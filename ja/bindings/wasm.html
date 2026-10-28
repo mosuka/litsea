@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-fd4f1358.js";
+            window.path_to_searchindex_js = "../searchindex-ba96fe20.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -223,7 +223,7 @@ const tagged = Segmenter.fromBytes('japanese', posBytes, undefined, undefined, {
 tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${t.pos}`)
 // [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   （userWords に入れた場合は 'チャットGPT/NOUN'）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>userWords</code> の語は他の語と同じようにタグ付けされ、<code>userWordTags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>invalid_argument</code> コードのエラーを投げます。意味論の全体は <a href="../litsea/segmenter.html#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、タグのない 1 文字の語は無視します。POS モデルでは、<code>userWords</code> の語は他の語と同じようにタグ付けされ、<code>userWordTags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。<code>userWordTags</code> の 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます（issue #276）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>invalid_argument</code> コードのエラーを投げます。意味論の全体は <a href="../litsea/segmenter.html#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="ホストの制約で提供しない機能"><a class="header" href="#ホストの制約で提供しない機能">ホストの制約で提供しない機能</a></h2>
 <p>5 つのバインディングの中で最も制約が強く、いずれも推測ではなく実測に基づいて判断しています。</p>
 <div class="table-wrapper">

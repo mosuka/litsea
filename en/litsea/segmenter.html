@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-11ac3800.js";
+            window.path_to_searchindex_js = "../searchindex-ab94a555.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -452,9 +452,11 @@ exactly as given — no case folding, no width or Unicode normalization. A
 word may contain a space; for languages whose models emit spaces as
 tokens (Korean, English) such a word becomes one token containing the
 space. Words of one character have no inside to keep together, so <code>add</code>
-and <code>add_with_pos</code> drop them (with their tag) and return <code>false</code>; both
-also return <code>false</code> for a word that is already registered. The type is
-re-exported as <code>litsea::UserDictionary</code>.</p>
+does not store them and returns <code>false</code>, while <code>add_with_pos</code> stores them
+as tag-only entries (see <a href="#one-character-entries">One-Character Entries</a>);
+both return <code>false</code> for a word that is already registered, and <code>len</code> and
+<code>contains</code> count the one-character entries too. The type is re-exported
+as <code>litsea::UserDictionary</code>.</p>
 <h3 id="semantics"><a class="header" href="#semantics">Semantics</a></h3>
 <ul>
 <li>An occurrence of a registered word is emitted as exactly one token: a
@@ -477,8 +479,9 @@ short entries.</li>
 other word: through the lexicon if it knows the surface, otherwise by
 the stage-2 tagger’s full argmax. A tag registered with <code>add_with_pos</code>
 overrides both (see <a href="#tags">Tags</a>).</li>
-<li>An empty dictionary, or one whose words never occur, leaves the output
-byte-identical to segmentation without a dictionary.</li>
+<li>An empty dictionary, one whose words never occur, or one with only
+one-character entries leaves the output of <code>segment</code> byte-identical to
+segmentation without a dictionary.</li>
 </ul>
 <h3 id="gate"><a class="header" href="#gate">Gate</a></h3>
 <p><code>set_gate(Some(ratio))</code> applies an occurrence only if its <strong>flip ratio</strong>
@@ -499,9 +502,11 @@ for sentences that contain a candidate — the unconstrained decisions it
 compares against are computed without the words an earlier position may
 force, a documented approximation; on pointwise models it is free.</p>
 <h3 id="tags"><a class="header" href="#tags">Tags</a></h3>
-<p><code>add_with_pos(word, pos)</code> registers a word exactly as <code>add</code> does — it
-constrains segmentation the same way — and attaches a UPOS tag to it
-(issue #264). Calling it for a word that is already registered sets the
+<p><code>add_with_pos(word, pos)</code> registers a word of two or more characters
+exactly as <code>add</code> does — it constrains segmentation the same way — and
+attaches a UPOS tag to it (issue #264); a word of one character becomes a
+tag-only entry (see <a href="#one-character-entries">One-Character Entries</a>).
+Calling it for a word that is already registered sets the
 tag, replacing any earlier one; <code>add</code> never removes a tag. <code>pos(word)</code>
 returns the registered tag, or <code>None</code> for a word that is unregistered or
 untagged.</p>
@@ -542,6 +547,34 @@ let tokens = segmenter.segment_with_pos("チャットGPTに聞く")?;
 // [("チャットGPT", Upos::PROPN), ("に", Upos::ADP), ("聞く", Upos::VERB)]
 // Registered without a tag, the word comes out as ("チャットGPT", Upos::NOUN);
 // without the dictionary, as ("チャット", Upos::NOUN), ("GPT", Upos::NOUN).
+<span class="boring">}</span></code></pre>
+<h3 id="one-character-entries"><a class="header" href="#one-character-entries">One-Character Entries</a></h3>
+<p>A word of one character has no inside to keep together, so it cannot
+constrain segmentation, and <code>add</code> ignores it. <code>add_with_pos</code> registers it
+as a tag-only entry (issue #276):</p>
+<ul>
+<li>It is never matched. It forces no boundary, <code>segment</code> and <code>segment_into</code>
+give the same output as without it, and the gate does not apply to it.</li>
+<li>In <code>segment_with_pos</code>, a token that is exactly that character gets the
+registered tag, while the character inside a longer token keeps the
+tagger’s tag. Whether an entry applies therefore depends on the model
+emitting the character as a token of its own.</li>
+<li>Like every tag it is context-free, so it suits a word whose tag does not
+depend on the sentence: a one-character name, or a symbol that the
+training data lacks. An entry for a function word such as <code>で</code> or <code>に</code>
+retags every occurrence, whatever its role. Tags chosen this way from
+the UD test sets gained nothing on held-out sentences, and lost tagged
+tokens for Chinese and Korean (issue #276).</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// The segmenter of the example above, with this dictionary instead:
+let mut dictionary = UserDictionary::new();
+dictionary.add_with_pos("楓", Upos::PROPN);
+let tokens = segmenter.segment_with_pos("楓が笑った。")?;
+// [("楓", Upos::PROPN), ("が", Upos::ADP), ("笑っ", Upos::VERB),
+//  ("た", Upos::AUX), ("。", Upos::PUNCT)]
+// Without the entry, the name comes out as ("楓", Upos::NOUN).
 <span class="boring">}</span></code></pre>
 <h3 id="with_user_dictionary--set_user_dictionary--user_dictionary"><a class="header" href="#with_user_dictionary--set_user_dictionary--user_dictionary"><code>with_user_dictionary</code> / <code>set_user_dictionary</code> / <code>user_dictionary</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

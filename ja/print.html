@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-fd4f1358.js";
+            window.path_to_searchindex_js = "searchindex-ba96fe20.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -2232,7 +2232,7 @@ impl UserDictionary {
     pub fn gate(&amp;self) -&gt; Option&lt;f64&gt;
 }
 <span class="boring">}</span></code></pre>
-<p>語は Unicode スカラー値をキーとする trie に格納され、与えられたまま照合されます — 大文字小文字の同一視や、全角半角・Unicode の正規化は行いません。語に空白を含めることもできます。モデルが空白をトークンとして出力する言語（韓国語・英語）では、そのような語は空白を含む 1 トークンになります。1 文字の語には結合すべき内側がないため、<code>add</code> と <code>add_with_pos</code> は（タグごと）格納せずに <code>false</code> を返します。どちらも、登録済みの語に対しては <code>false</code> を返します。この型は <code>litsea::UserDictionary</code> として再エクスポートされています。</p>
+<p>語は Unicode スカラー値をキーとする trie に格納され、与えられたまま照合されます — 大文字小文字の同一視や、全角半角・Unicode の正規化は行いません。語に空白を含めることもできます。モデルが空白をトークンとして出力する言語（韓国語・英語）では、そのような語は空白を含む 1 トークンになります。1 文字の語には結合すべき内側がないため、<code>add</code> は格納せずに <code>false</code> を返し、<code>add_with_pos</code> はタグだけのエントリとして格納します（<a href="#1-文字のエントリ">1 文字のエントリ</a>を参照）。どちらも、登録済みの語に対しては <code>false</code> を返します。<code>len</code> と <code>contains</code> は 1 文字のエントリも数えます。この型は <code>litsea::UserDictionary</code> として再エクスポートされています。</p>
 <h3 id="意味論"><a class="header" href="#意味論">意味論</a></h3>
 <ul>
 <li>登録語の出現箇所は厳密に 1 トークンとして出力されます。先頭文字の前と末尾文字の後に境界を強制し、内側には境界を置きません。</li>
@@ -2240,14 +2240,14 @@ impl UserDictionary {
 <li>重なった出現箇所は leftmost-longest で解決します。左から走査し、現在位置から始まる最長の登録語が勝ち、その後ろから照合を再開します。</li>
 <li>照合は文脈を見ません。登録語はその文字列が現れる場所すべてに適用されるため、<code>って</code> や <code>いま</code> のような 2 文字の断片を語として登録すると、それを含む他の語をすべて壊します。語全体を登録し、短い語を含む辞書では後述の gate を検討してください。</li>
 <li>タグなしで登録した語は、<code>segment_with_pos</code> で他の語と同じようにタグ付けされます。語彙表がその表層を知っていれば語彙表で、知らなければ stage-2 タガーの全候補 argmax で決まります。<code>add_with_pos</code> で登録したタグは、そのどちらよりも優先します（<a href="#タグ">タグ</a>を参照）。</li>
-<li>空の辞書、または登録語が一度も現れない辞書は、辞書なしの分割とバイト単位で同一の出力を残します。</li>
+<li>空の辞書、登録語が一度も現れない辞書、1 文字のエントリだけの辞書では、<code>segment</code> の出力は辞書なしの分割とバイト単位で同一です。</li>
 </ul>
 <h3 id="gate"><a class="header" href="#gate">Gate</a></h3>
 <p><code>set_gate(Some(ratio))</code> を設定すると、出現箇所は <strong>flip ratio</strong> が <code>ratio</code> 以下のときだけ適用されます。flip ratio は、語が制約する位置のうち制約なしの判定を覆す位置のモデルスコアの絶対値の和を、語が制約するすべての位置の絶対値の和で割ったものです。<code>0.0..=1.0</code> に収まり、モデルごとの調整は不要です。<code>0.0</code> はモデルがすでに同意している場所だけに語を適用し、<code>1.0</code> はすべてに適用し、<code>None</code>（既定）は判定を省きます。<code>0.0..=1.0</code> の外の値（または NaN）は <code>LitseaError::InvalidInput</code> で拒否されます。</p>
 <p>gate は短い語や曖昧な語を含む辞書のためのものです。<code>中野</code> を登録して gate を <code>0.0</code> にすると、<code>山中野球部</code> は <code>山中 | 野球 | 部</code> のまま（そこではモデルの <code>中野</code> に対する margin が大きい）ですが、<code>私の名前は中野です</code> では引き続き <code>中野</code> が 1 トークンになります（モデルが同意している）。gate なしでは両方の文に語が適用されます。</p>
 <p>タグ依存モデルでは、候補を含む文に限り逐次採点パスが 1 回余分にかかります — 比較対象となる制約なしの判定は、前の位置が強制するかもしれない語を考慮せずに計算されるため、近似であることを明記しておきます。pointwise モデルでは追加コストはありません。</p>
 <h3 id="タグ"><a class="header" href="#タグ">タグ</a></h3>
-<p><code>add_with_pos(word, pos)</code> は、<code>add</code> と全く同じように語を登録し（分割への制約も同じです）、その語に UPOS タグを付けます（issue #264）。登録済みの語に対して呼ぶとタグを設定し、前のタグがあれば置き換えます。<code>add</code> がタグを消すことはありません。<code>pos(word)</code> は登録されたタグを返し、未登録の語やタグなしの語には <code>None</code> を返します。</p>
+<p><code>add_with_pos(word, pos)</code> は、2 文字以上の語を <code>add</code> と全く同じように登録し（分割への制約も同じです）、その語に UPOS タグを付けます（issue #264）。1 文字の語はタグだけのエントリになります（<a href="#1-文字のエントリ">1 文字のエントリ</a>を参照）。登録済みの語に対して呼ぶとタグを設定し、前のタグがあれば置き換えます。<code>add</code> がタグを消すことはありません。<code>pos(word)</code> は登録されたタグを返し、未登録の語やタグなしの語には <code>None</code> を返します。</p>
 <p><code>segment_with_pos</code> では、表層がタグ付きの語と一致するトークンすべてに、登録されたタグを付けます。語彙表の固定タグと stage-2 タガーのどちらよりも優先し、それ以外のトークンはタガーのタグのままです。stage-2 タガーは各語を、その語自身の表層と前後の文字から採点し、他の語のタグは使わないため、登録したタグが他のトークンのタグを変えることはありません。</p>
 <ul>
 <li>gate なしでは、タグが付くトークンは、辞書が強制した出現箇所とちょうど一致します。</li>
@@ -2275,6 +2275,23 @@ let tokens = segmenter.segment_with_pos("チャットGPTに聞く")?;
 // [("チャットGPT", Upos::PROPN), ("に", Upos::ADP), ("聞く", Upos::VERB)]
 // タグなしで登録すると ("チャットGPT", Upos::NOUN)、
 // 辞書なしでは ("チャット", Upos::NOUN), ("GPT", Upos::NOUN) になります。
+<span class="boring">}</span></code></pre>
+<h3 id="1-文字のエントリ"><a class="header" href="#1-文字のエントリ">1 文字のエントリ</a></h3>
+<p>1 文字の語には結合すべき内側がないので、分割を制約できず、<code>add</code> は無視します。<code>add_with_pos</code> は、タグだけのエントリとして登録します（issue #276）。</p>
+<ul>
+<li>照合の対象になりません。境界を強制せず、<code>segment</code> と <code>segment_into</code> の出力はエントリがない場合と同じで、gate も関係しません。</li>
+<li><code>segment_with_pos</code> では、その 1 文字ちょうどのトークンに登録したタグが付きます。長いトークンの中にある同じ文字はタガーのタグのままです。そのため、エントリが効くかどうかは、モデルがその文字を 1 トークンとして切り出すかで決まります。</li>
+<li>ほかのタグと同じく文脈を見ないので、文によってタグが変わらない語に向いています。1 文字の名前や、学習データにない記号がその例です。<code>で</code> や <code>に</code> のような機能語を登録すると、文の中での役割にかかわらず、すべての出現のタグが置き換わります。UD の test セットからこの方法でタグを選ぶと、held-out の文では効果がなく、中国語と韓国語ではタグの正しいトークンが減りました（issue #276）。</li>
+</ul>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// 上の例の segmenter に、この辞書を設定した場合:
+let mut dictionary = UserDictionary::new();
+dictionary.add_with_pos("楓", Upos::PROPN);
+let tokens = segmenter.segment_with_pos("楓が笑った。")?;
+// [("楓", Upos::PROPN), ("が", Upos::ADP), ("笑っ", Upos::VERB),
+//  ("た", Upos::AUX), ("。", Upos::PUNCT)]
+// エントリがなければ、名前は ("楓", Upos::NOUN) になります。
 <span class="boring">}</span></code></pre>
 <h3 id="with_user_dictionary--set_user_dictionary--user_dictionary"><a class="header" href="#with_user_dictionary--set_user_dictionary--user_dictionary"><code>with_user_dictionary</code> / <code>set_user_dictionary</code> / <code>user_dictionary</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -3868,7 +3885,7 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<a href="#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
 <tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
-<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263、#264）。1 行 1 語の UTF-8 ファイルで、語の後ろに TAB と UPOS タグを続けることもできます。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。<code>--pos</code> では、タグ付きの語のトークンに登録されたタグを付けます。1 文字の語と空行は無視されます</td></tr>
+<tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263、#264、#276）。1 行 1 語の UTF-8 ファイルで、語の後ろに TAB と UPOS タグを続けることもできます。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。<code>--pos</code> では、タグ付きの語のトークンに登録されたタグを付けます。タグ付きの 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます。タグのない 1 文字の語と空行は無視されます</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>）。語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します（<code>0</code> = モデルがすでに同意している場所だけ、<code>1</code> = 常に）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
 </table>
@@ -3941,8 +3958,8 @@ litsea train --pos --num-epochs 50 ./pos_features ./models/japanese_pos.model
 <p>ユーザー辞書は、再学習なしで登録語を 1 トークンとして出力させます（issue #263）。
 ファイルは 1 行 1 語の UTF-8 です。ファイル先頭のバイトオーダーマーク（BOM）は
 無視します（issue #275）。それ以外は行末の改行だけを取り除くので語は書かれたとおりに
-照合され、空行は読み飛ばし、コメント構文はありません。1 文字の語は無視されます。
-語の後ろに TAB と <code>--pos</code> 用の UPOS タグを続けることもできます
+照合され、空行は読み飛ばし、コメント構文はありません。1 文字の語は、タグがなければ
+無視されます。語の後ろに TAB と <code>--pos</code> 用の UPOS タグを続けることもできます
 （<a href="#タグ付きの語">タグ付きの語</a>を参照）。</p>
 <pre><code class="language-sh">printf '雪だるま\n新幹線\n' &gt; words.txt
 printf '雪だるまを作る\n新幹線で帰る\n' \
@@ -3979,6 +3996,19 @@ printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作�
 <p>タグなしで登録すると、<code>チャットGPT</code> と <code>ポケモン</code> は <code>NOUN</code> になります。
 <code>--user-words-gate</code> を使う場合、gate が却下した出現箇所でも、モデルが結局登録
 どおりに切り出せばタグが付きます。</p>
+<p>タグ付きの 1 文字の語（issue #276）は境界を変えません。その 1 文字ちょうどの
+トークンだけにタグが付き、長いトークンの中にある同じ文字はタガーのタグのままです。
+1 文字の名前や、学習データにない記号に向いています:</p>
+<pre><code class="language-sh">printf '楓\tPROPN\n★\tSYM\n' &gt; words.txt
+printf '楓が笑った。\n★が三つ付いた。\n' \
+  | litsea segment --pos --user-words words.txt -l japanese ./models/japanese_pos.model
+</code></pre>
+<pre><code class="language-text">楓/PROPN が/ADP 笑っ/VERB た/AUX 。/PUNCT
+★/SYM が/ADP 三/NUM つ/NOUN 付い/VERB た/AUX 。/PUNCT
+</code></pre>
+<p>このファイルがなければ、モデルは <code>楓/NOUN</code> と <code>★/PUNCT</code> を出力します。タグは
+文脈を見ないので、<code>で</code> や <code>に</code> のような機能語を登録すると、文の中での役割に
+かかわらず、すべての文でタグが置き換わります。タグのない 1 文字の語は無視されます。</p>
 <p>行は最初の TAB で分けます。タグは前後の空白を取り除いてから（末尾の CR や空白は
 受け付けます）解釈し、大文字で書いた 17 個の UPOS タグのどれかでなければなりません。
 語は今までどおり書かれたとおりに照合します。同じ語を複数の行に書けますが、異なる
@@ -3993,7 +4023,7 @@ printf 'チャットGPTに聞く\nポケモンを集める\n雪だるまを作�
 <tr><td><code>&lt;TAB&gt;NOUN</code></td><td>TAB の前の語が空</td></tr>
 <tr><td><code>word&lt;TAB&gt;NOUN&lt;TAB&gt;X</code></td><td>列が多すぎる</td></tr>
 <tr><td><code>word&lt;TAB&gt;</code></td><td>UPOS タグが空</td></tr>
-<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>未知の UPOS タグ（それ以外は無視される 1 文字の語でも検査します）</td></tr>
+<tr><td><code>word&lt;TAB&gt;Noun</code></td><td>未知の UPOS タグ</td></tr>
 <tr><td><code>word&lt;TAB&gt;PROPN</code> の後の <code>word&lt;TAB&gt;NOUN</code></td><td>同じ語に 2 つの行で異なるタグ</td></tr>
 </tbody>
 </table>
@@ -4234,7 +4264,7 @@ assert_eq!(
 </tbody>
 </table>
 </div>
-<p><code>*_with</code> コンストラクタは <code>Option&lt;UserDictionary&gt;</code>（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは <code>None</code> の場合です。<code>build_user_dictionary(words, gate)</code> は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは <code>None</code> になり（セグメンタのホットパスには触れません）、<code>0.0..=1.0</code> の外の gate は <code>ErrorKind::InvalidArgument</code> エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。<code>build_user_dictionary_with_tags(words, word_tags, gate)</code>（issue #264）は、さらにホスト言語の語→タグのマッピングを <code>(語, UPOS タグ)</code> の組で受け取り、それらの語をタグ付きで登録します。17 個の UPOS タグ以外のタグは、その語を示す <code>ErrorKind::InvalidArgument</code> エラーになります。組は整列した順に適用するため、結果もエラーも、ホスト言語のマップを走査する順序に左右されません。両方のリストが空のときだけ <code>None</code> になります。<code>build_user_dictionary</code> は、組がない場合にあたります。意味論は <a href="#segmenter">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
+<p><code>*_with</code> コンストラクタは <code>Option&lt;UserDictionary&gt;</code>（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは <code>None</code> の場合です。<code>build_user_dictionary(words, gate)</code> は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは <code>None</code> になり（セグメンタのホットパスには触れません）、<code>0.0..=1.0</code> の外の gate は <code>ErrorKind::InvalidArgument</code> エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。<code>build_user_dictionary_with_tags(words, word_tags, gate)</code>（issue #264）は、さらにホスト言語の語→タグのマッピングを <code>(語, UPOS タグ)</code> の組で受け取り、それらの語をタグ付きで登録します（1 文字の語はタグだけのエントリになります。issue #276）。17 個の UPOS タグ以外のタグは、その語を示す <code>ErrorKind::InvalidArgument</code> エラーになります。組は整列した順に適用するため、結果もエラーも、ホスト言語のマップを走査する順序に左右されません。両方のリストが空のときだけ <code>None</code> になります。<code>build_user_dictionary</code> は、組がない場合にあたります。意味論は <a href="#segmenter">Segmenter</a>（「ユーザー辞書」）を参照してください。</p>
 <p>いずれも <code>build_segmenter_with</code>（<code>build_segmenter</code> はその <code>None</code> の場合）を経由し、モデルファイル自身から何を構築するかを決定します。</p>
 <div class="table-wrapper">
 <table>
@@ -4356,7 +4386,7 @@ seg.segment("雪だるまを作る")
 [f"{t.surface}/{t.pos.name}" for t in seg.segment_with_pos("チャットGPTに聞く")]
 # ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   （user_words に入れた場合は 'チャットGPT/NOUN'）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>user_words</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>user_word_tags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate=0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>InvalidArgumentError</code> を送出します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、タグのない 1 文字の語は無視します。POS モデルでは、<code>user_words</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>user_word_tags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。<code>user_word_tags</code> の 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます（issue #276）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate=0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>InvalidArgumentError</code> を送出します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api"><a class="header" href="#api">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4475,7 +4505,7 @@ seg.segment('雪だるまを作る')
 tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${t.pos}`)
 // [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   （userWords に入れた場合は 'チャットGPT/NOUN'）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>userWords</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>userWordTags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>invalid_argument</code> コードのエラーを同期的に投げます（<code>fromUri</code> でも同様です）。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、タグのない 1 文字の語は無視します。POS モデルでは、<code>userWords</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>userWordTags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。<code>userWordTags</code> の 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます（issue #276）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>invalid_argument</code> コードのエラーを同期的に投げます（<code>fromUri</code> でも同様です）。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api-1"><a class="header" href="#api-1">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4594,7 +4624,7 @@ Segmenter::open('japanese', 'models/japanese.model', user_words: ['雪だるま'
 array_map(fn ($t) =&gt; "{$t-&gt;surface}/{$t-&gt;pos}", $tagged-&gt;segmentWithPos('チャットGPTに聞く'));
 // ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   （$user_words に入れた場合は 'チャットGPT/NOUN'）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>$user_words</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>$user_word_tags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment()</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。gate を <code>0.0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>Litsea\InvalidArgumentException</code> を投げます。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、タグのない 1 文字の語は無視します。POS モデルでは、<code>$user_words</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>$user_word_tags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment()</code> はタグを無視します。<code>$user_word_tags</code> の 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます（issue #276）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。gate を <code>0.0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>Litsea\InvalidArgumentException</code> を投げます。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api-2"><a class="header" href="#api-2">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4714,7 +4744,7 @@ seg.segment("雪だるまを作る")
 tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.pos}" }
 # =&gt; ["チャットGPT/PROPN", "に/ADP", "聞く/VERB"]   （user_words: に入れた場合は "チャットGPT/NOUN"）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>user_words:</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>user_word_tags:</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate: 0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは <code>Litsea::InvalidArgumentError</code> を、未知のキーワードは <code>ArgumentError</code> を送出します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、タグのない 1 文字の語は無視します。POS モデルでは、<code>user_words:</code> の語は他の語と同じようにタグ付けされます（<code>japanese_pos.model</code> では <code>雪だるま/NOUN</code>）。<code>user_word_tags:</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。<code>user_word_tags:</code> の 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます（issue #276）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>user_words_gate: 0.0</code> は、モデルがすでに同意している場所だけに語を適用します。<code>0.0</code>〜<code>1.0</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは <code>Litsea::InvalidArgumentError</code> を、未知のキーワードは <code>ArgumentError</code> を送出します。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="api-3"><a class="header" href="#api-3">API</a></h2>
 <div class="table-wrapper">
 <table>
@@ -4819,7 +4849,7 @@ const tagged = Segmenter.fromBytes('japanese', posBytes, undefined, undefined, {
 tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${t.pos}`)
 // [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   （userWords に入れた場合は 'チャットGPT/NOUN'）
 </code></pre>
-<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、<code>userWords</code> の語は他の語と同じようにタグ付けされ、<code>userWordTags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>invalid_argument</code> コードのエラーを投げます。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
+<p>登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、タグのない 1 文字の語は無視します。POS モデルでは、<code>userWords</code> の語は他の語と同じようにタグ付けされ、<code>userWordTags</code> の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。<code>segment</code> はタグを無視します。<code>userWordTags</code> の 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます（issue #276）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。<code>userWordsGate</code> を <code>0</code> にすると、モデルがすでに同意している場所だけに語を適用します。<code>0</code>〜<code>1</code> の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、<code>invalid_argument</code> コードのエラーを投げます。意味論の全体は <a href="#ユーザー辞書">Segmenter</a> を参照してください。</p>
 <h2 id="ホストの制約で提供しない機能"><a class="header" href="#ホストの制約で提供しない機能">ホストの制約で提供しない機能</a></h2>
 <p>5 つのバインディングの中で最も制約が強く、いずれも推測ではなく実測に基づいて判断しています。</p>
 <div class="table-wrapper">
