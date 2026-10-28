@@ -1373,7 +1373,7 @@ checksum = "241eaef5fd12c88705a01fc1066c48c4b36e0dd4377dcdc7ec3942cea7a69956"
 
 [[package]]
 name = "litsea"
-version = "0.14.3"
+version = "0.15.0"
 dependencies = [
  "criterion",
  "reqwest",
@@ -1385,7 +1385,7 @@ dependencies = [
 
 [[package]]
 name = "litsea-binding-core"
-version = "0.14.3"
+version = "0.15.0"
 dependencies = [
  "litsea",
  "tempfile",
@@ -1395,7 +1395,7 @@ dependencies = [
 
 [[package]]
 name = "litsea-cli"
-version = "0.14.3"
+version = "0.15.0"
 dependencies = [
  "clap",
  "ctrlc",
@@ -1406,7 +1406,7 @@ dependencies = [
 
 [[package]]
 name = "litsea-nodejs"
-version = "0.14.3"
+version = "0.15.0"
 dependencies = [
  "litsea",
  "litsea-binding-core",
@@ -1417,7 +1417,7 @@ dependencies = [
 
 [[package]]
 name = "litsea-php"
-version = "0.14.3"
+version = "0.15.0"
 dependencies = [
  "ext-php-rs",
  "litsea",
@@ -1426,7 +1426,7 @@ dependencies = [
 
 [[package]]
 name = "litsea-python"
-version = "0.14.3"
+version = "0.15.0"
 dependencies = [
  "litsea",
  "litsea-binding-core",
@@ -1436,7 +1436,7 @@ dependencies = [
 
 [[package]]
 name = "litsea-ruby"
-version = "0.14.3"
+version = "0.15.0"
 dependencies = [
  "litsea",
  "litsea-binding-core",
@@ -1446,7 +1446,7 @@ dependencies = [
 
 [[package]]
 name = "litsea-wasm"
-version = "0.14.3"
+version = "0.15.0"
 dependencies = [
  "js-sys",
  "litsea",
