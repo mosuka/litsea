@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-litsea-binding-core = "0.14.3"
+litsea-binding-core = "0.15.0"
 ```
 
 ## モジュール構成
