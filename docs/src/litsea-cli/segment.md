@@ -21,7 +21,7 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | Enable POS-tagged segmentation output. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`) |
 | `--threads <N>` | `1` | Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with `N > 1`, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without `--pos`). Wall-clock time for large inputs drops with core count; single-line latency is unchanged |
-| `--user-words <FILE>` | none | User dictionary (issues #263, #264): a UTF-8 file with one word per line, optionally followed by a TAB and a UPOS tag. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. With `--pos`, a token that is a tagged word gets the registered tag. Words of one character and empty lines are ignored |
+| `--user-words <FILE>` | none | User dictionary (issues #263, #264, #276): a UTF-8 file with one word per line, optionally followed by a TAB and a UPOS tag. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. With `--pos`, a token that is a tagged word gets the registered tag; a tagged word of one character changes no boundary and retags only the tokens that are exactly that character. Untagged words of one character and empty lines are ignored |
 | `--user-words-gate <RATIO>` | none | Flip-ratio gate for `--user-words`, in `0.0..=1.0`: an occurrence is applied only if the share of the model's margin it would overturn is at most `RATIO` (`0` = only where the model already agrees, `1` = always). Requires `--user-words` |
 
 ## Input / Output
@@ -137,8 +137,9 @@ without retraining (issue #263). The file is UTF-8 with one word per line.
 A byte order mark at the start of the file is ignored (issue #275);
 otherwise only the line terminator is stripped, so a word is matched
 exactly as written, empty lines are skipped, and there is no comment
-syntax. Words of one character are ignored. A word may be followed by a TAB and a UPOS tag
-for `--pos` (see [Tagged Entries](#tagged-entries)).
+syntax. Words of one character are ignored unless they carry a tag. A word
+may be followed by a TAB and a UPOS tag for `--pos` (see [Tagged
+Entries](#tagged-entries)).
 
 ```sh
 printf '雪だるま\n新幹線\n' > words.txt
@@ -190,6 +191,27 @@ Registered without tags, `チャットGPT` and `ポケモン` come out as `NOUN`
 With `--user-words-gate`, an occurrence the gate rejects still gets its tag
 if the model emits it exactly as registered anyway.
 
+A tagged word of one character (issue #276) changes no boundary: only a
+token that is exactly that character gets the tag, while the character
+inside a longer token keeps the tagger's. It suits a one-character name or
+a symbol that the training data lacks:
+
+```sh
+printf '楓\tPROPN\n★\tSYM\n' > words.txt
+printf '楓が笑った。\n★が三つ付いた。\n' \
+  | litsea segment --pos --user-words words.txt -l japanese ./models/japanese_pos.model
+```
+
+```text
+楓/PROPN が/ADP 笑っ/VERB た/AUX 。/PUNCT
+★/SYM が/ADP 三/NUM つ/NOUN 付い/VERB た/AUX 。/PUNCT
+```
+
+Without the file, the model gives `楓/NOUN` and `★/PUNCT`. A tag is
+context-free, so an entry for a function word such as `で` or `に` retags
+it in every sentence, whatever its role there. An untagged word of one
+character is ignored.
+
 A line is split at its first TAB. The tag is trimmed of surrounding
 whitespace (so a trailing CR or space is accepted) and must be one of the
 17 UPOS tags, written in upper case; the word is still matched exactly as
@@ -202,7 +224,7 @@ validated with or without `--pos`, and every error names the line:
 | `<TAB>NOUN` | empty word before the TAB |
 | `word<TAB>NOUN<TAB>X` | too many columns |
 | `word<TAB>` | empty UPOS tag |
-| `word<TAB>Noun` | unknown UPOS tag (also for a one-character word, which is otherwise ignored) |
+| `word<TAB>Noun` | unknown UPOS tag |
 | `word<TAB>NOUN` after `word<TAB>PROPN` | the word is tagged differently on two lines |
 
 ```text

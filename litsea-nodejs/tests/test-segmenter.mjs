@@ -114,11 +114,11 @@ test('an out-of-range userWordsGate throws with a code', async () => {
   )
 })
 
-// Tagged user dictionary entries (#264): the tagger gives both words NOUN
+// Tagged user dictionary entries (#264): the tagger gives these words NOUN
 // without a tag (`ポケモン` through the lexicon, `チャットGPT` through the full
-// argmax).
-const USER_WORD_TAGS = { チャットGPT: 'PROPN', ポケモン: 'PROPN' }
-const TAGGED_SENTENCES = ['チャットGPTに聞く', 'ポケモンを集める', '雪だるまを作る']
+// argmax). `楓` is a one-character, tag-only entry (#276).
+const USER_WORD_TAGS = { チャットGPT: 'PROPN', ポケモン: 'PROPN', 楓: 'PROPN' }
+const TAGGED_SENTENCES = ['チャットGPTに聞く', 'ポケモンを集める', '雪だるまを作る', '楓が笑った。']
 
 /**
  * Renders `segmentWithPos` the way `litsea segment --pos` prints it.
@@ -151,6 +151,8 @@ test('userWordTags matches a tagged --user-words file', () => {
   const untagged = Segmenter.open('japanese', model, ['雪だるま', ...Object.keys(USER_WORD_TAGS)])
   assert.match(tagged(untagged, 'チャットGPTに聞く'), /^チャットGPT\/NOUN /)
   assert.notEqual(tagged(seg, 'ポケモンを集める'), tagged(untagged, 'ポケモンを集める'))
+  assert.match(tagged(seg, '楓が笑った。'), /^楓\/PROPN /)
+  assert.match(tagged(untagged, '楓が笑った。'), /^楓\/NOUN /)
 })
 
 test('userWordTags on every constructor, also without userWords', async () => {

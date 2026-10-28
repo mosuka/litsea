@@ -18,6 +18,21 @@ use crate::upos::Upos;
 /// Node id of the trie root.
 const ROOT: u32 = 0;
 
+/// Returns the character of a one-character word.
+///
+/// # Arguments
+/// * `word` - The word to look at.
+///
+/// # Returns
+/// `Some(ch)` if `word` is exactly one character, otherwise `None`.
+fn single_char(word: &str) -> Option<char> {
+    let mut chars = word.chars();
+    match (chars.next(), chars.next()) {
+        (Some(ch), None) => Some(ch),
+        _ => None,
+    }
+}
+
 /// A set of words that [`Segmenter`](crate::segmenter::Segmenter) emits as
 /// single tokens whenever they occur in the input.
 ///
@@ -35,9 +50,10 @@ const ROOT: u32 = 0;
 ///   normalization. A word may contain a space; for languages whose
 ///   models emit spaces as tokens (Korean, English), such a word becomes
 ///   one token that contains the space.
-/// - Words of one character or less have no inside and are not stored
-///   ([`add`](Self::add) and [`add_with_pos`](Self::add_with_pos) return
-///   `false` for them, and their tag is dropped too).
+/// - A word of one character has no inside to keep together, so it never
+///   constrains segmentation: [`add`](Self::add) does not store it, and
+///   [`add_with_pos`](Self::add_with_pos) stores it as a tag-only entry
+///   (see below). The empty string is never stored.
 ///
 /// # Tags
 ///
@@ -53,6 +69,15 @@ const ROOT: u32 = 0;
 /// well. An untagged word is tagged by the two-stage path like any other
 /// word, and [`Segmenter::segment`](crate::segmenter::Segmenter::segment)
 /// ignores tags altogether.
+///
+/// A word of one character registered with a tag is a tag-only entry
+/// (issue #276). It is never matched, so it forces no boundary and the
+/// gate does not apply to it; only a token that is exactly that character
+/// gets the tag, while the character inside a longer token keeps the
+/// tagger's. Whether it applies therefore depends on the model emitting
+/// the character as a token of its own. Like every tag it is context
+/// free: an entry for a function word such as `で` retags every
+/// occurrence, whatever its role in the sentence.
 ///
 /// # Gate
 ///
@@ -76,10 +101,12 @@ const ROOT: u32 = 0;
 /// let mut dictionary = UserDictionary::from_words(["雪だるま", "新幹線"]);
 /// assert_eq!(dictionary.len(), 2);
 /// assert!(dictionary.contains("新幹線"));
-/// assert!(!dictionary.add("あ")); // one character: not stored
+/// assert!(!dictionary.add("あ")); // one character without a tag: not stored
 /// assert!(dictionary.add_with_pos("チャットGPT", Upos::PROPN));
 /// assert_eq!(dictionary.pos("チャットGPT"), Some(Upos::PROPN));
 /// assert_eq!(dictionary.pos("新幹線"), None); // registered without a tag
+/// assert!(dictionary.add_with_pos("楓", Upos::PROPN)); // a tag-only entry
+/// assert_eq!(dictionary.pos("楓"), Some(Upos::PROPN));
 /// dictionary.set_gate(Some(0.5)).unwrap();
 /// assert_eq!(dictionary.gate(), Some(0.5));
 /// ```
@@ -94,9 +121,14 @@ pub struct UserDictionary {
     /// word's terminal node. Untagged words have no entry, so a dictionary
     /// without tags keeps this map empty.
     tags: FxHashMap<u32, Upos>,
-    /// Number of registered words.
+    /// UPOS tags of the one-character words registered with a tag (#276).
+    /// They are tag-only entries, kept out of the trie so that matching
+    /// never sees them.
+    char_tags: FxHashMap<char, Upos>,
+    /// Number of registered words, the one-character entries included.
     len: usize,
-    /// Length in characters of the longest registered word (0 when empty).
+    /// Length in characters of the longest word in the trie (0 when the
+    /// trie is empty).
     max_len: usize,
     /// Optional flip-ratio gate in `0.0..=1.0`; `None` applies every
     /// occurrence.
@@ -120,6 +152,7 @@ impl UserDictionary {
             edges: FxHashMap::default(),
             terminal: vec![false],
             tags: FxHashMap::default(),
+            char_tags: FxHashMap::default(),
             len: 0,
             max_len: 0,
             gate: None,
@@ -129,7 +162,8 @@ impl UserDictionary {
     /// Creates a dictionary from an iterator of words.
     ///
     /// Each word goes through [`add`](Self::add), so words of one character
-    /// or less and duplicates are skipped silently.
+    /// or less and duplicates are skipped silently (a one-character word
+    /// needs a tag, see [`add_with_pos`](Self::add_with_pos)).
     ///
     /// # Arguments
     /// * `words` - The words to register.
@@ -151,26 +185,30 @@ impl UserDictionary {
 
     /// Registers a word.
     ///
-    /// A word that is already registered keeps its tag, if it has one.
+    /// A word that is already registered keeps its tag, if it has one. A
+    /// word of one character is not stored: it has no inside to keep
+    /// together, and only [`add_with_pos`](Self::add_with_pos) registers
+    /// it, as a tag-only entry.
     ///
     /// # Arguments
     /// * `word` - The word to register, matched later exactly as given.
     ///
     /// # Returns
     /// `true` if the word was newly registered; `false` if it has fewer
-    /// than two characters (there is no inside to keep together) or was
-    /// already registered.
+    /// than two characters or was already registered.
     pub fn add(&mut self, word: &str) -> bool {
         self.insert(word).is_some_and(|(_, added)| added)
     }
 
     /// Registers a word with a UPOS tag (issue #264).
     ///
-    /// The word constrains segmentation exactly like one registered with
-    /// [`add`](Self::add); the tag only affects
+    /// A word of two or more characters constrains segmentation exactly
+    /// like one registered with [`add`](Self::add); the tag only affects
     /// [`Segmenter::segment_with_pos`](crate::segmenter::Segmenter::segment_with_pos),
-    /// which gives every token whose surface is this word the tag (see the
-    /// type documentation).
+    /// which gives every token whose surface is this word the tag. A word
+    /// of one character becomes a tag-only entry (issue #276): it
+    /// constrains nothing, and only a token that is exactly that character
+    /// gets the tag (see the type documentation).
     ///
     /// # Arguments
     /// * `word` - The word to register, matched later exactly as given.
@@ -178,10 +216,15 @@ impl UserDictionary {
     ///   registered, its tag is set to `pos`, replacing any earlier one.
     ///
     /// # Returns
-    /// `true` if the word was newly registered; `false` if it has fewer
-    /// than two characters (nothing is stored, the tag included) or was
-    /// already registered (its tag is still set).
+    /// `true` if the word was newly registered; `false` if it is empty
+    /// (nothing is stored, the tag included) or was already registered
+    /// (its tag is still set).
     pub fn add_with_pos(&mut self, word: &str, pos: Upos) -> bool {
+        if let Some(ch) = single_char(word) {
+            let added = self.char_tags.insert(ch, pos).is_none();
+            self.len += usize::from(added);
+            return added;
+        }
         let Some((node, added)) = self.insert(word) else {
             return false;
         };
@@ -251,10 +294,13 @@ impl UserDictionary {
     ///
     /// # Returns
     /// `true` if `word` was registered through [`add`](Self::add),
-    /// [`add_with_pos`](Self::add_with_pos) or
-    /// [`from_words`](Self::from_words).
+    /// [`add_with_pos`](Self::add_with_pos) (a one-character word
+    /// included) or [`from_words`](Self::from_words).
     #[must_use]
     pub fn contains(&self, word: &str) -> bool {
+        if let Some(ch) = single_char(word) {
+            return self.char_tags.contains_key(&ch);
+        }
         self.node(word).is_some_and(|node| self.terminal[node as usize])
     }
 
@@ -268,6 +314,9 @@ impl UserDictionary {
     /// the word is not registered or was registered without a tag.
     #[must_use]
     pub fn pos(&self, word: &str) -> Option<Upos> {
+        if let Some(ch) = single_char(word) {
+            return self.char_tags.get(&ch).copied();
+        }
         if self.tags.is_empty() {
             return None;
         }
@@ -278,17 +327,18 @@ impl UserDictionary {
     /// Returns whether any registered word carries a tag.
     ///
     /// # Returns
-    /// `true` after a successful [`add_with_pos`](Self::add_with_pos);
-    /// lets `segment_with_pos` skip the tag lookups for an untagged
-    /// dictionary.
+    /// `true` after a successful [`add_with_pos`](Self::add_with_pos), a
+    /// one-character word included; lets `segment_with_pos` skip the tag
+    /// lookups for an untagged dictionary.
     pub(crate) fn has_tags(&self) -> bool {
-        !self.tags.is_empty()
+        !self.tags.is_empty() || !self.char_tags.is_empty()
     }
 
     /// Returns the number of registered words.
     ///
     /// # Returns
-    /// The count of distinct words of two or more characters added so far.
+    /// The count of distinct words added so far: the words of two or more
+    /// characters, and the one-character words registered with a tag.
     #[must_use]
     pub fn len(&self) -> usize {
         self.len
@@ -298,17 +348,29 @@ impl UserDictionary {
     ///
     /// # Returns
     /// `true` if [`len`](Self::len) is zero. An empty dictionary leaves
-    /// segmentation untouched.
+    /// segmentation untouched, and so does one whose only words are of
+    /// one character.
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
 
-    /// Returns the length in characters of the longest registered word.
+    /// Returns whether any registered word constrains segmentation.
     ///
     /// # Returns
-    /// The maximum character count over the registered words, or 0 when
-    /// the dictionary is empty. Bounds the trie walk per position.
+    /// `true` if a word of two or more characters is registered. The
+    /// one-character words only carry a tag (#276), so with those alone
+    /// `segment_into` skips matching, as it does without a dictionary.
+    pub(crate) fn forces_boundaries(&self) -> bool {
+        self.max_len > 0
+    }
+
+    /// Returns the length in characters of the longest word in the trie.
+    ///
+    /// # Returns
+    /// The maximum character count over the registered words of two or
+    /// more characters, or 0 when there are none. Bounds the trie walk per
+    /// position.
     pub(crate) fn max_len(&self) -> usize {
         self.max_len
     }
@@ -493,13 +555,71 @@ mod tests {
     }
 
     #[test]
-    fn test_add_with_pos_drops_short_words_with_their_tag() {
+    fn test_add_with_pos_drops_the_empty_word() {
         let mut dictionary = UserDictionary::new();
-        assert!(!dictionary.add_with_pos("猫", Upos::NOUN));
         assert!(!dictionary.add_with_pos("", Upos::NOUN));
         assert!(dictionary.is_empty());
         assert!(!dictionary.has_tags());
+        assert_eq!(dictionary.pos(""), None);
+    }
+
+    /// Pins issue #276: a tagged one-character word is a tag-only entry.
+    #[test]
+    fn test_add_with_pos_registers_a_one_character_word() {
+        let mut dictionary = UserDictionary::new();
+        assert!(dictionary.add_with_pos("楓", Upos::PROPN));
+        assert!(dictionary.contains("楓"));
+        assert_eq!(dictionary.pos("楓"), Some(Upos::PROPN));
+        assert!(dictionary.has_tags());
+        assert_eq!(dictionary.len(), 1);
+        assert!(!dictionary.is_empty());
+        // It stays out of the trie: nothing to match, nothing to force.
+        assert_eq!(dictionary.max_len(), 0);
+        assert!(!dictionary.forces_boundaries());
+        assert_eq!(matches(&dictionary, "楓が笑った", 0), Vec::<usize>::new());
+        // A later tag replaces it (last wins); the word is not new.
+        assert!(!dictionary.add_with_pos("楓", Upos::NOUN));
+        assert_eq!(dictionary.pos("楓"), Some(Upos::NOUN));
+        // `add` neither registers it again nor drops its tag.
+        assert!(!dictionary.add("楓"));
+        assert_eq!(dictionary.pos("楓"), Some(Upos::NOUN));
+        assert_eq!(dictionary.len(), 1);
+        // Other one-character words are still unregistered.
+        assert!(!dictionary.contains("猫"));
         assert_eq!(dictionary.pos("猫"), None);
+    }
+
+    /// Pins issue #276 next to longer words: a one-character entry and a
+    /// word that starts with the same character are independent.
+    #[test]
+    fn test_one_character_entries_next_to_longer_words() {
+        let mut dictionary = UserDictionary::from_words(["楓林"]);
+        assert!(dictionary.add_with_pos("楓", Upos::PROPN));
+        assert!(dictionary.add_with_pos("★", Upos::SYM));
+        assert_eq!(dictionary.len(), 3);
+        assert_eq!(dictionary.max_len(), 2);
+        assert!(dictionary.forces_boundaries());
+        // Only the two-character word is matched.
+        assert_eq!(matches(&dictionary, "楓林", 0), vec![2]);
+        assert_eq!(matches(&dictionary, "楓★", 0), Vec::<usize>::new());
+        assert_eq!(dictionary.pos("楓"), Some(Upos::PROPN));
+        assert_eq!(dictionary.pos("楓林"), None);
+        assert!(dictionary.contains("楓林"));
+        // "林" occurs only inside "楓林" and has no entry of its own.
+        assert!(!dictionary.contains("林"));
+        assert_eq!(dictionary.pos("林"), None);
+    }
+
+    #[test]
+    fn test_forces_boundaries_needs_a_word_of_two_or_more_characters() {
+        let mut dictionary = UserDictionary::new();
+        assert!(!dictionary.forces_boundaries());
+        dictionary.add("あ");
+        assert!(!dictionary.forces_boundaries());
+        dictionary.add_with_pos("あ", Upos::NOUN);
+        assert!(!dictionary.forces_boundaries());
+        dictionary.add("あい");
+        assert!(dictionary.forces_boundaries());
     }
 
     #[test]
@@ -574,10 +694,12 @@ mod tests {
     fn test_clone_and_debug() {
         let mut dictionary = UserDictionary::from_words(["あい"]);
         dictionary.add_with_pos("うえ", Upos::ADJ);
+        dictionary.add_with_pos("お", Upos::INTJ);
         dictionary.set_gate(Some(0.25)).unwrap();
         let cloned = dictionary.clone();
         assert!(cloned.contains("あい"));
         assert_eq!(cloned.pos("うえ"), Some(Upos::ADJ));
+        assert_eq!(cloned.pos("お"), Some(Upos::INTJ));
         assert_eq!(cloned.gate(), Some(0.25));
         let debug = format!("{dictionary:?}");
         assert!(debug.starts_with("UserDictionary"));

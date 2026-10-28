@@ -10,3 +10,4 @@ english	english.model	seg	New York	I live in New York.	I   live   in   New York 
 japanese	japanese_pos.model	pos	雪だるま	雪だるまを作る	雪だるま/NOUN を/ADP 作る/VERB
 japanese	japanese_pos.model	pos	雪だるま,チャットGPT=PROPN,ポケモン=PROPN	チャットGPTに聞く	チャットGPT/PROPN に/ADP 聞く/VERB
 japanese	japanese_pos.model	pos	雪だるま,チャットGPT=PROPN,ポケモン=PROPN	ポケモンを集める	ポケモン/PROPN を/ADP 集める/VERB
+japanese	japanese_pos.model	pos	雪だるま,楓=PROPN	楓が笑った。	楓/PROPN が/ADP 笑っ/VERB た/AUX 。/PUNCT

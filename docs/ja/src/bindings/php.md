@@ -88,7 +88,7 @@ array_map(fn ($t) => "{$t->surface}/{$t->pos}", $tagged->segmentWithPos('チャ�
 // ['チャットGPT/PROPN', 'に/ADP', '聞く/VERB']   （$user_words に入れた場合は 'チャットGPT/NOUN'）
 ```
 
-登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、1 文字の語は無視します。POS モデルでは、`$user_words` の語は他の語と同じようにタグ付けされます（`japanese_pos.model` では `雪だるま/NOUN`）。`$user_word_tags` の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。`segment()` はタグを無視します。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。gate を `0.0` にすると、モデルがすでに同意している場所だけに語を適用します。`0.0`〜`1.0` の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、`Litsea\InvalidArgumentException` を投げます。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
+登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、タグのない 1 文字の語は無視します。POS モデルでは、`$user_words` の語は他の語と同じようにタグ付けされます（`japanese_pos.model` では `雪だるま/NOUN`）。`$user_word_tags` の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。`segment()` はタグを無視します。`$user_word_tags` の 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます（issue #276）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。gate を `0.0` にすると、モデルがすでに同意している場所だけに語を適用します。`0.0`〜`1.0` の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、`Litsea\InvalidArgumentException` を投げます。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
 
 ## API
 

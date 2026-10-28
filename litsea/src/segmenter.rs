@@ -1051,9 +1051,13 @@ impl Segmenter {
             // where the model's margin against them is small enough. On
             // the no-dictionary path `has_forced` stays false after a
             // single Option check and the loops below are the plain ones.
+            // A dictionary of one-character tag-only entries (#276)
+            // constrains nothing and takes the same path.
             let m = n - 6; // real-character count
             let mut has_forced = false;
-            if let Some(dictionary) = self.user_dictionary.as_ref().filter(|d| !d.is_empty()) {
+            if let Some(dictionary) =
+                self.user_dictionary.as_ref().filter(|d| d.forces_boundaries())
+            {
                 let real_codes = &char_codes[3..n - 3];
                 let candidates = &mut buf.candidates;
                 candidates.clear();
@@ -1220,7 +1224,8 @@ impl Segmenter {
     /// ([`UserDictionary::add_with_pos`], issue #264), every word whose
     /// surface is a tagged dictionary word gets the registered tag instead,
     /// ahead of the lexicon and the tagger; every other word keeps the
-    /// tagger's tag.
+    /// tagger's tag. A one-character entry (issue #276) retags only the
+    /// words that are exactly that character.
     ///
     /// # Arguments
     /// * `sentence` - The sentence to segment
@@ -2802,6 +2807,169 @@ mod tests {
             tagged.segment_with_pos("雪だるまを作る"),
             Err(LitseaError::PosLearnerNotSet)
         ));
+    }
+
+    // ---- One-character tag-only entries (#276) ----
+
+    /// A synthetic two-stage segmenter (stage 1 `SPLIT_ALL`, one token per
+    /// character) whose stage 2 reaches every tagging path on `あいう`:
+    /// `あ` is lexicon-fixed (NOUN), `い` is ambiguous in the lexicon and
+    /// decided by the candidate-masked argmax (VERB), and `う` is unknown
+    /// and decided by the full argmax (VERB).
+    fn one_character_two_stage_segmenter() -> Segmenter {
+        let mut stage1 = AdaBoost::default();
+        stage1.load_model_from_reader(SPLIT_ALL.as_bytes()).unwrap();
+        let mut stage2 = AveragedPerceptron::new();
+        stage2
+            .load_model_from_reader("2\nNOUN\nVERB\nWS:い\tVERB\t1\nWS:う\tVERB\t1\n".as_bytes())
+            .unwrap();
+        let lexicon = vec![
+            ("あ".to_string(), vec![(Upos::NOUN, 1)]),
+            ("い".to_string(), vec![(Upos::NOUN, 3), (Upos::VERB, 2)]),
+        ];
+        let learner = TwoStageLearner::from_parts(stage1, stage2, lexicon, 0.99).unwrap();
+        Segmenter::with_two_stage_learner(Language::Japanese, learner)
+    }
+
+    #[test]
+    fn test_one_character_entries_change_no_segmentation() {
+        // A one-character entry forces nothing: the sentence stays one
+        // token under JOIN_ALL and one token per character under SPLIT_ALL.
+        let entries = [("あ", Upos::PROPN), ("う", Upos::ADJ)];
+        for (stage1, want) in
+            [(JOIN_ALL, vec!["あいうえ"]), (SPLIT_ALL, vec!["あ", "い", "う", "え"])]
+        {
+            let segmenter = synthetic_segmenter(Language::Japanese, stage1)
+                .with_user_dictionary(tagged_dictionary(&[], &entries, None));
+            assert_eq!(segment_checked(&segmenter, "あいうえ"), want, "stage 1 {stage1:?}");
+        }
+        // Next to a longer word, the segmentation is that of the longer
+        // word alone.
+        for stage1 in [JOIN_ALL, SPLIT_ALL, AFTER_B_JOINS] {
+            let mixed = synthetic_segmenter(Language::Japanese, stage1)
+                .with_user_dictionary(tagged_dictionary(&["いう"], &entries, None));
+            let longer = synthetic_segmenter(Language::Japanese, stage1)
+                .with_user_dictionary(dictionary(&["いう"], None));
+            for sentence in ["あいうえ", "うあいう", "あ"] {
+                assert_eq!(
+                    segment_checked(&mixed, sentence),
+                    segment_checked(&longer, sentence),
+                    "{sentence:?}, stage 1 {stage1:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_one_character_tags_beat_every_stage2_path() {
+        let baseline = one_character_two_stage_segmenter();
+        assert_eq!(
+            pos_checked(&baseline, "あいう"),
+            owned(&[("あ", Upos::NOUN), ("い", Upos::VERB), ("う", Upos::VERB)])
+        );
+        // A dictionary of one-character entries only.
+        let tagged = one_character_two_stage_segmenter().with_user_dictionary(tagged_dictionary(
+            &[],
+            &[("あ", Upos::PROPN), ("い", Upos::ADJ), ("う", Upos::SYM)],
+            None,
+        ));
+        assert_eq!(
+            pos_checked(&tagged, "あいう"),
+            owned(&[("あ", Upos::PROPN), ("い", Upos::ADJ), ("う", Upos::SYM)])
+        );
+    }
+
+    #[test]
+    fn test_one_character_tags_retag_only_exact_tokens() {
+        let entries = [("い", Upos::PROPN), ("え", Upos::SYM)];
+        let tagged = |stage1, gate| {
+            two_stage_segmenter(stage1).with_user_dictionary(tagged_dictionary(&[], &entries, gate))
+        };
+        // SPLIT_ALL emits every character as a token: the registered
+        // characters take their tags, the others keep the tagger's.
+        assert_eq!(
+            pos_checked(&tagged(SPLIT_ALL, None), "あいうえ"),
+            owned(&[
+                ("あ", Upos::NOUN),
+                ("い", Upos::PROPN),
+                ("う", Upos::NOUN),
+                ("え", Upos::SYM)
+            ])
+        );
+        // JOIN_ALL emits one token: the characters inside it change nothing.
+        assert_eq!(
+            pos_checked(&tagged(JOIN_ALL, None), "あいうえ"),
+            pos_checked(&two_stage_segmenter(JOIN_ALL), "あいうえ")
+        );
+        // The gate does not apply to one-character entries, which are
+        // never matched.
+        assert_eq!(
+            pos_checked(&tagged(SPLIT_ALL, Some(0.0)), "あい"),
+            owned(&[("あ", Upos::NOUN), ("い", Upos::PROPN)])
+        );
+    }
+
+    #[test]
+    fn test_one_character_tags_change_only_exact_tokens_on_bundled_model() {
+        // Differential on the bundled model: one-character entries change
+        // no token, and no tag except on the tokens that are exactly a
+        // registered character. `で` is a function word whose tag depends
+        // on the context, so the override is visible there.
+        let entries = [("楓", Upos::PROPN), ("★", Upos::SYM), ("で", Upos::AUX)];
+        let plain = Segmenter::with_two_stage_learner(
+            Language::Japanese,
+            load_two_stage("japanese_pos.model"),
+        );
+        let tagged = Segmenter::with_two_stage_learner(
+            Language::Japanese,
+            load_two_stage("japanese_pos.model"),
+        )
+        .with_user_dictionary(tagged_dictionary(&[], &entries, None));
+
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../resources/bocchan.txt");
+        let text = std::fs::read_to_string(&path).unwrap();
+        let hits = text.lines().filter(|line| line.contains('で'));
+        let sentences: Vec<&str> = hits
+            .take(80)
+            .chain(text.lines().take(100))
+            .chain(STRESS_SENTENCES)
+            .chain(["楓が笑った。", "★が三つ付いた。", "楓林で★を見た。"])
+            .collect();
+        let (mut overridden, mut changed) = (0usize, 0usize);
+        for sentence in sentences.iter().filter(|s| !s.trim().is_empty()) {
+            assert_eq!(tagged.segment(sentence), plain.segment(sentence), "{sentence:?}");
+            let want = pos_checked(&plain, sentence);
+            let got = pos_checked(&tagged, sentence);
+            assert_eq!(got.len(), want.len(), "{sentence:?}");
+            for ((word, got_tag), (want_word, want_tag)) in got.iter().zip(&want) {
+                assert_eq!(word, want_word, "{sentence:?}");
+                match entries.iter().find(|&&(w, _)| w == word) {
+                    Some(&(_, pos)) => {
+                        assert_eq!(*got_tag, pos, "{word:?} in {sentence:?}");
+                        overridden += 1;
+                        changed += usize::from(want_tag != got_tag);
+                    }
+                    None => assert_eq!(got_tag, want_tag, "{word:?} in {sentence:?}"),
+                }
+            }
+        }
+        assert!(overridden > 50, "only {overridden} tagged tokens");
+        assert!(changed > 0, "the tagger already agreed on every tagged token");
+
+        // The use cases of #276: a one-character name and a symbol missing
+        // from the training data.
+        assert_eq!(
+            pos_checked(&plain, "楓が笑った。")[0],
+            ("楓".to_string(), Upos::NOUN),
+            "baseline"
+        );
+        assert_eq!(pos_checked(&tagged, "楓が笑った。")[0], ("楓".to_string(), Upos::PROPN));
+        assert_eq!(
+            pos_checked(&plain, "★が三つ付いた。")[0],
+            ("★".to_string(), Upos::PUNCT),
+            "baseline"
+        );
+        assert_eq!(pos_checked(&tagged, "★が三つ付いた。")[0], ("★".to_string(), Upos::SYM));
     }
 
     #[test]

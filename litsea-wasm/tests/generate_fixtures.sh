@@ -44,6 +44,7 @@ cases=(
   $'japanese\tjapanese_pos.model\tpos\t雪だるま\t雪だるまを作る'
   $'japanese\tjapanese_pos.model\tpos\t雪だるま,チャットGPT=PROPN,ポケモン=PROPN\tチャットGPTに聞く'
   $'japanese\tjapanese_pos.model\tpos\t雪だるま,チャットGPT=PROPN,ポケモン=PROPN\tポケモンを集める'
+  $'japanese\tjapanese_pos.model\tpos\t雪だるま,楓=PROPN\t楓が笑った。'
 )
 
 : > "${out}"
