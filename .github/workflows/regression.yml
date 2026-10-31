@@ -14,7 +14,9 @@ jobs:
     strategy:
       matrix:
         platform:
-          - runner: ubuntu-latest
+          # Pinned to 24.04: clippy --workspace builds litsea-php, and
+          # ext-php-rs cannot generate its PHP bindings on Ubuntu 26.04 (#291).
+          - runner: ubuntu-24.04
         toolchain: [stable]
     runs-on: ${{ matrix.platform.runner }}
     steps:
@@ -167,7 +169,9 @@ jobs:
   test-litsea-php:
     name: Test litsea-php
     needs: [format]
-    runs-on: ubuntu-latest
+    # Pinned to 24.04: ext-php-rs cannot generate its PHP bindings on
+    # Ubuntu 26.04 (#291).
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         php-version: ["8.1", "8.3", "8.5"]
