@@ -14,7 +14,7 @@ https://github.com/mosuka/litsea/releases/download/<tag>/japanese_pos.model
 
 これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 25MB に対し、1 つあたり 86KB〜8.3MB）。これにより次の 2 つが可能になります。
 
-- `remote_model` feature を有効にすれば、CLI やライブラリが URL を直接受け取れます: `litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model`
+- CLI は URL を直接受け取れます（CLI は常に `remote_model` feature 付きでビルドされます）。ライブラリも `remote_model` feature を有効にすれば受け取れます: `litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model`
 - `fromUri` を持たない [WebAssembly バインディング](bindings/wasm.md)でも、ページ側で `fetch` してバイト列を `Segmenter.fromBytes` に渡せます
 
 `main` ではなくリリースタグを指定しておくと、デプロイ先のモデル重みが固定されます。モデルはリリース間で再学習されることがあり、held-out スコアもそれに伴って変わります。
@@ -118,7 +118,7 @@ held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回りま�
 
 ## 学習手順
 
-`japanese.model`、`chinese.model`、`korean.model` は binary-perceptron 畳み込み手順
+`japanese.model`、`chinese.model`、`korean.model`、`english.model` は binary-perceptron 畳み込み手順
 （issue #165）で再学習しています。エンジンの変更は不要ですが、通常の
 `litsea train` に加えて数ステップが必要です（通常の AdaBoost 手順は
 [モデルの学習](training-guide/training-models.md)を参照してください）:
@@ -126,8 +126,8 @@ held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回りま�
 ```sh
 # 1. プレーンな境界特徴量を抽出（従来と同じステップ）。--tag-free を付けると
 #    16 個のタグ依存テンプレートを除外して pointwise モデルを学習できる
-#    （korean.model で使用。次節を参照）。
-litsea extract -l <language> [韓国語なら --format tsv] [--tag-free] <corpus> <features.txt>
+#    （korean.model と english.model で使用。次節を参照）。
+litsea extract -l <language> [韓国語・英語なら --format tsv] [--tag-free] <corpus> <features.txt>
 
 # 2. 境界ラベル 1/-1 を B/O にリマップする。これは見た目の問題ではなく
 #    正しさのために必須: perceptron 自身のタイブレーク（クラスインデックスが
@@ -171,8 +171,10 @@ scripts/prune_adaboost_model.py <collapsed.model> <pruned.model> <n>
 のみに依存する -- になり、`segment()` はモデルのロード時にこれを検出して
 逐次パスを丸ごとスキップします（issue #183）。
 
-タグ特徴量の価値は言語によって大きく異なります（すべて UD GSD テスト
-分割上の、収束確認済みエポックスイープによる計測値。issue #183）:
+タグ特徴量の価値は言語によって大きく異なります（韓国語・日本語・中国語は
+UD GSD テスト分割上の、収束確認済みエポックスイープによる計測値です。英語は
+UD English-EWT の dev split での計測値で、表の下の注記を参照してください。
+issue #183）:
 
 | 言語 | 単語 F1（タグあり） | 単語 F1（タグなし） | スループット変化 |
 |------|--------------------|--------------------|------------------|

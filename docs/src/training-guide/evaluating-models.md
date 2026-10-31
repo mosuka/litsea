@@ -71,7 +71,7 @@ gap is residual ambiguity English keeps even with spaces present
 ### Reproducing the Benchmarks
 
 Every figure in the table above is reproducible with one command using the
-bundled gold data (`resources/eval/`, converted from the UD GSD **test**
+bundled gold data (`resources/eval/`, converted from the UD GSD/EWT **test**
 splits — held-out for the bundled models, which are trained on the train
 splits):
 
