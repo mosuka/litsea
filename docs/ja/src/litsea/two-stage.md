@@ -36,8 +36,10 @@ pub fn from_parts(
 ) -> Result<Self>
 ```
 
-`new` は空の learner を作成します（使用前に `load_model*` 系メソッドで
-埋める必要があります）。`from_parts` はパーツから learner を構築し、
+`new` は、既定の dominance 閾値
+`litsea::two_stage::DEFAULT_DOMINANCE`（`0.99`）を持つ空の learner を
+作成します（使用前に `load_model*` 系メソッドで埋める必要があります）。
+`from_parts` はパーツから learner を構築し、
 組み合わせを検証します: `dominance` は `(0.5, 1.0]` の範囲内、
 stage-2 の各クラス名は有効な `Upos` タグである必要があり、
 各語彙エントリは非空のサーフェス（タブ・改行を含まない）、
@@ -64,7 +66,14 @@ pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> Result<()>
 読み込みはファイル構造全体を検証します（オンディスクのレイアウトは
 [モデルファイル形式](../advanced/model-file-format.md) を参照）。
 不正な内容は `LitseaError::InvalidData` で拒否され、読み込みエラー時に
-learner は変更されません。
+learner は変更されません。`[params]` セクションの無い（またはその中に
+`dominance` 行の無い）モデルファイルは、`DEFAULT_DOMINANCE` で
+読み込まれます。
+
+wasm32 では `load_model_from_path` は使えず、プレーンなパスや
+`file://` の URI を渡した `load_model` は `LitseaError::Unsupported` で
+失敗します。`load_model_from_reader` か、`remote_model` フィーチャを
+有効にして `http(s)://` の URI を使ってください。
 
 ```rust
 use std::path::Path;
@@ -124,7 +133,13 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
 
 `FromStr`（大文字小文字を区別しない: `"full"`, `"balanced"`, `"fast"`）と
 `Display`（小文字）を実装しています。`#[non_exhaustive]` が付与されて
-おり、外部の `match` 式にはワイルドカードアームが必要です。
+おり、外部の `match` 式にはワイルドカードアームが必要です。それ以外の名前の
+パースは `ParseTwoStageFeatureSetError`（クレートルートから
+`litsea::ParseTwoStageFeatureSetError` として再エクスポート）で失敗し、
+エラーメッセージは
+`invalid two-stage feature set: '<input>' (expected full, balanced, or fast)`
+となります。`ParseLanguageError` や `ParseUposError` と異なり、`input()`
+アクセサはありません。
 
 ## `ModelKind`
 

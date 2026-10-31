@@ -9,11 +9,12 @@ pub struct Segmenter {
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: two_stage: Option<PackedTwoStageModel>（コンパイル済み stage-2 モデル）
+    // private: user_dictionary: Option<UserDictionary>
     // internal: packed cache (see below)
 }
 ```
 
-フィールドは非公開です。アクセサメソッド `language()`、`learner()`、`learner_mut()` を使ってアクセスしてください。
+フィールドは非公開です。アクセサメソッド `language()`、`learner()`、`learner_mut()`、`user_dictionary()` を使ってアクセスしてください。ユーザー辞書は `with_user_dictionary` か `set_user_dictionary` で設定します（[ユーザー辞書](#ユーザー辞書)を参照）。
 
 これらに加えて、構造体は `packed` も保持しています。これは学習器の重みを `segment()` が採点に使う整数インデックスのテーブル群へコンパイルした、遅延再構築されるキャッシュです（[予測パイプライン](../algorithm/prediction-pipeline.md#コンパイル済みスコアリングテーブル)を参照）。これは内部実装の詳細でありアクセサはなく、学習器が変更されると自動的に無効化されます。`two_stage` は [`with_two_stage_learner`](#with_two_stage_learner)（後述）が設定するコンパイル済み stage-2 タグ付けモデルを保持します。二段構成モデルから作成された Segmenter でなければ `None` です。キャッシュとは異なり、保持された学習器から導出されるものではありません — 生の stage-2 パーツはコンパイル後に破棄され、このフィールドへの変更経路は存在しません。
 
@@ -25,7 +26,7 @@ pub struct Segmenter {
 pub fn new(language: Language) -> Self
 ```
 
-デフォルト（未学習）の `AdaBoost` 学習器を持つ Segmenter を作成します。学習や特徴量抽出に適しています。モデルが読み込まれるか学習データが追加されるまでは、`segment` は文字ごとに1単語を返します。二段構成モデルは未設定のままで、`segment_with_pos` は `Err(LitseaError::PosLearnerNotSet)` を返します — 単語分割と品詞タグ付けを行うには [`with_two_stage_learner`](#with_two_stage_learner) を使用してください。
+デフォルト（未学習）の `AdaBoost` 学習器を持つ Segmenter を作成します。学習や特徴量抽出に適しています。モデルが読み込まれるか学習データが追加されるまでは、`segment` は文字ごとに1単語を返します。二段構成モデルは未設定のままで、`segment_with_pos` は空でない文に対して `Err(LitseaError::PosLearnerNotSet)` を返します — 単語分割と品詞タグ付けを行うには [`with_two_stage_learner`](#with_two_stage_learner) を使用してください。
 
 ### `Segmenter::with_learner`
 
@@ -131,7 +132,7 @@ assert_eq!(segmenter.char_type('A'), "A");   // ASCII
 pub fn add_corpus(&mut self, corpus: &str)
 ```
 
-スペース区切りのコーパスを処理し、内部の AdaBoost 学習器にインスタンスを追加します。
+スペース区切りのコーパスを処理し、先頭を除く文字位置ごとに 1 つずつ、内部の AdaBoost 学習器にインスタンスを追加します。
 
 ```rust
 let mut segmenter = Segmenter::new(Language::Japanese);
@@ -146,7 +147,7 @@ where
     F: FnMut(HashSet<String>, i8),
 ```
 
-コーパスを処理し、各文字位置の特徴量セットとラベルをコールバックに渡します。
+コーパスを処理し、先頭を除く各文字位置の特徴量セットと境界ラベル（`1` = 単語の開始、`-1` = 単語の続き）をコールバックに渡します。先頭の位置のラベルは常に単語の開始なので渡しません。例えば `"テスト です"` は 5 文字なので、コールバックは 4 回呼ばれます。
 
 ```rust
 segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
@@ -163,7 +164,7 @@ where
     F: FnMut(HashSet<String>, i8),
 ```
 
-`add_corpus` / `add_corpus_with_writer` のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（`" "`）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルおよび英語モデルで使用。issue #152）。
+`add_corpus` / `add_corpus_with_writer` のタブ区切りバリアントです。トークンはタブ文字で区切られ、トークンとして空白文字そのもの（`" "`）を含められます。これにより学習テキスト内に元の文の空白が保持され、モデルは空白文字を境界のコンテキストとして学習できます（韓国語モデルおよび英語モデルで使用。issue #152）。`add_corpus` / `add_corpus_with_writer` と同じく、先頭の文字位置は除きます。
 
 ```rust
 let mut segmenter = Segmenter::new(Language::Korean);
@@ -209,7 +210,7 @@ pub fn segment_with_pos(&self, sentence: &str) -> Result<Vec<(String, Upos)>>
 
 stage-1 境界分類器で文を単語に分割し（`segment` と全く同じ）、二段構成のタグ付け経路で各単語に UPOS タグを付与します。ユーザー辞書がタグ付きで登録した語には、代わりにそのタグを付けます（[タグ](#タグ)を参照）。空の文に対しては、空のベクターを持つ `Ok` を返します。
 
-**エラー**: 二段構成学習器が設定されていない場合は `LitseaError::PosLearnerNotSet` を返します — まず `with_two_stage_learner()` で Segmenter を作成してください。
+**エラー**: 二段構成学習器が設定されておらず、文が空でない場合は `LitseaError::PosLearnerNotSet` を返します（空の文には、学習器を確かめる前に空のベクターを持つ `Ok` を返します） — まず `with_two_stage_learner()` で Segmenter を作成してください。
 
 ```rust
 use std::path::Path;
@@ -236,6 +237,16 @@ where
 ```
 
 POS タグ付きコーパス（`word/POS word/POS ...`）の文字レベル学習用特徴量を、最初の位置を含めて、Segmenter を変更することなくカスタムライターへストリーミングします。これは `Extractor::extract_two_stage` が stage-1 境界特徴量を構築する際の基盤となっています。
+
+### `add_corpus_tsv_with_pos_writer`
+
+```rust
+pub fn add_corpus_tsv_with_pos_writer<F>(&self, corpus: &str, writer: F)
+where
+    F: FnMut(HashSet<String>, SegmentLabel)
+```
+
+`add_corpus_with_pos_writer` のタブ区切りバリアントです（`word/POS\tword/POS\t...`、issue #198）。トークンとして空白文字そのもの（`" "`）を含められるため、学習テキストに元の空白が残ります。空白のトークンには `/POS` が付かないので `B(Upos::X)` のラベルになります。二段構成の extractor は stage-1 のラベルをすべて `B`/`O` にまとめるので、空白に付いたタグはそこでは効きません。スペース区切り版と同じく、最初の位置を含み、Segmenter を変更しません。`Extractor::extract_two_stage` は、タブ区切りのコーパスにこのメソッドを使います。
 
 ## ユーザー辞書
 
@@ -323,9 +334,22 @@ let tokens = segmenter.segment_with_pos("チャットGPTに聞く")?;
 - ほかのタグと同じく文脈を見ないので、文によってタグが変わらない語に向いています。1 文字の名前や、学習データにない記号がその例です。`で` や `に` のような機能語を登録すると、文の中での役割にかかわらず、すべての出現のタグが置き換わります。UD の test セットからこの方法でタグを選ぶと、held-out の文では効果がなく、中国語と韓国語ではタグの正しいトークンが減りました（issue #276）。
 
 ```rust
-// 上の例の segmenter に、この辞書を設定した場合:
+use std::path::Path;
+
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
+use litsea::upos::Upos;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+// 上の例と同じ準備で、辞書だけをこれに替えた場合:
 let mut dictionary = UserDictionary::new();
 dictionary.add_with_pos("楓", Upos::PROPN);
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner)
+    .with_user_dictionary(dictionary);
 let tokens = segmenter.segment_with_pos("楓が笑った。")?;
 // [("楓", Upos::PROPN), ("が", Upos::ADP), ("笑っ", Upos::VERB),
 //  ("た", Upos::AUX), ("。", Upos::PUNCT)]
