@@ -13,13 +13,25 @@ Litsea is a Rust library, but it is also usable from other languages. The bindin
 | [`litsea-ruby`](bindings/ruby.md) | Ruby 3.1+ | magnus + rb-sys | Available |
 | [`litsea-wasm`](bindings/wasm.md) | Browser / Deno | wasm-bindgen | Available |
 
+## Capabilities
+
+Every binding segments, tags and takes a user dictionary, but not every host allows the rest:
+
+| Crate | Model input | Training | Stopping a training run in progress |
+|-------|-------------|----------|-------------------------------------|
+| `litsea-python` | Bytes, path, `file://`, `http(s)://` | Yes | Yes: the GIL is released |
+| `litsea-nodejs` | Bytes, path, `file://`, `http(s)://` | Yes, returning a Promise | Yes: training runs on the libuv threadpool |
+| `litsea-php` | Bytes, path, `file://`, `http(s)://` | Yes, blocking | No: a token takes effect only if cancelled before `train()` |
+| `litsea-ruby` | Bytes, path, `file://`, `http(s)://` | Yes | Yes: the GVL is released |
+| `litsea-wasm` | Bytes only | No | — |
+
 ## Design principles
 
 These apply to every binding.
 
 ### Models are never embedded
 
-A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a `file://` path, or an `http(s)://` URL. The bundled models range from 86 KB to 8.3 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.
+A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a `file://` path, or an `http(s)://` URL; `litsea-wasm` takes raw bytes only, and the page fetches the model. The bundled models range from 86 KB to 8.3 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.
 
 See [Pre-trained Models](pre-trained-models.md) for where to get a model.
 
@@ -29,7 +41,7 @@ The CLI needs `--pos` to know whether it is loading a segmentation model or a tw
 
 ### Cancellation is explicit
 
-Training can run for a long time, and `litsea`'s trainers stop early when their `running` flag is cleared. The CLI drives that flag from a Ctrl-C handler, but a library must not install one: signal handling is process-global and the host language usually owns it already. Bindings therefore expose a cancellation token that the caller triggers.
+Training can run for a long time, and `litsea`'s trainers stop early when their `running` flag is cleared. The CLI drives that flag from a Ctrl-C handler, but a library must not install one: signal handling is process-global and the host language usually owns it already. The bindings that train therefore expose a cancellation token that the caller triggers; `litsea-wasm` has no training and so no token, and in PHP the token takes effect only when it is cancelled before `train()`.
 
 ### Shared logic lives in one crate
 

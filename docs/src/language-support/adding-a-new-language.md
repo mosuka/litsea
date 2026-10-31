@@ -142,6 +142,8 @@ bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
 ```
 
+`scripts/download_udtreebank.sh` knows only the treebanks it lists (`-l` `ja`, `ko`, `zh`, `en`) and rejects any other code. For a new language, add a `case` arm that sets the treebank's `ud_repo` and `ud_prefix` and update the script's usage and error messages, or clone the UD treebank yourself and use its CoNLL-U file directly. The script prints the path of the train split (`<ud_prefix>-train.conllu`); the test split used in Step 9 is the `<ud_prefix>-test.conllu` file next to it.
+
 **If the source treebank has multiword tokens (contractions, clitics),
 verify `corpus_udtreebank.sh -s` handles them correctly before trusting
 the corpus.** UD CoNLL-U represents a contraction like English's `don't`
@@ -197,27 +199,24 @@ convergence point already passed.
 ## Step 8: Optionally Train a Two-Stage POS Model
 
 If UPOS-tagged data is available for the language, you can additionally
-train a [two-stage](../algorithm/two-stage-tagging.md) model:
-
-```sh
-bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
-litsea extract --pos -l english --stage2-features full pos_corpus.txt pos_features
-litsea train --pos --num-epochs 50 pos_features models/english_pos.model
-```
-
-Sweep `--stage2-features` (`fast`/`balanced`/`full`) on a dev split the
-same way as the epoch sweep above; the three bundled languages that use
-this path each picked a different winner (see [Choosing a stage-2 feature
-set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set)).
-
-**For a space-delimited language, train two-stage on the space-preserving
-corpus too** (issue #198). Generate it with `corpus_udtreebank.sh -p -s`
-and extract with `--pos --format tsv`:
+train a [two-stage](../algorithm/two-stage-tagging.md) model. English is
+space-delimited, so it uses the space-preserving corpus (see below):
 
 ```sh
 bash scripts/corpus_udtreebank.sh -p -s "$conllu_file" pos_corpus.tsv
 litsea extract --pos --format tsv -l english --stage2-features full pos_corpus.tsv pos_features
+litsea train --pos --num-epochs 50 pos_features models/english_pos.model
 ```
+
+Sweep `--stage2-features` (`fast`/`balanced`/`full`) on a dev split the
+same way as the epoch sweep above; the four bundled POS models picked
+`fast` (Japanese), `balanced` (Chinese), and `full` (Korean and English)
+(see [Choosing a stage-2 feature
+set](../algorithm/two-stage-tagging.md#choosing-a-stage-2-feature-set)).
+
+**For a space-delimited language, train two-stage on the space-preserving
+corpus too** (issue #198), as the commands above do: generate it with
+`corpus_udtreebank.sh -p -s` and extract with `--pos --format tsv`.
 
 This matters far more than it might look. Training on an unspaced
 concatenation costs Korean ~5.9pt of Word F1 and English ~20.8pt, because
@@ -231,8 +230,8 @@ packed model's fixed-tag path — also skipping the classifier for ~43% of
 tokens, which is a throughput win.
 
 For a language written without spaces (Japanese, Chinese), use the plain
-`-p` corpus: there is no spacing to preserve, and the space-separated
-format already matches the real input.
+`-p` corpus and omit `--format tsv`: there is no spacing to preserve, and
+the space-separated format already matches the real input.
 
 ## Step 9: Add Held-out Evaluation Gold Files
 
@@ -240,14 +239,25 @@ Generate held-out gold data from the treebank's **test** split (touched
 only after your dev-split sweeps are done) and add it under
 `resources/eval/`, following the existing naming convention
 (`<language>_<treebank>_test.{txt,tsv}` for segmentation,
-`<language>_<treebank>_test_pos.txt` for POS):
+`<language>_<treebank>_test_pos.txt` for POS, and, for a space-delimited
+language, `<language>_<treebank>_test_pos_spaced.tsv` for POS on the
+space-preserving corpus):
 
 ```sh
+conllu_file_test="${conllu_file%-train.conllu}-test.conllu"
 bash scripts/corpus_udtreebank.sh -s "$conllu_file_test" resources/eval/english_ewt_test.tsv
 bash scripts/corpus_udtreebank.sh -p "$conllu_file_test" resources/eval/english_ewt_test_pos.txt
+bash scripts/corpus_udtreebank.sh -p -s "$conllu_file_test" resources/eval/english_ewt_test_pos_spaced.tsv
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
-litsea evaluate -l english --pos models/english_pos.model resources/eval/english_ewt_test_pos.txt
+litsea evaluate -l english --pos --format tsv models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 ```
+
+A POS model trained on the space-preserving corpus (Step 8) is evaluated
+on the `_test_pos_spaced.tsv` file with `--pos --format tsv`. For a
+space-delimited language, the unspaced `_test_pos.txt` file measures the
+older unspaced protocol (Korean and English keep theirs only to reproduce
+earlier numbers; see `resources/eval/README.md`); for a language written
+without spaces it is the POS gold file.
 
 Update `resources/eval/README.md` with the new file(s) and their
 provenance/license (UD treebanks are typically CC BY-SA 4.0, distinct from
@@ -270,11 +280,18 @@ checklist:
 - `litsea/src/word_features.rs`: add a case to the round-trip sample list (cheap, catches type-code encoding bugs early)
 - `litsea-cli/src/main.rs`: the three `--language` help strings
 
+**Bindings** (each binding lists the supported languages):
+
+- `litsea-binding-core/src/language.rs`: add the language to `SUPPORTED_LANGUAGES` (bump the array size; every binding's `supported_languages()` / `Language.all()` comes from it) and to the expected name list in `test_supported_languages_round_trip`
+- `litsea-python/src/language.rs`: a new `PyLanguage` member (e.g. `#[pyo3(name = "THAI")] Thai`, also named in the type's doc comment) and an arm in both `From` impls. `From<Language> for PyLanguage` has a wildcard arm that maps an unknown language to Japanese, so a missing member compiles and is caught only by `test_every_supported_language_has_a_member`
+- `litsea-python/python/litsea/_litsea.pyi`: the matching `ClassVar` (e.g. `THAI: ClassVar[Language]`)
+- The hard-coded language lists in `test_supported_languages` of `litsea-nodejs/src/lib.rs`, `litsea-ruby/src/lib.rs`, `litsea-php/src/lib.rs` and `litsea-wasm/src/lib.rs`, and in the binding test suites: `test_language_enum` in `litsea-python/tests/test_segmenter.py`, the `supportedLanguages()` test in `litsea-nodejs/tests/test-segmenter.mjs`, `test_module_functions` in `litsea-ruby/test/test_segmenter.rb`, and `module_functions` in `litsea-wasm/tests/web.rs`
+
 **Model-dependent tests (need a trained model first):**
 
 - `litsea/tests/golden.rs`: a new `golden_segment_<language>` (and, if you trained a POS model, `golden_segment_with_pos_<language>_two_stage`). **Pin the model's actual output, not an idealized one** -- write the test with a `println!` of the real output first, copy that into the assertion, then delete the debug print. Immediately after, **sabotage-check it**: temporarily change one expected value to something wrong, confirm the test goes RED, then restore the correct value. A golden test that never failed during its own creation has not proven it protects anything
 - `litsea/src/segmenter.rs`: a differential test (`test_segment_differential_<language>_model`) comparing the packed scorer against the string-keyed reference, and, if the model is tag-free, a `segment_into` tiling/parity case
-- `litsea/benches/bench.rs`: add the new language to all four per-language tuple lists (`bench_segment_short`, `bench_external_corpus`'s two case lists, `bench_segment_into`), which requires a corpus file under `resources/` (a public-domain text of a similar size to the existing per-language corpora)
+- `litsea/benches/bench.rs`: add the new language to all five per-language lists: `bench_segment_short`'s `cases` and `inputs` (a `cases` entry without an `inputs` entry panics at its `unwrap()`), `bench_external_corpus`'s `segment_cases` and `two_stage_cases`, and `bench_segment_into`'s `cases`. This requires a corpus file under `resources/` (a public-domain text of a similar size to the existing per-language corpora)
 - `litsea-cli/tests/cli.rs`: at least one segmentation smoke test pinning CLI output end-to-end
 
 **Verification commands** (run all of these before considering the language done):
@@ -295,5 +312,5 @@ mdbook build docs/ja
 - A new `language-support/<language>.md` page (use [English](english.md) or [Korean](korean.md) as the template) plus a `docs/src/SUMMARY.md` entry (and its `docs/ja/src/SUMMARY.md` mirror)
 - `language-support/overview.md` and `algorithm/character-type-classification.md` -- both have a per-language table/section to extend
 - `pre-trained-models.md` -- a model card per bundled model, plus the "Tag-Free (Pointwise) Models" and "Two-Stage POS Tagging Models" comparison tables if applicable
-- Root `README.md` and the crate-level docs in `litsea/src/lib.rs`
+- Root `README.md`, the binding READMEs (`litsea-*/README.md`), the package metadata that names the languages (`litsea-nodejs/package.json` keywords, the `litsea-ruby/litsea.gemspec` description), and the crate-level docs in `litsea/src/lib.rs`
 - Before considering the sweep complete, run `grep -rln "<an existing language's name>" docs/src docs/ja/src` and check every file it finds -- language-enumerating docs are easy to miss (this project's own experience: issue #165 skipped this check once and left 14 stale mentions for a later PR to clean up)

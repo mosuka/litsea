@@ -21,9 +21,9 @@ The benchmarks are defined in `litsea/benches/bench.rs`:
 | Benchmark | Description |
 |-----------|------------|
 | `segment_short/adaboost/{japanese,chinese,korean,english}` | Segment a short sentence (AdaBoost) |
-| `segment_short/averaged_perceptron/{japanese,chinese,korean,english}` | Segment + POS tag a short sentence |
-| `segment_long_japanese/{adaboost,averaged_perceptron}` | Process the full Bocchan novel (~314 KB) |
+| `segment_long_japanese/adaboost` | Process the full Bocchan novel (~314 KB) |
 | `external_corpus/*` | Corpus throughput, mirroring tokenizer-speed-bench (see below) |
+| `segment_into/*` | `segment()` vs. the buffer-reusing `segment_into()` on the `external_corpus` corpora (see below) |
 | `char_type_hiragana` | Character type classification |
 | `add_corpus` | Corpus ingestion for training |
 | `predict_adaboost` | Single AdaBoost prediction |
@@ -151,5 +151,5 @@ Key performance factors:
 
 - **Segmentation** is linear in input length (O(n))
 - **Character classification** is a direct `match` on character ranges (a few nanoseconds; no setup cost)
-- **Prediction** at each position depends on the number of features (38-42, constant)
+- **Prediction** at each position depends on the number of feature templates, which is constant per model: 42 for Japanese/Chinese, 38 for Korean/English, and 16 fewer for a tag-free model, whose tag-dependent pass is skipped (the bundled `korean.model` and `english.model` are tag-free, so they score 22)
 - **Model loading** time is proportional to the model file size

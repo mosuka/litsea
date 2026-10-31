@@ -4,12 +4,14 @@ Litsea supports word segmentation for four languages through a unified framework
 
 ## Supported Languages
 
-| Language | Enum Variant | CLI Values | Feature Count | Word F1 (held-out) |
-|----------|-------------|------------|---------------|--------------------|
+| Language | Enum Variant | CLI Values | Feature Templates | Word F1 (held-out) |
+|----------|-------------|------------|-------------------|--------------------|
 | Japanese | `Language::Japanese` | `japanese`, `ja` | 42 | 96.70% |
 | Chinese | `Language::Chinese` | `chinese`, `zh` | 42 | 90.69% |
 | Korean | `Language::Korean` | `korean`, `ko` | 38 | 99.91% |
 | English | `Language::English` | `english`, `en` | 38 | 98.31% |
+
+"Feature Templates" is the number of feature templates the language can use (`templates_for()` in `packed_model.rs`), not the number of features in a model. The bundled `korean.model` and `english.model` are trained tag-free (`--tag-free`), so they use only the 22 of their 38 templates that do not read previous boundary decisions.
 
 ## The Language Enum
 
@@ -49,7 +51,7 @@ Each language defines its own **character type patterns** that classify characte
 |--------|----------|---------|--------|---------|
 | Character types | 8 (M, H, I, K, P, A, N, O) | 9 (F, C, X, R, P, B, A, N, O) | 10 (E, SN, SF, J, G, H, P, A, N, O) | 7 (U, W, Q, P, A, N, O) |
 | WC features | Yes (4 extra) | Yes (4 extra) | No | No |
-| Total features | 42 | 42 | 38 | 38 |
+| Feature templates | 42 | 42 | 38 | 38 |
 | Matching method | `match` on char ranges | `match` on char ranges | `match` on char ranges + codepoint test | `match` on char ranges |
 
 ### Why Korean and English Have Fewer Features

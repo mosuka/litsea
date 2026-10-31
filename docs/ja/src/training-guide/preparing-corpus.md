@@ -23,7 +23,7 @@ Litsea は単語分割と品詞推定の両方のデータソースとして UD 
 conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 ```
 
-対応言語: `ja`（日本語、デフォルト）、`ko`（韓国語）、`zh`（中国語）、`en`（英語）。`-o` で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。
+対応言語: `ja`（日本語、デフォルト）、`ko`（韓国語）、`zh`（中国語）、`en`（英語）。`-l` を指定しない場合、環境変数 `LANG_CODE` が設定されていれば、その値がデフォルトの `ja` に代わります。`-o` で出力ディレクトリを指定できます（デフォルト: カレントディレクトリ）。
 
 ## 単語分割用コーパス
 
@@ -68,7 +68,7 @@ TSV コーパスからの特徴量抽出には `litsea extract --format tsv` を
 
 ## 品詞推定用コーパス
 
-品詞推定（Averaged Perceptron）を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。
+品詞推定を行う場合、各単語に品詞タグを付与した形式のコーパスを使用します。品詞タグは二段構成モデルが付けます。stage 1 は二値の境界分類器で、各文字位置に `B`（ここで単語が始まる）か `O`（単語の続き）を付けます。stage 2 は、分割された各単語に 17 個の UPOS タグのどれかを付けます。文字ごとに 18 個の `B-<UPOS>` / `O` ラベルのどれかを予測していた以前の joint モデルは削除されました。そのモデルファイルを品詞モデルとして読み込むと、`litsea train --pos` で学習し直すよう求めるエラーになります。
 
 ### 品詞付きコーパスの形式
 
@@ -118,6 +118,15 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 
 ### 使い方
 
+ダンプは `scripts/download_wikidump.sh` でダウンロードできます（`-l lang`: `ja`、`ko`、`zh`。デフォルトは `ja` で、`LANG_CODE` が設定されていればその値。`-o output_dir`: デフォルトはカレントディレクトリ）。このスクリプトは `dumps.wikimedia.org` から `<lang>wiki-latest-pages-articles.xml.bz2` を保存し、そのファイルが既にあればダウンロードを省略して、ファイルのパスを出力します:
+
+```sh
+dump_file=$(bash scripts/download_wikidump.sh -l ja -o /tmp)
+bash scripts/corpus_wikidump.sh "$dump_file" corpus_ja.txt
+```
+
+手元にあるダンプファイルを渡すこともできます:
+
 ```sh
 # 日本語（デフォルト）
 bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
@@ -136,12 +145,14 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 | `-l lang` | 言語コード: `ja`, `ko`, `zh` | `ja` |
 | `-n max_lines` | 処理する最大文数（0 = 無制限） | `100000` |
 
+このスクリプトには、`PATH` 上の `wicket` と `lindera` が必要です。wicket の出力ファイルは、フィルタと `-n` の上限を適用する前にランダムな順序（`shuf`）で連結されます。そのため上限を付けたコーパスはダンプからのランダムな抽出になり、実行のたびに変わります。
+
 ### 文章フィルタリング
 
 スクリプトは以下の2つのフィルタを適用し、整形された文章のみを抽出します:
 
 1. **文末記号** -- 行が `。`、`.`、`!`、`?` で終わる必要があります。これにより、セクション見出し（例: 「参考文献」）、箇条書き項目、メタデータが除外されます。
-2. **最小文字数** -- 行は20文字以上である必要があります。これにより、短い断片や孤立したラベルが除外されます。
+2. **最小文字数** -- 行は20文字以上である必要があります。長さは `awk` の `length` で測ります: マルチバイト対応の awk（UTF-8 ロケールの gawk など）では文字数ですが、マルチバイトに対応していない awk ではバイト数になり、20 バイトは CJK の文字でおよそ 7 文字です。これにより、短い断片や孤立したラベルが除外されます。
 
 ### トークナイザー辞書
 

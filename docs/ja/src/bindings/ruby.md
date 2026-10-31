@@ -92,20 +92,27 @@ tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.
 | `Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | セグメンタ |
 | `Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | セグメンタ（バイナリ String も可） |
 | `Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | セグメンタ |
+| `#language` | `String`（正規の言語名） |
+| `#has_pos?` | `true` か `false` |
 | `#segment(text)` | `Array<String>` |
 | `#segment_batch(texts)` | `Array<Array<String>>` |
 | `#segment_tokens(text)` | バイトオフセット付き `Array<Litsea::Token>` |
 | `#segment_with_pos(text)` | タグとオフセット付き `Array<Litsea::Token>` |
 | `#segment_with_pos_batch(texts)` | `Array<Array<Litsea::Token>>` |
-| `Litsea::Extractor.new(language)#extract(...)` | `nil` |
-| `Litsea::Extractor.new(language)#extract_two_stage(...)` | `nil` |
-| `Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel:)` | `BinaryMetrics` |
-| `Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel:)` | `MulticlassMetrics` |
-| `Litsea::TwoStageTrainer.new(epochs, prefix, dominance:)#train(model, cancel:)` | `TwoStageMetrics` |
+| `Litsea::Extractor.new(language)#extract(corpus_path, features_path, tsv: false, tag_free: false)` | `nil`（`tsv:` は TSV 形式のコーパスを読み、`tag_free:` はタグに依存する特徴テンプレートを省きます） |
+| `Litsea::Extractor.new(language)#extract_two_stage(corpus_path, output_prefix, feature_set: "fast", tsv: false)` | `nil`（`{output_prefix}.stage1`・`.stage2`・`.lexicon` を書き出します。`feature_set:` は `"full"`・`"balanced"`・`"fast"` のいずれかです） |
+| `Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel: nil)` | `BinaryMetrics` |
+| `Litsea::Trainer.new(...)#load_model(model_uri)` | `nil`（既存のモデルから学習を続けます。パス・`file://`・`http(s)://` を受け付けます） |
+| `Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel: nil)` | `MulticlassMetrics` |
+| `Litsea::TwoStageTrainer.new(epochs, prefix, dominance: 0.99)#train(model, cancel: nil)` | `TwoStageMetrics` |
+| `Litsea::TwoStageTrainer.new(...)#available?` | `train` の実行後は `false` |
+| `Litsea::CancelToken.new` / `#cancel` / `#reset` / `#cancelled?` | トークン / `nil` / `nil` / `true` か `false` |
+| `Litsea.version` | `String`（`litsea` のバージョン） |
+| `Litsea.supported_languages` | `Array<String>` |
 
 ## GVL の解放
 
-モデルの読み込み・特徴量抽出・学習といった時間のかかる処理は、GVL（Global VM Lock）を解放した状態で実行されます。そのため他の Ruby スレッドが動き続け、キャンセルが意味を持ちます。
+`open`・`from_uri`・`Trainer#load_model` によるモデルの読み込み、特徴量抽出、学習、バッチメソッドの `segment_batch` と `segment_with_pos_batch` といった時間のかかる処理は、GVL（Global VM Lock）を解放した状態で実行されます。そのため他の Ruby スレッドが動き続け、キャンセルが意味を持ちます。
 
 ```ruby
 cancel = Litsea::CancelToken.new
@@ -118,17 +125,17 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 
 `rb_thread_call_without_gvl` は magnus も rb-sys もラップしていません（magnus は未バインドの C 関数一覧に挙げており、この関数は rb-sys が生成するバインディングの対象外ヘッダで宣言されています）。そのため本バインディングは `src/gvl.rs` で自ら宣言し、パニックが C フレームを越えて巻き戻らないよう `extern "C"` のトランポリンで捕捉しています。この主張は 2 つのテストで担保しています。1 つは学習中に別の Ruby スレッドが動き続けること、もう 1 つは別スレッドからのキャンセルが学習ウィンドウ内に収まることです。GVL 解放を外すと両方とも失敗します。
 
-1 文の分割は GVL を保持したままです。解放のコストの方が処理そのものより大きいためです。
+1 文の分割は GVL を保持したままです。解放のコストの方が処理そのものより大きいためです。`from_bytes` も GVL を保持します。Ruby の String のバイト列をその場で読むためです。
 
 `TwoStageTrainer` は 1 度しか使えません。学習時に stage 1 が AdaBoost モデルへ collapse され、トレーナが消費されるためです。状態は `available?` が示し、2 回目の `train` は例外を発生させます。
 
 ## エラー
 
-すべてのエラーは `Litsea::Error` を継承するため、1 つの `rescue` で捕捉できます（Python・PHP バインディングと同じ階層です）。
+すべてのエラーは `Litsea::Error` を継承するため、1 つの `rescue` で捕捉できます（Python・PHP バインディングと同じ階層です）。下の表のどのエラーにも当たらない失敗は、`Litsea::Error` そのものとして送出されます。
 
 | エラー | 発生条件 |
 |-------|---------|
-| `Litsea::InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `user_words_gate:`、UPOS タグでない `user_word_tags:` の値 |
+| `Litsea::InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `user_words_gate:`、UPOS タグでない `user_word_tags:` の値、(0.5, 1.0] の外の `dominance:`、未知の URI スキーム |
 | `Litsea::ModelError` | ダウンロード失敗、または旧 joint POS モデル |
 | `Litsea::IoError` | ファイルの読み書き失敗 |
 | `Litsea::ParseError` | モデルまたは学習データの形式不正 |

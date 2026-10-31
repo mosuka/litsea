@@ -35,6 +35,11 @@ Both are re-exported at the crate root. Tokens are matched by exact
 character-offset spans over the concatenation of the gold tokens;
 pure-whitespace tokens are excluded from scoring (the Korean/English
 space-preserving protocol; a no-op for languages written without spaces).
+The word metrics count exact span matches; the boundary metrics score the
+start offset of each token except the sentence start (offset 0).
+`gold_words` and `predicted_words` count non-whitespace tokens only. A
+percentage whose denominator is zero is `0.0`, and so is an F1 whose
+precision and recall are both zero.
 
 ## Functions
 
@@ -48,7 +53,7 @@ where
 ```
 
 Segments the concatenation of each gold sentence's tokens with
-[`Segmenter::segment`] and scores the result. Empty sentences are skipped.
+[`Segmenter::segment`](segmenter.md#segment) and scores the result. Empty sentences are skipped.
 
 ### `evaluate_pos`
 
@@ -59,10 +64,10 @@ where
     S: Into<String>,
 ```
 
-Like `evaluate_segmentation` but drives [`Segmenter::segment_with_pos`]
+Like `evaluate_segmentation` but drives [`Segmenter::segment_with_pos`](segmenter.md#segment_with_pos)
 and additionally scores tagged words. Returns
-`LitseaError::PosLearnerNotSet` if the segmenter has neither a POS learner
-nor a two-stage learner set.
+`LitseaError::PosLearnerNotSet` if the segmenter has no two-stage learner
+set.
 
 ### Gold-line parsers
 

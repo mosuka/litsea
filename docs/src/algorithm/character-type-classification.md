@@ -6,7 +6,7 @@ Each language in Litsea defines a set of **character type patterns** that classi
 
 `Language::char_type(c: char) -> &'static str` classifies a character with a direct `match` expression on Unicode character ranges — no regex, no allocation. Match arms are tried top to bottom, so the **first matching arm** determines the type code. If no arm matches, the character is classified as `"O"` (Other).
 
-Each language has its own classification function returning a numeric type id (`japanese_char_type_id`, `chinese_char_type_id`, `korean_char_type_id`); `char_type` is a table lookup over the returned id, so string codes and numeric ids stay consistent by construction. The classes shared by all languages — `"P"` (punctuation), `"A"` (Latin), `"N"` (digits) — live in a common `punct_latin_digit()` helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with extra code inside an arm body (e.g., Korean's codepoint test for Hangul syllable structure).
+Each language has its own classification function returning a numeric type id (`japanese_char_type_id`, `chinese_char_type_id`, `korean_char_type_id`, `english_char_type_id`); `char_type` is a table lookup over the returned id, so string codes and numeric ids stay consistent by construction. The classes shared by all languages — `"P"` (punctuation), `"A"` (Latin), `"N"` (digits) — live in a common `punct_latin_digit()` helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with extra code inside an arm body (e.g., Korean's codepoint test for Hangul syllable structure).
 
 ## Japanese Character Types
 
@@ -16,7 +16,7 @@ Each language has its own classification function returning a numeric type id (`
 | **H** | Kanji / CJK Ideographs | U+4E00--U+9FFF, plus 々〆ヵヶ | 漢, 字, 学 |
 | **I** | Hiragana | `[ぁ-ん]` | あ, い, う |
 | **K** | Katakana | `[ァ-ヴーｱ-ﾝﾞﾟ]` | ア, カ, ー |
-| **P** | Punctuation | CJK Symbols (U+3000-303F), Full-width (U+FF01-FF65) | 。, 、, 「 |
+| **P** | Punctuation | CJK Symbols (U+3000-303F, except 々 and 〆, which are H), full-width punctuation (U+FF01-FF0F, U+FF1A-FF20, U+FF3B-FF40, U+FF5B-FF65) | 。, 、, 「 |
 | **A** | ASCII/Latin | `[a-zA-Zａ-ｚＡ-Ｚ]` | A, z, Ｂ |
 | **N** | Digits | `[0-9０-９]` | 0, ５ |
 | **O** | Other | Fallback | @, # |
@@ -78,7 +78,7 @@ This distinction is important because the presence of a final consonant (받침)
 | **U** | Uppercase Latin | `[A-ZＡ-Ｚ]` | A, Z, Ｔ |
 | **W** | Whitespace | Space, tab, U+00A0 | ` `, `\t` |
 | **Q** | Apostrophe | U+0027, U+2019 | `'`, `’` |
-| **P** | Punctuation | ASCII (minus apostrophe) + General Punctuation + CJK/full-width | `.`, `-`, `@`, `。` |
+| **P** | Punctuation | ASCII (minus apostrophe) + U+2010-U+2027 (minus U+2019) + CJK/full-width | `.`, `-`, `@`, `。` |
 | **A** | Lowercase Latin | `[a-zａ-ｚ]` | a, z |
 | **N** | Digits | `[0-9０-９]` | 0, ５ |
 | **O** | Other | Fallback | 字, é |

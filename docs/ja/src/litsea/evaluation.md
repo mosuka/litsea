@@ -35,6 +35,10 @@ pub struct PosMetrics {
 ゴールドトークンを連結した文字列上の文字オフセットスパンの完全一致で
 対応付けます。空白のみのトークンはスコア計算から除外されます（韓国語/英語の
 空白保持プロトコル。空白を使わずに表記される言語では no-op です）。
+単語のメトリクスはスパンの完全一致を数えます。境界のメトリクスは、文頭
+（オフセット 0）を除く各トークンの開始オフセットをスコアリングします。
+`gold_words` と `predicted_words` は空白以外のトークンだけを数えます。分母が
+0 の百分率は `0.0` になり、適合率と再現率がともに 0 の F1 も `0.0` になります。
 
 ## 関数
 
@@ -47,7 +51,7 @@ where
     S: Into<String>,
 ```
 
-各ゴールド文のトークンを連結したものを [`Segmenter::segment`] で分割し、
+各ゴールド文のトークンを連結したものを [`Segmenter::segment`](segmenter.md#segment) で分割し、
 その結果をスコアリングします。空の文はスキップされます。
 
 ### `evaluate_pos`
@@ -59,10 +63,9 @@ where
     S: Into<String>,
 ```
 
-`evaluate_segmentation` と同様ですが、[`Segmenter::segment_with_pos`] を
-実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器も
-二段構成学習器も設定されていない場合は `LitseaError::PosLearnerNotSet` を
-返します。
+`evaluate_segmentation` と同様ですが、[`Segmenter::segment_with_pos`](segmenter.md#segment_with_pos) を
+実行し、タグ付き単語も追加でスコアリングします。Segmenter に二段構成学習器が
+設定されていない場合は `LitseaError::PosLearnerNotSet` を返します。
 
 ### ゴールド行パーサ
 
@@ -79,11 +82,9 @@ pub fn parse_gold_pos_line(line: &str, tsv: bool) -> Vec<(String, Upos)>
 `Upos::X` を既定値とします。`tsv = true` の場合、空白リテラルトークンには
 `/POS` サフィックスがなく常に `Upos::X` になりますが、これは無害です --
 空白トークンはタグ付きスコアリングから内容によって除外され、割り当てられた
-タグでは判定しません。これは二段構成 POS モデルの実運用精度を、スペース
-区切りで書かれる言語で測定するための仕組みです（issue #196）。韓国語・英語の
-二段構成モデルは現在この空白保持コーパスで学習しているため（issue #198）、
-これらの言語ではこの形式が学習時と実際の入力の双方に一致するプロトコルに
-なっています。
+タグでは判定しません。これはスペース区切りで書かれる言語の二段構成 POS モデルの
+ゴールド形式で、これらのモデルは issue #198 以降、この同じ空白保持コーパスで
+学習もされています。
 
 ## 使用例
 

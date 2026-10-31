@@ -48,8 +48,8 @@ the actual hyperparameters differ. `-t 0.0001 -i 20000` (see [Training
 Models](training-guide/training-models.md)) is a good starting point when
 training a plain AdaBoost model from scratch with `litsea train`, but it is
 not what the bundled `japanese`/`chinese`/`korean`/`english` models use --
-those go through a different procedure with per-language epoch counts and
-pruning. See [Training Procedure](pre-trained-models.md#training-procedure)
+those go through a different procedure with per-language epoch counts and,
+for Japanese and Chinese, pruning. See [Training Procedure](pre-trained-models.md#training-procedure)
 for the actual recipe.
 
 ## Additional Topics

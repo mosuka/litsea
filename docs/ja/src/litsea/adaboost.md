@@ -74,6 +74,8 @@ pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> litsea::Resul
 
 メモリ上のバッファや既に開いているファイルなど、任意の `BufRead` ソースからモデルの重みを読み込みます。
 
+新規の学習器では、読み込んだモデルが現在のモデルを置き換えます。学習器がすでに特徴量やインスタンスを持っている場合（`initialize_features` や `add_instance` の後）は、読み込んだ重みを特徴名をキーとしてマージし、未知の特徴量は末尾に追加します。そのため既存のインスタンスは増分学習にそのまま使えます。インスタンスのブースティング重みは計算し直しません。エラーのときは学習器を変更しません。`load_model_from_path` と `load_model` も同じように読み込みます。
+
 ### `load_model`
 
 ```rust
@@ -124,6 +126,15 @@ pub fn initialize_instances(&mut self, filename: &Path) -> litsea::Result<()>
 ```
 
 同じ特徴量ファイルを読み込み、ラベル付きインスタンスとその重みを初期化します。
+
+### `initialize_features_from_str` / `initialize_instances_from_str`
+
+```rust
+pub fn initialize_features_from_str(&mut self, features: &str) -> litsea::Result<()>
+pub fn initialize_instances_from_str(&mut self, features: &str) -> litsea::Result<()>
+```
+
+`initialize_features` / `initialize_instances` の in-memory 版で、特徴量ファイルの内容を受け取ります。同じ内容に対して同じ順序で呼び出してください（内容を 2 回走査します）。`Trainer::from_features` はこれらを使っています。パス版の `initialize_features`・`initialize_instances`・`load_model_from_path` は `wasm32` ではコンパイル対象外なので、そこではこれらと `load_model_from_reader` を使ってください。
 
 ### `train`
 

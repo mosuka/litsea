@@ -9,11 +9,12 @@ pub struct Segmenter {
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: two_stage: Option<PackedTwoStageModel> (compiled stage-2 model)
+    // private: user_dictionary: Option<UserDictionary>
     // internal: packed cache (see below)
 }
 ```
 
-The fields are private; use the accessor methods `language()`, `learner()`, and `learner_mut()` to reach them.
+The fields are private; use the accessor methods `language()`, `learner()`, `learner_mut()`, and `user_dictionary()` to reach them. The user dictionary is set with `with_user_dictionary` or `set_user_dictionary` (see [User Dictionary](#user-dictionary)).
 
 Besides these, the struct also holds `packed`: a lazily-rebuilt cache of
 the learner's weights compiled into the integer-indexed tables `segment()`
@@ -38,7 +39,8 @@ pub fn new(language: Language) -> Self
 Creates a segmenter with a default (untrained) `AdaBoost` learner — suitable
 for training or feature extraction. Until a model is loaded or training data
 is added, `segment` returns one word per character. No two-stage model is
-set; `segment_with_pos` returns `Err(LitseaError::PosLearnerNotSet)` — use
+set; `segment_with_pos` returns `Err(LitseaError::PosLearnerNotSet)` for any
+non-empty sentence — use
 [`with_two_stage_learner`](#with_two_stage_learner) for segmentation + POS
 tagging.
 
@@ -148,7 +150,7 @@ assert_eq!(segmenter.char_type('A'), "A");   // ASCII
 pub fn add_corpus(&mut self, corpus: &str)
 ```
 
-Processes a space-separated corpus and adds instances to the internal AdaBoost learner.
+Processes a space-separated corpus and adds instances to the internal AdaBoost learner, one per character position except the first.
 
 ```rust
 let mut segmenter = Segmenter::new(Language::Japanese);
@@ -163,7 +165,7 @@ where
     F: FnMut(HashSet<String>, i8),
 ```
 
-Processes a corpus and calls the callback for each character position with its feature set and label.
+Processes a corpus and calls the callback for each character position except the first (whose label is always a word start) with its feature set and boundary label (`1` = word start, `-1` = continuation). For example, `"テスト です"` has five characters, so the callback is called four times.
 
 ```rust
 segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
@@ -184,7 +186,8 @@ Tab-separated variants of `add_corpus` / `add_corpus_with_writer`: tokens
 are separated by tab characters, and a token may be a literal space `" "`.
 This preserves the original spacing of the sentence in the training text so
 the model can learn from space characters as boundary context (used for the
-Korean and English models; issue #152).
+Korean and English models; issue #152). Like `add_corpus` /
+`add_corpus_with_writer`, they skip the first character position.
 
 ```rust
 let mut segmenter = Segmenter::new(Language::Korean);
@@ -238,7 +241,9 @@ that tag instead (see [Tags](#tags)). An empty sentence yields `Ok` with an
 empty vector.
 
 **Errors** with `LitseaError::PosLearnerNotSet` if no two-stage learner is
-set — build the segmenter with `with_two_stage_learner()` first.
+set and the sentence is not empty (an empty sentence returns `Ok` with an
+empty vector before the learner is checked) — build the segmenter with
+`with_two_stage_learner()` first.
 
 ```rust
 use std::path::Path;
@@ -268,6 +273,24 @@ Streams the character-level training features of a POS-tagged corpus
 (`word/POS word/POS ...`), including the first position, to a custom
 writer, without mutating the segmenter. This is what
 `Extractor::extract_two_stage` builds its stage-1 boundary features on.
+
+### `add_corpus_tsv_with_pos_writer`
+
+```rust
+pub fn add_corpus_tsv_with_pos_writer<F>(&self, corpus: &str, writer: F)
+where
+    F: FnMut(HashSet<String>, SegmentLabel)
+```
+
+Tab-separated variant of `add_corpus_with_pos_writer`
+(`word/POS\tword/POS\t...`, issue #198). A token may be a literal space
+`" "`, so the training text keeps the original spacing; a space token has no
+`/POS` suffix and is labeled `B(Upos::X)`; the two-stage extractor
+collapses every stage-1 label to `B`/`O`, so the tag on a space has no
+effect there. Like the
+space-separated variant, it includes the first position and does not mutate
+the segmenter. `Extractor::extract_two_stage` uses it for tab-separated
+corpora.
 
 ## User Dictionary
 
@@ -431,9 +454,22 @@ as a tag-only entry (issue #276):
   tokens for Chinese and Korean (issue #276).
 
 ```rust
-// The segmenter of the example above, with this dictionary instead:
+use std::path::Path;
+
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
+use litsea::upos::Upos;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+// The setup of the example above, with this dictionary instead:
 let mut dictionary = UserDictionary::new();
 dictionary.add_with_pos("楓", Upos::PROPN);
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner)
+    .with_user_dictionary(dictionary);
 let tokens = segmenter.segment_with_pos("楓が笑った。")?;
 // [("楓", Upos::PROPN), ("が", Upos::ADP), ("笑っ", Upos::VERB),
 //  ("た", Upos::AUX), ("。", Upos::PUNCT)]

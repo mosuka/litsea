@@ -66,7 +66,7 @@ The extractor:
 
 1. Reads each line from the corpus file
 2. Calls `Segmenter::add_corpus_with_writer()` to process each line
-3. Writes the label and feature set for each character position to the output file
+3. Writes a `label\tfeature1\tfeature2\t...` row for each character position except the first (which always starts a word) to the output file, with label `1` (word start) or `-1` (continuation)
 
 ### `extract_tsv`
 
@@ -161,6 +161,26 @@ extractor.extract_two_stage(
 )?;
 ```
 
+### `extract_two_stage_tsv`
+
+```rust
+pub fn extract_two_stage_tsv(
+    &self,
+    corpus_path: &Path,
+    output_prefix: &Path,
+    feature_set: TwoStageFeatureSet,
+) -> litsea::Result<()>
+```
+
+The tab-separated variant of `extract_two_stage` (issue #198), as
+`extract_tsv` is of `extract`: the `word/POS` tokens are separated by tabs,
+and a token may be a literal space `" "` with no `/POS` suffix. It writes the
+same three files from `output_prefix`. Whitespace tokens get no stage-2 row,
+but they do get a lexicon entry and do advance the character offset, so the
+context features of the neighbouring words include the space. This is the
+format for space-delimited languages such as Korean and English; it backs
+the CLI's `extract --pos --format tsv`.
+
 ## In-memory extraction
 
 Every `extract*` method has a `*_to_writer` twin that takes the corpus as a string and writes the feature rows to any `Write`, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method, and a byte order mark at the start of the string is ignored the same way.
@@ -204,6 +224,8 @@ The path-based methods are unavailable on `wasm32-unknown-unknown`, which has no
 ## TwoStageFeatureSet
 
 ```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum TwoStageFeatureSet {
     Full,
     Balanced,
@@ -224,6 +246,8 @@ catalog), trading tagging quality for throughput:
   first/last char type, adjacent context char + type, 2-char prefix/suffix
 
 Also implements `Display` (lowercase: `"full"`, `"balanced"`, `"fast"`) and
-`FromStr` (returns `ParseTwoStageFeatureSetError` for invalid strings) --
-the same names the `--stage2-features` CLI flag accepts; see [Extracting
-Features](../training-guide/extracting-features.md).
+`FromStr` (case-insensitive; returns `ParseTwoStageFeatureSetError` for
+invalid strings) -- the same names the `--stage2-features` CLI flag accepts;
+see [Extracting Features](../training-guide/extracting-features.md). The enum
+is `#[non_exhaustive]`, so a `match` on it outside the crate needs a
+wildcard arm.
