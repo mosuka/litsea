@@ -37,12 +37,21 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 litsea = { version = "0.15.0", features = ["remote_model"] }
 ```
 
+Python・Node.js・Ruby・PHP のバインディングも `remote_model` を有効にして
+ビルドされているため、それぞれの URI ローダー（Python と Ruby の
+`Segmenter.from_uri`、Node.js の `Segmenter.fromUri`、PHP の
+`Segmenter::fromUri`）は `http(s)://` の URL を受け付けます。モデルは 1 回だけ
+取得され、その種類は内容から判定されます。WebAssembly のバインディングは
+このフィーチャーなしでビルドされている（後述の「WASM に関する注意事項」を参照）
+ため、JavaScript でモデルを取得してバイト列を渡してください。
+[言語バインディング](../bindings.md)も参照してください。
+
 ## 実装の詳細
 
 - HTTP クライアント: **reqwest** + **rustls**（OpenSSL 依存なし）
 - カスタム User-Agent: `Litsea/<version>`
 - `load_model` メソッドが**非同期（async）**なのは、HTTP 読み込みに非同期ランタイムが必要なため
-- CLI では `tokio` が非同期ランタイムを提供
+- CLI では `tokio` が非同期ランタイムを提供。Python・PHP・Ruby のバインディングは専用のカレントスレッドの `tokio` ランタイムでブロックして待ち、Node.js のバインディングはイベントループの外でダウンロードする
 
 ## 制限とエラー処理
 

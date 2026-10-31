@@ -32,7 +32,7 @@ For each character position *i* in the input, the segmenter extracts features fr
 - `WC3`: character at i-1 + type code at i-1
 - `WC4`: character at i + type code at i
 
-> **Why no WC for Korean and English?** Korean Hangul syllables are classified into only two types (SN and SF), so WC features would add noise rather than useful signal. English measured the same outcome directly: a dev-split comparison scored 98.68% Word F1 with the 38 base templates versus 98.65% with all 42 (WC included) -- see [English](../language-support/english.md#no-wc-features).
+> **Why no WC for Korean and English?** Korean Hangul syllables are classified into only three types (E for six frequent particles, SN and SF), so WC features would add noise rather than useful signal. English measured the same outcome directly: a dev-split comparison scored 98.68% Word F1 with the 38 base templates versus 98.65% with all 42 (WC included) -- see [English](../language-support/english.md#no-wc-features).
 
 ### Total Feature Count
 
@@ -42,6 +42,8 @@ For each character position *i* in the input, the segmenter extracts features fr
 | Chinese | 38 | 4 | **42** |
 | Korean | 38 | 0 | **38** |
 | English | 38 | 0 | **38** |
+
+With `litsea extract --tag-free` (boundary pipeline only; it cannot be combined with `--pos`), the 16 tag-dependent templates (`UP*`, `BP*`, `UQ*`, `BQ*`, `TQ*`) are dropped, leaving 26 templates for Japanese and Chinese and 22 for Korean and English. A model trained on such features is pointwise, so `segment()` skips its sequential scoring pass (see [Prediction Pipeline](prediction-pipeline.md)). The bundled `korean.model` and `english.model` are trained this way.
 
 ## Single Source of Truth
 
@@ -92,7 +94,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 - **B** -- "Boundary" tag (word start)
 - **O** -- "Other" tag (continuation)
 
-Features are extracted for positions 4 through len-4 (inclusive) for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because `segment_with_pos` predicts there to derive the first word's POS (#100). Positions run 4 (or 3) through len-4 (inclusive), where the full window of i-3 to i+2 is available.
+Features are extracted for positions 4 through len-4 (inclusive) for the boundary (AdaBoost) pipeline; the two-stage extraction (`extract --pos`) also emits stage-1 rows for position 3, the first real character, always labelled `B`. This is a leftover of the removed joint POS model, whose `segment_with_pos` predicted there to derive the first word's POS (#100); `segment()` and `segment_with_pos()` never score position 3, because it always starts the first word. Positions run 4 (or 3) through len-4 (inclusive), where the full window of i-3 to i+2 is available.
 
 ## Training Data Format
 

@@ -4,12 +4,12 @@ Litsea は、二段構成品詞推定アーキテクチャの両ステージと�
 
 ## 概要
 
-[AdaBoost](adaboost.md) が**二値分類**（境界 / 非境界）を行うのに対し、Averaged Perceptron は 18 クラスの**多クラス分類**を行い、各文字位置に対してセグメントラベルを予測します:
+[AdaBoost](adaboost.md) が**二値分類**（境界 / 非境界）を行うのに対し、Averaged Perceptron は学習データに現れるクラスラベルに対する**多クラス分類**を行います。Litsea は次の 2 種類のラベル集合のどちらかで学習します:
 
-- **17 個の境界ラベル**: `B-ADJ`, `B-ADP`, `B-ADV`, `B-AUX`, `B-CCONJ`, `B-DET`, `B-INTJ`, `B-NOUN`, `B-NUM`, `B-PART`, `B-PRON`, `B-PROPN`, `B-PUNCT`, `B-SCONJ`, `B-SYM`, `B-VERB`, `B-X`
-- **1 個の非境界ラベル**: `O`（単語の継続）
+- **2 個の境界ラベル**（文字レベルのテンプレートを使用）: `B`（この文字位置で単語が始まる）と `O`（現在の単語の継続）
+- **17 個の [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) タグ**（単語レベルのテンプレートを使用し、単語ごとに 1 タグ）: `ADJ`, `ADP`, `ADV`, `AUX`, `CCONJ`, `DET`, `INTJ`, `NOUN`, `NUM`, `PART`, `PRON`, `PROPN`, `PUNCT`, `SCONJ`, `SYM`, `VERB`, `X`
 
-これらのラベルは Universal Dependencies プロジェクトの 17 個の [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) タグに対応し、`B-` プレフィックスで単語境界を示します。これにより、単語境界の検出と品詞の推定を 1 つの分類ステップで同時に行えます。
+品詞タグは二段構成モデルが付けます。stage 1 は二値の境界分類器で、各文字位置に `B`（ここで単語が始まる）か `O`（単語の続き）を付けます。stage 2 は、分割された各単語に 17 個の UPOS タグのどれかを付けます。文字ごとに 18 個の `B-<UPOS>` / `O` ラベルのどれかを予測していた以前の joint モデルは削除されました。そのモデルファイルを読み込むと、`litsea train --pos` で学習し直すよう求めるエラーになります。
 
 Averaged Perceptron を 2 クラスモード（`B`/`O` ラベルのみ）で使うと、実際には同梱の `japanese.model`・`chinese.model`・`korean.model`・`english.model` の各分割モデルを学習しています。学習後、推論用に AdaBoost モデル形式へ無損失で畳み込まれます — 完全な導出は[事前学習済みモデル: 学習手順](../pre-trained-models.md#学習手順)を参照してください。同じ畳み込みが[二段構成アーキテクチャ](two-stage-tagging.md)の stage-1 境界分類器の学習にも使われ、多クラス形式は stage-2 単語タガーのアルゴリズムです。
 
@@ -28,9 +28,9 @@ slots: FxHashMap<Feature, FeatureSlot>
 例:
 
 ```text
-weights["UW4:猫"]["B-NOUN"] = 2.5
-weights["UC4:H"]["B-NOUN"]  = 1.8
-weights["UW4:猫"]["O"]      = -0.3
+weights["UW4:猫"]["B"]    = 2.5     (boundary perceptron)
+weights["UW4:猫"]["O"]    = -0.3
+weights["WS:猫"]["NOUN"]  = 1.8     (stage-2 word tagger)
 ...
 ```
 
@@ -103,22 +103,21 @@ perceptron.train(10, &running);  // 10 epochs
 
 ## モデルファイル形式
 
-Averaged Perceptron のモデルは、以下の構造を持つテキストファイルとして保存されます:
+Averaged Perceptron のモデルは、以下の構造を持つテキストファイルとして保存されます（この例は、同梱の `japanese_pos.model` の `[stage2]` セクションの先頭です。このタガーは 16 個の UPOS タグを持ちます）:
 
 ```text
-18
-O
-B-ADJ
-B-ADP
+16
+ADJ
+ADP
 ...
-B-X
+VERB
 feature1\tclass1\tweight1
 feature2\tclass2\tweight2
 ...
 ```
 
-- **1行目**: クラス数（18）
-- **2 行目から N+1 行目**: クラス名（1行に1つ）
+- **1行目**: クラス数 *N*（境界パーセプトロンでは 2、同梱の stage-2 タガーでは 16 または 17）
+- **2 行目から N+1 行目**: クラス名（1行に1つ、ソート順。境界パーセプトロンは `B`、`O` の順に書き出す）
 - **残りの行**: 特徴量の重み、タブ区切り `feature\tclass\tweight`
 - 重みがゼロのエントリは省略される
 - 重みの行は特徴量のソート順で書き出されるため、同じモデルを保存すると常にバイト単位で同一のファイルになる。
@@ -128,8 +127,8 @@ feature2\tclass2\tweight2
 
 | 項目 | AdaBoost | Averaged Perceptron |
 |------|----------|---------------------|
-| 分類方式 | 二値分類（+1 / -1） | 多クラス分類（18クラス） |
-| 出力 | 単語境界のみ | 単語境界 + 品詞タグ |
+| 分類方式 | 二値分類（+1 / -1） | 多クラス分類（`B`/`O` の 2 クラス、または最大 17 個の UPOS タグ） |
+| 出力 | 単語境界のみ | 単語境界（`B`/`O`。AdaBoost 形式へ畳み込む）または単語ごとに 1 つの UPOS タグ |
 | 弱学習器 | 特徴量の決定株 | なし（線形分類器） |
 | 重みの管理 | 特徴量ごとに1つの重み | クラス×特徴量の重み行列 |
 | 汎化手法 | アンサンブル | 重みの平均化 |

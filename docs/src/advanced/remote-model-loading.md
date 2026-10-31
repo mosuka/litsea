@@ -40,12 +40,20 @@ need:
 litsea = { version = "0.15.0", features = ["remote_model"] }
 ```
 
+The Python, Node.js, Ruby, and PHP bindings are built with `remote_model`
+too, so their URI loaders (`Segmenter.from_uri` in Python and Ruby,
+`Segmenter.fromUri` in Node.js, `Segmenter::fromUri` in PHP) accept
+`http(s)://` URLs; the model is fetched once and its kind is detected from
+the content. The WebAssembly binding is built without it (see WASM
+Considerations below), so fetch the model in JavaScript and pass the bytes
+in. See [Language Bindings](../bindings.md).
+
 ## Implementation Details
 
 - HTTP client: **reqwest** with **rustls** (no OpenSSL dependency)
 - Custom User-Agent: `Litsea/<version>`
 - The `load_model` method is **async** because HTTP loading requires an async runtime
-- For the CLI, `tokio` provides the async runtime
+- For the CLI, `tokio` provides the async runtime; the Python, PHP, and Ruby bindings block on a private current-thread `tokio` runtime, and the Node.js binding downloads off the event loop
 
 ## Limits and Failure Handling
 

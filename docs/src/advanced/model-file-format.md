@@ -44,6 +44,7 @@ The loader rejects malformed files with an explicit error instead of loading
 them silently:
 
 - an **empty file**
+- a **blank line** anywhere in the file
 - a file **without a bias line** (the typical symptom of a truncated
   download or interrupted copy)
 - **more than one** bias line
@@ -114,6 +115,20 @@ unsupported version. The loader validates section order, the lexicon rules
 above, and the parameter range, and reports errors with the section name
 (e.g. `[stage2] section: ...`).
 
+## Averaged Perceptron Model Format
+
+The standalone Averaged Perceptron format (a class-count line, the class
+names in sorted order, then `feature\tclass\tweight` lines; see [Averaged
+Perceptron](../algorithm/averaged-perceptron.md#model-file-format)) is what
+`litsea train --perceptron` writes and what a two-stage model embeds in its
+`[stage2]` section. A standalone file in this format cannot be used as a
+POS model: it is also the format of the removed joint POS model, so the
+two-stage loader and the language bindings reject it with an error that
+asks you to retrain with `litsea train --pos`. The bindings detect the
+model kind from the first line: the `litsea-two-stage` magic line means a
+two-stage model, a bare integer means a standalone Averaged Perceptron
+file, and anything else is read as the AdaBoost format.
+
 ## File Size
 
 Model file sizes vary considerably by model type and language:
@@ -133,6 +148,6 @@ The segmentation models `japanese.model`, `chinese.model`, `korean.model`, and `
 
 ## Compatibility
 
-- Model files are **encoding-agnostic** (feature names are stored as-is)
+- Model files are **UTF-8** text: feature names are stored as-is (any character except tab and newline), and a file that is not valid UTF-8 fails to load
 - The format is **deterministic** for the usual training workflow: `save_model` writes features in the learner's feature order, which is sorted (via `BTreeMap`) for learners initialized from a features file or loaded from disk. A learner populated only via `add_instance()` writes features in insertion order instead
 - Models are **forward-compatible** -- new features in the input that are not in the model are simply ignored during prediction
