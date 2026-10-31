@@ -33,8 +33,11 @@ seg.free()
 ## POS タグ付け
 
 ```js
-seg.segmentWithPos('これはテストです。')
-// [ Token { surface: 'これ', pos: 'PRON', start: 0, end: 6 }, ... ]
+const posBytes = new Uint8Array(await (await fetch('/models/japanese_pos.model')).arrayBuffer())
+const seg = Segmenter.fromBytes('japanese', posBytes)
+
+seg.segmentWithPos('これはテストです。').map(String)
+// [ 'これ/PRON [0..6]', ... ]
 ```
 
 `start` と `end` は UTF-8 での**バイト**オフセットです。JavaScript の文字列インデックスは UTF-16 コードユニットなので、切り出しには `TextEncoder` / `TextDecoder` を使ってください。
@@ -67,6 +70,24 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.p
 
 登録語には両端に境界が置かれ、内側には置かれません。重なった出現箇所は leftmost-longest で解決し、タグのない 1 文字の語は無視します。POS モデルでは、`userWords` の語は他の語と同じようにタグ付けされ、`userWordTags` の語と一致するトークンには、モデルの語彙表とタガーより優先して、そのタグが付きます。`segment` はタグを無視します。`userWordTags` の 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます（issue #276）。照合は文脈を見ないため、短い断片を語として登録すると、それを含む他の語をすべて壊します。`userWordsGate` を `0` にすると、モデルがすでに同意している場所だけに語を適用します。`0`〜`1` の外の gate と、17 個の UPOS タグ（大文字）以外のタグは、`invalid_argument` コードのエラーを投げます。意味論の全体は [Segmenter](../litsea/segmenter.md#ユーザー辞書) を参照してください。
 
+## API
+
+| 呼び出し | 戻り値 |
+|---------|-------|
+| `Segmenter.fromBytes(language, data, userWords?, userWordsGate?, userWordTags?)` | セグメンタ |
+| `language`（getter） | `string`（正規の言語名） |
+| `hasPos`（getter） | `boolean` |
+| `segment(text)` | `string[]` |
+| `segmentBatch(texts)` | `string[][]` |
+| `segmentTokens(text)` | バイトオフセット付き `Token[]`（`pos` は `undefined`） |
+| `segmentWithPos(text)` | タグとオフセット付き `Token[]` |
+| `segmentWithPosBatch(texts)` | `Token[][]` |
+| `free()` | セグメンタを解放します（下の「メモリ」を参照） |
+| `version()` | `string`（`litsea` のバージョン） |
+| `supportedLanguages()` | `string[]` |
+
+`Token` は `surface`・`pos`・`start`・`end` を getter として持ち、`toString()` は `surface/POS [start..end]` の形の文字列（例: `テスト/NOUN [9..18]`）を返します。
+
 ## ホストの制約で提供しない機能
 
 5 つのバインディングの中で最も制約が強く、いずれも推測ではなく実測に基づいて判断しています。
@@ -92,10 +113,10 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.p
 
 ## モデルのキャッシュ
 
-モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。補助モジュールを同梱しています。
+モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。任意で使える補助モジュールが、リポジトリに `litsea-wasm/js/cache.js`（と `cache.d.ts`）としてあります。npm のパッケージには含まれません。`make build-litsea-wasm` は 2 つのファイルを `pkg/` に写しますが、wasm-pack が生成する `package.json` の `files` の一覧に入っていないためです。プロジェクトに写して、そこから import してください。
 
 ```js
-import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
+import { fetchModel, clearModelCache } from './cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
 ```
