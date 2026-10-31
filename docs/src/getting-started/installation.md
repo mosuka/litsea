@@ -45,7 +45,7 @@ feature if you need it:
 litsea = { version = "0.15.0", features = ["remote_model"] }
 ```
 
-> **Note:** Loading models from local files (`load_model_from_path`) is synchronous, so no async runtime is needed. An async runtime such as `tokio` is only required if you load models over HTTP/HTTPS with the async `load_model` method (available only when the opt-in `remote_model` feature is enabled).
+> **Note:** Loading models from local files (`load_model_from_path`) is synchronous, so no async runtime is needed. An async runtime such as `tokio` is only required if you call the async `load_model` method, which every build provides for file paths and `file://` URIs; loading over HTTP/HTTPS with it additionally requires the opt-in `remote_model` feature.
 
 ## Supported Platforms
 
@@ -55,4 +55,4 @@ Litsea is tested on the following platforms:
 |----|-------------|
 | Linux | x86_64, aarch64 |
 | macOS | x86_64 (Intel), aarch64 (Apple Silicon) |
-| Windows | x86_64, aarch64 |
+| Windows | x86_64, aarch64 (build only; tests are not run on this target) |

@@ -2,7 +2,7 @@
 
 **Litsea** は、[TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) および [TinySegmenterMaker](https://github.com/shogo82148/TinySegmenterMaker) に触発されて開発された、Rust で実装された極めてコンパクトな単語分割ライブラリです。
 
-[MeCab](https://taku910.github.io/mecab/) や [Lindera](https://github.com/lindera/lindera) などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、**AdaBoost 二値分類**アルゴリズムに基づくコンパクトな学習済みモデルを使用して単語分割を行います。また、二段構成（two-stage）アーキテクチャにより、[Universal POS (UPOS)](https://universaldependencies.org/u/pos/) タグセットを用いた**単語分割と品詞推定（POS Tagging）**もサポートしています。
+[MeCab](https://taku910.github.io/mecab/) や [Lindera](https://github.com/lindera/lindera) などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、AdaBoost のモデル形式で保存したコンパクトな学習済みの**二値分類**モデルを使用して単語分割を行います（同梱の単語分割モデルは 2 クラスの Averaged Perceptron として学習し、その形式へ損失なしに変換しています）。また、二段構成（two-stage）アーキテクチャにより、[Universal POS (UPOS)](https://universaldependencies.org/u/pos/) タグセットを用いた**単語分割と品詞推定（POS Tagging）**もサポートしています。
 
 ## 主な特徴
 
@@ -30,10 +30,7 @@ Output: ["これ", "は", "テスト", "です", "。"]
 
 Litsea は単語分割に加えて、**品詞推定**（Part-of-Speech Tagging）もサポートしています。二段構成アーキテクチャにより、まず二値境界分類器で文を分割し、次に候補タグ語彙表 + 単語単位タガーで各単語にタグを付与します。
 
-各文字位置に対して、18 クラスの **SegmentLabel** を予測します:
-
-- `B-NOUN`, `B-VERB`, ..., `B-X`（17 品詞の境界ラベル）
-- `O`（非境界 = 単語の継続）
+stage 1 は各文字位置に `B`（ここで単語が始まる）か `O`（単語の続き）を付け、stage 2 は分割された各単語に 17 個の UPOS タグのどれかを付けます。文字ごとに 18 個の `B-<UPOS>` / `O` ラベルのどれかを予測していた以前の joint モデルは削除されました。そのモデルファイルを読み込むと、`litsea train --pos` で学習し直すよう求めるエラーになります。
 
 品詞タグには [Universal Dependencies](https://universaldependencies.org/) の **UPOS タグセット**（17 品詞）を採用しています。
 
