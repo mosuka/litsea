@@ -74,6 +74,8 @@ pub fn load_model_from_reader<R: BufRead>(&mut self, reader: R) -> litsea::Resul
 
 Loads model weights from any `BufRead` source, such as an in-memory buffer or an already-open file.
 
+On a fresh learner the loaded model replaces the current one. If the learner already holds features or instances (after `initialize_features` or `add_instance`), the loaded weights are merged in by feature name and unknown features are appended, so the existing instances stay valid for incremental training; their boosting weights are not recomputed. On an error the learner is left unchanged. `load_model_from_path` and `load_model` load the same way.
+
 ### `load_model`
 
 ```rust
@@ -130,6 +132,15 @@ pub fn initialize_instances(&mut self, filename: &Path) -> litsea::Result<()>
 ```
 
 Reads the same features file and initializes labeled instances with their weights.
+
+### `initialize_features_from_str` / `initialize_instances_from_str`
+
+```rust
+pub fn initialize_features_from_str(&mut self, features: &str) -> litsea::Result<()>
+pub fn initialize_instances_from_str(&mut self, features: &str) -> litsea::Result<()>
+```
+
+The in-memory counterparts of `initialize_features` / `initialize_instances`, taking the contents of a features file. Call them in the same order on the same content (it is scanned twice); `Trainer::from_features` uses them. The path-based `initialize_features`, `initialize_instances` and `load_model_from_path` are compiled out on `wasm32`; use these and `load_model_from_reader` there.
 
 ### `train`
 

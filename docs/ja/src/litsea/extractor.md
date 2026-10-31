@@ -66,7 +66,7 @@ Extractor は以下の処理を行います:
 
 1. コーパスファイルから各行を読み込む
 2. `Segmenter::add_corpus_with_writer()` を呼び出して各行を処理する
-3. 各文字位置のラベルと特徴量セットを出力ファイルに書き込む
+3. 先頭（必ず単語の始まり）を除く各文字位置について、`label\tfeature1\tfeature2\t...` の行を出力ファイルに書き込む。ラベルは `1`（単語の始まり）か `-1`（単語の続き）
 
 ### `extract_tsv`
 
@@ -145,6 +145,19 @@ extractor.extract_two_stage(
 )?;
 ```
 
+### `extract_two_stage_tsv`
+
+```rust
+pub fn extract_two_stage_tsv(
+    &self,
+    corpus_path: &Path,
+    output_prefix: &Path,
+    feature_set: TwoStageFeatureSet,
+) -> litsea::Result<()>
+```
+
+`extract_two_stage` のタブ区切り版です（issue #198）。`extract_tsv` と `extract` の関係と同じです。`word/POS` のトークンをタブで区切り、トークンとして空白文字そのもの（`" "`）を含められます。空白のトークンには `/POS` サフィックスがありません。書き出すのは `output_prefix` からの同じ 3 つのファイルです。空白のトークンには stage-2 の行を書き出しませんが、語彙表には登録し、文字オフセットも進めます。そのため、隣の単語の文脈特徴量に空白が含まれます。韓国語や英語のようなスペース区切りで書かれる言語のための形式で、CLI の `extract --pos --format tsv` の実体です。
+
 ## in-memory での抽出
 
 `extract*` の各メソッドには `*_to_writer` の対応版があり、コーパスを文字列で受け取り、特徴量行を任意の `Write` へ書き出します。ファイルシステムのない環境（WebAssembly）や、コーパスが既にメモリ上にある場合のためのものです。出力はパス版とバイト単位で一致し、文字列の先頭のバイトオーダーマークも同じく無視します。
@@ -188,6 +201,8 @@ extractor.extract_two_stage_to_writers(
 ## TwoStageFeatureSet
 
 ```rust
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum TwoStageFeatureSet {
     Full,
     Balanced,
@@ -202,4 +217,4 @@ pub enum TwoStageFeatureSet {
 - `Balanced` -- `Fast` のテンプレートに加えて、先頭/末尾文字そのものと単語の文字種文字列
 - `Fast`（既定） -- 実測に基づく最小構成: 表層、単語長、先頭/末尾文字種、隣接文脈文字とその文字種、2文字の接頭辞/接尾辞
 
-`Display`（小文字: `"full"`、`"balanced"`、`"fast"`）と `FromStr`（不正な文字列には `ParseTwoStageFeatureSetError` を返す）も実装しています -- これは `--stage2-features` CLI フラグが受け付けるのと同じ名前です。[特徴量の抽出](../training-guide/extracting-features.md)を参照してください。
+`Display`（小文字: `"full"`、`"balanced"`、`"fast"`）と `FromStr`（大文字と小文字を区別せず、不正な文字列には `ParseTwoStageFeatureSetError` を返す）も実装しています -- これは `--stage2-features` CLI フラグが受け付けるのと同じ名前です。[特徴量の抽出](../training-guide/extracting-features.md)を参照してください。この enum は `#[non_exhaustive]` なので、クレートの外で `match` するときはワイルドカードの腕が必要です。

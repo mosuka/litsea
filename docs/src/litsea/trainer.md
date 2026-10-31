@@ -214,7 +214,7 @@ let trainer = TwoStageTrainer::new(
 
 ```rust
 pub fn train(
-    mut self,
+    self,
     running: &AtomicBool,
     model_path: &Path,
 ) -> litsea::Result<TwoStageMetrics>
@@ -272,7 +272,7 @@ Each trainer has an in-memory counterpart to its path-based constructor and `tra
 | `PerceptronTrainer::new(epochs, features_path)` | `PerceptronTrainer::from_features(epochs, features)` |
 | `TwoStageTrainer::new(epochs, dominance, prefix)` | `TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)` |
 | `train(running, model_path)` | `train_to_writer(running, writer)` |
-| `load_model(uri).await` | `load_model_from_reader(reader)` |
+| `load_model(uri).await` (not on `TwoStageTrainer`) | `load_model_from_reader(reader)` (not on `TwoStageTrainer`) |
 
 ```rust
 use litsea::{Extractor, Language, Trainer};
@@ -302,13 +302,16 @@ use litsea::{AdaBoost, Language, Segmenter};
 
 let mut learner = AdaBoost::new(0.01, 10_000);
 let segmenter = Segmenter::new(Language::Japanese);
-segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+// One sentence per call: trimmed, non-empty lines, as `Extractor` reads the corpus.
+for line in corpus.lines().map(str::trim).filter(|line| !line.is_empty()) {
+    segmenter.add_corpus_with_writer(line, |attrs, label| learner.add_instance(attrs, label));
+}
 learner.train(&AtomicBool::new(true));
 learner.save_model_to_writer(&mut model)?;
 ```
 
-This is equivalent for a fresh learner. It is **not** equivalent when continuing from a loaded model: `Trainer`'s two-pass route seeds each instance's boosting weight from the existing model, while `add_instance` starts every instance at `1.0`.
+Both routes start every instance at boosting weight `1.0`, also when continuing from a loaded model: `Trainer::new` builds its instances before `load_model` can merge the existing weights in. What differs is the feature order. `Trainer` sorts its feature vocabulary, while `add_instance` appends features in each `HashSet`'s iteration order, which varies from run to run. The saved model lists the features in that order, and boosting breaks ties between equally good features by it, so this route is not byte-for-byte reproducible and can differ from the `Trainer` route.
 
 ### Reproducibility
 
-A training run is a function of its input: the same features trained twice produce the same model. This holds because `AveragedPerceptron::add_instance` stores its features sorted — `HashSet` iteration order varies between sets, and perceptron updates are order-sensitive, so before that two runs in one process could disagree.
+A training run through `Trainer`, `PerceptronTrainer` or `TwoStageTrainer` is a function of its input: the same features trained twice produce the same model. This holds because `Trainer` builds its feature vocabulary in sorted order and `AveragedPerceptron::add_instance` stores its features sorted — `HashSet` iteration order varies between sets, and perceptron updates are order-sensitive, so before that two runs in one process could disagree. Training `AdaBoost` directly through `add_instance`, as above, has no such guarantee.
