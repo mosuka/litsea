@@ -26,6 +26,14 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 | `-h`, `--help` | ヘルプ情報を表示 |
 | `-V`, `--version` | バージョン番号を表示 |
 
+## 終了ステータス
+
+| Status | Meaning |
+|--------|---------|
+| `0` | 成功。`--help`、`--version`、`segment` の出力中に後段がパイプを早期に閉じた場合も含みます |
+| `1` | 実行中にコマンドが失敗しました。メッセージは `Error: <message>` の形で stderr に出力されます（例: モデルファイルがない、`--user-words` のファイルが不正、`--user-words-gate` が `0.0..=1.0` の範囲外、`--pos` と `--perceptron` の併用） |
+| `2` | 引数を解析できませんでした（例: 未知のオプション、未対応の `--language`、`--threads 0`、`--user-words` なしの `--user-words-gate`）。パーサーがエラーを stderr に出力します |
+
 ## 一般的なワークフロー
 
 ### AdaBoost ワークフロー（単語分割のみ）

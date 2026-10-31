@@ -86,13 +86,20 @@ A registered word gets a boundary at each edge and none inside, overlapping occu
 | `segment_tokens(text)` | `list[Token]` with byte offsets |
 | `segment_with_pos(text)` | `list[Token]` with tags and offsets |
 | `segment_with_pos_batch(texts)` | `list[list[Token]]` |
-| `Extractor(language).extract(...)` | Writes a features file |
-| `Extractor(language).extract_two_stage(...)` | Writes `.stage1` / `.stage2` / `.lexicon` |
-| `Trainer(threshold, iterations, features).train(model, cancel=None)` | `BinaryMetrics` |
-| `PerceptronTrainer(epochs, features).train(model, cancel=None)` | `MulticlassMetrics` |
-| `TwoStageTrainer(epochs, prefix, dominance=0.99).train(model, cancel=None)` | `TwoStageMetrics` |
+| `language`, `has_pos` (properties) | The `Language` the segmenter was built for; whether the model supports POS tagging |
+| `Extractor(language).extract(corpus_path, features_path, *, tsv=False, tag_free=False)` | Writes a features file |
+| `Extractor(language).extract_two_stage(corpus_path, output_prefix, *, feature_set="fast", tsv=False)` | Writes `.stage1` / `.stage2` / `.lexicon` |
+| `Trainer(threshold, iterations, features).train(model, *, cancel=None)` | `BinaryMetrics` |
+| `PerceptronTrainer(epochs, features).train(model, *, cancel=None)` | `MulticlassMetrics` |
+| `TwoStageTrainer(epochs, prefix, *, dominance=0.99).train(model, *, cancel=None)` | `TwoStageMetrics` |
+| `Trainer(...).load_model(uri)`, `PerceptronTrainer(...).load_model(uri)` | `None`; loads an existing model (path, `file://`, or `http(s)://` URL) to continue training from it |
+| `CancelToken()`: `cancel()`, `reset()`, `cancelled` (property) | A flag to pass as `train(..., cancel=...)` |
+| `Language.parse(name)` | A `Language`; raises `InvalidArgumentError` for an unknown name |
+| `version()`, `__version__` | The `litsea` version string |
 
-`Language` and `Upos` are PyO3 classes, not `enum.Enum` subclasses: their members are class attributes, so iterate them with `Language.all()` and `Upos.all()` rather than `for x in Language`.
+`feature_set` is `"full"`, `"balanced"`, or `"fast"`, and `tsv=True` reads the corpus in the space-preserving TSV format.
+
+`Language` and `Upos` are PyO3 classes, not `enum.Enum` subclasses: their members are class attributes, so iterate them with `Language.all()` and `Upos.all()` rather than `for x in Language`. Their `name` property gives the canonical name (`"japanese"`, `"NOUN"`).
 
 ## Training
 
@@ -127,16 +134,17 @@ Every exception derives from `LitseaError`.
 
 | Exception | Raised when |
 |-----------|-------------|
-| `InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate` outside `0.0`–`1.0`, a `user_word_tags` value that is not a UPOS tag |
-| `ModelError` | Download failed, or the file is a legacy joint POS model |
+| `InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate` outside `0.0`–`1.0`, a `user_word_tags` value that is not a UPOS tag, `dominance` outside `(0.5, 1.0]`, unknown model URI scheme |
+| `ModelError` | Download failed, or the file is a legacy joint POS model (no longer supported; retrain with `litsea train --pos`) |
 | `IoError` | A file could not be read or written |
 | `ParseError` | The model or training data is malformed |
 | `UnsupportedError` | The scheme or operation is unavailable in this build |
 | `PosUnavailableError` | POS tagging requested from a segmentation-only model |
+| `LitseaError` | Any other failure: the base class itself is raised for errors that fit no subclass |
 
 ## Threading and the GIL
 
-A `Segmenter` is immutable and safe to share between threads. `segment_batch`, `segment_with_pos_batch`, `extract`, and every `train` release the GIL.
+A `Segmenter` is immutable and safe to share between threads. `Segmenter.open`, `Segmenter.from_uri`, `segment_batch`, `segment_with_pos_batch`, `extract`, `extract_two_stage`, the trainer constructors, `load_model`, and every `train` release the GIL.
 
 Single-sentence `segment` and `segment_with_pos` keep it. Releasing the GIL requires owning the input string (PyO3's `Ungil` bound forbids touching Python-owned memory with the GIL released), and that copy costs more than segmenting one sentence. Use the batch methods for bulk work.
 

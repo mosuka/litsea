@@ -36,6 +36,8 @@ pub fn add_instance(&mut self, features: HashSet<String>, label: String)
 
 特徴量セットとラベルを持つ学習インスタンスを追加します。未知のクラスは自動的に登録されます。
 
+ラベルは不透明な文字列です。二段構成モデルでは、stage 1 が各文字位置に `B`（ここで単語が始まる）か `O`（単語の続き）を付け、stage 2 が各単語に 17 個の UPOS タグのどれかを付けます。削除された以前の joint モデルの `B-<UPOS>` ラベルは、もう使われていません。
+
 ```rust
 use std::collections::HashSet;
 use litsea::perceptron::AveragedPerceptron;
@@ -44,7 +46,7 @@ let mut learner = AveragedPerceptron::new();
 let mut feats = HashSet::new();
 feats.insert("UW4:猫".to_string());
 feats.insert("UC4:H".to_string());
-learner.add_instance(feats, "B-NOUN".to_string());
+learner.add_instance(feats, "B".to_string());
 ```
 
 ## 学習
@@ -83,7 +85,7 @@ attrs.insert("UC4:I".to_string());
 // ... more features
 
 let label = learner.predict(&attrs);
-// label == "B-ADP", "O", etc.
+// label == "B" or "O" for a boundary model; a stage-2 tagger returns UPOS tags such as "ADP"
 ```
 
 ## アクセサ
@@ -94,7 +96,7 @@ let label = learner.predict(&attrs);
 pub fn classes(&self) -> &[String]
 ```
 
-登録されているクラス名を、格納順（重みベクトルのインデックスや `predict` の argmax タイブレーク〔先勝ちの strictly-greater〕で使われる並び）で返します。クラスが未登録の場合は空です。二段構成モデルへの畳み込み手順（[事前学習済みモデル](../pre-trained-models.md#学習手順)を参照）や、packed 二段構成ランタイムで使用されています。
+登録されているクラス名を、格納順（重みベクトルのインデックスや `predict` の argmax タイブレーク〔先勝ちの strictly-greater〕で使われる並び）で返します。クラスが未登録の場合は空です。たとえば二段構成モデルを組み立てるときや読み込むときに、stage-2 のすべてのクラスが UPOS タグであることを確かめるのに使われます。
 
 ## モデルの入出力
 

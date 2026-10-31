@@ -46,8 +46,10 @@ flowchart LR
 - The output model can be the same path as the input model (overwrites)
 - The `-m` flag accepts file paths, `file://`, `http://`, and `https://` URIs
 - Retraining starts from the existing weights, so fewer iterations may be needed
-- `-m` is only available for plain AdaBoost training. `train --pos`
-  does **not** support `-m`/`--load-model-uri` -- incremental training of a
+- `-m` is available for plain AdaBoost training and for
+  `train --perceptron`, which loads a model in the perceptron format that
+  `train --perceptron` writes (not a collapsed AdaBoost-format model).
+  `train --pos` does **not** support `-m`/`--load-model-uri` -- incremental training of a
   two-stage model is not supported, so if you need to update one you must
   retrain it from scratch with `train --pos`
 - The bundled `japanese.model`, `chinese.model`, `korean.model`, and

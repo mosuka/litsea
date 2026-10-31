@@ -89,13 +89,19 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.p
 | `segmentTokens(text)` | バイトオフセット付き `Token[]` |
 | `segmentWithPos(text)` | タグとオフセット付き `Token[]` |
 | `segmentWithPosBatch(texts)` | `Token[][]` |
-| `new Extractor(language).extract(...)` | `Promise<void>` |
-| `new Extractor(language).extractTwoStage(...)` | `Promise<void>` |
-| `new Trainer(threshold, iterations, features).train(model, cancel?)` | `Promise<BinaryMetrics>` |
-| `new PerceptronTrainer(epochs, features).train(model, cancel?)` | `Promise<MulticlassMetrics>` |
-| `new TwoStageTrainer(epochs, prefix, dominance?).train(model, cancel?)` | `Promise<TwoStageMetrics>` |
+| `language`・`hasPos`（getter） | セグメンタを構築したときの言語名、モデルが POS タグ付けに対応しているか |
+| `new Extractor(language).extract(corpusPath, featuresPath, tsv?, tagFree?)` | `Promise<void>` |
+| `new Extractor(language).extractTwoStage(corpusPath, outputPrefix, featureSet?, tsv?)` | `Promise<void>`。未知の `featureSet` は同期的に throw される |
+| `new Trainer(threshold, iterations, features).train(model, cancel?)` | `Promise<JsBinaryMetrics>` |
+| `new PerceptronTrainer(epochs, features).train(model, cancel?)` | `Promise<JsMulticlassMetrics>` |
+| `new TwoStageTrainer(epochs, prefix, dominance?).train(model, cancel?)` | `Promise<JsTwoStageMetrics>` |
+| `new CancelToken()`：`cancel()`・`reset()`・`cancelled`（getter） | `train(model, cancel)` に渡すフラグ |
+| `supportedLanguages()` | `string[]`（正規の言語名） |
+| `version()` | `string`（`litsea` のバージョン） |
 
-型定義は napi-rs が生成し、`index.d.ts` として同梱されます。
+`featureSet` は `'full'`・`'balanced'`・`'fast'`（既定）のいずれかで、`tsv` を `true` にするとコーパスを空白を保持する TSV 形式として読みます。
+
+型定義は napi-rs が生成し、`index.d.ts` として同梱されます。メトリクスのオブジェクトは、そこで `JsBinaryMetrics`・`JsMulticlassMetrics`・`JsTwoStageMetrics` として宣言されています。
 
 ## 非同期設計
 
@@ -122,12 +128,13 @@ const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese
 
 | `err.code` | 発生条件 |
 |-----------|---------|
-| `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ、`0`〜`1` の外の `userWordsGate`、UPOS タグでない `userWordTags` の値 |
-| `model` | ダウンロード失敗、または旧 joint POS モデル |
+| `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ、`0`〜`1` の外の `userWordsGate`、UPOS タグでない `userWordTags` の値、`(0.5, 1.0]` の外の `dominance`、未知のモデル URI スキーム |
+| `model` | ダウンロード失敗、または旧 joint POS モデル（サポートされなくなったため、`litsea train --pos` で学習し直す） |
 | `io` | ファイルの読み書き失敗 |
 | `parse` | モデルまたは学習データの形式不正 |
 | `unsupported` | このビルドでは利用できないスキームや操作 |
 | `pos_unavailable` | 分割専用モデルに対する POS タグ付けの要求 |
+| `runtime` | 上記以外の失敗 |
 
 `napi::Status` が閉じた enum のため、code は 2 つの経路で JavaScript に渡ります。同期呼び出しは napi の文字列ステータス付きエラーを使い、非同期呼び出しは `Task::reject` で JavaScript の `Error` オブジェクトを再構築してプロパティを reject 後も保持させています。
 

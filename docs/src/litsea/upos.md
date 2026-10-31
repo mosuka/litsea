@@ -64,7 +64,7 @@ Returns an array of all 17 UPOS tags.
 ### Trait Implementations
 
 - `Display`: Converts to a string such as `"NOUN"`, `"VERB"`, etc.
-- `FromStr`: Parses a string into `Upos`. Returns a `ParseUposError` for invalid strings.
+- `FromStr`: Parses a string into `Upos`. Matching is case-sensitive (upper case only: `"noun"` is rejected). Returns a `ParseUposError` for invalid strings.
 
 ```rust
 use litsea::upos::Upos;
@@ -77,11 +77,16 @@ assert_eq!(pos.to_string(), "NOUN");
 
 `ParseUposError` (re-exported at the crate root as `litsea::ParseUposError`) is returned when a string is not a valid UPOS tag. Its `input()` accessor returns the string that failed to parse, and the message reads `Unknown UPOS tag: '<input>'`.
 
+### Where `Upos` Is Used
+
+- [`Segmenter::segment_with_pos`](segmenter.md#segment_with_pos) returns `(String, Upos)` pairs.
+- [`UserDictionary::add_with_pos(word, pos)`](segmenter.md#tags) registers a user word with a `Upos` tag, and `UserDictionary::pos(word)` returns the registered tag (`Option<Upos>`).
+
 ## SegmentLabel
 
 ### Definition
 
-The `SegmentLabel` type combines word boundary detection with POS tagging. Each character position is assigned one of 18 labels:
+The `SegmentLabel` type is the per-character label of the POS-tagged training-corpus pipeline ([`add_corpus_with_pos_writer`](segmenter.md#add_corpus_with_pos_writer)). Each character position of a `word/POS` corpus is assigned one of 18 labels:
 
 - **`B(Upos)`** (17 labels): Word boundary with the given UPOS tag (e.g., `B-NOUN`, `B-VERB`)
 - **`O`** (1 label): Non-boundary (continuation of the current word)
@@ -93,6 +98,8 @@ pub enum SegmentLabel {
     O,        // Continuation of a word (non-boundary).
 }
 ```
+
+No current model predicts these 18 labels. POS tags come from the two-stage model: stage 1 is a binary boundary classifier that labels each character position `B` (a word starts here) or `O` (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. `Extractor::extract_two_stage` collapses `SegmentLabel` to `B`/`O` to train stage 1. The earlier joint model, which predicted one of 18 `B-<UPOS>` / `O` labels per character, was removed; loading such a model file fails with an error that asks you to retrain with `litsea train --pos`.
 
 ```rust
 use litsea::upos::SegmentLabel;

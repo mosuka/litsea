@@ -9,7 +9,14 @@
 litsea = "0.15.0"
 ```
 
-ローカルファイルからのモデル読み込みは同期 API（`load_model_from_path`）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（`load_model`）を使う場合のみ、非同期ランタイムを追加してください（例えば `TwoStageLearner::load_model` も常に同じ非同期経路でモデル URI を解決するため、これに該当します）。
+ローカルファイルからのモデル読み込みは同期 API（`load_model_from_path`、`load_model_from_reader`）で行えるため、tokio などの非同期ランタイムは不要です。`load_model` 系のメソッド（例えば `TwoStageLearner::load_model`）と `model_io::read_model_bytes` は、ローカルのパスを含むどの形式の URI でも async なので、呼び出すには `tokio` などの非同期ランタイムが必要です。
+
+HTTP(S) からのモデル読み込みには、既定では無効な `remote_model` フィーチャも必要です。無効のままでは、`http://` と `https://` の URI は `LitseaError::Unsupported` で失敗します（[リモートモデルの読み込み](advanced/remote-model-loading.md)を参照）:
+
+```toml
+[dependencies]
+litsea = { version = "0.15.0", features = ["remote_model"] }
+```
 
 ## モジュール構成
 
@@ -26,11 +33,14 @@ graph LR
     Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
     S["litsea::evaluation"] --- T["PosMetrics, SegmentationMetrics"]
     U["litsea::two_stage"] --- V["ModelKind, TwoStageFeatureSet, TwoStageLearner"]
+    W["litsea::user_dictionary"] --- X["UserDictionary"]
+    Y["litsea::model_io"] --- Z["read_model_bytes"]
 ```
 
 | モジュール | 主要な型 | 用途 |
 |--------|--------------|---------|
 | `litsea::segmenter` | `Segmenter`, `SegmentBuffer` | 単語分割（所有出力またはアロケーションフリー出力）、二段構成の品詞推定付き分割 |
+| `litsea::user_dictionary` | `UserDictionary` | ユーザー辞書: 1 トークンとして出力する語と、`segment_with_pos` が付ける任意の UPOS タグ（[ユーザー辞書](litsea/segmenter.md#ユーザー辞書)を参照） |
 | `litsea::adaboost` | `AdaBoost` | 二値分類、モデルの入出力 |
 | `litsea::perceptron` | `AveragedPerceptron` | 多クラス分類（二段構成の学習）、モデルの入出力 |
 | `litsea::upos` | `Upos`, `SegmentLabel` | UPOS 品詞タグ、セグメントラベル |
@@ -41,9 +51,9 @@ graph LR
 | `litsea::metrics` | `BinaryMetrics`, `MulticlassMetrics` | 学習結果の評価指標(in-sample) |
 | `litsea::evaluation` | `PosMetrics`, `SegmentationMetrics` | gold コーパスに対する held-out 評価 |
 | `litsea::two_stage` | `ModelKind`, `TwoStageFeatureSet`, `TwoStageLearner` | 二段構成モデルのコンテナとモデル種別の判定 |
-| `litsea::model_io` | `read_model_bytes` | モデル URI（パス・`file://`・`http(s)://`）をバイト列へ解決する |
+| `litsea::model_io` | `read_model_bytes` | モデル URI（パス・`file://`・`remote_model` フィーチャを有効にしたときの `http(s)://`）をバイト列へ解決する（async） |
 
-主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::Segmenter;` は `use litsea::segmenter::Segmenter;` の短縮形として使えます。
+主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::Segmenter;` は `use litsea::segmenter::Segmenter;` の短縮形として使えます。クレートルートには、クレートのバージョン（例: `"0.15.0"`）を返す `litsea::version()` もあります。
 
 各学習器は自身で URI を解決するため、`model_io::read_model_bytes` を直接使う場面はほとんどありません。これが公開されているのは、学習器を選ぶ前にモデルの中身を確認する必要がある呼び出し側のためです。`litsea-binding-core` はこれでバイト列を 1 度読み、`ModelKind::detect` で種別を判定し、同じバイト列を `load_model_from_reader` に渡すことで、リモートモデルを 2 回ダウンロードすることを避けています。
 

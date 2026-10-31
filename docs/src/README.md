@@ -2,7 +2,7 @@
 
 **Litsea** is an extremely compact word segmentation library implemented in Rust, inspired by [TinySegmenter](http://chasen.org/~taku/software/TinySegmenter/) and [TinySegmenterMaker](https://github.com/shogo82148/TinySegmenterMaker).
 
-Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the **AdaBoost binary classification** algorithm. Litsea also supports **word segmentation and POS (Part-of-Speech) tagging** with the [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tagset via a two-stage architecture.
+Unlike traditional morphological analyzers such as [MeCab](https://taku910.github.io/mecab/) and [Lindera](https://github.com/lindera/lindera), Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained **binary classification** model stored in the AdaBoost model format (the bundled segmentation models are trained as 2-class Averaged Perceptrons and converted to that format without loss). Litsea also supports **word segmentation and POS (Part-of-Speech) tagging** with the [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tagset via a two-stage architecture.
 
 ## Key Features
 
@@ -30,10 +30,7 @@ Output: ["これ", "は", "テスト", "です", "。"]
 
 Litsea also supports **POS (Part-of-Speech) tagging** in addition to word segmentation, through the two-stage architecture: the sentence is segmented by a binary boundary classifier, then each word is tagged through a candidate-tag lexicon plus a word-level tagger.
 
-For each character position, the model predicts one of 18 **SegmentLabel** classes:
-
-- `B-NOUN`, `B-VERB`, ..., `B-X` (boundary labels for 17 POS tags)
-- `O` (non-boundary = continuation of the current word)
+Stage 1 labels each character position `B` (a word starts here) or `O` (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. The earlier joint model, which predicted one of 18 `B-<UPOS>` / `O` labels per character, was removed; loading such a model file fails with an error that asks you to retrain with `litsea train --pos`.
 
 The POS tags follow the [Universal Dependencies](https://universaldependencies.org/) **UPOS tagset** (17 POS tags).
 

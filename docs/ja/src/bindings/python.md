@@ -86,13 +86,20 @@ seg = Segmenter.open("ja", "models/japanese_pos.model", user_word_tags={"チャ�
 | `segment_tokens(text)` | バイトオフセット付き `list[Token]` |
 | `segment_with_pos(text)` | タグとオフセット付き `list[Token]` |
 | `segment_with_pos_batch(texts)` | `list[list[Token]]` |
-| `Extractor(language).extract(...)` | 特徴量ファイルを書き出す |
-| `Extractor(language).extract_two_stage(...)` | `.stage1` / `.stage2` / `.lexicon` を書き出す |
-| `Trainer(threshold, iterations, features).train(model, cancel=None)` | `BinaryMetrics` |
-| `PerceptronTrainer(epochs, features).train(model, cancel=None)` | `MulticlassMetrics` |
-| `TwoStageTrainer(epochs, prefix, dominance=0.99).train(model, cancel=None)` | `TwoStageMetrics` |
+| `language`・`has_pos`（プロパティ） | セグメンタを構築したときの `Language`、モデルが POS タグ付けに対応しているか |
+| `Extractor(language).extract(corpus_path, features_path, *, tsv=False, tag_free=False)` | 特徴量ファイルを書き出す |
+| `Extractor(language).extract_two_stage(corpus_path, output_prefix, *, feature_set="fast", tsv=False)` | `.stage1` / `.stage2` / `.lexicon` を書き出す |
+| `Trainer(threshold, iterations, features).train(model, *, cancel=None)` | `BinaryMetrics` |
+| `PerceptronTrainer(epochs, features).train(model, *, cancel=None)` | `MulticlassMetrics` |
+| `TwoStageTrainer(epochs, prefix, *, dominance=0.99).train(model, *, cancel=None)` | `TwoStageMetrics` |
+| `Trainer(...).load_model(uri)`、`PerceptronTrainer(...).load_model(uri)` | `None`。既存のモデル（パス・`file://`・`http(s)://`）を読み込み、そこから学習を続ける |
+| `CancelToken()`：`cancel()`・`reset()`・`cancelled`（プロパティ） | `train(..., cancel=...)` に渡すフラグ |
+| `Language.parse(name)` | `Language`。未知の名前には `InvalidArgumentError` を送出する |
+| `version()`、`__version__` | `litsea` のバージョン文字列 |
 
-`Language` と `Upos` は `enum.Enum` のサブクラスではなく PyO3 のクラスです。メンバーはクラス属性なので、列挙には `for x in Language` ではなく `Language.all()` / `Upos.all()` を使ってください。
+`feature_set` は `"full"`・`"balanced"`・`"fast"` のいずれかで、`tsv=True` はコーパスを空白を保持する TSV 形式として読みます。
+
+`Language` と `Upos` は `enum.Enum` のサブクラスではなく PyO3 のクラスです。メンバーはクラス属性なので、列挙には `for x in Language` ではなく `Language.all()` / `Upos.all()` を使ってください。`name` プロパティは正規の名前（`"japanese"`、`"NOUN"`）を返します。
 
 ## 学習
 
@@ -127,16 +134,17 @@ metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=
 
 | 例外 | 発生条件 |
 |------|---------|
-| `InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `user_words_gate`、UPOS タグでない `user_word_tags` の値 |
-| `ModelError` | ダウンロード失敗、または旧 joint POS モデル |
+| `InvalidArgumentError` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `user_words_gate`、UPOS タグでない `user_word_tags` の値、`(0.5, 1.0]` の外の `dominance`、未知のモデル URI スキーム |
+| `ModelError` | ダウンロード失敗、または旧 joint POS モデル（サポートされなくなったため、`litsea train --pos` で学習し直す） |
 | `IoError` | ファイルの読み書き失敗 |
 | `ParseError` | モデルまたは学習データの形式不正 |
 | `UnsupportedError` | このビルドでは利用できないスキームや操作 |
 | `PosUnavailableError` | 分割専用モデルに対する POS タグ付けの要求 |
+| `LitseaError` | 上記以外の失敗。どのサブクラスにも当てはまらないエラーでは、基底クラスそのものを送出する |
 
 ## スレッドと GIL
 
-`Segmenter` はイミュータブルで、スレッド間で共有できます。`segment_batch`・`segment_with_pos_batch`・`extract`・各 `train` は GIL を解放します。
+`Segmenter` はイミュータブルで、スレッド間で共有できます。`Segmenter.open`・`Segmenter.from_uri`・`segment_batch`・`segment_with_pos_batch`・`extract`・`extract_two_stage`・各トレーナのコンストラクタ・`load_model`・各 `train` は GIL を解放します。
 
 単文の `segment` / `segment_with_pos` は GIL を保持します。GIL を解放するには入力文字列を所有する必要があり（PyO3 の `Ungil` 境界により、GIL 解放中に Python 所有のメモリへ触れられないため）、そのコピーのコストが 1 文の分割コストを上回るからです。大量処理にはバッチ版を使ってください。
 

@@ -4,12 +4,14 @@ Litseaは、`Language` 列挙型に基づく統一的なフレームワークを
 
 ## サポート言語
 
-| Language | Enum Variant | CLI Values | Feature Count | 単語 F1（held-out） |
-|----------|-------------|------------|---------------|---------------------|
+| Language | Enum Variant | CLI Values | Feature Templates | 単語 F1（held-out） |
+|----------|-------------|------------|-------------------|---------------------|
 | 日本語 | `Language::Japanese` | `japanese`, `ja` | 42 | 96.70% |
 | 中国語 | `Language::Chinese` | `chinese`, `zh` | 42 | 90.69% |
 | 韓国語 | `Language::Korean` | `korean`, `ko` | 38 | 99.91% |
 | 英語 | `Language::English` | `english`, `en` | 38 | 98.31% |
+
+「Feature Templates」は、その言語が使える特徴テンプレートの数（`packed_model.rs` の `templates_for()`）で、モデルに含まれる特徴量の数ではありません。同梱の `korean.model` と `english.model` は tag-free（`--tag-free`）で学習しているため、38 テンプレートのうち、直前の境界判定を読まない 22 テンプレートだけを使います。
 
 ## Language 列挙型
 
@@ -49,7 +51,7 @@ let err = "french".parse::<Language>();          // Err(...)
 |--------|----------|---------|--------|---------|
 | 文字タイプ数 | 8 (M, H, I, K, P, A, N, O) | 9 (F, C, X, R, P, B, A, N, O) | 10 (E, SN, SF, J, G, H, P, A, N, O) | 7 (U, W, Q, P, A, N, O) |
 | WC特徴量 | あり（4個追加） | あり（4個追加） | なし | なし |
-| 総特徴量数 | 42 | 42 | 38 | 38 |
+| 特徴テンプレート数 | 42 | 42 | 38 | 38 |
 | マッチング方式 | `match`（文字範囲） | `match`（文字範囲） | `match`（文字範囲）+ コードポイント判定 | `match`（文字範囲） |
 
 ### 韓国語・英語の特徴量が少ない理由

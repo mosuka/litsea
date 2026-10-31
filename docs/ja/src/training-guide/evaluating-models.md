@@ -65,7 +65,7 @@ Recall = TP / (TP + FN)
 
 ### ベンチマークの再現
 
-上の表のすべての数値は、同梱のゴールドデータ（`resources/eval/`、UD GSD の
+上の表のすべての数値は、同梱のゴールドデータ（`resources/eval/`、UD GSD/EWT の
 **test** 分割から変換。同梱モデルは train 分割で学習しているため held-out に
 あたります）を使って、それぞれ 1 コマンドで再現できます:
 

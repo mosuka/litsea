@@ -20,15 +20,20 @@ echo "text" | litsea segment [OPTIONS] <MODEL_URI>
 |--------|---------|------------|
 | `-l`, `--language <LANGUAGE>` | `japanese` | Language for character type classification. Accepts: `japanese` / `ja`, `chinese` / `zh`, `korean` / `ko`, `english` / `en` |
 | `--pos` | off | Enable POS-tagged segmentation output. Requires a [two-stage](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1) model (`train --pos`) |
-| `--threads <N>` | `1` | Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with `N > 1`, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without `--pos`). Wall-clock time for large inputs drops with core count; single-line latency is unchanged |
+| `--threads <N>` | `1` | Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with `N > 1`, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without `--pos`). Wall-clock time for large inputs drops with core count; single-line latency is unchanged. `N` must be from 1 to 65535; `--threads 0` is rejected |
 | `--user-words <FILE>` | none | User dictionary (issues #263, #264, #276): a UTF-8 file with one word per line, optionally followed by a TAB and a UPOS tag. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. With `--pos`, a token that is a tagged word gets the registered tag; a tagged word of one character changes no boundary and retags only the tokens that are exactly that character. Untagged words of one character and empty lines are ignored |
 | `--user-words-gate <RATIO>` | none | Flip-ratio gate for `--user-words`, in `0.0..=1.0`: an occurrence is applied only if the share of the model's margin it would overturn is at most `RATIO` (`0` = only where the model already agrees, `1` = always). Requires `--user-words` |
 
 ## Input / Output
 
 - **Input**: Reads from stdin, one sentence per line. A byte order mark at
-  the start of the input is ignored (issue #281). Empty lines are skipped.
-- **Output**: Writes to stdout, space-separated tokens, one line per input line.
+  the start of the input is ignored (issue #281). Each line is trimmed of
+  leading and trailing whitespace; empty and whitespace-only lines are
+  skipped.
+- **Output**: Writes to stdout, one line per non-empty input line, with the
+  tokens separated by a single space. With the Korean and English models a
+  space in the sentence is a token of its own, so it appears between two
+  separator spaces (see the English example below).
 - **Pipelines**: A downstream consumer closing the pipe early (e.g.
   `litsea segment model | head -1`) terminates the command successfully
   (exit code 0), so `segment` composes cleanly in shell pipelines.
@@ -63,6 +68,10 @@ echo "한국어 단어 분할 테스트입니다." \
 
 ```sh
 echo "I don't know." | litsea segment -l english ./models/english.model
+```
+
+```text
+I   do n't   know .
 ```
 
 **Processing a file:**
@@ -235,5 +244,5 @@ Error: user dictionary words.txt, line 2: unknown UPOS tag "Noun" (expected one 
 
 - The `--language` flag must match the language the model was trained for
 - The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (`load_model_from_path`)
-- The model URI is not restricted to file paths -- any valid URL is accepted
+- The model URI may be a plain file path, a `file://` URI, or an `http://` / `https://` URL; any other scheme fails with `Error: invalid input: Invalid model scheme: <scheme>`
 - When using `--pos`, the model must be a two-stage model trained with `train --pos`

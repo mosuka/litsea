@@ -23,7 +23,7 @@ Use `scripts/download_udtreebank.sh` to download a UD Treebank. It prints the pa
 conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 ```
 
-Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese), `en` (English). Use `-o` to specify the output directory (default: current directory).
+Supported languages: `ja` (Japanese, default), `ko` (Korean), `zh` (Chinese), `en` (English). Without `-l`, the `LANG_CODE` environment variable, when set, replaces the `ja` default. Use `-o` to specify the output directory (default: current directory).
 
 ## Corpus for Word Segmentation
 
@@ -83,7 +83,7 @@ tokens — the two-stage POS training corpus for space-delimited languages
 
 ## Corpus for POS Tagging
 
-For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.
+For POS tagging, each word must be annotated with its POS tag. POS tags come from the two-stage model: stage 1 is a binary boundary classifier that labels each character position `B` (a word starts here) or `O` (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. The earlier joint model, which predicted one of 18 `B-<UPOS>` / `O` labels per character, was removed; loading such a model file as a POS model fails with an error that asks you to retrain with `litsea train --pos`.
 
 ### POS Corpus Format
 
@@ -133,6 +133,15 @@ For larger-scale training, you can build a corpus from a full Wikipedia dump usi
 
 ### Usage
 
+Download a dump with `scripts/download_wikidump.sh` (`-l lang`: `ja`, `ko` or `zh`, default `ja`, or `LANG_CODE` when set; `-o output_dir`, default the current directory). It saves `<lang>wiki-latest-pages-articles.xml.bz2` from `dumps.wikimedia.org`, skips the download if that file already exists, and prints the file's path:
+
+```sh
+dump_file=$(bash scripts/download_wikidump.sh -l ja -o /tmp)
+bash scripts/corpus_wikidump.sh "$dump_file" corpus_ja.txt
+```
+
+Or pass a dump file you already have:
+
 ```sh
 # Japanese (default)
 bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
@@ -151,12 +160,14 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 | `-l lang` | Language code: `ja`, `ko`, `zh` | `ja` |
 | `-n max_lines` | Maximum sentence lines to process (0 = unlimited) | `100000` |
 
+The script needs `wicket` and `lindera` on `PATH`. It concatenates wicket's output files in random order (`shuf`) before the filters and the `-n` limit, so a limited corpus is a random sample of the dump and differs from run to run.
+
 ### Sentence Filtering
 
 The script applies two filters to keep only well-formed sentences:
 
 1. **Sentence-ending punctuation** -- Lines must end with `。`, `.`, `!`, or `?`. This excludes section headers (e.g., "参考文献"), list items, and metadata.
-2. **Minimum length** -- Lines must be at least 20 characters. This excludes short fragments and isolated labels.
+2. **Minimum length** -- Lines must be at least 20 characters, as measured by `awk`'s `length`: characters with a multibyte-aware awk (such as gawk under a UTF-8 locale), but bytes with an awk that has no multibyte support, where 20 bytes is about 7 CJK characters. This excludes short fragments and isolated labels.
 
 ### Tokenizer Dictionaries
 

@@ -4,7 +4,7 @@
 
 ## インストール
 
-PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトです。PyPI や npm と異なりビルド済みパッケージの配布はなく、PIE か自分の手で、使っている PHP に合わせてビルドします。
+PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトなので、ビルド済みバイナリは 1 つの PHP バージョン・スレッドセーフ方式・プラットフォームにしか合いません。PIE は、合うものが GitHub Release にあればそれをダウンロードし、無ければ使っている PHP に合わせて拡張をビルドします。自分の手でビルドすることもできます。
 
 ```sh
 pie install mosuka/litsea
@@ -19,7 +19,7 @@ cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 ```
 
-常時読み込む場合は `php.ini` に `extension=/path/to/liblitsea_php.so` を追記します。どちらの方法でも `php -m` には `litsea` と表示されます。
+常時読み込む場合は `php.ini` に `extension=/path/to/liblitsea_php.so` を追記します。macOS では cargo が `liblitsea_php.dylib` を書き出すので、そのパスを読み込んでください。どちらの方法でも `php -m` には `litsea` と表示されます。
 
 ## 静的解析向けのスタブ
 
@@ -95,18 +95,25 @@ array_map(fn ($t) => "{$t->surface}/{$t->pos}", $tagged->segmentWithPos('チャ�
 | 呼び出し | 戻り値 |
 |---------|-------|
 | `Segmenter::open($language, $path, $user_words?, $user_words_gate?, $user_word_tags?)` | セグメンタ |
-| `Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?, $user_word_tags?)` | セグメンタ |
+| `Segmenter::fromBytes($language, $data, $user_words?, $user_words_gate?, $user_word_tags?)` | セグメンタ |
 | `Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?, $user_word_tags?)` | セグメンタ（ダウンロードはブロッキング） |
+| `language()` | `string`（正規の言語名） |
+| `hasPos()` | `bool` |
 | `segment($text)` | `string[]` |
 | `segmentBatch($texts)` | `string[][]` |
 | `segmentTokens($text)` | バイトオフセット付き `Token[]` |
 | `segmentWithPos($text)` | タグとオフセット付き `Token[]` |
 | `segmentWithPosBatch($texts)` | `Token[][]` |
-| `(new Extractor($language))->extract(...)` | `void` |
-| `(new Extractor($language))->extractTwoStage(...)` | `void` |
-| `(new Trainer($threshold, $iterations, $features))->train($model, $cancel?)` | `BinaryMetrics` |
-| `(new PerceptronTrainer($epochs, $features))->train($model, $cancel?)` | `MulticlassMetrics` |
-| `(new TwoStageTrainer($epochs, $prefix, $dominance?))->train($model, $cancel?)` | `TwoStageMetrics` |
+| `(new Extractor($language))->extract($corpus_path, $features_path, $tsv = false, $tag_free = false)` | `void`（`$tsv` は TSV 形式のコーパスを読み、`$tag_free` はタグに依存する特徴テンプレートを省きます） |
+| `(new Extractor($language))->extractTwoStage($corpus_path, $output_prefix, $feature_set = null, $tsv = false)` | `void`（`{$output_prefix}.stage1`・`.stage2`・`.lexicon` を書き出します。`$feature_set` は `'full'`・`'balanced'`・`'fast'` のいずれかで、`null` は `'fast'` を意味します） |
+| `(new Trainer($threshold, $num_iterations, $features_path))->train($model_path, $cancel?)` | `BinaryMetrics` |
+| `(new Trainer(...))->loadModel($model_uri)` | `void`（既存のモデルから学習を続けます。パス・`file://`・`http(s)://` を受け付けます） |
+| `(new PerceptronTrainer($num_epochs, $features_path))->train($model_path, $cancel?)` | `MulticlassMetrics` |
+| `(new TwoStageTrainer($num_epochs, $features_prefix, $dominance = 0.99))->train($model_path, $cancel?)` | `TwoStageMetrics` |
+| `(new TwoStageTrainer(...))->isAvailable()` | `bool`（`train()` の実行後は `false`） |
+| `(new CancelToken())->cancel()` / `reset()` / `isCancelled()` | `void` / `void` / `bool` |
+| `Litsea\version()` | `string`（`litsea` のバージョン） |
+| `Litsea\supported_languages()` | `string[]` |
 
 ext-php-rs はメソッドとプロパティを camelCase に変換するため、PHP 側では `segmentWithPos()`・`hasPos()`・`$metrics->numInstances` となります。
 
@@ -129,11 +136,11 @@ $metrics = (new Litsea\Trainer(0.01, 100000, 'features.txt'))->train('japanese.m
 
 ## エラー
 
-すべての例外は `Litsea\LitseaException` を継承するため、1 つの `catch` で捕捉できます（Python バインディングと同じ階層です）。
+すべての例外は `Litsea\LitseaException` を継承するため、1 つの `catch` で捕捉できます（Python バインディングと同じ階層です）。下の表のどの例外にも当たらない失敗は、`Litsea\LitseaException` そのものとして投げられます。
 
 | 例外 | 発生条件 |
 |------|---------|
-| `Litsea\InvalidArgumentException` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `$user_words_gate`、UPOS タグでない `$user_word_tags` の値 |
+| `Litsea\InvalidArgumentException` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0`〜`1.0` の外の `$user_words_gate`、UPOS タグでない `$user_word_tags` の値、(0.5, 1.0] の外の `$dominance`、未知の URI スキーム |
 | `Litsea\ModelException` | ダウンロード失敗、または旧 joint POS モデル |
 | `Litsea\IoException` | ファイルの読み書き失敗 |
 | `Litsea\ParseException` | モデルまたは学習データの形式不正 |

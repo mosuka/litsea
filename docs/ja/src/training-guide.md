@@ -45,8 +45,8 @@ litsea extract -l korean --format tsv corpus.tsv features.txt
 ハイパーパラメータは異なります。`litsea train` でゼロから通常の AdaBoost
 モデルを学習する場合、`-t 0.0001 -i 20000`（[モデルの学習](training-guide/training-models.md)を参照）は
 良い出発点ですが、これは同梱の `japanese`/`chinese`/`korean`/`english` モデルが
-使っている値ではありません。それらのモデルは言語ごとに異なるエポック数と
-剪定を伴う別の手順で学習されています。実際の手順は
+使っている値ではありません。それらのモデルは、言語ごとに異なるエポック数を使い、
+日本語・中国語では剪定も行う別の手順で学習されています。実際の手順は
 [学習手順](pre-trained-models.md#学習手順)を参照してください。
 
 ## その他のトピック

@@ -26,6 +26,14 @@ litsea <COMMAND> [OPTIONS] [ARGS]
 | `-h`, `--help` | Show help information |
 | `-V`, `--version` | Show version number |
 
+## Exit Status
+
+| Status | Meaning |
+|--------|---------|
+| `0` | Success, including `--help`, `--version`, and a downstream pipe that closes early while `segment` is writing |
+| `1` | The command failed while running; the message is printed to stderr as `Error: <message>` (for example a missing model file, an invalid `--user-words` file, a `--user-words-gate` outside `0.0..=1.0`, or `--pos` combined with `--perceptron`) |
+| `2` | The arguments could not be parsed (for example an unknown option, an unsupported `--language`, `--threads 0`, or `--user-words-gate` without `--user-words`); the parser prints the error to stderr |
+
 ## Typical Workflow
 
 ### AdaBoost Workflow (Word Segmentation Only)

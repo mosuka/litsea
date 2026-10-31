@@ -1,7 +1,7 @@
 # evaluate
 
 学習済みモデルを held-out のゴールドコーパスに対して評価し、品質メトリクスを
-出力します。`train` が出力する in-sample 指標とは異なり、モデルが学習で一度も
+stderr に出力します（stdout には何も出力しません）。`train` が出力する in-sample 指標とは異なり、モデルが学習で一度も
 見ていないテキストに対する品質を測定します。
 
 **ゴールドコーパス**とは、正解が書かれたテキストファイルです: 1 行 1 文で、
@@ -10,8 +10,9 @@
 バイトオーダーマーク（BOM）は無視します（issue #281）。「ゴールド」は
 モデル出力の採点基準となる正解（ゴールドスタンダード）を指します。意味のある
 **held-out** 評価にするには、モデルの学習に使っていない文で構成されている必要が
-あります — 同梱の `resources/eval/` は UD GSD の **test** 分割で、同梱モデルは
-train 分割で学習されているため、この条件を満たします。
+あります — 同梱の `resources/eval/` は UD GSD（日本語・中国語・韓国語）と
+UD English-EWT（英語）の **test** 分割で、同梱モデルは train 分割で学習されて
+いるため、この条件を満たします。
 
 ## 使い方
 
@@ -41,8 +42,8 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 各文について、次の 2 つのトークン列を比較します:
 
 - **ゴールドトークン** -- ゴールドコーパスに記録された基準の分割。人手で
-  アノテーションされた正解（ここでは UD GSD ツリーバンク test 分割の
-  トークン分割）です。評価対象の文テキストは、これらを連結して復元します
+  アノテーションされた正解（ここでは UD GSD または UD English-EWT
+  ツリーバンク test 分割のトークン分割）です。評価対象の文テキストは、これらを連結して復元します
 - **予測トークン** -- 復元した文テキストを `segment`（`--pos` 時は
   `segment --pos`）に与えたときにモデルが出力する分割。ユーザーが推論時に
   得るものと完全に同じです
@@ -62,13 +63,15 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 | Tagged Word Precision / Recall / F1（`--pos`） | 単語メトリクスと同様だが、予測 POS タグの一致も必要 | スパンは正しいがタグが誤っている |
 
 単語は**両端の境界がともに正しい**場合のみ正解と数えるため、単語メトリクスは
-常に境界メトリクスと同等以上に厳しくなります — 境界が 1 つずれるだけで、その
-両側の 2 単語が不正解になります。`Sentences` は評価対象（非空）のゴールド文数です。
+多くの場合、境界メトリクスより厳しくなります — 境界が 1 つずれるだけで、その
+両側の 2 単語が不正解になります。境界メトリクスは各文の先頭（必ず単語の開始
+位置）を数えないため、1 語だけの文が多いコーパスでは単語メトリクスのほうが
+高くなることがあります。`Sentences` は評価対象（非空）のゴールド文数です。
 
 ## 使用例
 
-同梱のゴールドデータ（`resources/eval/`、UD GSD テスト分割から変換）を使って、
-ドキュメントに記載の held-out の数値を再現します:
+同梱のゴールドデータ（`resources/eval/`、UD GSD と UD English-EWT のテスト
+分割から変換）を使って、ドキュメントに記載の held-out の数値を再現します:
 
 ```sh
 litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
@@ -76,6 +79,33 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+```
+
+各コマンドはメトリクスを stderr に出力します。最初のコマンドの出力は次のとおりです:
+
+```text
+Evaluation Metrics:
+  Sentences: 543
+  Word Precision: 96.73%
+  Word Recall: 96.66%
+  Word F1: 96.70%
+  Boundary Precision: 98.63%
+  Boundary Recall: 98.56%
+  Boundary F1: 98.59%
+```
+
+`--pos`（最後のコマンド）では境界の行は出力されず、単語メトリクスの後に
+タグ付き単語のメトリクスが続きます:
+
+```text
+Evaluation Metrics (POS):
+  Sentences: 543
+  Word Precision: 96.78%
+  Word Recall: 96.79%
+  Word F1: 96.78%
+  Tagged Word Precision: 92.94%
+  Tagged Word Recall: 92.95%
+  Tagged Word F1: 92.95%
 ```
 
 同じゴールドでユーザー辞書の効果を測ります — 辞書は `segment --user-words`
@@ -94,27 +124,16 @@ litsea evaluate --user-words words.txt --user-words-gate 0.5 -l japanese models/
 litsea evaluate --pos --user-words words.txt -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 ```
 
-韓国語・英語では、`--pos` 単体は #198 以前に二段構成モデルが学習に使っていた
-空白非保持プロトコルを再現します。現在のモデルの品質を測るには、
-`--pos --format tsv` を `*_pos_spaced.tsv` のゴールドに対して実行してください
-— 学習時のプロトコルと実際のスペース付き入力の双方に一致します。2 つの数値は
-互いに比較できません
-（[事前学習済みモデル](../pre-trained-models.md#english_posmodel) 参照）:
+韓国語と英語の二段構成モデルは空白保持コーパスで学習しているため
+（issue #198）、`--pos --format tsv` を `*_pos_spaced.tsv` のゴールドに対して
+実行して評価してください -- このプロトコルは、学習時と、`segment --pos` が実際に受け取る
+スペース付きのテキストの双方に一致します:
 
 ```sh
-litsea evaluate --pos -l english models/english_pos.model resources/eval/english_ewt_test_pos.txt
+litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
 litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 ```
 
-出力:
-
-```text
-Evaluation Metrics:
-  Sentences: 543
-  Word Precision: 96.73%
-  Word Recall: 96.66%
-  Word F1: 96.70%
-  Boundary Precision: 98.63%
-  Boundary Recall: 98.56%
-  Boundary F1: 98.59%
-```
+この 2 言語の `*_pos.txt` のゴールドは、issue #198 以前に使っていた空白非保持の
+プロトコルを測るもので、以前に公開した数値を再現するためだけに残しています
+（[事前学習済みモデル](../pre-trained-models.md#english_posmodel) 参照）。

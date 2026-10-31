@@ -48,7 +48,7 @@ flowchart TD
 model from scratch. The bundled `japanese.model`, `chinese.model`,
 `korean.model`, and `english.model` are produced by a different procedure
 -- a 2-class Averaged Perceptron collapsed to AdaBoost weights, with
-per-language epoch counts and pruning -- see [Training
+per-language epoch counts and, for Japanese and Chinese, pruning -- see [Training
 Procedure](../pre-trained-models.md#training-procedure) in Pre-trained
 Models for how those files are actually made.
 

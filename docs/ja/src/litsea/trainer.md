@@ -201,7 +201,7 @@ let trainer = TwoStageTrainer::new(
 
 ```rust
 pub fn train(
-    mut self,
+    self,
     running: &AtomicBool,
     model_path: &Path,
 ) -> litsea::Result<TwoStageMetrics>
@@ -258,7 +258,7 @@ pub struct TwoStageMetrics {
 | `PerceptronTrainer::new(epochs, features_path)` | `PerceptronTrainer::from_features(epochs, features)` |
 | `TwoStageTrainer::new(epochs, dominance, prefix)` | `TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)` |
 | `train(running, model_path)` | `train_to_writer(running, writer)` |
-| `load_model(uri).await` | `load_model_from_reader(reader)` |
+| `load_model(uri).await`（`TwoStageTrainer` にはなし） | `load_model_from_reader(reader)`（`TwoStageTrainer` にはなし） |
 
 ```rust
 use litsea::{Extractor, Language, Trainer};
@@ -288,13 +288,16 @@ use litsea::{AdaBoost, Language, Segmenter};
 
 let mut learner = AdaBoost::new(0.01, 10_000);
 let segmenter = Segmenter::new(Language::Japanese);
-segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+// Extractor と同じく、1 回の呼び出しに 1 文（前後の空白を除いた、空でない行）を渡す
+for line in corpus.lines().map(str::trim).filter(|line| !line.is_empty()) {
+    segmenter.add_corpus_with_writer(line, |attrs, label| learner.add_instance(attrs, label));
+}
 learner.train(&AtomicBool::new(true));
 learner.save_model_to_writer(&mut model)?;
 ```
 
-新規の学習器であればこれは等価です。ただし**読み込み済みモデルからの追加学習では等価になりません**。`Trainer` の 2 パス経路は各インスタンスのブースティング重みを既存モデルから算出しますが、`add_instance` はすべて `1.0` から始めます。
+どちらの経路も、すべてのインスタンスをブースティング重み `1.0` から始めます。読み込み済みモデルから追加学習する場合も同じです。`Trainer::new` は、`load_model` が既存の重みをマージするより前にインスタンスを構築するためです。違うのは特徴量の順序です。`Trainer` は特徴量の語彙をソートしますが、`add_instance` は各 `HashSet` の反復順で特徴量を追加し、この順序は実行ごとに変わります。保存されるモデルはこの順序で特徴量を並べ、ブースティングは同じ良さの特徴量どうしのタイをこの順序で解消します。そのため、この経路の出力はバイト単位では再現せず、`Trainer` の経路と異なることがあります。
 
 ### 再現性
 
-学習は入力だけの関数です。同じ特徴量から 2 回学習すれば同じモデルになります。これは `AveragedPerceptron::add_instance` が特徴量をソートして保持するためです。`HashSet` の反復順は集合ごとに異なり、パーセプトロンの更新は順序に依存するため、これ以前は同一プロセス内の 2 回の学習が一致しないことがありました。
+`Trainer`・`PerceptronTrainer`・`TwoStageTrainer` による学習は入力だけの関数です。同じ特徴量から 2 回学習すれば同じモデルになります。これは `Trainer` が特徴量の語彙をソート順で構築し、`AveragedPerceptron::add_instance` が特徴量をソートして保持するためです。`HashSet` の反復順は集合ごとに異なり、パーセプトロンの更新は順序に依存するため、これ以前は同一プロセス内の 2 回の学習が一致しないことがありました。上記のように `add_instance` で `AdaBoost` を直接学習する場合には、この保証はありません。

@@ -1,7 +1,7 @@
 # evaluate
 
 Evaluate a trained model against a held-out gold corpus and print quality
-metrics. Unlike the in-sample metrics printed by `train`, this measures
+metrics to stderr (nothing is written to stdout). Unlike the in-sample metrics printed by `train`, this measures
 quality on text the model has never seen.
 
 A **gold corpus** is a text file containing the correct answers: one
@@ -11,8 +11,9 @@ tab-separated tokens, or `word/POS` with `--pos`). A byte order mark at
 the start of the file is ignored (issue #281). "Gold" refers to the
 gold standard the model's output is judged against. For a meaningful
 **held-out** evaluation it must contain sentences that were *not* used to
-train the model — the bundled files in `resources/eval/` are the UD GSD
-**test** splits, while the bundled models are trained on the train splits.
+train the model — the bundled files in `resources/eval/` are the **test**
+splits of UD GSD (Japanese, Chinese, Korean) and UD English-EWT (English),
+while the bundled models are trained on the train splits.
 
 ## Usage
 
@@ -42,8 +43,8 @@ litsea evaluate [OPTIONS] <MODEL_URI> <GOLD_FILE>
 Two token sequences are compared for every sentence:
 
 - **Gold tokens** -- the reference segmentation from the gold corpus: the
-  human-annotated correct answer (here, the tokenization of the UD GSD
-  treebank test split). The evaluated sentence text is reconstructed by
+  human-annotated correct answer (here, the tokenization of the UD GSD or
+  UD English-EWT treebank test split). The evaluated sentence text is reconstructed by
   concatenating them.
 - **Predicted tokens** -- what the model produces when the reconstructed
   sentence text is fed to `segment` (or `segment --pos`), exactly as a
@@ -65,14 +66,17 @@ the numbers.
 | Tagged Word Precision / Recall / F1 (`--pos`) | Like the word metrics, but the predicted POS tag must also match | correct spans carrying wrong tags |
 
 A word counts as correct only when **both** of its boundaries are correct,
-so word metrics are always at least as strict as boundary metrics — a
-single misplaced boundary invalidates the two words on either side of it.
-`Sentences` is the number of evaluated (non-empty) gold sentences.
+so word metrics are usually stricter than boundary metrics — a single
+misplaced boundary invalidates the two words on either side of it.
+Boundary metrics leave out the start of each sentence, which is always a
+word start, so on a corpus with many one-word sentences the word metrics
+can come out higher. `Sentences` is the number of evaluated (non-empty) gold sentences.
 
 ## Examples
 
 Reproduce the documented held-out figures with the bundled gold data
-(`resources/eval/`, converted from the UD GSD test splits):
+(`resources/eval/`, converted from the UD GSD and UD English-EWT test
+splits):
 
 ```sh
 litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
@@ -80,6 +84,33 @@ litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+```
+
+Each command writes its metrics to stderr. The first command prints:
+
+```text
+Evaluation Metrics:
+  Sentences: 543
+  Word Precision: 96.73%
+  Word Recall: 96.66%
+  Word F1: 96.70%
+  Boundary Precision: 98.63%
+  Boundary Recall: 98.56%
+  Boundary F1: 98.59%
+```
+
+With `--pos` (the last command), the boundary lines are not printed; the
+tagged-word metrics follow the word metrics instead:
+
+```text
+Evaluation Metrics (POS):
+  Sentences: 543
+  Word Precision: 96.78%
+  Word Recall: 96.79%
+  Word F1: 96.78%
+  Tagged Word Precision: 92.94%
+  Tagged Word Recall: 92.95%
+  Tagged Word F1: 92.95%
 ```
 
 Measure what a user dictionary does on the same gold — it is applied
@@ -113,16 +144,3 @@ The `*_pos.txt` gold for those two languages measures the unspaced
 protocol they used before #198; it is kept only for reproducing the older
 published numbers (see
 [Pre-trained Models](../pre-trained-models.md#english_posmodel)).
-
-Output:
-
-```text
-Evaluation Metrics:
-  Sentences: 543
-  Word Precision: 96.73%
-  Word Recall: 96.66%
-  Word F1: 96.70%
-  Boundary Precision: 98.63%
-  Boundary Recall: 98.56%
-  Boundary F1: 98.59%
-```

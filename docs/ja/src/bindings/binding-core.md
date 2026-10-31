@@ -1,6 +1,6 @@
 # litsea-binding-core
 
-`litsea-binding-core` は、各言語バインディングが共有する FFI 非依存のロジックをまとめたクレートです。依存先は `litsea`（およびネイティブターゲットではブロッキング用の Tokio）のみで、PyO3・napi・ext-php-rs・magnus・wasm-bindgen には一切依存しません。そのため、ホスト言語のツールチェーンなしでユニットテストできます。
+`litsea-binding-core` は、各言語バインディングが共有する FFI 非依存のロジックをまとめたクレートです。依存先は `litsea` と `thiserror`（およびネイティブターゲットではブロッキング用の Tokio）のみで、PyO3・napi・ext-php-rs・magnus・wasm-bindgen には一切依存しません。そのため、ホスト言語のツールチェーンなしでユニットテストできます。
 
 ## インストール
 
@@ -16,8 +16,8 @@ graph LR
     A["litsea_binding_core::segmenter"] --- B["CoreSegmenter"]
     C["litsea_binding_core::model"] --- D["build_segmenter, build_segmenter_with, build_user_dictionary, build_user_dictionary_with_tags, read_model_file, read_model_uri"]
     E["litsea_binding_core::token"] --- F["TokenView"]
-    G["litsea_binding_core::language"] --- H["parse_language, SUPPORTED_LANGUAGES"]
-    I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer"]
+    G["litsea_binding_core::language"] --- H["parse_language, language_name, supported_language_names, SUPPORTED_LANGUAGES"]
+    I["litsea_binding_core::trainer"] --- J["CoreExtractor, CoreTrainer, CorePerceptronTrainer, CoreTwoStageTrainer, CorpusFormat, parse_feature_set"]
     K["litsea_binding_core::cancel"] --- L["CancelToken"]
     M["litsea_binding_core::error"] --- N["CoreError, ErrorKind, CoreResult"]
     O["litsea_binding_core::runtime"] --- P["block_on"]
@@ -28,11 +28,13 @@ graph LR
 | `segmenter` | `CoreSegmenter` | 分割と POS タグ付け（単発・バッチ）。バッファを再利用する |
 | `model` | `BuiltSegmenter`, `build_segmenter`, `build_segmenter_with`, `build_user_dictionary`, `build_user_dictionary_with_tags` | モデルの読み込みと種別判定、バインディングが取り付けるユーザー辞書 |
 | `token` | `TokenView` | 表層形・バイトオフセット・UPOS タグ（任意）を持つトークン |
-| `language` | `SUPPORTED_LANGUAGES`, `parse_language` | 言語名のパースと列挙 |
-| `trainer` | `CoreExtractor`, `CoreTrainer`, `CorePerceptronTrainer`, `CoreTwoStageTrainer` | 特徴量抽出と学習（ネイティブターゲットのみ） |
+| `language` | `SUPPORTED_LANGUAGES`, `parse_language`, `language_name`, `supported_language_names` | 言語名のパースと列挙 |
+| `trainer` | `CoreExtractor`, `CoreTrainer`, `CorePerceptronTrainer`, `CoreTwoStageTrainer`, `CorpusFormat`, `parse_feature_set` | 特徴量抽出と学習（ネイティブターゲットのみ）。`CorpusFormat` は `PlainText` か `Tsv`、`parse_feature_set` は `"full"`・`"balanced"`・`"fast"` を受け付ける |
 | `cancel` | `CancelToken` | 学習の協調的キャンセル |
 | `error` | `CoreError`, `ErrorKind`, `CoreResult` | 各言語の例外へ写像するためのエラー分類 |
 | `runtime` | `block_on` | 同期ホストから非同期モデルローダを呼ぶ（ネイティブターゲットのみ） |
+
+クレートのルートは、`litsea-binding-core` のバージョンを返す `version()` も提供します。
 
 ## 分割
 
@@ -59,6 +61,9 @@ assert_eq!(
 | `segment_tokens(text)` | バイトオフセット付き `Vec<TokenView>`（`pos` は未設定） |
 | `segment_with_pos(text)` | バイトオフセットと UPOS タグ付き `CoreResult<Vec<TokenView>>` |
 | `segment_with_pos_batch(texts)` | `CoreResult<Vec<Vec<TokenView>>>` |
+| `language()` | `Language`（セグメンタを構築したときの言語） |
+| `has_pos()` | `bool`（読み込んだモデルが POS タグ付けに対応しているか） |
+| `segmenter()` | `&Arc<Segmenter>`（ラップしている `litsea` のセグメンタ。このファサードがラップしていない `litsea` の API に使う） |
 
 バイトオフセットは厳密です。トークンは入力を隙間も重複もなく覆うため、すべてのトークンについて `&text[token.byte_start..token.byte_end] == token.surface` が成り立ちます。空白を保持する韓国語・英語でも同様です。
 
@@ -70,11 +75,11 @@ assert_eq!(
 |---------------|---------|
 | `CoreSegmenter::from_bytes(language, bytes)` | wasm32 を含むすべての環境 |
 | `CoreSegmenter::from_path(language, path)` | ネイティブターゲット |
-| `CoreSegmenter::from_uri(language, uri).await` | すべての環境（`http(s)://` は `remote_model` feature が必要） |
+| `CoreSegmenter::from_uri(language, uri).await` | すべての環境（`http(s)://` は `remote_model` feature が必要。wasm32 では `http(s)://` だけが使え、パスと `file://` は `ErrorKind::Unsupported` エラーになる） |
 | `CoreSegmenter::from_uri_blocking(language, uri)` | ネイティブターゲット |
 | `CoreSegmenter::from_bytes_with(language, bytes, dictionary)` | wasm32 を含むすべての環境 |
 | `CoreSegmenter::from_path_with(language, path, dictionary)` | ネイティブターゲット |
-| `CoreSegmenter::from_uri_with(language, uri, dictionary).await` | すべての環境（`http(s)://` は `remote_model` feature が必要） |
+| `CoreSegmenter::from_uri_with(language, uri, dictionary).await` | すべての環境（`http(s)://` は `remote_model` feature が必要。wasm32 では `http(s)://` だけが使え、パスと `file://` は `ErrorKind::Unsupported` エラーになる） |
 | `CoreSegmenter::from_uri_blocking_with(language, uri, dictionary)` | ネイティブターゲット |
 
 `*_with` コンストラクタは `Option<UserDictionary>`（issue #263）を受け取り、構築したセグメンタに取り付けます。無印のコンストラクタは `None` の場合です。`build_user_dictionary(words, gate)` は、ホスト言語から受け取った語のリストと任意の gate をその辞書に変換する共通ヘルパーです。空のリストは `None` になり（セグメンタのホットパスには触れません）、`0.0..=1.0` の外の gate は `ErrorKind::InvalidArgument` エラーになります — リストが空でも同様で、不正な gate が黙って無視されることはありません。`build_user_dictionary_with_tags(words, word_tags, gate)`（issue #264）は、さらにホスト言語の語→タグのマッピングを `(語, UPOS タグ)` の組で受け取り、それらの語をタグ付きで登録します（1 文字の語はタグだけのエントリになります。issue #276）。17 個の UPOS タグ以外のタグは、その語を示す `ErrorKind::InvalidArgument` エラーになります。組は整列した順に適用するため、結果もエラーも、ホスト言語のマップを走査する順序に左右されません。両方のリストが空のときだけ `None` になります。`build_user_dictionary` は、組がない場合にあたります。意味論は [Segmenter](../litsea/segmenter.md)（「ユーザー辞書」）を参照してください。
@@ -85,7 +90,7 @@ assert_eq!(
 |--------------|------|
 | 二段構成モデル（`litsea-two-stage v1`） | POS 対応セグメンタ、`has_pos() == true` |
 | AdaBoost 形式モデル | 分割専用セグメンタ、`has_pos() == false` |
-| joint POS モデル（旧形式） | joint モデルが削除済みであることを説明する `ErrorKind::Model` エラー |
+| joint POS モデル（旧形式、削除済み） | joint POS モデルはサポートされなくなったことを伝え、`litsea train --pos` で学習し直すよう求める `ErrorKind::Model` エラー |
 
 バイト列を 1 度読んでから分岐するため、リモートモデルのダウンロードは 1 回で済みます。
 
@@ -95,7 +100,7 @@ assert_eq!(
 
 | 種別 | `as_str()` | 発生条件 |
 |------|-----------|---------|
-| `InvalidArgument` | `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0..=1.0` の外のユーザー辞書 gate |
+| `InvalidArgument` | `invalid_argument` | 未知の言語名、未知の feature set、使用済みトレーナ、`0.0..=1.0` の外のユーザー辞書 gate、17 個の UPOS タグ以外のユーザー辞書のタグ、未知のモデル URI スキーム、`(0.5, 1.0]` の外の二段構成の `dominance` |
 | `Model` | `model` | ダウンロード失敗、または種別の異なるモデル |
 | `Io` | `io` | ファイルの読み書き失敗 |
 | `Parse` | `parse` | モデルまたは学習データの形式不正 |
@@ -125,6 +130,8 @@ let metrics = CoreTrainer::new(0.01, 10_000, "features.txt".as_ref())?
 println!("accuracy: {:.2}%", metrics.accuracy);
 ```
 
+`CoreExtractor::extract_two_stage(corpus, output_prefix, feature_set, format)` は、二段構成の特徴量 `{output_prefix}.stage1`・`.stage2`・`.lexicon` を書き出します。`CoreTrainer` と `CorePerceptronTrainer` は既存のモデルから学習を続けられます。`train` の前に `load_model(uri).await` か `load_model_blocking(uri)` を呼んでください（URI はパス、`file://`、または `remote_model` feature があれば `http(s)://`）。
+
 `CoreTwoStageTrainer` は CLI の `train --pos` に対応します。`litsea` の `TwoStageTrainer::train` がトレーナを消費する（stage 1 は AdaBoost モデルへ collapse されるため、その場での再学習ができない）ため、このトレーナは 1 度しか使えません。2 回目の呼び出しは `InvalidArgument` エラーを返し、`is_available()` で状態を確認できます。
 
 ### キャンセルの挙動
@@ -135,11 +142,11 @@ println!("accuracy: {:.2}%", metrics.accuracy);
 - 部分的に学習されたモデルは指定パスへ保存され、
 - メトリクスが通常どおり返されます。
 
-チェックは AdaBoost 学習ではブースティング反復ごと、パーセプトロン学習ではエポックごと・インスタンスごとに行われるため、パーセプトロン学習の方が反応がはるかに速くなります。`CancelToken` のクローンは同じフラグを共有するので、バックグラウンドスレッドに渡したトークンから、別スレッドが実行中の学習を停止できます。
+チェックは AdaBoost 学習ではブースティング反復ごと、パーセプトロン学習ではエポックごと・インスタンスごとに行われるため、パーセプトロン学習の方が反応がはるかに速くなります。`CancelToken` のクローンは同じフラグを共有するので、バックグラウンドスレッドに渡したトークンから、別スレッドが実行中の学習を停止できます。`cancel()` は停止を要求し、`is_cancelled()` は要求済みかを返し、`reset()` はトークンを実行中の状態に戻して次の学習に使えるようにします。
 
 ## プラットフォームサポート
 
-`wasm32-unknown-unknown` では `trainer`・`runtime`・`read_model_file`・`CoreSegmenter::from_path` はコンパイル対象から外れます。wasm32 にはファイルシステムもブロッキングランタイムも存在しないためです。WASM から使う場合は、JavaScript 側でモデルのバイト列を取得し `CoreSegmenter::from_bytes` に渡してください。
+`wasm32-unknown-unknown` では `trainer`・`runtime`・`read_model_file` と、`CoreSegmenter` のコンストラクタ `from_path`・`from_path_with`・`from_uri_blocking`・`from_uri_blocking_with` はコンパイル対象から外れます。wasm32 にはファイルシステムもブロッキングランタイムも存在しないためです。WASM から使う場合は、JavaScript 側でモデルのバイト列を取得し `CoreSegmenter::from_bytes` に渡してください。
 
 ## Feature
 

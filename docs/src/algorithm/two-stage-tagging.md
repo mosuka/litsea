@@ -4,7 +4,9 @@ Litsea's `segment_with_pos()` is backed by the **two-stage** model
 (`--pos`, `Segmenter::with_two_stage_learner`, issue #147). The model
 file's `litsea-two-stage v1` header identifies the format (see [Model File
 Format](../advanced/model-file-format.md#two-stage-model-format-litsea-two-stage-v1)),
-and the method returns `Vec<(String, Upos)>` word/tag pairs.
+and the method returns `Result<Vec<(String, Upos)>>` word/tag pairs (it
+fails with `LitseaError::PosLearnerNotSet` when the segmenter was not built
+with a two-stage model).
 
 ## How it works
 
@@ -21,16 +23,23 @@ Two-stage tagging never scores POS classes at the character level:
      `dominance` fraction of its training occurrences, is tagged with **no
      classifier call at all**.
    - An ambiguous known surface is scored only over its observed candidate
-     tags (a masked argmax), not all ~18 classes.
+     tags (a masked argmax), not all of the stage-2 UPOS classes (up to 17).
    - An unknown surface falls back to the full-class argmax.
+
+With a user dictionary (see [Prediction
+Pipeline](prediction-pipeline.md#user-dictionary)), its registered words
+also constrain the stage-1 boundaries, and a word whose surface is a tagged
+dictionary word (issues #264 and #276) gets the registered tag ahead of the
+lexicon and the classifier; the other words' tags do not change.
 
 Since a word averages more characters than one, and most words are either
 unambiguous or skip the classifier entirely, stage 2's total cost is a
 small fraction of per-character multiclass scoring. This is what makes the
 POS path nearly as fast as plain segmentation: the historical joint
-architecture (removed in favor of two-stage) scored every one of the ~18
-UPOS classes at every character position and ran 1.8-2.8x slower on the
-same corpora.
+architecture (removed in favor of two-stage) scored every one of its 18
+`B-<UPOS>` / `O` labels at every character position and ran 1.8-2.8x slower
+on the same corpora. Loading one of its model files now fails with an error
+that asks you to retrain with `litsea train --pos`.
 
 ## A methodology note: use enough training epochs
 
