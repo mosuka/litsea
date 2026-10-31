@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -222,7 +222,7 @@
 <li><code>WC4</code>: character at i + type code at i</li>
 </ul>
 <blockquote>
-<p><strong>Why no WC for Korean and English?</strong> Korean Hangul syllables are classified into only two types (SN and SF), so WC features would add noise rather than useful signal. English measured the same outcome directly: a dev-split comparison scored 98.68% Word F1 with the 38 base templates versus 98.65% with all 42 (WC included) – see <a href="../language-support/english.html#no-wc-features">English</a>.</p>
+<p><strong>Why no WC for Korean and English?</strong> Korean Hangul syllables are classified into only three types (E for six frequent particles, SN and SF), so WC features would add noise rather than useful signal. English measured the same outcome directly: a dev-split comparison scored 98.68% Word F1 with the 38 base templates versus 98.65% with all 42 (WC included) – see <a href="../language-support/english.html#no-wc-features">English</a>.</p>
 </blockquote>
 <h3 id="total-feature-count"><a class="header" href="#total-feature-count">Total Feature Count</a></h3>
 <div class="table-wrapper">
@@ -238,6 +238,7 @@
 </tbody>
 </table>
 </div>
+<p>With <code>litsea extract --tag-free</code> (boundary pipeline only; it cannot be combined with <code>--pos</code>), the 16 tag-dependent templates (<code>UP*</code>, <code>BP*</code>, <code>UQ*</code>, <code>BQ*</code>, <code>TQ*</code>) are dropped, leaving 26 templates for Japanese and Chinese and 22 for Korean and English. A model trained on such features is pointwise, so <code>segment()</code> skips its sequential scoring pass (see <a href="prediction-pipeline.html">Prediction Pipeline</a>). The bundled <code>korean.model</code> and <code>english.model</code> are trained this way.</p>
 <h2 id="single-source-of-truth"><a class="header" href="#single-source-of-truth">Single Source of Truth</a></h2>
 <p>The whole template above is defined once as a declarative table
 (<code>packed_model::TEMPLATES</code> – prefix plus an ordered list of tag/char/type
@@ -278,7 +279,7 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li><strong>B</strong> – “Boundary” tag (word start)</li>
 <li><strong>O</strong> – “Other” tag (continuation)</li>
 </ul>
-<p>Features are extracted for positions 4 through len-4 (inclusive) for the boundary (AdaBoost) pipeline; the POS pipeline also emits position 3, the first real character, because <code>segment_with_pos</code> predicts there to derive the first word’s POS (#100). Positions run 4 (or 3) through len-4 (inclusive), where the full window of i-3 to i+2 is available.</p>
+<p>Features are extracted for positions 4 through len-4 (inclusive) for the boundary (AdaBoost) pipeline; the two-stage extraction (<code>extract --pos</code>) also emits stage-1 rows for position 3, the first real character, always labelled <code>B</code>. This is a leftover of the removed joint POS model, whose <code>segment_with_pos</code> predicted there to derive the first word’s POS (#100); <code>segment()</code> and <code>segment_with_pos()</code> never score position 3, because it always starts the first word. Positions run 4 (or 3) through len-4 (inclusive), where the full window of i-3 to i+2 is available.</p>
 <h2 id="training-data-format"><a class="header" href="#training-data-format">Training Data Format</a></h2>
 <p>The <code>extract</code> command writes features to a file in this format (real output for the corpus line <code>これ は テスト です 。</code>):</p>
 <pre><code class="language-text">-1	BC1:OI	BC2:II	BC3:II	BP1:UU	BP2:UU	BQ1:UOI	BQ2:UII	BQ3:UOI	BQ4:UII	BW1:B1こ	...

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -202,7 +202,7 @@
 <p>Use <code>scripts/download_udtreebank.sh</code> to download a UD Treebank. It prints the path to the training CoNLL-U file to stdout:</p>
 <pre><code class="language-sh">conllu_file=$(bash scripts/download_udtreebank.sh -l ja -o /tmp)
 </code></pre>
-<p>Supported languages: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese), <code>en</code> (English). Use <code>-o</code> to specify the output directory (default: current directory).</p>
+<p>Supported languages: <code>ja</code> (Japanese, default), <code>ko</code> (Korean), <code>zh</code> (Chinese), <code>en</code> (English). Without <code>-l</code>, the <code>LANG_CODE</code> environment variable, when set, replaces the <code>ja</code> default. Use <code>-o</code> to specify the output directory (default: current directory).</p>
 <h2 id="corpus-for-word-segmentation"><a class="header" href="#corpus-for-word-segmentation">Corpus for Word Segmentation</a></h2>
 <p>For word segmentation (AdaBoost), the corpus must be a plain text file with:</p>
 <ul>
@@ -245,7 +245,7 @@ the details.</p>
 tokens — the two-stage POS training corpus for space-delimited languages
 (issue #198), consumed by <code>litsea extract --pos --format tsv</code>.</p>
 <h2 id="corpus-for-pos-tagging"><a class="header" href="#corpus-for-pos-tagging">Corpus for POS Tagging</a></h2>
-<p>For POS tagging (Averaged Perceptron), each word must be annotated with its POS tag.</p>
+<p>For POS tagging, each word must be annotated with its POS tag. POS tags come from the two-stage model: stage 1 is a binary boundary classifier that labels each character position <code>B</code> (a word starts here) or <code>O</code> (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. The earlier joint model, which predicted one of 18 <code>B-&lt;UPOS&gt;</code> / <code>O</code> labels per character, was removed; loading such a model file as a POS model fails with an error that asks you to retrain with <code>litsea train --pos</code>.</p>
 <h3 id="pos-corpus-format"><a class="header" href="#pos-corpus-format">POS Corpus Format</a></h3>
 <p>Each line represents one sentence, with words annotated as <code>word/POS</code> pairs separated by spaces:</p>
 <pre><code class="language-text">これ/PRON は/ADP テスト/NOUN です/AUX 。/PUNCT
@@ -277,6 +277,11 @@ bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
 <h2 id="corpus-from-wikipedia-dump"><a class="header" href="#corpus-from-wikipedia-dump">Corpus from Wikipedia Dump</a></h2>
 <p>For larger-scale training, you can build a corpus from a full Wikipedia dump using <code>scripts/corpus_wikidump.sh</code>. This extracts plain text with <a href="https://github.com/mosuka/wicket">wicket</a>, filters for actual sentences, and tokenizes with <a href="https://github.com/lindera/lindera">lindera</a>.</p>
 <h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
+<p>Download a dump with <code>scripts/download_wikidump.sh</code> (<code>-l lang</code>: <code>ja</code>, <code>ko</code> or <code>zh</code>, default <code>ja</code>, or <code>LANG_CODE</code> when set; <code>-o output_dir</code>, default the current directory). It saves <code>&lt;lang&gt;wiki-latest-pages-articles.xml.bz2</code> from <code>dumps.wikimedia.org</code>, skips the download if that file already exists, and prints the file’s path:</p>
+<pre><code class="language-sh">dump_file=$(bash scripts/download_wikidump.sh -l ja -o /tmp)
+bash scripts/corpus_wikidump.sh "$dump_file" corpus_ja.txt
+</code></pre>
+<p>Or pass a dump file you already have:</p>
 <pre><code class="language-sh"># Japanese (default)
 bash scripts/corpus_wikidump.sh jawiki-latest-pages-articles.xml.bz2 corpus_ja.txt
 
@@ -298,11 +303,12 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </tbody>
 </table>
 </div>
+<p>The script needs <code>wicket</code> and <code>lindera</code> on <code>PATH</code>. It concatenates wicket’s output files in random order (<code>shuf</code>) before the filters and the <code>-n</code> limit, so a limited corpus is a random sample of the dump and differs from run to run.</p>
 <h3 id="sentence-filtering"><a class="header" href="#sentence-filtering">Sentence Filtering</a></h3>
 <p>The script applies two filters to keep only well-formed sentences:</p>
 <ol>
 <li><strong>Sentence-ending punctuation</strong> – Lines must end with <code>。</code>, <code>.</code>, <code>!</code>, or <code>?</code>. This excludes section headers (e.g., “参考文献”), list items, and metadata.</li>
-<li><strong>Minimum length</strong> – Lines must be at least 20 characters. This excludes short fragments and isolated labels.</li>
+<li><strong>Minimum length</strong> – Lines must be at least 20 characters, as measured by <code>awk</code>’s <code>length</code>: characters with a multibyte-aware awk (such as gawk under a UTF-8 locale), but bytes with an awk that has no multibyte support, where 20 bytes is about 7 CJK characters. This excludes short fragments and isolated labels.</li>
 </ol>
 <h3 id="tokenizer-dictionaries"><a class="header" href="#tokenizer-dictionaries">Tokenizer Dictionaries</a></h3>
 <div class="table-wrapper">

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -184,7 +184,7 @@
 <p>Each language in Litsea defines a set of <strong>character type patterns</strong> that classify individual characters into linguistically meaningful categories. These type codes are used as features for the AdaBoost classifier.</p>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h2>
 <p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> classifies a character with a direct <code>match</code> expression on Unicode character ranges — no regex, no allocation. Match arms are tried top to bottom, so the <strong>first matching arm</strong> determines the type code. If no arm matches, the character is classified as <code>"O"</code> (Other).</p>
-<p>Each language has its own classification function returning a numeric type id (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>); <code>char_type</code> is a table lookup over the returned id, so string codes and numeric ids stay consistent by construction. The classes shared by all languages — <code>"P"</code> (punctuation), <code>"A"</code> (Latin), <code>"N"</code> (digits) — live in a common <code>punct_latin_digit()</code> helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with extra code inside an arm body (e.g., Korean’s codepoint test for Hangul syllable structure).</p>
+<p>Each language has its own classification function returning a numeric type id (<code>japanese_char_type_id</code>, <code>chinese_char_type_id</code>, <code>korean_char_type_id</code>, <code>english_char_type_id</code>); <code>char_type</code> is a table lookup over the returned id, so string codes and numeric ids stay consistent by construction. The classes shared by all languages — <code>"P"</code> (punctuation), <code>"A"</code> (Latin), <code>"N"</code> (digits) — live in a common <code>punct_latin_digit()</code> helper that is checked after the language-specific classes. Logic beyond plain ranges is expressed with extra code inside an arm body (e.g., Korean’s codepoint test for Hangul syllable structure).</p>
 <h2 id="japanese-character-types"><a class="header" href="#japanese-character-types">Japanese Character Types</a></h2>
 <div class="table-wrapper">
 <table>
@@ -196,7 +196,7 @@
 <tr><td><strong>H</strong></td><td>Kanji / CJK Ideographs</td><td>U+4E00–U+9FFF, plus 々〆ヵヶ</td><td>漢, 字, 学</td></tr>
 <tr><td><strong>I</strong></td><td>Hiragana</td><td><code>[ぁ-ん]</code></td><td>あ, い, う</td></tr>
 <tr><td><strong>K</strong></td><td>Katakana</td><td><code>[ァ-ヴーｱ-ﾝﾞﾟ]</code></td><td>ア, カ, ー</td></tr>
-<tr><td><strong>P</strong></td><td>Punctuation</td><td>CJK Symbols (U+3000-303F), Full-width (U+FF01-FF65)</td><td>。, 、, 「</td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>CJK Symbols (U+3000-303F, except 々 and 〆, which are H), full-width punctuation (U+FF01-FF0F, U+FF1A-FF20, U+FF3B-FF40, U+FF5B-FF65)</td><td>。, 、, 「</td></tr>
 <tr><td><strong>A</strong></td><td>ASCII/Latin</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z, Ｂ</td></tr>
 <tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
 <tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>@, #</td></tr>
@@ -272,7 +272,7 @@
 <tr><td><strong>U</strong></td><td>Uppercase Latin</td><td><code>[A-ZＡ-Ｚ]</code></td><td>A, Z, Ｔ</td></tr>
 <tr><td><strong>W</strong></td><td>Whitespace</td><td>Space, tab, U+00A0</td><td><code> </code>, <code>\t</code></td></tr>
 <tr><td><strong>Q</strong></td><td>Apostrophe</td><td>U+0027, U+2019</td><td><code>'</code>, <code>’</code></td></tr>
-<tr><td><strong>P</strong></td><td>Punctuation</td><td>ASCII (minus apostrophe) + General Punctuation + CJK/full-width</td><td><code>.</code>, <code>-</code>, <code>@</code>, <code>。</code></td></tr>
+<tr><td><strong>P</strong></td><td>Punctuation</td><td>ASCII (minus apostrophe) + U+2010-U+2027 (minus U+2019) + CJK/full-width</td><td><code>.</code>, <code>-</code>, <code>@</code>, <code>。</code></td></tr>
 <tr><td><strong>A</strong></td><td>Lowercase Latin</td><td><code>[a-zａ-ｚ]</code></td><td>a, z</td></tr>
 <tr><td><strong>N</strong></td><td>Digits</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
 <tr><td><strong>O</strong></td><td>Other</td><td>Fallback</td><td>字, é</td></tr>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -183,7 +183,7 @@
                         <h1 id="php"><a class="header" href="#php">PHP</a></h1>
 <p><code>litsea-php</code> は <a href="https://github.com/davidcole1340/ext-php-rs">ext-php-rs</a> を用いて Litsea を PHP 8.1 以降へ公開するバインディングです。Packagist に <code>mosuka/litsea</code> として公開され、<a href="https://github.com/php/pie">PIE</a> でインストールします。拡張は <code>litsea</code> という名前で登録されます。</p>
 <h2 id="インストール"><a class="header" href="#インストール">インストール</a></h2>
-<p>PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトです。PyPI や npm と異なりビルド済みパッケージの配布はなく、PIE か自分の手で、使っている PHP に合わせてビルドします。</p>
+<p>PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトなので、ビルド済みバイナリは 1 つの PHP バージョン・スレッドセーフ方式・プラットフォームにしか合いません。PIE は、合うものが GitHub Release にあればそれをダウンロードし、無ければ使っている PHP に合わせて拡張をビルドします。自分の手でビルドすることもできます。</p>
 <pre><code class="language-sh">pie install mosuka/litsea
 </code></pre>
 <p>PIE 1.4 以降は、PHP 8.1〜8.5（NTS / ZTS）× Linux x86_64 / arm64（glibc 2.35 以上）または Apple シリコンの macOS 向けのビルド済み <code>litsea.so</code> を GitHub Release からダウンロードし、拡張ディレクトリへ配置して有効化します。Rust ツールチェーンは不要です（<code>--with-php-config=...</code> で別の PHP を選べます）。それ以外の組み合わせ（Alpine などの musl、古い glibc、Intel Mac、PIE 1.4 未満）ではソースビルドにフォールバックし、Rust ツールチェーン、libclang、PIE のビルドツール（<code>autoconf</code>、<code>libtool</code>、<code>make</code>）が必要になります。Windows は未対応です。Composer 自体は <code>php-ext</code> 型のパッケージを無視するため、<code>composer require mosuka/litsea</code> ではインストールできません。</p>
@@ -191,7 +191,7 @@
 <pre><code class="language-sh">cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 </code></pre>
-<p>常時読み込む場合は <code>php.ini</code> に <code>extension=/path/to/liblitsea_php.so</code> を追記します。どちらの方法でも <code>php -m</code> には <code>litsea</code> と表示されます。</p>
+<p>常時読み込む場合は <code>php.ini</code> に <code>extension=/path/to/liblitsea_php.so</code> を追記します。macOS では cargo が <code>liblitsea_php.dylib</code> を書き出すので、そのパスを読み込んでください。どちらの方法でも <code>php -m</code> には <code>litsea</code> と表示されます。</p>
 <h2 id="静的解析向けのスタブ"><a class="header" href="#静的解析向けのスタブ">静的解析向けのスタブ</a></h2>
 <p><code>litsea-php/stubs/litsea.stubs.php</code> は、すべてのクラスと関数を IDE・PHPStan（<code>stubFiles</code>）・Psalm（<code>stubs</code>）向けに宣言したファイルです。ビルド済みの拡張から生成し、テストスイートが検証するため、Rust のソースと食い違うことはありません。解析ツールからこのファイルのコピーを指してください。実行時に読み込んではいけません（拡張がすでにクラスを宣言しています）。</p>
 <h2 id="モデルの入手"><a class="header" href="#モデルの入手">モデルの入手</a></h2>
@@ -246,18 +246,25 @@ array_map(fn ($t) =&gt; "{$t-&gt;surface}/{$t-&gt;pos}", $tagged-&gt;segmentWith
 </thead>
 <tbody>
 <tr><td><code>Segmenter::open($language, $path, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>セグメンタ</td></tr>
-<tr><td><code>Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>Segmenter::fromBytes($language, $data, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>セグメンタ</td></tr>
 <tr><td><code>Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>セグメンタ（ダウンロードはブロッキング）</td></tr>
+<tr><td><code>language()</code></td><td><code>string</code>（正規の言語名）</td></tr>
+<tr><td><code>hasPos()</code></td><td><code>bool</code></td></tr>
 <tr><td><code>segment($text)</code></td><td><code>string[]</code></td></tr>
 <tr><td><code>segmentBatch($texts)</code></td><td><code>string[][]</code></td></tr>
 <tr><td><code>segmentTokens($text)</code></td><td>バイトオフセット付き <code>Token[]</code></td></tr>
 <tr><td><code>segmentWithPos($text)</code></td><td>タグとオフセット付き <code>Token[]</code></td></tr>
 <tr><td><code>segmentWithPosBatch($texts)</code></td><td><code>Token[][]</code></td></tr>
-<tr><td><code>(new Extractor($language))-&gt;extract(...)</code></td><td><code>void</code></td></tr>
-<tr><td><code>(new Extractor($language))-&gt;extractTwoStage(...)</code></td><td><code>void</code></td></tr>
-<tr><td><code>(new Trainer($threshold, $iterations, $features))-&gt;train($model, $cancel?)</code></td><td><code>BinaryMetrics</code></td></tr>
-<tr><td><code>(new PerceptronTrainer($epochs, $features))-&gt;train($model, $cancel?)</code></td><td><code>MulticlassMetrics</code></td></tr>
-<tr><td><code>(new TwoStageTrainer($epochs, $prefix, $dominance?))-&gt;train($model, $cancel?)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>(new Extractor($language))-&gt;extract($corpus_path, $features_path, $tsv = false, $tag_free = false)</code></td><td><code>void</code>（<code>$tsv</code> は TSV 形式のコーパスを読み、<code>$tag_free</code> はタグに依存する特徴テンプレートを省きます）</td></tr>
+<tr><td><code>(new Extractor($language))-&gt;extractTwoStage($corpus_path, $output_prefix, $feature_set = null, $tsv = false)</code></td><td><code>void</code>（<code>{$output_prefix}.stage1</code>・<code>.stage2</code>・<code>.lexicon</code> を書き出します。<code>$feature_set</code> は <code>'full'</code>・<code>'balanced'</code>・<code>'fast'</code> のいずれかで、<code>null</code> は <code>'fast'</code> を意味します）</td></tr>
+<tr><td><code>(new Trainer($threshold, $num_iterations, $features_path))-&gt;train($model_path, $cancel?)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>(new Trainer(...))-&gt;loadModel($model_uri)</code></td><td><code>void</code>（既存のモデルから学習を続けます。パス・<code>file://</code>・<code>http(s)://</code> を受け付けます）</td></tr>
+<tr><td><code>(new PerceptronTrainer($num_epochs, $features_path))-&gt;train($model_path, $cancel?)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>(new TwoStageTrainer($num_epochs, $features_prefix, $dominance = 0.99))-&gt;train($model_path, $cancel?)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>(new TwoStageTrainer(...))-&gt;isAvailable()</code></td><td><code>bool</code>（<code>train()</code> の実行後は <code>false</code>）</td></tr>
+<tr><td><code>(new CancelToken())-&gt;cancel()</code> / <code>reset()</code> / <code>isCancelled()</code></td><td><code>void</code> / <code>void</code> / <code>bool</code></td></tr>
+<tr><td><code>Litsea\version()</code></td><td><code>string</code>（<code>litsea</code> のバージョン）</td></tr>
+<tr><td><code>Litsea\supported_languages()</code></td><td><code>string[]</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -273,14 +280,14 @@ $metrics = (new Litsea\Trainer(0.01, 100000, 'features.txt'))-&gt;train('japanes
 <p>キャンセルは<strong>エラーではありません</strong>。次のチェックポイントで停止し、部分的に学習されたモデルを保存してメトリクスを返します。</p>
 <p>すべての処理がブロッキングであるため、学習は Web リクエストではなく CLI SAPI から実行してください。</p>
 <h2 id="エラー"><a class="header" href="#エラー">エラー</a></h2>
-<p>すべての例外は <code>Litsea\LitseaException</code> を継承するため、1 つの <code>catch</code> で捕捉できます（Python バインディングと同じ階層です）。</p>
+<p>すべての例外は <code>Litsea\LitseaException</code> を継承するため、1 つの <code>catch</code> で捕捉できます（Python バインディングと同じ階層です）。下の表のどの例外にも当たらない失敗は、<code>Litsea\LitseaException</code> そのものとして投げられます。</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>例外</th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea\InvalidArgumentException</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>$user_words_gate</code>、UPOS タグでない <code>$user_word_tags</code> の値</td></tr>
+<tr><td><code>Litsea\InvalidArgumentException</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>$user_words_gate</code>、UPOS タグでない <code>$user_word_tags</code> の値、(0.5, 1.0] の外の <code>$dominance</code>、未知の URI スキーム</td></tr>
 <tr><td><code>Litsea\ModelException</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
 <tr><td><code>Litsea\IoException</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>Litsea\ParseException</code></td><td>モデルまたは学習データの形式不正</td></tr>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -194,7 +194,7 @@
 <h3 id="初期化"><a class="header" href="#初期化">初期化</a></h3>
 <ol>
 <li>学習ファイルから特徴量とインスタンスを読み込み</li>
-<li>インスタンスの重みを均一に初期化（後に初期スコアに基づいて調整）</li>
+<li>各インスタンスの重みを、そのインスタンスの初期スコアから <code>D[i] = exp(-2 * y[i] * score[i])</code> として初期化（<code>score[i]</code> はバイアスとそのインスタンスの特徴量の重みの和。モデルがゼロから始まる場合は全インスタンスで 1.0。正規化はしない）</li>
 <li>すべてのモデルの重みをゼロで初期化</li>
 </ol>
 <h3 id="反復ブースティング"><a class="header" href="#反復ブースティング">反復ブースティング</a></h3>
@@ -205,7 +205,7 @@
 </code></pre>
 <p>ここで <em>D[i]</em> はインスタンスの重み、<em>y[i]</em> は真のラベルです。</p>
 <h4 id="ステップ-2-最良の弱学習器の選択"><a class="header" href="#ステップ-2-最良の弱学習器の選択">ステップ 2: 最良の弱学習器の選択</a></h4>
-<p>重み付き誤差率が最も低い特徴量を選択します:</p>
+<p>重み付き誤差率が 0.5 から最も離れている特徴量を選択します（誤差率が 0.5 を超える特徴量も選ばれることがあり、その場合はステップ 4 の alpha が負になります）:</p>
 <pre><code class="language-text">error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
 h_best = argmax_h |0.5 - error_rate(h)|
 </code></pre>
@@ -263,7 +263,7 @@ bias_value
 <li>重みがゼロの特徴量は省略される</li>
 <li>最終行にはバイアス項（単一の数値）が含まれる</li>
 </ul>
-<p>不正な形式のファイル（空、バイアス行より前で切り詰められている、バイアス行や特徴量が重複している、
+<p>不正な形式のファイル（空、空行を含む、バイアス行より前で切り詰められている、バイアス行や特徴量が重複している、
 バイアス行の後に重み行がある、有限でない重みを含む、など）は読み込み時に拒否されます。詳細は
 <a href="../advanced/model-file-format.html">モデルファイル形式</a>を参照してください。</p>
 <blockquote>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -189,10 +189,11 @@
     // private: language: Language,
     // private: learner: AdaBoost,
     // private: two_stage: Option&lt;PackedTwoStageModel&gt; (compiled stage-2 model)
+    // private: user_dictionary: Option&lt;UserDictionary&gt;
     // internal: packed cache (see below)
 }
 <span class="boring">}</span></code></pre>
-<p>The fields are private; use the accessor methods <code>language()</code>, <code>learner()</code>, and <code>learner_mut()</code> to reach them.</p>
+<p>The fields are private; use the accessor methods <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>, and <code>user_dictionary()</code> to reach them. The user dictionary is set with <code>with_user_dictionary</code> or <code>set_user_dictionary</code> (see <a href="#user-dictionary">User Dictionary</a>).</p>
 <p>Besides these, the struct also holds <code>packed</code>: a lazily-rebuilt cache of
 the learner’s weights compiled into the integer-indexed tables <code>segment()</code>
 scores against
@@ -213,7 +214,8 @@ are dropped after compilation and there is no mutation path for it.</p>
 <p>Creates a segmenter with a default (untrained) <code>AdaBoost</code> learner — suitable
 for training or feature extraction. Until a model is loaded or training data
 is added, <code>segment</code> returns one word per character. No two-stage model is
-set; <code>segment_with_pos</code> returns <code>Err(LitseaError::PosLearnerNotSet)</code> — use
+set; <code>segment_with_pos</code> returns <code>Err(LitseaError::PosLearnerNotSet)</code> for any
+non-empty sentence — use
 <a href="#with_two_stage_learner"><code>with_two_stage_learner</code></a> for segmentation + POS
 tagging.</p>
 <h3 id="segmenterwith_learner"><a class="header" href="#segmenterwith_learner"><code>Segmenter::with_learner</code></a></h3>
@@ -310,7 +312,7 @@ assert_eq!(segmenter.char_type('A'), "A");   // ASCII
 </span><span class="boring">fn main() {
 </span>pub fn add_corpus(&amp;mut self, corpus: &amp;str)
 <span class="boring">}</span></code></pre>
-<p>Processes a space-separated corpus and adds instances to the internal AdaBoost learner.</p>
+<p>Processes a space-separated corpus and adds instances to the internal AdaBoost learner, one per character position except the first.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut segmenter = Segmenter::new(Language::Japanese);
@@ -323,7 +325,7 @@ segmenter.add_corpus("テスト です");
 where
     F: FnMut(HashSet&lt;String&gt;, i8),
 <span class="boring">}</span></code></pre>
-<p>Processes a corpus and calls the callback for each character position with its feature set and label.</p>
+<p>Processes a corpus and calls the callback for each character position except the first (whose label is always a word start) with its feature set and boundary label (<code>1</code> = word start, <code>-1</code> = continuation). For example, <code>"テスト です"</code> has five characters, so the callback is called four times.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>segmenter.add_corpus_with_writer("テスト です", |attrs, label| {
@@ -342,7 +344,8 @@ where
 are separated by tab characters, and a token may be a literal space <code>" "</code>.
 This preserves the original spacing of the sentence in the training text so
 the model can learn from space characters as boundary context (used for the
-Korean and English models; issue #152).</p>
+Korean and English models; issue #152). Like <code>add_corpus</code> /
+<code>add_corpus_with_writer</code>, they skip the first character position.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let mut segmenter = Segmenter::new(Language::Korean);
@@ -388,7 +391,9 @@ tagging path. A word that a user dictionary registered with a tag gets
 that tag instead (see <a href="#tags">Tags</a>). An empty sentence yields <code>Ok</code> with an
 empty vector.</p>
 <p><strong>Errors</strong> with <code>LitseaError::PosLearnerNotSet</code> if no two-stage learner is
-set — build the segmenter with <code>with_two_stage_learner()</code> first.</p>
+set and the sentence is not empty (an empty sentence returns <code>Ok</code> with an
+empty vector before the learner is checked) — build the segmenter with
+<code>with_two_stage_learner()</code> first.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -416,6 +421,22 @@ where
 (<code>word/POS word/POS ...</code>), including the first position, to a custom
 writer, without mutating the segmenter. This is what
 <code>Extractor::extract_two_stage</code> builds its stage-1 boundary features on.</p>
+<h3 id="add_corpus_tsv_with_pos_writer"><a class="header" href="#add_corpus_tsv_with_pos_writer"><code>add_corpus_tsv_with_pos_writer</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn add_corpus_tsv_with_pos_writer&lt;F&gt;(&amp;self, corpus: &amp;str, writer: F)
+where
+    F: FnMut(HashSet&lt;String&gt;, SegmentLabel)
+<span class="boring">}</span></code></pre>
+<p>Tab-separated variant of <code>add_corpus_with_pos_writer</code>
+(<code>word/POS\tword/POS\t...</code>, issue #198). A token may be a literal space
+<code>" "</code>, so the training text keeps the original spacing; a space token has no
+<code>/POS</code> suffix and is labeled <code>B(Upos::X)</code>; the two-stage extractor
+collapses every stage-1 label to <code>B</code>/<code>O</code>, so the tag on a space has no
+effect there. Like the
+space-separated variant, it includes the first position and does not mutate
+the segmenter. <code>Extractor::extract_two_stage</code> uses it for tab-separated
+corpora.</p>
 <h2 id="user-dictionary"><a class="header" href="#user-dictionary">User Dictionary</a></h2>
 <p>A <code>UserDictionary</code> (issue #263) is an optional set of words that the
 segmenter emits as single tokens whenever they occur in the input. It is
@@ -568,9 +589,22 @@ tokens for Chinese and Korean (issue #276).</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// The segmenter of the example above, with this dictionary instead:
+</span>use std::path::Path;
+
+use litsea::language::Language;
+use litsea::segmenter::Segmenter;
+use litsea::two_stage::TwoStageLearner;
+use litsea::upos::Upos;
+use litsea::user_dictionary::UserDictionary;
+
+let mut learner = TwoStageLearner::new();
+learner.load_model_from_path(Path::new("./models/japanese_pos.model"))?;
+
+// The setup of the example above, with this dictionary instead:
 let mut dictionary = UserDictionary::new();
 dictionary.add_with_pos("楓", Upos::PROPN);
+let segmenter = Segmenter::with_two_stage_learner(Language::Japanese, learner)
+    .with_user_dictionary(dictionary);
 let tokens = segmenter.segment_with_pos("楓が笑った。")?;
 // [("楓", Upos::PROPN), ("が", Upos::ADP), ("笑っ", Upos::VERB),
 //  ("た", Upos::AUX), ("。", Upos::PUNCT)]

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -190,7 +190,7 @@ https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese_pos.mode
 </code></pre>
 <p>Those URLs are stable per release, and small enough to fetch only what you need (86 KB to 8.3 MB each, rather than 25 MB for all eight). Two consequences:</p>
 <ul>
-<li>With the <code>remote_model</code> feature, the CLI and the library take one directly: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code>.</li>
+<li>The CLI takes one directly (it is always built with the <code>remote_model</code> feature), and so does the library with <code>remote_model</code> enabled: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code>.</li>
 <li>The <a href="bindings/wasm.html">WebAssembly binding</a>, which has no <code>fromUri</code>, can <code>fetch</code> one in the page and pass the bytes to <code>Segmenter.fromBytes</code>.</li>
 </ul>
 <p>Pinning a release tag rather than <code>main</code> keeps a deployment on one set of model weights; the models are retrained between releases, and held-out scores move with them.</p>
@@ -312,15 +312,16 @@ the same space-preserving recipe.</p>
 </table>
 </div>
 <h2 id="training-procedure"><a class="header" href="#training-procedure">Training Procedure</a></h2>
-<p><code>japanese.model</code>, <code>chinese.model</code>, and <code>korean.model</code> are retrained with the
+<p><code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> are retrained with the
 binary-perceptron-collapse procedure (#165), which needs no engine changes
 but does need a few extra steps beyond plain <code>litsea train</code> (see <a href="training-guide/training-models.html">Training
 Models</a> for the plain AdaBoost
 procedure):</p>
 <pre><code class="language-sh"># 1. Extract plain boundary features (the same step as before). Add
 #    --tag-free to drop the 16 tag-dependent templates and train a
-#    pointwise model (used for korean.model; see the next section).
-litsea extract -l &lt;language&gt; [--format tsv for Korean] [--tag-free] &lt;corpus&gt; &lt;features.txt&gt;
+#    pointwise model (used for korean.model and english.model; see the
+#    next section).
+litsea extract -l &lt;language&gt; [--format tsv for Korean and English] [--tag-free] &lt;corpus&gt; &lt;features.txt&gt;
 
 # 2. Remap boundary labels 1/-1 -&gt; B/O. This is required for correctness. not
 #    cosmetic: it makes the perceptron's own tie-break (lowest class index
@@ -359,8 +360,10 @@ scoring into a strictly sequential pass. A model trained <strong>without</strong
 (<code>litsea extract --tag-free</code>) is <em>pointwise</em> – every position depends
 only on the input text – and <code>segment()</code> detects this at model-load time
 and skips the sequential pass entirely (issue #183).</p>
-<p>What the tag features are worth differs sharply by language (all figures
-from converged epoch sweeps on the UD GSD test splits, issue #183):</p>
+<p>What the tag features are worth differs sharply by language (Korean,
+Japanese and Chinese figures from converged epoch sweeps on the UD GSD test
+splits; English figures from the UD English-EWT dev split, see the note
+below the table; issue #183):</p>
 <div class="table-wrapper">
 <table>
 <thead>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -209,6 +209,19 @@
 <tbody>
 <tr><td><code>-h</code>, <code>--help</code></td><td>Show help information</td></tr>
 <tr><td><code>-V</code>, <code>--version</code></td><td>Show version number</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="exit-status"><a class="header" href="#exit-status">Exit Status</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Status</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>0</code></td><td>Success, including <code>--help</code>, <code>--version</code>, and a downstream pipe that closes early while <code>segment</code> is writing</td></tr>
+<tr><td><code>1</code></td><td>The command failed while running; the message is printed to stderr as <code>Error: &lt;message&gt;</code> (for example a missing model file, an invalid <code>--user-words</code> file, a <code>--user-words-gate</code> outside <code>0.0..=1.0</code>, or <code>--pos</code> combined with <code>--perceptron</code>)</td></tr>
+<tr><td><code>2</code></td><td>The arguments could not be parsed (for example an unknown option, an unsupported <code>--language</code>, <code>--threads 0</code>, or <code>--user-words-gate</code> without <code>--user-words</code>); the parser prints the error to stderr</td></tr>
 </tbody>
 </table>
 </div>

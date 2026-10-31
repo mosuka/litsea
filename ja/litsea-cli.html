@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -209,6 +209,19 @@
 <tbody>
 <tr><td><code>-h</code>, <code>--help</code></td><td>ヘルプ情報を表示</td></tr>
 <tr><td><code>-V</code>, <code>--version</code></td><td>バージョン番号を表示</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="終了ステータス"><a class="header" href="#終了ステータス">終了ステータス</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Status</th><th>Meaning</th></tr>
+</thead>
+<tbody>
+<tr><td><code>0</code></td><td>成功。<code>--help</code>、<code>--version</code>、<code>segment</code> の出力中に後段がパイプを早期に閉じた場合も含みます</td></tr>
+<tr><td><code>1</code></td><td>実行中にコマンドが失敗しました。メッセージは <code>Error: &lt;message&gt;</code> の形で stderr に出力されます（例: モデルファイルがない、<code>--user-words</code> のファイルが不正、<code>--user-words-gate</code> が <code>0.0..=1.0</code> の範囲外、<code>--pos</code> と <code>--perceptron</code> の併用）</td></tr>
+<tr><td><code>2</code></td><td>引数を解析できませんでした（例: 未知のオプション、未対応の <code>--language</code>、<code>--threads 0</code>、<code>--user-words</code> なしの <code>--user-words-gate</code>）。パーサーがエラーを stderr に出力します</td></tr>
 </tbody>
 </table>
 </div>

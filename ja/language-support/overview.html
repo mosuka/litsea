@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -186,7 +186,7 @@
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Count</th><th>単語 F1（held-out）</th></tr>
+<tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Templates</th><th>単語 F1（held-out）</th></tr>
 </thead>
 <tbody>
 <tr><td>日本語</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>96.70%</td></tr>
@@ -196,6 +196,7 @@
 </tbody>
 </table>
 </div>
+<p>「Feature Templates」は、その言語が使える特徴テンプレートの数（<code>packed_model.rs</code> の <code>templates_for()</code>）で、モデルに含まれる特徴量の数ではありません。同梱の <code>korean.model</code> と <code>english.model</code> は tag-free（<code>--tag-free</code>）で学習しているため、38 テンプレートのうち、直前の境界判定を読まない 22 テンプレートだけを使います。</p>
 <h2 id="language-列挙型"><a class="header" href="#language-列挙型">Language 列挙型</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -235,7 +236,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <tbody>
 <tr><td>文字タイプ数</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td><td>7 (U, W, Q, P, A, N, O)</td></tr>
 <tr><td>WC特徴量</td><td>あり（4個追加）</td><td>あり（4個追加）</td><td>なし</td><td>なし</td></tr>
-<tr><td>総特徴量数</td><td>42</td><td>42</td><td>38</td><td>38</td></tr>
+<tr><td>特徴テンプレート数</td><td>42</td><td>42</td><td>38</td><td>38</td></tr>
 <tr><td>マッチング方式</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）</td><td><code>match</code>（文字範囲）+ コードポイント判定</td><td><code>match</code>（文字範囲）</td></tr>
 </tbody>
 </table>

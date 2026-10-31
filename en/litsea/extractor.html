@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -234,7 +234,7 @@ extractor.extract(
 <ol>
 <li>Reads each line from the corpus file</li>
 <li>Calls <code>Segmenter::add_corpus_with_writer()</code> to process each line</li>
-<li>Writes the label and feature set for each character position to the output file</li>
+<li>Writes a <code>label\tfeature1\tfeature2\t...</code> row for each character position except the first (which always starts a word) to the output file, with label <code>1</code> (word start) or <code>-1</code> (continuation)</li>
 </ol>
 <h3 id="extract_tsv"><a class="header" href="#extract_tsv"><code>extract_tsv</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -323,6 +323,24 @@ extractor.extract_two_stage(
     TwoStageFeatureSet::Fast,
 )?;
 <span class="boring">}</span></code></pre>
+<h3 id="extract_two_stage_tsv"><a class="header" href="#extract_two_stage_tsv"><code>extract_two_stage_tsv</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_two_stage_tsv(
+    &amp;self,
+    corpus_path: &amp;Path,
+    output_prefix: &amp;Path,
+    feature_set: TwoStageFeatureSet,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>The tab-separated variant of <code>extract_two_stage</code> (issue #198), as
+<code>extract_tsv</code> is of <code>extract</code>: the <code>word/POS</code> tokens are separated by tabs,
+and a token may be a literal space <code>" "</code> with no <code>/POS</code> suffix. It writes the
+same three files from <code>output_prefix</code>. Whitespace tokens get no stage-2 row,
+but they do get a lexicon entry and do advance the character offset, so the
+context features of the neighbouring words include the space. This is the
+format for space-delimited languages such as Korean and English; it backs
+the CLI’s <code>extract --pos --format tsv</code>.</p>
 <h2 id="in-memory-extraction"><a class="header" href="#in-memory-extraction">In-memory extraction</a></h2>
 <p>Every <code>extract*</code> method has a <code>*_to_writer</code> twin that takes the corpus as a string and writes the feature rows to any <code>Write</code>, for callers with no filesystem (WebAssembly) or with the corpus already in memory. The output is byte-identical to the path-based method, and a byte order mark at the start of the string is ignored the same way.</p>
 <div class="table-wrapper">
@@ -367,7 +385,9 @@ extractor.extract_two_stage_to_writers(
 <h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub enum TwoStageFeatureSet {
+</span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
+pub enum TwoStageFeatureSet {
     Full,
     Balanced,
     #[default]
@@ -386,9 +406,11 @@ word type string</li>
 first/last char type, adjacent context char + type, 2-char prefix/suffix</li>
 </ul>
 <p>Also implements <code>Display</code> (lowercase: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>) and
-<code>FromStr</code> (returns <code>ParseTwoStageFeatureSetError</code> for invalid strings) –
-the same names the <code>--stage2-features</code> CLI flag accepts; see <a href="../training-guide/extracting-features.html">Extracting
-Features</a>.</p>
+<code>FromStr</code> (case-insensitive; returns <code>ParseTwoStageFeatureSetError</code> for
+invalid strings) – the same names the <code>--stage2-features</code> CLI flag accepts;
+see <a href="../training-guide/extracting-features.html">Extracting Features</a>. The enum
+is <code>#[non_exhaustive]</code>, so a <code>match</code> on it outside the crate needs a
+wildcard arm.</p>
 
                     </main>
 

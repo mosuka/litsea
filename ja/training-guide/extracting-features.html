@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -196,7 +196,7 @@
     A["Read corpus line by line"] --&gt; B["Split line into words"]
     B --&gt; C["Build chars, types, and tags arrays"]
     C --&gt; D["For each character position"]
-    D --&gt; E["Extract 38-42 features"]
+    D --&gt; E["Extract 38-42 features&lt;br/&gt;(22-26 with --tag-free)"]
     E --&gt; F["Write label + features to file"]
 </code></pre>
 <ol>
@@ -229,6 +229,16 @@ litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.
 空白文字そのもの（<code>" "</code>）を含められます。出力される特徴量ファイルの形式は既定の
 <code>extract</code> と同一で、コーパスの解析方法のみが異なります。<code>--format tsv</code> は
 <code>--pos</code> とも併用できます（issue #198。後述の<a href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a>を参照）。</p>
+<h2 id="タグなしpointwiseの抽出"><a class="header" href="#タグなしpointwiseの抽出">タグなし（pointwise）の抽出</a></h2>
+<p><code>--tag-free</code> は、16 個のタグ依存の特徴量テンプレート
+（<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>。直前の境界判定を参照する）を除外します。
+そのため各行の特徴量は 16 個少なくなり（38-42 個ではなく 22-26 個）、学習した
+モデルは <em>pointwise</em> になります: <code>segment()</code> は逐次スコアリングパスを
+スキップします。<code>--format tsv</code> とは併用でき（同梱の <code>korean.model</code> と
+<code>english.model</code> はこの方法で学習しています）、<code>--pos</code> とは併用できません
+（<code>--tag-free cannot be combined with --pos</code> というエラーになります）。言語ごとの
+品質とスループットのトレードオフは<a href="../pre-trained-models.html#タグなしpointwiseモデル">タグなし（pointwise）モデル</a>を
+参照してください。</p>
 <h2 id="二段構成の特徴量抽出"><a class="header" href="#二段構成の特徴量抽出">二段構成の特徴量抽出</a></h2>
 <p><a href="../algorithm/two-stage-tagging.html">二段構成の品詞タグ付け</a>（issue #147）用には、
 <code>--pos</code> を使用します:</p>
@@ -275,7 +285,7 @@ litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.
 <pre><code class="language-sh">litsea extract --pos --stage2-features balanced -l chinese ./pos_corpus.txt ./pos_features
 </code></pre>
 <h2 id="ファイルサイズの目安"><a class="header" href="#ファイルサイズの目安">ファイルサイズの目安</a></h2>
-<p>特徴量ファイルは、各文字位置が38-42個の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。</p>
+<p>特徴量ファイルは、各文字位置が38-42個（<code>--tag-free</code> では22-26個）の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。</p>
 
                     </main>
 

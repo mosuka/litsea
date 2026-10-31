@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -183,6 +183,7 @@
                         <h1 id="module-design"><a class="header" href="#module-design">Module Design</a></h1>
 <p>The <code>litsea</code> library crate is organized into focused modules, each with a clear responsibility.</p>
 <h2 id="module-dependency-graph"><a class="header" href="#module-dependency-graph">Module Dependency Graph</a></h2>
+<p>An arrow <code>A --&gt; B</code> means that module <code>B</code> uses module <code>A</code> in its non-test code. Modules marked (private) are not <code>pub</code> in <code>lib.rs</code>.</p>
 <pre><code class="language-mermaid">graph TD
     language["language.rs&lt;br/&gt;Character classification"]
     segmenter["segmenter.rs&lt;br/&gt;Segmentation + POS tagging"]
@@ -192,10 +193,11 @@
     extractor["extractor.rs&lt;br/&gt;Feature extraction"]
     trainer["trainer.rs&lt;br/&gt;Training orchestration"]
     two_stage["two_stage.rs&lt;br/&gt;Two-stage model container"]
+    user_dictionary["user_dictionary.rs&lt;br/&gt;User dictionary"]
     word_features["word_features.rs (private)&lt;br/&gt;Stage-2 word feature templates"]
     packed_model["packed_model.rs (private)&lt;br/&gt;Feature templates + packed AdaBoost tables"]
     packed_two_stage["packed_two_stage.rs (private)&lt;br/&gt;Packed two-stage tagging tables"]
-    model_io["model_io.rs (private)&lt;br/&gt;Model URI loading"]
+    model_io["model_io.rs&lt;br/&gt;Model URI loading"]
     error["error.rs&lt;br/&gt;LitseaError / Result"]
     metrics["metrics.rs&lt;br/&gt;Evaluation metrics (in-sample)"]
     evaluation["evaluation.rs&lt;br/&gt;Held-out quality metrics"]
@@ -203,32 +205,50 @@
     language --&gt; segmenter
     upos --&gt; segmenter
     adaboost --&gt; segmenter
-    perceptron --&gt; segmenter
     packed_model --&gt; segmenter
     packed_two_stage --&gt; segmenter
     two_stage --&gt; segmenter
+    user_dictionary --&gt; segmenter
     segmenter --&gt; extractor
     two_stage --&gt; extractor
     word_features --&gt; extractor
     evaluation --&gt; extractor
+    language --&gt; extractor
+    upos --&gt; extractor
+    packed_model --&gt; extractor
     adaboost --&gt; trainer
     perceptron --&gt; trainer
     two_stage --&gt; trainer
+    upos --&gt; trainer
     adaboost --&gt; two_stage
     perceptron --&gt; two_stage
     upos --&gt; two_stage
+    word_features --&gt; two_stage
+    model_io --&gt; two_stage
     language --&gt; word_features
     word_features --&gt; packed_two_stage
     language --&gt; packed_two_stage
     perceptron --&gt; packed_two_stage
     upos --&gt; packed_two_stage
+    adaboost --&gt; packed_model
+    language --&gt; packed_model
+    upos --&gt; user_dictionary
     model_io --&gt; adaboost
     model_io --&gt; perceptron
-    error --&gt; adaboost
-    error --&gt; perceptron
+    metrics --&gt; adaboost
+    metrics --&gt; perceptron
     metrics --&gt; trainer
     segmenter --&gt; evaluation
     upos --&gt; evaluation
+    error --&gt; adaboost
+    error --&gt; perceptron
+    error --&gt; segmenter
+    error --&gt; extractor
+    error --&gt; evaluation
+    error --&gt; trainer
+    error --&gt; two_stage
+    error --&gt; model_io
+    error --&gt; user_dictionary
 </code></pre>
 <h2 id="module-details"><a class="header" href="#module-details">Module Details</a></h2>
 <h3 id="languagers--language-definitions"><a class="header" href="#languagers--language-definitions"><code>language.rs</code> – Language Definitions</a></h3>
@@ -245,17 +265,31 @@
 <h3 id="segmenterrs--word-segmentation-and-pos-tagging"><a class="header" href="#segmenterrs--word-segmentation-and-pos-tagging"><code>segmenter.rs</code> – Word Segmentation and POS Tagging</a></h3>
 <p>The main user-facing module.</p>
 <ul>
-<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code> and an <code>AdaBoost</code> learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>), plus an internal cache for the compiled scoring tables (<code>packed</code>) that back <code>segment()</code>, and an optional compiled two-stage tagging model (set by <code>with_two_stage_learner</code>, backing <code>segment_with_pos()</code>; unlike the cache it is the stage-2 model itself – the raw learner parts are dropped after compilation)
+<li><strong><code>Segmenter</code></strong> – Holds a <code>Language</code> and an <code>AdaBoost</code> learner (fields are private; use <code>language()</code>, <code>learner()</code>, <code>learner_mut()</code>), plus an internal cache for the compiled scoring tables (<code>packed</code>) that back <code>segment()</code>, and an optional compiled two-stage tagging model (set by <code>with_two_stage_learner</code>, backing <code>segment_with_pos()</code>; unlike the cache it is the stage-2 model itself – the raw learner parts are dropped after compilation), and an optional <code>UserDictionary</code> (issue #263)
 <ul>
 <li><code>new(language)</code> – Create a segmenter with a default (empty) AdaBoost learner</li>
 <li><code>with_learner(language, learner)</code> – Create a segmenter with a pre-configured AdaBoost learner (e.g. one that has loaded a pre-trained model)</li>
 <li><code>with_two_stage_learner(language, learner)</code> – Create a segmenter for two-stage segmentation + POS tagging from a <code>TwoStageLearner</code></li>
+<li><code>with_user_dictionary(dictionary)</code> / <code>set_user_dictionary(dictionary)</code> / <code>user_dictionary()</code> – Attach a <code>UserDictionary</code> (builder style), set or clear it (<code>Option&lt;UserDictionary&gt;</code>), and read it back. Its words are emitted as single tokens by <code>segment()</code>, <code>segment_into()</code> and <code>segment_with_pos()</code>, and its tagged words get their registered tag in <code>segment_with_pos()</code></li>
 <li><code>segment(sentence)</code> – Segment text into words, returns <code>Vec&lt;String&gt;</code></li>
 <li><code>segment_into(sentence, buf)</code> – Allocation-free variant (#184): returns token byte ranges borrowed from a reusable <code>SegmentBuffer</code></li>
 <li><code>segment_with_pos(sentence)</code> – Segment and tag, returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> (<code>PosLearnerNotSet</code> unless a two-stage learner is set)</li>
 <li><code>char_type(ch)</code> – Classify a single character into its type code</li>
 <li><code>add_corpus(corpus)</code> / <code>add_corpus_tsv(corpus)</code> – Add training data (space-separated, or tab-separated/space-preserving; the latter is used for Korean and English, see issue #152)</li>
-<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_writer(corpus, callback)</code> – Process a corpus with a custom callback (the POS-writer variant feeds two-stage stage-1 feature extraction)</li>
+<li><code>add_corpus_with_writer(corpus, callback)</code> / <code>add_corpus_with_pos_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_writer(corpus, callback)</code> / <code>add_corpus_tsv_with_pos_writer(corpus, callback)</code> – Process a corpus with a custom callback (the POS-writer variants feed two-stage stage-1 feature extraction; the TSV one reads the space-preserving <code>word/POS</code> corpus, issue #198)</li>
+</ul>
+</li>
+</ul>
+<h3 id="user_dictionaryrs--user-dictionary"><a class="header" href="#user_dictionaryrs--user-dictionary"><code>user_dictionary.rs</code> – User Dictionary</a></h3>
+<p>Words the segmenter must emit as single tokens (issue #263), optionally with a UPOS tag for POS tagging (issue #264).</p>
+<ul>
+<li><strong><code>UserDictionary</code></strong> – A set of registered words, stored in a trie. An occurrence of a registered word becomes exactly one token; overlapping occurrences are resolved leftmost-longest; words are matched as given (no case folding or normalization)
+<ul>
+<li><code>new()</code> / <code>from_words(words)</code> – Create an empty dictionary, or one holding every word of two or more characters from an iterator</li>
+<li><code>add(word)</code> – Register a word of two or more characters (a one-character word is not stored)</li>
+<li><code>add_with_pos(word, pos)</code> – Register a word with the <code>Upos</code> tag that <code>segment_with_pos()</code> gives its tokens; a one-character word becomes a tag-only entry that changes no boundary (issue #276)</li>
+<li><code>contains(word)</code> / <code>pos(word)</code> / <code>len()</code> / <code>is_empty()</code> – Query the dictionary</li>
+<li><code>set_gate(gate)</code> / <code>gate()</code> – Optional flip-ratio gate in <code>0.0..=1.0</code>: an occurrence is applied only if the share of the model’s margin it overturns is at most the gate (no gate: every occurrence is applied)</li>
 </ul>
 </li>
 </ul>
@@ -303,7 +337,10 @@
 <li><code>new(language)</code> – Create an extractor for a specific language</li>
 <li><code>extract(corpus_path, features_path)</code> – Read a corpus, write a features file</li>
 <li><code>extract_tsv(corpus_path, features_path)</code> – Same for tab-separated, space-preserving corpora (issue #152, used for Korean and English)</li>
+<li><code>extract_tag_free(corpus_path, features_path)</code> / <code>extract_tsv_tag_free(corpus_path, features_path)</code> – Same as <code>extract</code> / <code>extract_tsv</code>, but without the 16 tag-dependent templates, so the trained model is pointwise (issue #183; the bundled Korean and English models use <code>extract_tsv_tag_free</code>)</li>
 <li><code>extract_two_stage(corpus_path, output_prefix, feature_set)</code> – Extract two-stage training features (issue #147) from a POS-tagged corpus: writes <code>{output_prefix}.stage1</code> (boundary features), <code>.stage2</code> (word-level features), and <code>.lexicon</code></li>
+<li><code>extract_two_stage_tsv(corpus_path, output_prefix, feature_set)</code> – Same for a space-preserving TSV corpus of <code>word/POS</code> tokens (issue #198, used for Korean and English)</li>
+<li>Each path-based method has an in-memory twin that reads the corpus from a string and writes to writers (<code>extract_to_writer</code>, <code>extract_tsv_to_writer</code>, <code>extract_tag_free_to_writer</code>, <code>extract_tsv_tag_free_to_writer</code>, <code>extract_two_stage_to_writers</code>, <code>extract_two_stage_tsv_to_writers</code>); the path-based methods are not available on wasm32</li>
 </ul>
 </li>
 </ul>
@@ -322,7 +359,7 @@
 <li><code>new(num_epochs, features_path)</code> / <code>load_model(uri)</code> / <code>train(running, model_path)</code> returning <code>MulticlassMetrics</code></li>
 </ul>
 </li>
-<li><strong><code>TwoStageTrainer</code></strong> – Two-stage model training (issue #147): trains a stage-1 boundary <code>AveragedPerceptron</code> and a stage-2 word tagger from the files <code>Extractor::extract_two_stage</code> writes, then collapses stage 1 to AdaBoost format and assembles a <code>TwoStageLearner</code>
+<li><strong><code>TwoStageTrainer</code></strong> – Two-stage model training (issue #147): trains a stage-1 boundary <code>AveragedPerceptron</code> and a stage-2 word tagger from the files <code>Extractor::extract_two_stage</code> (or <code>extract_two_stage_tsv</code>) writes, then collapses stage 1 to AdaBoost format and assembles a <code>TwoStageLearner</code>
 <ul>
 <li><code>new(num_epochs, dominance, features_prefix)</code> / <code>train(running, model_path)</code> returning <code>TwoStageMetrics</code> (see <a href="../litsea/trainer.html">Trainer</a> for the full API)</li>
 </ul>
@@ -351,7 +388,7 @@
 <ul>
 <li><strong><code>SegmentationMetrics</code></strong> – Word and boundary precision/recall/F1 for word segmentation, produced by <code>evaluate_segmentation(segmenter, gold)</code></li>
 <li><strong><code>PosMetrics</code></strong> – Wraps a <code>SegmentationMetrics</code> plus tagged-word precision/recall/F1, produced by <code>evaluate_pos(segmenter, gold)</code> (fallible: propagates <code>segment_with_pos</code> errors)</li>
-<li><strong><code>parse_gold_line(line, tsv)</code></strong> / <strong><code>parse_gold_pos_line(line)</code></strong> – Parse a gold corpus line into tokens (plain or POS-tagged); also used by the two-stage extractor and trainer</li>
+<li><strong><code>parse_gold_line(line, tsv)</code></strong> / <strong><code>parse_gold_pos_line(line, tsv)</code></strong> – Parse a gold corpus line into tokens (plain or POS-tagged; <code>tsv</code> selects the tab-separated, space-preserving format); <code>parse_gold_pos_line</code> is also used by the two-stage extractor</li>
 <li>Backs the CLI’s <code>litsea evaluate</code> subcommand</li>
 </ul>
 <h3 id="packed_modelrs--feature-templates-and-packed-adaboost-tables-private"><a class="header" href="#packed_modelrs--feature-templates-and-packed-adaboost-tables-private"><code>packed_model.rs</code> – Feature Templates and Packed AdaBoost Tables (private)</a></h3>
@@ -360,8 +397,8 @@
 <p>Internal module that compiles a <code>TwoStageLearner</code>’s stage-2 tagger and lexicon into the dense/sparse scoring tables <code>segment_with_pos()</code> reads, mirroring what <code>packed_model.rs</code> does for the AdaBoost learner: a surface map covering the lexicon and dominance-skip tags, sparse per-class rows for the char-valued word-feature templates (from <code>word_features.rs</code>), and dense tables for the type-valued and word-length templates. Not part of the public API.</p>
 <h3 id="word_featuresrs--stage-2-word-feature-templates-private"><a class="header" href="#word_featuresrs--stage-2-word-feature-templates-private"><code>word_features.rs</code> – Stage-2 Word Feature Templates (private)</a></h3>
 <p>Internal module defining the word-level feature templates used by the two-stage tagger’s stage 2 (surface, word length, first/last char and type, context chars/types/bigrams, …). It is the single source of truth for the template set: the training extractor (via <code>extract_two_stage</code>) writes feature strings with <code>write_word_features</code>, and <code>packed_two_stage.rs</code> compiles the same strings back into integer keys with <code>parse_word_feature</code>, pinned against each other by a round-trip test. Not part of the public API.</p>
-<h3 id="model_iors--model-loading-io-private"><a class="header" href="#model_iors--model-loading-io-private"><code>model_io.rs</code> – Model Loading I/O (private)</a></h3>
-<p>Internal module that resolves a model URI (plain path, <code>file://</code>, or <code>http(s)://</code> with the <code>remote_model</code> feature) and returns the raw model bytes. Not part of the public API.</p>
+<h3 id="model_iors--model-loading-io"><a class="header" href="#model_iors--model-loading-io"><code>model_io.rs</code> – Model Loading I/O</a></h3>
+<p>Public module that resolves a model URI (plain path, <code>file://</code>, or <code>http(s)://</code> with the <code>remote_model</code> feature) and returns the raw model bytes through <code>read_model_bytes(uri)</code> (async). The learners’ <code>load_model(uri)</code> methods use it; parsing the bytes is left to each learner.</p>
 <h2 id="public-exports"><a class="header" href="#public-exports">Public Exports</a></h2>
 <p>The library’s <code>lib.rs</code> exposes the public modules and re-exports the main types:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -372,7 +409,7 @@ pub mod evaluation;
 pub mod extractor;
 pub mod language;
 pub mod metrics;
-mod model_io;
+pub mod model_io;
 mod packed_model;
 mod packed_two_stage;
 pub mod perceptron;
@@ -380,6 +417,7 @@ pub mod segmenter;
 pub mod trainer;
 pub mod two_stage;
 pub mod upos;
+pub mod user_dictionary;
 mod word_features;
 
 pub use adaboost::AdaBoost;
@@ -395,6 +433,7 @@ pub use two_stage::{
     ModelKind, ParseTwoStageFeatureSetError, TwoStageFeatureSet, TwoStageLearner,
 };
 pub use upos::{ParseSegmentLabelError, ParseUposError, SegmentLabel, Upos};
+pub use user_dictionary::UserDictionary;
 
 pub fn version() -&gt; &amp;'static str { ... }
 <span class="boring">}</span></code></pre>

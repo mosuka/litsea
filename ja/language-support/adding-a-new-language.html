@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -290,6 +290,7 @@ pub(crate) fn char_type_id(self, c: char) -&gt; u8 {
 bash scripts/corpus_udtreebank.sh -s "$conllu_file" corpus.tsv
 litsea extract -l english --format tsv --tag-free corpus.tsv features.txt
 </code></pre>
+<p><code>scripts/download_udtreebank.sh</code> が扱えるのは、スクリプトに列挙されたツリーバンク（<code>-l</code> の <code>ja</code>・<code>ko</code>・<code>zh</code>・<code>en</code>）だけで、それ以外のコードは拒否します。新しい言語では、そのツリーバンクの <code>ud_repo</code> と <code>ud_prefix</code> を設定する <code>case</code> アームを追加し、スクリプトの使い方とエラーのメッセージを更新するか、UD ツリーバンクを自分で clone して CoNLL-U ファイルを直接使ってください。スクリプトが出力するのは train split のパス（<code>&lt;ud_prefix&gt;-train.conllu</code>）です。手順9で使う test split は、同じディレクトリにある <code>&lt;ud_prefix&gt;-test.conllu</code> です。</p>
 <p><strong>元のツリーバンクに複数語トークン（短縮形、接語）が含まれる場合は、コーパスを信頼する前に <code>corpus_udtreebank.sh -s</code> がそれらを正しく扱えているか確認してください。</strong> UD CoNLL-U では、英語の <code>don't</code> のような短縮形を、間にスペースを持たない2つの単語行（<code>do</code>、<code>n't</code>）をカバーする<em>範囲</em>行（例: <code>3-4  don't</code>）として表現します。<code>corpus_udtreebank.sh -s</code> は範囲行を特別扱いします: それ自体としてはトークンを出力せず、範囲を構成する単語間へのスペース挿入を抑制し、範囲自身の <code>SpaceAfter</code> アノテーションは最後の構成単語の後にのみ適用します。新しいツリーバンクについて確認すべき不変条件は次のとおりです: <strong>範囲を構成する単語形を連結すると、範囲自身の表層形が再現されなければならない。</strong> これは UD English-EWT のすべての複数語トークンで成立していました（学習前にコーパス全体を比較するスクリプトで検証済み）。対象のツリーバンクで成立しない場合、安全なフォールバックは、構成単語を展開する代わりに範囲自身の表層形を単一トークンとして出力することです。もう1つの独立したチェックとして、各文の TSV トークン（スペーストークンを含む）を連結して文を再構成し、その結果を CoNLL-U ファイルのその文に対応する <code># text =</code> メタデータ行と diff してください – これにより、構成単語の連結チェックだけでは見逃すスペースのバグを検出できます。<code>corpus_udtreebank.sh</code> 自体を変更した場合は、既存の空白保持ゴールドファイル（例: <code>resources/eval/korean_gsd_test.tsv</code>）も再生成し、コミット済みのバージョンと diff してください – 変更が加法的であれば、バイト単位で同一になるはずです。</p>
 <h2 id="手順7-同梱分割モデルを学習"><a class="header" href="#手順7-同梱分割モデルを学習">手順7: 同梱分割モデルを学習</a></h2>
 <p>同梱の分割モデルは、プレーンな <code>litsea train -t/-i</code>（AdaBoost ブースティング）では学習して<strong>いません</strong>。2クラスの Averaged Perceptron として学習し、無損失で AdaBoost モデル形式へ畳み込んでいます – 導出の全体と正確な5ステップの手順（抽出 → 境界ラベル <code>1</code>/<code>-1</code> を <code>B</code>/<code>O</code> にリマップ → <code>train --perceptron</code> → <code>scripts/collapse_binary_perceptron.py</code> → 任意で剪定）は<a href="../pre-trained-models.html#学習手順">事前学習済みモデル: 学習手順</a>を参照してください。空白保持プロトコルの言語の場合:</p>
@@ -300,25 +301,25 @@ scripts/collapse_binary_perceptron.py perceptron.model models/english.model
 </code></pre>
 <p>エポック数や tag-free/WC の判断を推測で決めないでください – held-out の<strong>dev</strong> split（最後に一度だけ触れるべき test split には触れない）でいくつかのエポック数のスイープを行い、それぞれの最良エポック数で tag-free とタグありの比較、および（手順5に従って）WC ありとなしの比較を行ってください。例えば英語のスイープでは、品質は20エポックでピークに達し、それ以降はわずかに悪化することがわかりました – 一発だけの低エポック実行ではモデルの実際の品質を過小評価してしまい、一発だけの高エポック実行では、すでに通り過ぎた収束点ではなく過学習が天井であるかのように見えてしまいます。</p>
 <h2 id="手順8-任意で二段構成-pos-モデルを学習"><a class="header" href="#手順8-任意で二段構成-pos-モデルを学習">手順8: 任意で二段構成 POS モデルを学習</a></h2>
-<p>言語に UPOS タグ付きデータが利用可能な場合は、追加で<a href="../algorithm/two-stage-tagging.html">二段構成</a>モデルを学習できます:</p>
-<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -p "$conllu_file" pos_corpus.txt
-litsea extract --pos -l english --stage2-features full pos_corpus.txt pos_features
-litsea train --pos --num-epochs 50 pos_features models/english_pos.model
-</code></pre>
-<p>上記のエポックスイープと同様に、dev split で <code>--stage2-features</code>（<code>fast</code>/<code>balanced</code>/<code>full</code>）をスイープしてください。このパスを使う同梱3言語は、それぞれ異なる勝者を選んでいます（<a href="../algorithm/two-stage-tagging.html#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a>を参照）。</p>
-<p><strong>スペース区切りの言語では、二段構成モデルも空白保持コーパスで学習してください</strong>（issue #198）。コーパスは <code>corpus_udtreebank.sh -p -s</code> で生成し、<code>--pos --format tsv</code> で抽出します:</p>
+<p>言語に UPOS タグ付きデータが利用可能な場合は、追加で<a href="../algorithm/two-stage-tagging.html">二段構成</a>モデルを学習できます。英語はスペース区切りの言語なので、空白保持コーパスを使います（下記を参照）:</p>
 <pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -p -s "$conllu_file" pos_corpus.tsv
 litsea extract --pos --format tsv -l english --stage2-features full pos_corpus.tsv pos_features
+litsea train --pos --num-epochs 50 pos_features models/english_pos.model
 </code></pre>
+<p>上記のエポックスイープと同様に、dev split で <code>--stage2-features</code>（<code>fast</code>/<code>balanced</code>/<code>full</code>）をスイープしてください。同梱の 4 つの品詞モデルは、<code>fast</code>（日本語）、<code>balanced</code>（中国語）、<code>full</code>（韓国語と英語）を選んでいます（<a href="../algorithm/two-stage-tagging.html#stage-2-特徴量セットの選び方">stage-2 特徴量セットの選び方</a>を参照）。</p>
+<p><strong>スペース区切りの言語では、二段構成モデルも空白保持コーパスで学習してください</strong>（issue #198）。上のコマンドのとおり、コーパスは <code>corpus_udtreebank.sh -p -s</code> で生成し、<code>--pos --format tsv</code> で抽出します。</p>
 <p>これは見た目以上に大きな影響があります。空白なしで連結したコーパスで学習すると、単語 F1 は韓国語で約 5.9 ポイント、英語で約 20.8 ポイント低下します。学習と推論の不一致が同時に 2 つ生じるためです: stage-1 はほとんどの語境界を示すスペースを一度も目にせず、stage-2 のコンテキスト特徴量（<code>L*</code>/<code>R*</code>/<code>cl*</code>/<code>cr*</code>）は学習時と推論時とで異なる隣接要素を見ることになります。空白トークンには stage-2 の学習行が与えられません（スペース付きコーパスでは行の約 43% を占め、退化した 1 クラスの学習になってしまうため）が、語彙表エントリは与えられます。これにより候補が1つだけになり、packed モデルの固定タグのパスを通じて決定的にタグ付けされます – トークンの約 43% で分類器をスキップできるため、スループット面でも有利です。</p>
-<p>スペースを使わずに表記される言語（日本語、中国語）では、素の <code>-p</code> コーパスを使用してください: 保持すべき空白がなく、スペース区切りの形式がすでに実際の入力と一致しています。</p>
+<p>スペースを使わずに表記される言語（日本語、中国語）では、素の <code>-p</code> コーパスを使い、<code>--format tsv</code> を付けないでください: 保持すべき空白がなく、スペース区切りの形式がすでに実際の入力と一致しています。</p>
 <h2 id="手順9-held-out-評価用ゴールドファイルを追加"><a class="header" href="#手順9-held-out-評価用ゴールドファイルを追加">手順9: held-out 評価用ゴールドファイルを追加</a></h2>
-<p>ツリーバンクの<strong>test</strong> split（dev split のスイープが完了した後にのみ触れる）から held-out ゴールドデータを生成し、既存の命名規則（分割用は <code>&lt;language&gt;_&lt;treebank&gt;_test.{txt,tsv}</code>、POS 用は <code>&lt;language&gt;_&lt;treebank&gt;_test_pos.txt</code>）に従って <code>resources/eval/</code> 配下に追加します:</p>
-<pre><code class="language-sh">bash scripts/corpus_udtreebank.sh -s "$conllu_file_test" resources/eval/english_ewt_test.tsv
+<p>ツリーバンクの<strong>test</strong> split（dev split のスイープが完了した後にのみ触れる）から held-out ゴールドデータを生成し、既存の命名規則（分割用は <code>&lt;language&gt;_&lt;treebank&gt;_test.{txt,tsv}</code>、POS 用は <code>&lt;language&gt;_&lt;treebank&gt;_test_pos.txt</code>、スペース区切りの言語の空白保持コーパスでの POS 用は <code>&lt;language&gt;_&lt;treebank&gt;_test_pos_spaced.tsv</code>）に従って <code>resources/eval/</code> 配下に追加します:</p>
+<pre><code class="language-sh">conllu_file_test="${conllu_file%-train.conllu}-test.conllu"
+bash scripts/corpus_udtreebank.sh -s "$conllu_file_test" resources/eval/english_ewt_test.tsv
 bash scripts/corpus_udtreebank.sh -p "$conllu_file_test" resources/eval/english_ewt_test_pos.txt
+bash scripts/corpus_udtreebank.sh -p -s "$conllu_file_test" resources/eval/english_ewt_test_pos_spaced.tsv
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
-litsea evaluate -l english --pos models/english_pos.model resources/eval/english_ewt_test_pos.txt
+litsea evaluate -l english --pos --format tsv models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 </code></pre>
+<p>空白保持コーパスで学習した品詞モデル（手順8）は、<code>_test_pos_spaced.tsv</code> ファイルに対して <code>--pos --format tsv</code> で評価します。スペース区切りの言語では、空白なしの <code>_test_pos.txt</code> ファイルは以前の空白非保持プロトコルを測るもので、韓国語と英語では以前の数値を再現するためだけに残しています（<code>resources/eval/README.md</code> を参照）。スペースを使わずに表記される言語では、これが品詞用のゴールドファイルです。</p>
 <p><code>resources/eval/README.md</code> を新しいファイルとその出所/ライセンス（UD ツリーバンクは通常 CC BY-SA 4.0 であり、リポジトリの他の部分の MIT/Apache-2.0 ライセンスとは異なります）で更新してください。モデルのドキュメント（新しい数値が必要なドキュメントページの一覧は手順10を参照）には、<code>litsea train</code> の in-sample の出力ではなく、<code>litsea evaluate</code> から得た held-out の数値を記録してください。</p>
 <h2 id="手順10-テストとドキュメントを追加"><a class="header" href="#手順10-テストとドキュメントを追加">手順10: テストとドキュメントを追加</a></h2>
 <p>この手順はスコープを狭く見積もりがちです: 新しい言語は <code>language.rs</code>/<code>segmenter.rs</code> だけでなく、もっと多くのテストファイルに影響します。以下のチェックリストに沿って確認してください。</p>
@@ -330,11 +331,18 @@ litsea evaluate -l english --pos models/english_pos.model resources/eval/english
 <li><code>litsea/src/word_features.rs</code>: ラウンドトリップのサンプルリストにケースを追加（低コストで、型コードのエンコーディングのバグを早期に検出できる）</li>
 <li><code>litsea-cli/src/main.rs</code>: <code>--language</code> のヘルプ文字列3箇所</li>
 </ul>
+<p><strong>バインディング</strong>（各バインディングがサポート言語の一覧を持っています）:</p>
+<ul>
+<li><code>litsea-binding-core/src/language.rs</code>: <code>SUPPORTED_LANGUAGES</code> に言語を追加し（配列サイズを増やす。各バインディングの <code>supported_languages()</code> / <code>Language.all()</code> はこれを使う）、<code>test_supported_languages_round_trip</code> の期待する名前の一覧にも追加する</li>
+<li><code>litsea-python/src/language.rs</code>: <code>PyLanguage</code> の新しいメンバー（例: <code>#[pyo3(name = "THAI")] Thai</code>。型のドキュメントコメントにも名前を書く）と、2 つの <code>From</code> 実装それぞれのアーム。<code>From&lt;Language&gt; for PyLanguage</code> には未知の言語を日本語に対応付けるワイルドカードアームがあるため、メンバーがなくてもコンパイルは通り、<code>test_every_supported_language_has_a_member</code> だけがそれを検出する</li>
+<li><code>litsea-python/python/litsea/_litsea.pyi</code>: 対応する <code>ClassVar</code>（例: <code>THAI: ClassVar[Language]</code>）</li>
+<li><code>litsea-nodejs/src/lib.rs</code>・<code>litsea-ruby/src/lib.rs</code>・<code>litsea-php/src/lib.rs</code>・<code>litsea-wasm/src/lib.rs</code> の <code>test_supported_languages</code> と、バインディングのテストスイート（<code>litsea-python/tests/test_segmenter.py</code> の <code>test_language_enum</code>、<code>litsea-nodejs/tests/test-segmenter.mjs</code> の <code>supportedLanguages()</code> のテスト、<code>litsea-ruby/test/test_segmenter.rb</code> の <code>test_module_functions</code>、<code>litsea-wasm/tests/web.rs</code> の <code>module_functions</code>）にあるハードコードされた言語の一覧</li>
+</ul>
 <p><strong>モデルに依存するテスト（先に学習済みモデルが必要）:</strong></p>
 <ul>
 <li><code>litsea/tests/golden.rs</code>: 新しい <code>golden_segment_&lt;language&gt;</code>（POS モデルも学習した場合は <code>golden_segment_with_pos_&lt;language&gt;_two_stage</code> も）。<strong>理想化した出力ではなく、モデルの実際の出力を固定してください</strong> – まず実際の出力を <code>println!</code> で出力するテストを書き、その出力をアサーションにコピーしてから、デバッグ出力を削除します。直後に<strong>サボタージュ検証</strong>を行ってください: 期待値の1つを一時的に間違った値に変更し、テストが RED になることを確認してから、正しい値に戻します。作成時に一度も失敗しなかった golden テストは、何かを守っていることを証明していません</li>
 <li><code>litsea/src/segmenter.rs</code>: packed スコアラーと文字列キーの参照実装を比較する差分テスト（<code>test_segment_differential_&lt;language&gt;_model</code>）、およびモデルが tag-free の場合は <code>segment_into</code> のタイリング/パリティのケース</li>
-<li><code>litsea/benches/bench.rs</code>: 4つの言語ごとのタプルリスト（<code>bench_segment_short</code>、<code>bench_external_corpus</code> の2つのケースリスト、<code>bench_segment_into</code>）すべてに新しい言語を追加します。これには <code>resources/</code> 配下にコーパスファイル（既存の言語ごとのコーパスと同程度のサイズのパブリックドメインのテキスト）が必要です</li>
+<li><code>litsea/benches/bench.rs</code>: 5つの言語ごとのリストすべてに新しい言語を追加します: <code>bench_segment_short</code> の <code>cases</code> と <code>inputs</code>（<code>inputs</code> のエントリがない <code>cases</code> のエントリは <code>unwrap()</code> で panic します）、<code>bench_external_corpus</code> の <code>segment_cases</code> と <code>two_stage_cases</code>、<code>bench_segment_into</code> の <code>cases</code> です。これには <code>resources/</code> 配下にコーパスファイル（既存の言語ごとのコーパスと同程度のサイズのパブリックドメインのテキスト）が必要です</li>
 <li><code>litsea-cli/tests/cli.rs</code>: CLI の出力をエンドツーエンドで固定する分割のスモークテストを最低1つ</li>
 </ul>
 <p><strong>検証コマンド</strong>（言語の対応が完了したとみなす前に、すべて実行してください）:</p>
@@ -352,7 +360,7 @@ mdbook build docs/ja
 <li>新しい <code>language-support/&lt;language&gt;.md</code> ページ（<a href="english.html">英語</a>または<a href="korean.html">韓国語</a>をテンプレートとして使用）と <code>docs/src/SUMMARY.md</code> のエントリ（および <code>docs/ja/src/SUMMARY.md</code> のミラー）</li>
 <li><code>language-support/overview.md</code> と <code>algorithm/character-type-classification.md</code> – どちらも言語ごとのテーブル/セクションを拡張する必要があります</li>
 <li><code>pre-trained-models.md</code> – 同梱モデルごとのモデルカードに加え、該当する場合は「タグなし（pointwise）モデル」と「二段構成の品詞推定モデル」の比較表</li>
-<li>ルートの <code>README.md</code> と <code>litsea/src/lib.rs</code> のクレートレベルドキュメント</li>
+<li>ルートの <code>README.md</code>、バインディングの README（<code>litsea-*/README.md</code>）、言語名を含むパッケージのメタデータ（<code>litsea-nodejs/package.json</code> の keywords、<code>litsea-ruby/litsea.gemspec</code> の description）、<code>litsea/src/lib.rs</code> のクレートレベルドキュメント</li>
 <li>スイープが完了したとみなす前に <code>grep -rln "&lt;既存の言語名&gt;" docs/src docs/ja/src</code> を実行し、見つかった全ファイルを確認してください – 言語を列挙しているドキュメントは見落としやすいです（本プロジェクト自身の経験: issue #165 はこの確認を一度スキップしてしまい、14 箇所の古い記述が後続の PR でのクリーンアップ待ちになりました）</li>
 </ul>
 

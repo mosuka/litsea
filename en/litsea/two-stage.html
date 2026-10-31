@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -213,8 +213,9 @@ pub fn from_parts(
     dominance: f64,
 ) -&gt; Result&lt;Self&gt;
 <span class="boring">}</span></code></pre>
-<p><code>new</code> creates an empty learner (fill it with a <code>load_model*</code> call before
-use). <code>from_parts</code> builds a learner from its pieces, validating the
+<p><code>new</code> creates an empty learner with the default dominance threshold
+<code>litsea::two_stage::DEFAULT_DOMINANCE</code> (<code>0.99</code>); fill it with a
+<code>load_model*</code> call before use. <code>from_parts</code> builds a learner from its pieces, validating the
 combination: <code>dominance</code> must be in <code>(0.5, 1.0]</code>, every stage-2 class name
 must be a valid <code>Upos</code> tag, and every lexicon entry must have a non-empty
 surface (no tab/newline), a non-empty tag list with positive counts, and no
@@ -238,7 +239,13 @@ entries, or either embedded learner untrained) returns
 <code>LitseaError::InvalidInput</code>. Loading validates the full file structure — see
 <a href="../advanced/model-file-format.html">Model File Format</a> for the on-disk layout
 — and rejects malformed content with <code>LitseaError::InvalidData</code>; the learner
-is left unmodified on a load error.</p>
+is left unmodified on a load error. A model file without a <code>[params]</code>
+section (or without a <code>dominance</code> line in it) loads with
+<code>DEFAULT_DOMINANCE</code>.</p>
+<p>On wasm32, <code>load_model_from_path</code> is not available, and <code>load_model</code> with a
+plain path or a <code>file://</code> URI fails with <code>LitseaError::Unsupported</code>; use
+<code>load_model_from_reader</code>, or an <code>http(s)://</code> URI with the <code>remote_model</code>
+feature.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -292,7 +299,12 @@ models) is documented on this type’s own rustdoc; see
 current, measured numbers.</p>
 <p>Implements <code>FromStr</code> (case-insensitive: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>) and
 <code>Display</code> (lowercase). Marked <code>#[non_exhaustive]</code> — external <code>match</code>
-expressions need a wildcard arm.</p>
+expressions need a wildcard arm. Parsing any other name fails with
+<code>ParseTwoStageFeatureSetError</code> (re-exported as
+<code>litsea::ParseTwoStageFeatureSetError</code>), whose message reads
+<code>invalid two-stage feature set: '&lt;input&gt;' (expected full, balanced, or fast)</code>;
+unlike <code>ParseLanguageError</code> and <code>ParseUposError</code>, it has no <code>input()</code>
+accessor.</p>
 <h2 id="modelkind"><a class="header" href="#modelkind"><code>ModelKind</code></a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

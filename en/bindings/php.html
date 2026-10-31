@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -183,7 +183,7 @@
                         <h1 id="php"><a class="header" href="#php">PHP</a></h1>
 <p><code>litsea-php</code> exposes Litsea to PHP 8.1+ through <a href="https://github.com/davidcole1340/ext-php-rs">ext-php-rs</a>. It is published on Packagist as <code>mosuka/litsea</code> and installed with <a href="https://github.com/php/pie">PIE</a>; the extension registers as <code>litsea</code>.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
-<p>A PHP extension is a shared object built against a specific PHP ABI, so unlike PyPI and npm there is no prebuilt package: the extension is compiled for your PHP, by PIE or by hand.</p>
+<p>A PHP extension is a shared object built against a specific PHP ABI, so a prebuilt binary fits only one PHP version, thread-safety mode and platform: PIE downloads a matching one from the GitHub release when there is one, and otherwise compiles the extension for your PHP. You can also build it by hand.</p>
 <pre><code class="language-sh">pie install mosuka/litsea
 </code></pre>
 <p>PIE 1.4 or later downloads a prebuilt <code>litsea.so</code> from the GitHub release for PHP 8.1 to 8.5 (NTS or ZTS) on Linux x86_64 / arm64 (glibc 2.35 or newer) and macOS on Apple silicon, installs it into the extension directory and enables it; no Rust toolchain is involved (<code>--with-php-config=...</code> selects another PHP). Other combinations (musl such as Alpine, older glibc, Intel Macs, PIE before 1.4) fall back to a source build, which needs a Rust toolchain, libclang and PIE’s build tools (<code>autoconf</code>, <code>libtool</code>, <code>make</code>); Windows is not supported. Composer itself ignores <code>php-ext</code> packages, so <code>composer require mosuka/litsea</code> is not an installation route.</p>
@@ -191,7 +191,7 @@
 <pre><code class="language-sh">cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 </code></pre>
-<p>Add it to <code>php.ini</code> (<code>extension=/path/to/liblitsea_php.so</code>) to load it everywhere. Either way <code>php -m</code> lists the extension as <code>litsea</code>.</p>
+<p>Add it to <code>php.ini</code> (<code>extension=/path/to/liblitsea_php.so</code>) to load it everywhere. On macOS, cargo writes <code>liblitsea_php.dylib</code> instead; load that path. Either way <code>php -m</code> lists the extension as <code>litsea</code>.</p>
 <h2 id="stubs-for-static-analysis"><a class="header" href="#stubs-for-static-analysis">Stubs for static analysis</a></h2>
 <p><code>litsea-php/stubs/litsea.stubs.php</code> declares every class and function for IDEs, PHPStan (<code>stubFiles</code>) and Psalm (<code>stubs</code>). It is generated from the compiled extension and checked by the test suite, so it cannot drift from the Rust source. Point the analyser at a copy of the file; never include it at runtime, where the extension already declares the classes.</p>
 <h2 id="getting-a-model"><a class="header" href="#getting-a-model">Getting a model</a></h2>
@@ -246,18 +246,25 @@ array_map(fn ($t) =&gt; "{$t-&gt;surface}/{$t-&gt;pos}", $tagged-&gt;segmentWith
 </thead>
 <tbody>
 <tr><td><code>Segmenter::open($language, $path, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>A segmenter</td></tr>
-<tr><td><code>Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>A segmenter</td></tr>
+<tr><td><code>Segmenter::fromBytes($language, $data, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>A segmenter</td></tr>
 <tr><td><code>Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?, $user_word_tags?)</code></td><td>A segmenter (blocking download)</td></tr>
+<tr><td><code>language()</code></td><td><code>string</code>, the canonical language name</td></tr>
+<tr><td><code>hasPos()</code></td><td><code>bool</code></td></tr>
 <tr><td><code>segment($text)</code></td><td><code>string[]</code></td></tr>
 <tr><td><code>segmentBatch($texts)</code></td><td><code>string[][]</code></td></tr>
 <tr><td><code>segmentTokens($text)</code></td><td><code>Token[]</code> with byte offsets</td></tr>
 <tr><td><code>segmentWithPos($text)</code></td><td><code>Token[]</code> with tags and offsets</td></tr>
 <tr><td><code>segmentWithPosBatch($texts)</code></td><td><code>Token[][]</code></td></tr>
-<tr><td><code>(new Extractor($language))-&gt;extract(...)</code></td><td><code>void</code></td></tr>
-<tr><td><code>(new Extractor($language))-&gt;extractTwoStage(...)</code></td><td><code>void</code></td></tr>
-<tr><td><code>(new Trainer($threshold, $iterations, $features))-&gt;train($model, $cancel?)</code></td><td><code>BinaryMetrics</code></td></tr>
-<tr><td><code>(new PerceptronTrainer($epochs, $features))-&gt;train($model, $cancel?)</code></td><td><code>MulticlassMetrics</code></td></tr>
-<tr><td><code>(new TwoStageTrainer($epochs, $prefix, $dominance?))-&gt;train($model, $cancel?)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>(new Extractor($language))-&gt;extract($corpus_path, $features_path, $tsv = false, $tag_free = false)</code></td><td><code>void</code> (<code>$tsv</code> reads the TSV corpus format; <code>$tag_free</code> omits the tag-dependent feature templates)</td></tr>
+<tr><td><code>(new Extractor($language))-&gt;extractTwoStage($corpus_path, $output_prefix, $feature_set = null, $tsv = false)</code></td><td><code>void</code> (writes <code>{$output_prefix}.stage1</code>, <code>.stage2</code> and <code>.lexicon</code>; <code>$feature_set</code> is <code>'full'</code>, <code>'balanced'</code> or <code>'fast'</code>, and <code>null</code> means <code>'fast'</code>)</td></tr>
+<tr><td><code>(new Trainer($threshold, $num_iterations, $features_path))-&gt;train($model_path, $cancel?)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>(new Trainer(...))-&gt;loadModel($model_uri)</code></td><td><code>void</code> (continues training from an existing model: a path, <code>file://</code> or <code>http(s)://</code>)</td></tr>
+<tr><td><code>(new PerceptronTrainer($num_epochs, $features_path))-&gt;train($model_path, $cancel?)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>(new TwoStageTrainer($num_epochs, $features_prefix, $dominance = 0.99))-&gt;train($model_path, $cancel?)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>(new TwoStageTrainer(...))-&gt;isAvailable()</code></td><td><code>bool</code> (<code>false</code> once <code>train()</code> has run)</td></tr>
+<tr><td><code>(new CancelToken())-&gt;cancel()</code> / <code>reset()</code> / <code>isCancelled()</code></td><td><code>void</code> / <code>void</code> / <code>bool</code></td></tr>
+<tr><td><code>Litsea\version()</code></td><td><code>string</code>, the <code>litsea</code> version</td></tr>
+<tr><td><code>Litsea\supported_languages()</code></td><td><code>string[]</code></td></tr>
 </tbody>
 </table>
 </div>
@@ -273,14 +280,14 @@ $metrics = (new Litsea\Trainer(0.01, 100000, 'features.txt'))-&gt;train('japanes
 <p>Cancelling is <strong>not</strong> an error: training stops at its next check point, still writes the partially trained model, and returns its metrics.</p>
 <p>Because everything blocks, run training from the CLI SAPI rather than a web request.</p>
 <h2 id="errors"><a class="header" href="#errors">Errors</a></h2>
-<p>Every exception derives from <code>Litsea\LitseaException</code>, so one <code>catch</code> handles them all — the same hierarchy the Python binding exposes.</p>
+<p>Every exception derives from <code>Litsea\LitseaException</code>, so one <code>catch</code> handles them all — the same hierarchy the Python binding exposes. A failure that fits none of the classes below is thrown as <code>Litsea\LitseaException</code> itself.</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Exception</th><th>Thrown when</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea\InvalidArgumentException</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>$user_words_gate</code> outside <code>0.0</code>–<code>1.0</code>, a <code>$user_word_tags</code> value that is not a UPOS tag</td></tr>
+<tr><td><code>Litsea\InvalidArgumentException</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>$user_words_gate</code> outside <code>0.0</code>–<code>1.0</code>, a <code>$user_word_tags</code> value that is not a UPOS tag, <code>$dominance</code> outside (0.5, 1.0], an unknown URI scheme</td></tr>
 <tr><td><code>Litsea\ModelException</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
 <tr><td><code>Litsea\IoException</code></td><td>A file could not be read or written</td></tr>
 <tr><td><code>Litsea\ParseException</code></td><td>The model or training data is malformed</td></tr>

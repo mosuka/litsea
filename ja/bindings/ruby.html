@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -249,21 +249,28 @@ tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.
 <tr><td><code>Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ</td></tr>
 <tr><td><code>Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ（バイナリ String も可）</td></tr>
 <tr><td><code>Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>セグメンタ</td></tr>
+<tr><td><code>#language</code></td><td><code>String</code>（正規の言語名）</td></tr>
+<tr><td><code>#has_pos?</code></td><td><code>true</code> か <code>false</code></td></tr>
 <tr><td><code>#segment(text)</code></td><td><code>Array&lt;String&gt;</code></td></tr>
 <tr><td><code>#segment_batch(texts)</code></td><td><code>Array&lt;Array&lt;String&gt;&gt;</code></td></tr>
 <tr><td><code>#segment_tokens(text)</code></td><td>バイトオフセット付き <code>Array&lt;Litsea::Token&gt;</code></td></tr>
 <tr><td><code>#segment_with_pos(text)</code></td><td>タグとオフセット付き <code>Array&lt;Litsea::Token&gt;</code></td></tr>
 <tr><td><code>#segment_with_pos_batch(texts)</code></td><td><code>Array&lt;Array&lt;Litsea::Token&gt;&gt;</code></td></tr>
-<tr><td><code>Litsea::Extractor.new(language)#extract(...)</code></td><td><code>nil</code></td></tr>
-<tr><td><code>Litsea::Extractor.new(language)#extract_two_stage(...)</code></td><td><code>nil</code></td></tr>
-<tr><td><code>Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel:)</code></td><td><code>BinaryMetrics</code></td></tr>
-<tr><td><code>Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel:)</code></td><td><code>MulticlassMetrics</code></td></tr>
-<tr><td><code>Litsea::TwoStageTrainer.new(epochs, prefix, dominance:)#train(model, cancel:)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>Litsea::Extractor.new(language)#extract(corpus_path, features_path, tsv: false, tag_free: false)</code></td><td><code>nil</code>（<code>tsv:</code> は TSV 形式のコーパスを読み、<code>tag_free:</code> はタグに依存する特徴テンプレートを省きます）</td></tr>
+<tr><td><code>Litsea::Extractor.new(language)#extract_two_stage(corpus_path, output_prefix, feature_set: "fast", tsv: false)</code></td><td><code>nil</code>（<code>{output_prefix}.stage1</code>・<code>.stage2</code>・<code>.lexicon</code> を書き出します。<code>feature_set:</code> は <code>"full"</code>・<code>"balanced"</code>・<code>"fast"</code> のいずれかです）</td></tr>
+<tr><td><code>Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel: nil)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>Litsea::Trainer.new(...)#load_model(model_uri)</code></td><td><code>nil</code>（既存のモデルから学習を続けます。パス・<code>file://</code>・<code>http(s)://</code> を受け付けます）</td></tr>
+<tr><td><code>Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel: nil)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>Litsea::TwoStageTrainer.new(epochs, prefix, dominance: 0.99)#train(model, cancel: nil)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>Litsea::TwoStageTrainer.new(...)#available?</code></td><td><code>train</code> の実行後は <code>false</code></td></tr>
+<tr><td><code>Litsea::CancelToken.new</code> / <code>#cancel</code> / <code>#reset</code> / <code>#cancelled?</code></td><td>トークン / <code>nil</code> / <code>nil</code> / <code>true</code> か <code>false</code></td></tr>
+<tr><td><code>Litsea.version</code></td><td><code>String</code>（<code>litsea</code> のバージョン）</td></tr>
+<tr><td><code>Litsea.supported_languages</code></td><td><code>Array&lt;String&gt;</code></td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="gvl-の解放"><a class="header" href="#gvl-の解放">GVL の解放</a></h2>
-<p>モデルの読み込み・特徴量抽出・学習といった時間のかかる処理は、GVL（Global VM Lock）を解放した状態で実行されます。そのため他の Ruby スレッドが動き続け、キャンセルが意味を持ちます。</p>
+<p><code>open</code>・<code>from_uri</code>・<code>Trainer#load_model</code> によるモデルの読み込み、特徴量抽出、学習、バッチメソッドの <code>segment_batch</code> と <code>segment_with_pos_batch</code> といった時間のかかる処理は、GVL（Global VM Lock）を解放した状態で実行されます。そのため他の Ruby スレッドが動き続け、キャンセルが意味を持ちます。</p>
 <pre><code class="language-ruby">cancel = Litsea::CancelToken.new
 Thread.new { sleep 60; cancel.cancel }
 
@@ -271,17 +278,17 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 </code></pre>
 <p>キャンセルは<strong>エラーではありません</strong>。次のチェックポイントで停止し、部分的に学習されたモデルを保存してメトリクスを返します。バインディングはシグナルハンドラを登録しません。</p>
 <p><code>rb_thread_call_without_gvl</code> は magnus も rb-sys もラップしていません（magnus は未バインドの C 関数一覧に挙げており、この関数は rb-sys が生成するバインディングの対象外ヘッダで宣言されています）。そのため本バインディングは <code>src/gvl.rs</code> で自ら宣言し、パニックが C フレームを越えて巻き戻らないよう <code>extern "C"</code> のトランポリンで捕捉しています。この主張は 2 つのテストで担保しています。1 つは学習中に別の Ruby スレッドが動き続けること、もう 1 つは別スレッドからのキャンセルが学習ウィンドウ内に収まることです。GVL 解放を外すと両方とも失敗します。</p>
-<p>1 文の分割は GVL を保持したままです。解放のコストの方が処理そのものより大きいためです。</p>
+<p>1 文の分割は GVL を保持したままです。解放のコストの方が処理そのものより大きいためです。<code>from_bytes</code> も GVL を保持します。Ruby の String のバイト列をその場で読むためです。</p>
 <p><code>TwoStageTrainer</code> は 1 度しか使えません。学習時に stage 1 が AdaBoost モデルへ collapse され、トレーナが消費されるためです。状態は <code>available?</code> が示し、2 回目の <code>train</code> は例外を発生させます。</p>
 <h2 id="エラー"><a class="header" href="#エラー">エラー</a></h2>
-<p>すべてのエラーは <code>Litsea::Error</code> を継承するため、1 つの <code>rescue</code> で捕捉できます（Python・PHP バインディングと同じ階層です）。</p>
+<p>すべてのエラーは <code>Litsea::Error</code> を継承するため、1 つの <code>rescue</code> で捕捉できます（Python・PHP バインディングと同じ階層です）。下の表のどのエラーにも当たらない失敗は、<code>Litsea::Error</code> そのものとして送出されます。</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>エラー</th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea::InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate:</code>、UPOS タグでない <code>user_word_tags:</code> の値</td></tr>
+<tr><td><code>Litsea::InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate:</code>、UPOS タグでない <code>user_word_tags:</code> の値、(0.5, 1.0] の外の <code>dominance:</code>、未知の URI スキーム</td></tr>
 <tr><td><code>Litsea::ModelError</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
 <tr><td><code>Litsea::IoError</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>Litsea::ParseError</code></td><td>モデルまたは学習データの形式不正</td></tr>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -196,7 +196,7 @@
     A["Read corpus line by line"] --&gt; B["Split line into words"]
     B --&gt; C["Build chars, types, and tags arrays"]
     C --&gt; D["For each character position"]
-    D --&gt; E["Extract 38-42 features"]
+    D --&gt; E["Extract 38-42 features&lt;br/&gt;(22-26 with --tag-free)"]
     E --&gt; F["Write label + features to file"]
 </code></pre>
 <ol>
@@ -230,6 +230,16 @@ separated by tabs) in which a token may be a literal space character
 <code>extract</code>; only the corpus parsing differs. <code>--format tsv</code> also combines
 with <code>--pos</code> – see <a href="#two-stage-feature-extraction">Two-Stage Feature
 Extraction</a> below.</p>
+<h2 id="tag-free-pointwise-extraction"><a class="header" href="#tag-free-pointwise-extraction">Tag-Free (Pointwise) Extraction</a></h2>
+<p><code>--tag-free</code> drops the 16 tag-dependent feature templates
+(<code>UP*</code>/<code>BP*</code>/<code>UQ*</code>/<code>BQ*</code>/<code>TQ*</code>, which read the previous boundary
+decisions), so each row has 16 fewer features (22-26 instead of 38-42) and
+the trained model is <em>pointwise</em>: <code>segment()</code> skips its sequential scoring
+pass. It combines with <code>--format tsv</code> (the bundled <code>korean.model</code> and
+<code>english.model</code> are trained this way) but not with <code>--pos</code>, which fails
+with <code>--tag-free cannot be combined with --pos</code>. See <a href="../pre-trained-models.html#tag-free-pointwise-models">Tag-Free (Pointwise)
+Models</a> for the
+quality/throughput trade-off per language.</p>
 <h2 id="two-stage-feature-extraction"><a class="header" href="#two-stage-feature-extraction">Two-Stage Feature Extraction</a></h2>
 <p>For <a href="../algorithm/two-stage-tagging.html">two-stage POS tagging</a> (issue #147),
 use <code>--pos</code>:</p>
@@ -278,7 +288,7 @@ the measured quality/throughput comparison behind this default.</p>
 <pre><code class="language-sh">litsea extract --pos --stage2-features balanced -l chinese ./pos_corpus.txt ./pos_features
 </code></pre>
 <h2 id="file-size-expectations"><a class="header" href="#file-size-expectations">File Size Expectations</a></h2>
-<p>The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings. For a 1 MB corpus, expect a features file of roughly 50-100 MB.</p>
+<p>The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings (22-26 with <code>--tag-free</code>). For a 1 MB corpus, expect a features file of roughly 50-100 MB.</p>
 
                     </main>
 

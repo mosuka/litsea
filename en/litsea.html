@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -186,7 +186,11 @@
 <pre><code class="language-toml">[dependencies]
 litsea = "0.15.0"
 </code></pre>
-<p>Loading models from local files is synchronous and needs no async runtime. An async runtime such as <code>tokio</code> is only required when loading models over HTTP/HTTPS with the async <code>load_model</code> method (for example <code>TwoStageLearner::load_model</code>, which always resolves the model URI through the same async path).</p>
+<p>Loading models from local files with <code>load_model_from_path</code> or <code>load_model_from_reader</code> is synchronous and needs no async runtime. The <code>load_model</code> methods (for example <code>TwoStageLearner::load_model</code>) and <code>model_io::read_model_bytes</code> are async for every URI form, local paths included, so calling them needs an async runtime such as <code>tokio</code>.</p>
+<p>Loading models over HTTP/HTTPS also needs the <code>remote_model</code> feature, which is off by default; without it, <code>http://</code> and <code>https://</code> URIs fail with <code>LitseaError::Unsupported</code> (see <a href="advanced/remote-model-loading.html">Remote Model Loading</a>):</p>
+<pre><code class="language-toml">[dependencies]
+litsea = { version = "0.15.0", features = ["remote_model"] }
+</code></pre>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
@@ -200,6 +204,8 @@ litsea = "0.15.0"
     Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
     S["litsea::evaluation"] --- T["PosMetrics, SegmentationMetrics"]
     U["litsea::two_stage"] --- V["ModelKind, TwoStageFeatureSet, TwoStageLearner"]
+    W["litsea::user_dictionary"] --- X["UserDictionary"]
+    Y["litsea::model_io"] --- Z["read_model_bytes"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -208,6 +214,7 @@ litsea = "0.15.0"
 </thead>
 <tbody>
 <tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code>, <code>SegmentBuffer</code></td><td>Word segmentation (owned or allocation-free output), two-stage segmentation with POS tagging</td></tr>
+<tr><td><code>litsea::user_dictionary</code></td><td><code>UserDictionary</code></td><td>User dictionary: words emitted as single tokens, optionally with a UPOS tag for <code>segment_with_pos</code> (see <a href="litsea/segmenter.html#user-dictionary">User Dictionary</a>)</td></tr>
 <tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code></td><td>Binary classification, model I/O</td></tr>
 <tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>Multiclass classification (two-stage training), model I/O</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS POS tags, segment labels</td></tr>
@@ -218,11 +225,11 @@ litsea = "0.15.0"
 <tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>Evaluation metrics (in-sample)</td></tr>
 <tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>Held-out evaluation against a gold corpus</td></tr>
 <tr><td><code>litsea::two_stage</code></td><td><code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>Two-stage model container and model-kind detection</td></tr>
-<tr><td><code>litsea::model_io</code></td><td><code>read_model_bytes</code></td><td>Resolves a model URI (path, <code>file://</code>, <code>http(s)://</code>) to raw bytes</td></tr>
+<tr><td><code>litsea::model_io</code></td><td><code>read_model_bytes</code></td><td>Resolves a model URI (path, <code>file://</code>, or <code>http(s)://</code> with the <code>remote_model</code> feature) to raw bytes (async)</td></tr>
 </tbody>
 </table>
 </div>
-<p>All primary types are also re-exported at the crate root, so <code>use litsea::Segmenter;</code> works as a shorthand for <code>use litsea::segmenter::Segmenter;</code>.</p>
+<p>All primary types are also re-exported at the crate root, so <code>use litsea::Segmenter;</code> works as a shorthand for <code>use litsea::segmenter::Segmenter;</code>. The crate root also provides <code>litsea::version()</code>, which returns the crate version (for example <code>"0.15.0"</code>).</p>
 <p>The learners resolve their own URIs, so <code>model_io::read_model_bytes</code> is rarely needed directly. It is public for callers that must inspect a model before choosing a learner — <code>litsea-binding-core</code> reads the bytes once, detects the kind with <code>ModelKind::detect</code>, and feeds the same bytes to <code>load_model_from_reader</code>, which avoids downloading a remote model twice.</p>
 <h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;

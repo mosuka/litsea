@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -350,7 +350,7 @@ let trainer = TwoStageTrainer::new(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(
-    mut self,
+    self,
     running: &amp;AtomicBool,
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;TwoStageMetrics&gt;
@@ -402,7 +402,7 @@ async fn main() -&gt; litsea::Result&lt;()&gt; {
 <tr><td><code>PerceptronTrainer::new(epochs, features_path)</code></td><td><code>PerceptronTrainer::from_features(epochs, features)</code></td></tr>
 <tr><td><code>TwoStageTrainer::new(epochs, dominance, prefix)</code></td><td><code>TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)</code></td></tr>
 <tr><td><code>train(running, model_path)</code></td><td><code>train_to_writer(running, writer)</code></td></tr>
-<tr><td><code>load_model(uri).await</code></td><td><code>load_model_from_reader(reader)</code></td></tr>
+<tr><td><code>load_model(uri).await</code>（<code>TwoStageTrainer</code> にはなし）</td><td><code>load_model_from_reader(reader)</code>（<code>TwoStageTrainer</code> にはなし）</td></tr>
 </tbody>
 </table>
 </div>
@@ -431,13 +431,16 @@ let metrics = Trainer::from_features(0.01, 10_000, &amp;features)?
 
 let mut learner = AdaBoost::new(0.01, 10_000);
 let segmenter = Segmenter::new(Language::Japanese);
-segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+// Extractor と同じく、1 回の呼び出しに 1 文（前後の空白を除いた、空でない行）を渡す
+for line in corpus.lines().map(str::trim).filter(|line| !line.is_empty()) {
+    segmenter.add_corpus_with_writer(line, |attrs, label| learner.add_instance(attrs, label));
+}
 learner.train(&amp;AtomicBool::new(true));
 learner.save_model_to_writer(&amp;mut model)?;
 <span class="boring">}</span></code></pre>
-<p>新規の学習器であればこれは等価です。ただし<strong>読み込み済みモデルからの追加学習では等価になりません</strong>。<code>Trainer</code> の 2 パス経路は各インスタンスのブースティング重みを既存モデルから算出しますが、<code>add_instance</code> はすべて <code>1.0</code> から始めます。</p>
+<p>どちらの経路も、すべてのインスタンスをブースティング重み <code>1.0</code> から始めます。読み込み済みモデルから追加学習する場合も同じです。<code>Trainer::new</code> は、<code>load_model</code> が既存の重みをマージするより前にインスタンスを構築するためです。違うのは特徴量の順序です。<code>Trainer</code> は特徴量の語彙をソートしますが、<code>add_instance</code> は各 <code>HashSet</code> の反復順で特徴量を追加し、この順序は実行ごとに変わります。保存されるモデルはこの順序で特徴量を並べ、ブースティングは同じ良さの特徴量どうしのタイをこの順序で解消します。そのため、この経路の出力はバイト単位では再現せず、<code>Trainer</code> の経路と異なることがあります。</p>
 <h3 id="再現性"><a class="header" href="#再現性">再現性</a></h3>
-<p>学習は入力だけの関数です。同じ特徴量から 2 回学習すれば同じモデルになります。これは <code>AveragedPerceptron::add_instance</code> が特徴量をソートして保持するためです。<code>HashSet</code> の反復順は集合ごとに異なり、パーセプトロンの更新は順序に依存するため、これ以前は同一プロセス内の 2 回の学習が一致しないことがありました。</p>
+<p><code>Trainer</code>・<code>PerceptronTrainer</code>・<code>TwoStageTrainer</code> による学習は入力だけの関数です。同じ特徴量から 2 回学習すれば同じモデルになります。これは <code>Trainer</code> が特徴量の語彙をソート順で構築し、<code>AveragedPerceptron::add_instance</code> が特徴量をソートして保持するためです。<code>HashSet</code> の反復順は集合ごとに異なり、パーセプトロンの更新は順序に依存するため、これ以前は同一プロセス内の 2 回の学習が一致しないことがありました。上記のように <code>add_instance</code> で <code>AdaBoost</code> を直接学習する場合には、この保証はありません。</p>
 
                     </main>
 

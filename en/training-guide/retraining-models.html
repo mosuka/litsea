@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -218,8 +218,10 @@ litsea train -t 0.0001 -i 20000 \
 <li>The output model can be the same path as the input model (overwrites)</li>
 <li>The <code>-m</code> flag accepts file paths, <code>file://</code>, <code>http://</code>, and <code>https://</code> URIs</li>
 <li>Retraining starts from the existing weights, so fewer iterations may be needed</li>
-<li><code>-m</code> is only available for plain AdaBoost training. <code>train --pos</code>
-does <strong>not</strong> support <code>-m</code>/<code>--load-model-uri</code> – incremental training of a
+<li><code>-m</code> is available for plain AdaBoost training and for
+<code>train --perceptron</code>, which loads a model in the perceptron format that
+<code>train --perceptron</code> writes (not a collapsed AdaBoost-format model).
+<code>train --pos</code> does <strong>not</strong> support <code>-m</code>/<code>--load-model-uri</code> – incremental training of a
 two-stage model is not supported, so if you need to update one you must
 retrain it from scratch with <code>train --pos</code></li>
 <li>The bundled <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and

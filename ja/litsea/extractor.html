@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -234,7 +234,7 @@ extractor.extract(
 <ol>
 <li>コーパスファイルから各行を読み込む</li>
 <li><code>Segmenter::add_corpus_with_writer()</code> を呼び出して各行を処理する</li>
-<li>各文字位置のラベルと特徴量セットを出力ファイルに書き込む</li>
+<li>先頭（必ず単語の始まり）を除く各文字位置について、<code>label\tfeature1\tfeature2\t...</code> の行を出力ファイルに書き込む。ラベルは <code>1</code>（単語の始まり）か <code>-1</code>（単語の続き）</li>
 </ol>
 <h3 id="extract_tsv"><a class="header" href="#extract_tsv"><code>extract_tsv</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -307,6 +307,17 @@ extractor.extract_two_stage(
     TwoStageFeatureSet::Fast,
 )?;
 <span class="boring">}</span></code></pre>
+<h3 id="extract_two_stage_tsv"><a class="header" href="#extract_two_stage_tsv"><code>extract_two_stage_tsv</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn extract_two_stage_tsv(
+    &amp;self,
+    corpus_path: &amp;Path,
+    output_prefix: &amp;Path,
+    feature_set: TwoStageFeatureSet,
+) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>extract_two_stage</code> のタブ区切り版です（issue #198）。<code>extract_tsv</code> と <code>extract</code> の関係と同じです。<code>word/POS</code> のトークンをタブで区切り、トークンとして空白文字そのもの（<code>" "</code>）を含められます。空白のトークンには <code>/POS</code> サフィックスがありません。書き出すのは <code>output_prefix</code> からの同じ 3 つのファイルです。空白のトークンには stage-2 の行を書き出しませんが、語彙表には登録し、文字オフセットも進めます。そのため、隣の単語の文脈特徴量に空白が含まれます。韓国語や英語のようなスペース区切りで書かれる言語のための形式で、CLI の <code>extract --pos --format tsv</code> の実体です。</p>
 <h2 id="in-memory-での抽出"><a class="header" href="#in-memory-での抽出">in-memory での抽出</a></h2>
 <p><code>extract*</code> の各メソッドには <code>*_to_writer</code> の対応版があり、コーパスを文字列で受け取り、特徴量行を任意の <code>Write</code> へ書き出します。ファイルシステムのない環境（WebAssembly）や、コーパスが既にメモリ上にある場合のためのものです。出力はパス版とバイト単位で一致し、文字列の先頭のバイトオーダーマークも同じく無視します。</p>
 <div class="table-wrapper">
@@ -351,7 +362,9 @@ extractor.extract_two_stage_to_writers(
 <h2 id="twostagefeatureset"><a class="header" href="#twostagefeatureset">TwoStageFeatureSet</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub enum TwoStageFeatureSet {
+</span>#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
+pub enum TwoStageFeatureSet {
     Full,
     Balanced,
     #[default]
@@ -364,7 +377,7 @@ extractor.extract_two_stage_to_writers(
 <li><code>Balanced</code> – <code>Fast</code> のテンプレートに加えて、先頭/末尾文字そのものと単語の文字種文字列</li>
 <li><code>Fast</code>（既定） – 実測に基づく最小構成: 表層、単語長、先頭/末尾文字種、隣接文脈文字とその文字種、2文字の接頭辞/接尾辞</li>
 </ul>
-<p><code>Display</code>（小文字: <code>"full"</code>、<code>"balanced"</code>、<code>"fast"</code>）と <code>FromStr</code>（不正な文字列には <code>ParseTwoStageFeatureSetError</code> を返す）も実装しています – これは <code>--stage2-features</code> CLI フラグが受け付けるのと同じ名前です。<a href="../training-guide/extracting-features.html">特徴量の抽出</a>を参照してください。</p>
+<p><code>Display</code>（小文字: <code>"full"</code>、<code>"balanced"</code>、<code>"fast"</code>）と <code>FromStr</code>（大文字と小文字を区別せず、不正な文字列には <code>ParseTwoStageFeatureSetError</code> を返す）も実装しています – これは <code>--stage2-features</code> CLI フラグが受け付けるのと同じ名前です。<a href="../training-guide/extracting-features.html">特徴量の抽出</a>を参照してください。この enum は <code>#[non_exhaustive]</code> なので、クレートの外で <code>match</code> するときはワイルドカードの腕が必要です。</p>
 
                     </main>
 

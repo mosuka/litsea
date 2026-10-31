@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -185,7 +185,9 @@
 （<code>--pos</code>、<code>Segmenter::with_two_stage_learner</code>、issue #147）に
 支えられています。モデルファイルの <code>litsea-two-stage v1</code> ヘッダがこの形式を
 識別し（<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">モデルファイル形式</a>を参照）、
-メソッドは <code>Vec&lt;(String, Upos)&gt;</code> の単語/タグのペアを返します。</p>
+メソッドは <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> で単語/タグのペアを返します
+（二段構成モデルなしで構築された Segmenter では <code>LitseaError::PosLearnerNotSet</code>
+のエラーになります）。</p>
 <h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
 <p>二段構成タグ付けは、文字レベルで POS クラスを採点することは一切ありません:</p>
 <ol>
@@ -199,17 +201,22 @@
 出現の <code>dominance</code> 割合以上を占める表層は、<strong>分類器を一切呼ばずに</strong>
 タグ付けされます。</li>
 <li>曖昧な既知表層は、観測された候補タグのみ（マスク付き argmax）に
-絞って採点されます（全 18 クラスではありません）。</li>
+絞って採点されます（最大 17 個ある stage 2 の UPOS クラスの全部ではありません）。</li>
 <li>未知の表層は全クラス argmax にフォールバックします。</li>
 </ul>
 </li>
 </ol>
+<p>ユーザー辞書を設定すると（<a href="prediction-pipeline.html#ユーザー辞書">予測パイプライン</a>を参照）、
+登録語は stage 1 の境界も制約します。また、表層がタグ付きの辞書語と一致する
+単語（issue #264 と #276）には、語彙表と分類器より優先して登録されたタグが
+付きます。ほかの単語のタグは変わりません。</p>
 <p>単語は平均して 1 文字より多くの文字を含み、大半の単語は曖昧でないか
 分類器そのものをスキップするため、stage 2 の総コストは文字単位の多クラス
 採点のごく一部で済みます。これが POS パスを通常の分割とほぼ同じ速さにして
 いる理由です: 歴史的な joint アーキテクチャ（二段構成への一本化に伴い削除）
-は各文字位置ごとに約 18 個の UPOS クラス全てを採点しており、同じコーパスで
-1.8〜2.8 倍遅く動作していました。</p>
+は各文字位置ごとに 18 個の <code>B-&lt;UPOS&gt;</code> / <code>O</code> ラベル全てを採点しており、同じコーパスで
+1.8〜2.8 倍遅く動作していました。そのモデルファイルを読み込むと、現在は
+<code>litsea train --pos</code> で学習し直すよう求めるエラーになります。</p>
 <h2 id="方法論についての注記-十分な学習エポック数を使う"><a class="header" href="#方法論についての注記-十分な学習エポック数を使う">方法論についての注記: 十分な学習エポック数を使う</a></h2>
 <p>二段構成の展開時に行ったエポックスイープ（10〜150 エポック）により、
 モデル品質は旧来のモデルが学習されていた 10 エポック慣習を大きく超えて

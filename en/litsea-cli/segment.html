@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -205,7 +205,7 @@
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>Language for character type classification. Accepts: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>Enable POS-tagged segmentation output. Requires a <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">two-stage</a> model (<code>train --pos</code>)</td></tr>
-<tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged</td></tr>
+<tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>Number of worker threads for batch segmentation (issue #185). The default keeps the single-threaded behavior; with <code>N &gt; 1</code>, input lines are segmented in parallel and written in input order, so the output is byte-identical either way (works with and without <code>--pos</code>). Wall-clock time for large inputs drops with core count; single-line latency is unchanged. <code>N</code> must be from 1 to 65535; <code>--threads 0</code> is rejected</td></tr>
 <tr><td><code>--user-words &lt;FILE&gt;</code></td><td>none</td><td>User dictionary (issues #263, #264, #276): a UTF-8 file with one word per line, optionally followed by a TAB and a UPOS tag. Every occurrence of a registered word is emitted as one token — a boundary at each edge, none inside; overlapping occurrences are resolved leftmost-longest. With <code>--pos</code>, a token that is a tagged word gets the registered tag; a tagged word of one character changes no boundary and retags only the tokens that are exactly that character. Untagged words of one character and empty lines are ignored</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>none</td><td>Flip-ratio gate for <code>--user-words</code>, in <code>0.0..=1.0</code>: an occurrence is applied only if the share of the model’s margin it would overturn is at most <code>RATIO</code> (<code>0</code> = only where the model already agrees, <code>1</code> = always). Requires <code>--user-words</code></td></tr>
 </tbody>
@@ -214,8 +214,13 @@
 <h2 id="input--output"><a class="header" href="#input--output">Input / Output</a></h2>
 <ul>
 <li><strong>Input</strong>: Reads from stdin, one sentence per line. A byte order mark at
-the start of the input is ignored (issue #281). Empty lines are skipped.</li>
-<li><strong>Output</strong>: Writes to stdout, space-separated tokens, one line per input line.</li>
+the start of the input is ignored (issue #281). Each line is trimmed of
+leading and trailing whitespace; empty and whitespace-only lines are
+skipped.</li>
+<li><strong>Output</strong>: Writes to stdout, one line per non-empty input line, with the
+tokens separated by a single space. With the Korean and English models a
+space in the sentence is a token of its own, so it appears between two
+separator spaces (see the English example below).</li>
 <li><strong>Pipelines</strong>: A downstream consumer closing the pipe early (e.g.
 <code>litsea segment model | head -1</code>) terminates the command successfully
 (exit code 0), so <code>segment</code> composes cleanly in shell pipelines.</li>
@@ -236,6 +241,8 @@ the start of the input is ignored (issue #281). Empty lines are skipped.</li>
 </code></pre>
 <p><strong>English:</strong></p>
 <pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
+</code></pre>
+<pre><code class="language-text">I   do n't   know .
 </code></pre>
 <p><strong>Processing a file:</strong></p>
 <pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./models/japanese.model &gt; output.txt
@@ -364,7 +371,7 @@ validated with or without <code>--pos</code>, and every error names the line:</p
 <ul>
 <li>The <code>--language</code> flag must match the language the model was trained for</li>
 <li>The CLI loads models through the async URI API and supports HTTP/HTTPS with TLS (rustls); the library also offers synchronous local loading (<code>load_model_from_path</code>)</li>
-<li>The model URI is not restricted to file paths – any valid URL is accepted</li>
+<li>The model URI may be a plain file path, a <code>file://</code> URI, or an <code>http://</code> / <code>https://</code> URL; any other scheme fails with <code>Error: invalid input: Invalid model scheme: &lt;scheme&gt;</code></li>
 <li>When using <code>--pos</code>, the model must be a two-stage model trained with <code>train --pos</code></li>
 </ul>
 

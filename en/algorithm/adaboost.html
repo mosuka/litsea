@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -194,7 +194,7 @@
 <h3 id="initialization"><a class="header" href="#initialization">Initialization</a></h3>
 <ol>
 <li>Load features and instances from the training file</li>
-<li>Initialize instance weights uniformly (later adjusted based on initial score)</li>
+<li>Initialize each instance weight from the instance’s initial score: <code>D[i] = exp(-2 * y[i] * score[i])</code>, where <code>score[i]</code> is the bias plus the weights of the instance’s features (1.0 for every instance when the model starts at zero; not normalized)</li>
 <li>All model weights start at zero</li>
 </ol>
 <h3 id="iterative-boosting"><a class="header" href="#iterative-boosting">Iterative Boosting</a></h3>
@@ -205,7 +205,7 @@
 </code></pre>
 <p>where <em>D[i]</em> is the instance weight and <em>y[i]</em> is the true label.</p>
 <h4 id="step-2-select-the-best-weak-learner"><a class="header" href="#step-2-select-the-best-weak-learner">Step 2: Select the best weak learner</a></h4>
-<p>Find the feature with the lowest weighted error rate:</p>
+<p>Find the feature whose weighted error rate is farthest from 0.5 (a feature with an error rate above 0.5 can also be selected; it gets a negative alpha in Step 4):</p>
 <pre><code class="language-text">error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
 h_best = argmax_h |0.5 - error_rate(h)|
 </code></pre>
@@ -264,7 +264,7 @@ bias_value
 <li>Zero-weight features are omitted</li>
 <li>The last line contains the bias term (a single number)</li>
 </ul>
-<p>Malformed files (empty, truncated before the bias line, duplicate bias lines or
+<p>Malformed files (empty, a blank line, truncated before the bias line, duplicate bias lines or
 features, a weight line after the bias line, non-finite weights) are rejected
 at load time. See
 <a href="../advanced/model-file-format.html">Model File Format</a> for details.</p>

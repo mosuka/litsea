@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -185,7 +185,9 @@
 (<code>--pos</code>, <code>Segmenter::with_two_stage_learner</code>, issue #147). The model
 file’s <code>litsea-two-stage v1</code> header identifies the format (see <a href="../advanced/model-file-format.html#two-stage-model-format-litsea-two-stage-v1">Model File
 Format</a>),
-and the method returns <code>Vec&lt;(String, Upos)&gt;</code> word/tag pairs.</p>
+and the method returns <code>Result&lt;Vec&lt;(String, Upos)&gt;&gt;</code> word/tag pairs (it
+fails with <code>LitseaError::PosLearnerNotSet</code> when the segmenter was not built
+with a two-stage model).</p>
 <h2 id="how-it-works"><a class="header" href="#how-it-works">How it works</a></h2>
 <p>Two-stage tagging never scores POS classes at the character level:</p>
 <ol>
@@ -201,18 +203,24 @@ Format</a>):
 <code>dominance</code> fraction of its training occurrences, is tagged with <strong>no
 classifier call at all</strong>.</li>
 <li>An ambiguous known surface is scored only over its observed candidate
-tags (a masked argmax), not all ~18 classes.</li>
+tags (a masked argmax), not all of the stage-2 UPOS classes (up to 17).</li>
 <li>An unknown surface falls back to the full-class argmax.</li>
 </ul>
 </li>
 </ol>
+<p>With a user dictionary (see <a href="prediction-pipeline.html#user-dictionary">Prediction
+Pipeline</a>), its registered words
+also constrain the stage-1 boundaries, and a word whose surface is a tagged
+dictionary word (issues #264 and #276) gets the registered tag ahead of the
+lexicon and the classifier; the other words’ tags do not change.</p>
 <p>Since a word averages more characters than one, and most words are either
 unambiguous or skip the classifier entirely, stage 2’s total cost is a
 small fraction of per-character multiclass scoring. This is what makes the
 POS path nearly as fast as plain segmentation: the historical joint
-architecture (removed in favor of two-stage) scored every one of the ~18
-UPOS classes at every character position and ran 1.8-2.8x slower on the
-same corpora.</p>
+architecture (removed in favor of two-stage) scored every one of its 18
+<code>B-&lt;UPOS&gt;</code> / <code>O</code> labels at every character position and ran 1.8-2.8x slower
+on the same corpora. Loading one of its model files now fails with an error
+that asks you to retrain with <code>litsea train --pos</code>.</p>
 <h2 id="a-methodology-note-use-enough-training-epochs"><a class="header" href="#a-methodology-note-use-enough-training-epochs">A methodology note: use enough training epochs</a></h2>
 <p>An epoch sweep (10 to 150 epochs) during the two-stage rollout showed that
 model quality keeps improving well past the 10-epoch convention older

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -217,12 +217,19 @@ so <code>litsea segment https://...</code> keeps working out of the box; library
 need:</p>
 <pre><code class="language-toml">litsea = { version = "0.15.0", features = ["remote_model"] }
 </code></pre>
+<p>The Python, Node.js, Ruby, and PHP bindings are built with <code>remote_model</code>
+too, so their URI loaders (<code>Segmenter.from_uri</code> in Python and Ruby,
+<code>Segmenter.fromUri</code> in Node.js, <code>Segmenter::fromUri</code> in PHP) accept
+<code>http(s)://</code> URLs; the model is fetched once and its kind is detected from
+the content. The WebAssembly binding is built without it (see WASM
+Considerations below), so fetch the model in JavaScript and pass the bytes
+in. See <a href="../bindings.html">Language Bindings</a>.</p>
 <h2 id="implementation-details"><a class="header" href="#implementation-details">Implementation Details</a></h2>
 <ul>
 <li>HTTP client: <strong>reqwest</strong> with <strong>rustls</strong> (no OpenSSL dependency)</li>
 <li>Custom User-Agent: <code>Litsea/&lt;version&gt;</code></li>
 <li>The <code>load_model</code> method is <strong>async</strong> because HTTP loading requires an async runtime</li>
-<li>For the CLI, <code>tokio</code> provides the async runtime</li>
+<li>For the CLI, <code>tokio</code> provides the async runtime; the Python, PHP, and Ruby bindings block on a private current-thread <code>tokio</code> runtime, and the Node.js binding downloads off the event loop</li>
 </ul>
 <h2 id="limits-and-failure-handling"><a class="header" href="#limits-and-failure-handling">Limits and Failure Handling</a></h2>
 <ul>

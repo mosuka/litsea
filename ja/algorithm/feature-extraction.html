@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -222,7 +222,7 @@
 <li><code>WC4</code>: 位置 i の文字 + 位置 i の種別コード</li>
 </ul>
 <blockquote>
-<p><strong>韓国語と英語に WC がない理由:</strong> 韓国語のハングル音節は 2 種類（SN と SF）にのみ分類されるため、WC 特徴量は有用な信号ではなくノイズを追加してしまいます。英語でも同じ結果が直接計測されています: dev split での比較では、38 個のベーステンプレートで単語 F1 98.68%、WC を含む全 42 個で 98.65% でした – 詳細は <a href="../language-support/english.html#wc特徴量なし">English</a> を参照してください。</p>
+<p><strong>韓国語と英語に WC がない理由:</strong> 韓国語のハングル音節は 3 種類（6 個の高頻度の助詞を表す E と、SN、SF）にのみ分類されるため、WC 特徴量は有用な信号ではなくノイズを追加してしまいます。英語でも同じ結果が直接計測されています: dev split での比較では、38 個のベーステンプレートで単語 F1 98.68%、WC を含む全 42 個で 98.65% でした – 詳細は <a href="../language-support/english.html#wc特徴量なし">English</a> を参照してください。</p>
 </blockquote>
 <h3 id="特徴量の総数"><a class="header" href="#特徴量の総数">特徴量の総数</a></h3>
 <div class="table-wrapper">
@@ -238,6 +238,7 @@
 </tbody>
 </table>
 </div>
+<p><code>litsea extract --tag-free</code>（境界パイプライン専用で、<code>--pos</code> とは併用できません）を使うと、タグに依存する 16 個のテンプレート（<code>UP*</code>、<code>BP*</code>、<code>UQ*</code>、<code>BQ*</code>、<code>TQ*</code>）が除かれ、日本語と中国語では 26 個、韓国語と英語では 22 個のテンプレートが残ります。このような特徴量で学習したモデルは pointwise になるため、<code>segment()</code> は逐次スコアリングのパスを省略します（<a href="prediction-pipeline.html">予測パイプライン</a>を参照）。同梱の <code>korean.model</code> と <code>english.model</code> はこの方法で学習されています。</p>
 <h2 id="単一の真実の源"><a class="header" href="#単一の真実の源">単一の真実の源</a></h2>
 <p>上記のテンプレート全体は、宣言的なテーブル（<code>packed_model::TEMPLATES</code> –
 プレフィックスと、タグ/文字/文字種スロットの順序付きリスト、固定の出力順）として
@@ -276,8 +277,10 @@ Tags:    U    U    U    U    ?    ?   ...  ?
 <li><strong>B</strong> – 「Boundary」タグ（単語の開始）</li>
 <li><strong>O</strong> – 「Other」タグ（継続）</li>
 </ul>
-<p>境界（AdaBoost）パイプラインでは、特徴量は位置 4 から len-4 まで（両端を含む）抽出されます。POS パイプラインでは、<code>segment_with_pos</code>
-が最初の単語の品詞を導出するために位置 3（最初の実際の文字）でも予測を行うため、位置 3 でも特徴量が出力されます（#100）。
+<p>境界（AdaBoost）パイプラインでは、特徴量は位置 4 から len-4 まで（両端を含む）抽出されます。二段構成の抽出（<code>extract --pos</code>）では、
+位置 3（最初の実際の文字）についても stage-1 の行が出力され、そのラベルは常に <code>B</code> です。これは、<code>segment_with_pos</code> が最初の単語の品詞を
+導出するために位置 3 でも予測していた、削除済みの joint POS モデルの名残です（#100）。<code>segment()</code> も <code>segment_with_pos()</code> も、
+位置 3 は常に最初の単語の先頭なので採点しません。
 位置は 4（または 3）から len-4 まで（両端を含む）実行され、i-3 から i+2 の完全なウィンドウが利用可能です。</p>
 <h2 id="学習データの形式"><a class="header" href="#学習データの形式">学習データの形式</a></h2>
 <p><code>extract</code> コマンドは以下の形式で特徴量をファイルに書き出します（コーパス行 <code>これ は テスト です 。</code> に対する実際の出力です）:</p>

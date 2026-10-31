@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -213,7 +213,11 @@ pub struct PosMetrics {
 <p>いずれの型もクレートルートで再エクスポートされています。トークンは、
 ゴールドトークンを連結した文字列上の文字オフセットスパンの完全一致で
 対応付けます。空白のみのトークンはスコア計算から除外されます（韓国語/英語の
-空白保持プロトコル。空白を使わずに表記される言語では no-op です）。</p>
+空白保持プロトコル。空白を使わずに表記される言語では no-op です）。
+単語のメトリクスはスパンの完全一致を数えます。境界のメトリクスは、文頭
+（オフセット 0）を除く各トークンの開始オフセットをスコアリングします。
+<code>gold_words</code> と <code>predicted_words</code> は空白以外のトークンだけを数えます。分母が
+0 の百分率は <code>0.0</code> になり、適合率と再現率がともに 0 の F1 も <code>0.0</code> になります。</p>
 <h2 id="関数"><a class="header" href="#関数">関数</a></h2>
 <h3 id="evaluate_segmentation"><a class="header" href="#evaluate_segmentation"><code>evaluate_segmentation</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -223,7 +227,7 @@ where
     I: IntoIterator&lt;Item = Vec&lt;S&gt;&gt;,
     S: Into&lt;String&gt;,
 <span class="boring">}</span></code></pre>
-<p>各ゴールド文のトークンを連結したものを [<code>Segmenter::segment</code>] で分割し、
+<p>各ゴールド文のトークンを連結したものを <a href="segmenter.html#segment"><code>Segmenter::segment</code></a> で分割し、
 その結果をスコアリングします。空の文はスキップされます。</p>
 <h3 id="evaluate_pos"><a class="header" href="#evaluate_pos"><code>evaluate_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -233,10 +237,9 @@ where
     I: IntoIterator&lt;Item = Vec&lt;(S, Upos)&gt;&gt;,
     S: Into&lt;String&gt;,
 <span class="boring">}</span></code></pre>
-<p><code>evaluate_segmentation</code> と同様ですが、[<code>Segmenter::segment_with_pos</code>] を
-実行し、タグ付き単語も追加でスコアリングします。Segmenter に POS 学習器も
-二段構成学習器も設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を
-返します。</p>
+<p><code>evaluate_segmentation</code> と同様ですが、<a href="segmenter.html#segment_with_pos"><code>Segmenter::segment_with_pos</code></a> を
+実行し、タグ付き単語も追加でスコアリングします。Segmenter に二段構成学習器が
+設定されていない場合は <code>LitseaError::PosLearnerNotSet</code> を返します。</p>
 <h3 id="ゴールド行パーサ"><a class="header" href="#ゴールド行パーサ">ゴールド行パーサ</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -251,11 +254,9 @@ pub fn parse_gold_pos_line(line: &amp;str, tsv: bool) -&gt; Vec&lt;(String, Upos
 <code>Upos::X</code> を既定値とします。<code>tsv = true</code> の場合、空白リテラルトークンには
 <code>/POS</code> サフィックスがなく常に <code>Upos::X</code> になりますが、これは無害です –
 空白トークンはタグ付きスコアリングから内容によって除外され、割り当てられた
-タグでは判定しません。これは二段構成 POS モデルの実運用精度を、スペース
-区切りで書かれる言語で測定するための仕組みです（issue #196）。韓国語・英語の
-二段構成モデルは現在この空白保持コーパスで学習しているため（issue #198）、
-これらの言語ではこの形式が学習時と実際の入力の双方に一致するプロトコルに
-なっています。</p>
+タグでは判定しません。これはスペース区切りで書かれる言語の二段構成 POS モデルの
+ゴールド形式で、これらのモデルは issue #198 以降、この同じ空白保持コーパスで
+学習もされています。</p>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

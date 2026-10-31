@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -209,6 +209,7 @@ let mut learner = AveragedPerceptron::new();
 </span>pub fn add_instance(&amp;mut self, features: HashSet&lt;String&gt;, label: String)
 <span class="boring">}</span></code></pre>
 <p>Adds a training instance with a feature set and a label. Unknown classes are automatically registered.</p>
+<p>Labels are opaque strings. In the two-stage model, stage 1 labels each character position <code>B</code> (a word starts here) or <code>O</code> (continuation), and stage 2 tags each word with one of the 17 UPOS tags. The <code>B-&lt;UPOS&gt;</code> labels of the earlier joint model, which was removed, are no longer used.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::HashSet;
@@ -218,7 +219,7 @@ let mut learner = AveragedPerceptron::new();
 let mut feats = HashSet::new();
 feats.insert("UW4:猫".to_string());
 feats.insert("UC4:H".to_string());
-learner.add_instance(feats, "B-NOUN".to_string());
+learner.add_instance(feats, "B".to_string());
 <span class="boring">}</span></code></pre>
 <h2 id="training"><a class="header" href="#training">Training</a></h2>
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
@@ -251,7 +252,7 @@ attrs.insert("UC4:I".to_string());
 // ... more features
 
 let label = learner.predict(&amp;attrs);
-// label == "B-ADP", "O", etc.
+// label == "B" or "O" for a boundary model; a stage-2 tagger returns UPOS tags such as "ADP"
 <span class="boring">}</span></code></pre>
 <h2 id="accessors"><a class="header" href="#accessors">Accessors</a></h2>
 <h3 id="classes"><a class="header" href="#classes"><code>classes</code></a></h3>
@@ -262,9 +263,8 @@ let label = learner.predict(&amp;attrs);
 <p>Returns the registered class names in their sorted storage order – the
 order used for weight-vector indexing and <code>predict</code>’s argmax tie-breaking
 (first strictly-greater class wins). Empty if no classes are registered.
-Used by the two-stage collapse procedure (see <a href="../pre-trained-models.html#training-procedure">Pre-trained
-Models</a>) and by the packed
-two-stage runtime.</p>
+Used, for example, when a two-stage model is assembled or loaded, to check
+that every stage-2 class is a UPOS tag.</p>
 <h2 id="model-io"><a class="header" href="#model-io">Model I/O</a></h2>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

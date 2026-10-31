@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -197,9 +197,9 @@
 </thead>
 <tbody>
 <tr><td><code>segment_short/adaboost/{japanese,chinese,korean,english}</code></td><td>Segment a short sentence (AdaBoost)</td></tr>
-<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean,english}</code></td><td>Segment + POS tag a short sentence</td></tr>
-<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>Process the full Bocchan novel (~314 KB)</td></tr>
+<tr><td><code>segment_long_japanese/adaboost</code></td><td>Process the full Bocchan novel (~314 KB)</td></tr>
 <tr><td><code>external_corpus/*</code></td><td>Corpus throughput, mirroring tokenizer-speed-bench (see below)</td></tr>
+<tr><td><code>segment_into/*</code></td><td><code>segment()</code> vs. the buffer-reusing <code>segment_into()</code> on the <code>external_corpus</code> corpora (see below)</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>Character type classification</td></tr>
 <tr><td><code>add_corpus</code></td><td>Corpus ingestion for training</td></tr>
 <tr><td><code>predict_adaboost</code></td><td>Single AdaBoost prediction</td></tr>
@@ -322,7 +322,7 @@ representative.</p>
 <ul>
 <li><strong>Segmentation</strong> is linear in input length (O(n))</li>
 <li><strong>Character classification</strong> is a direct <code>match</code> on character ranges (a few nanoseconds; no setup cost)</li>
-<li><strong>Prediction</strong> at each position depends on the number of features (38-42, constant)</li>
+<li><strong>Prediction</strong> at each position depends on the number of feature templates, which is constant per model: 42 for Japanese/Chinese, 38 for Korean/English, and 16 fewer for a tag-free model, whose tag-dependent pass is skipped (the bundled <code>korean.model</code> and <code>english.model</code> are tag-free, so they score 22)</li>
 <li><strong>Model loading</strong> time is proportional to the model file size</li>
 </ul>
 

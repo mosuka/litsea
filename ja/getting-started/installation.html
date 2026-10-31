@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -208,7 +208,7 @@ litsea = "0.15.0"
 <pre><code class="language-toml">litsea = { version = "0.15.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
-<p><strong>注意:</strong> ローカルファイルからのモデル読み込み（<code>load_model_from_path</code>）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（<code>tokio</code> など）が必要になるのは、非同期の <code>load_model</code> メソッドを使って HTTP/HTTPS 経由でモデルを読み込む場合のみです（オプトインの <code>remote_model</code> フィーチャーを有効にした場合にのみ利用できます）。</p>
+<p><strong>注意:</strong> ローカルファイルからのモデル読み込み（<code>load_model_from_path</code>）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（<code>tokio</code> など）が必要になるのは、非同期の <code>load_model</code> メソッドを呼ぶ場合のみです。このメソッドはどのビルドにもあり、ファイルパスと <code>file://</code> の URI を読み込めます。HTTP/HTTPS 経由で読み込むには、加えてオプトインの <code>remote_model</code> フィーチャーが必要です。</p>
 </blockquote>
 <h2 id="サポートプラットフォーム"><a class="header" href="#サポートプラットフォーム">サポートプラットフォーム</a></h2>
 <p>Litsea は以下のプラットフォームでテストされています:</p>
@@ -220,7 +220,7 @@ litsea = "0.15.0"
 <tbody>
 <tr><td>Linux</td><td>x86_64, aarch64</td></tr>
 <tr><td>macOS</td><td>x86_64 (Intel), aarch64 (Apple Silicon)</td></tr>
-<tr><td>Windows</td><td>x86_64, aarch64</td></tr>
+<tr><td>Windows</td><td>x86_64, aarch64（ビルドのみ。このターゲットではテストを実行しません）</td></tr>
 </tbody>
 </table>
 </div>

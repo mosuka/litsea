@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -244,15 +244,20 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${
 <tr><td><code>segmentTokens(text)</code></td><td>バイトオフセット付き <code>Token[]</code></td></tr>
 <tr><td><code>segmentWithPos(text)</code></td><td>タグとオフセット付き <code>Token[]</code></td></tr>
 <tr><td><code>segmentWithPosBatch(texts)</code></td><td><code>Token[][]</code></td></tr>
-<tr><td><code>new Extractor(language).extract(...)</code></td><td><code>Promise&lt;void&gt;</code></td></tr>
-<tr><td><code>new Extractor(language).extractTwoStage(...)</code></td><td><code>Promise&lt;void&gt;</code></td></tr>
-<tr><td><code>new Trainer(threshold, iterations, features).train(model, cancel?)</code></td><td><code>Promise&lt;BinaryMetrics&gt;</code></td></tr>
-<tr><td><code>new PerceptronTrainer(epochs, features).train(model, cancel?)</code></td><td><code>Promise&lt;MulticlassMetrics&gt;</code></td></tr>
-<tr><td><code>new TwoStageTrainer(epochs, prefix, dominance?).train(model, cancel?)</code></td><td><code>Promise&lt;TwoStageMetrics&gt;</code></td></tr>
+<tr><td><code>language</code>・<code>hasPos</code>（getter）</td><td>セグメンタを構築したときの言語名、モデルが POS タグ付けに対応しているか</td></tr>
+<tr><td><code>new Extractor(language).extract(corpusPath, featuresPath, tsv?, tagFree?)</code></td><td><code>Promise&lt;void&gt;</code></td></tr>
+<tr><td><code>new Extractor(language).extractTwoStage(corpusPath, outputPrefix, featureSet?, tsv?)</code></td><td><code>Promise&lt;void&gt;</code>。未知の <code>featureSet</code> は同期的に throw される</td></tr>
+<tr><td><code>new Trainer(threshold, iterations, features).train(model, cancel?)</code></td><td><code>Promise&lt;JsBinaryMetrics&gt;</code></td></tr>
+<tr><td><code>new PerceptronTrainer(epochs, features).train(model, cancel?)</code></td><td><code>Promise&lt;JsMulticlassMetrics&gt;</code></td></tr>
+<tr><td><code>new TwoStageTrainer(epochs, prefix, dominance?).train(model, cancel?)</code></td><td><code>Promise&lt;JsTwoStageMetrics&gt;</code></td></tr>
+<tr><td><code>new CancelToken()</code>：<code>cancel()</code>・<code>reset()</code>・<code>cancelled</code>（getter）</td><td><code>train(model, cancel)</code> に渡すフラグ</td></tr>
+<tr><td><code>supportedLanguages()</code></td><td><code>string[]</code>（正規の言語名）</td></tr>
+<tr><td><code>version()</code></td><td><code>string</code>（<code>litsea</code> のバージョン）</td></tr>
 </tbody>
 </table>
 </div>
-<p>型定義は napi-rs が生成し、<code>index.d.ts</code> として同梱されます。</p>
+<p><code>featureSet</code> は <code>'full'</code>・<code>'balanced'</code>・<code>'fast'</code>（既定）のいずれかで、<code>tsv</code> を <code>true</code> にするとコーパスを空白を保持する TSV 形式として読みます。</p>
+<p>型定義は napi-rs が生成し、<code>index.d.ts</code> として同梱されます。メトリクスのオブジェクトは、そこで <code>JsBinaryMetrics</code>・<code>JsMulticlassMetrics</code>・<code>JsTwoStageMetrics</code> として宣言されています。</p>
 <h2 id="非同期設計"><a class="header" href="#非同期設計">非同期設計</a></h2>
 <p>モデルのダウンロード・特徴量抽出・学習はいずれも Promise を返し、libuv のスレッドプールで実行されるため、イベントループは止まりません。これがキャンセルを有効にしている理由でもあります。</p>
 <pre><code class="language-js">import { CancelToken, Trainer } from 'litsea'
@@ -273,12 +278,13 @@ const metrics = await new Trainer(0.01, 100_000, 'features.txt').train('japanese
 <tr><th><code>err.code</code></th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0</code>〜<code>1</code> の外の <code>userWordsGate</code>、UPOS タグでない <code>userWordTags</code> の値</td></tr>
-<tr><td><code>model</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
+<tr><td><code>invalid_argument</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0</code>〜<code>1</code> の外の <code>userWordsGate</code>、UPOS タグでない <code>userWordTags</code> の値、<code>(0.5, 1.0]</code> の外の <code>dominance</code>、未知のモデル URI スキーム</td></tr>
+<tr><td><code>model</code></td><td>ダウンロード失敗、または旧 joint POS モデル（サポートされなくなったため、<code>litsea train --pos</code> で学習し直す）</td></tr>
 <tr><td><code>io</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>parse</code></td><td>モデルまたは学習データの形式不正</td></tr>
 <tr><td><code>unsupported</code></td><td>このビルドでは利用できないスキームや操作</td></tr>
 <tr><td><code>pos_unavailable</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
+<tr><td><code>runtime</code></td><td>上記以外の失敗</td></tr>
 </tbody>
 </table>
 </div>

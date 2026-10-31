@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -204,8 +204,8 @@
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>Weak classifier accuracy threshold for early stopping. Lower values allow more iterations</td></tr>
-<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations</td></tr>
+<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>Weak classifier accuracy threshold for early stopping. Lower values allow more iterations. AdaBoost only; ignored with <code>--perceptron</code> or <code>--pos</code></td></tr>
+<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>Maximum number of boosting iterations. AdaBoost only; ignored with <code>--perceptron</code> or <code>--pos</code></td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing model to resume training from (file path or HTTP/HTTPS URL)</td></tr>
 <tr><td><code>--perceptron</code></td><td>off</td><td>Train a generic Averaged Perceptron over opaque string labels (the training step of the bundled segmentation models’ collapse recipe)</td></tr>
 <tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs (<code>--perceptron</code> and <code>--pos</code> modes)</td></tr>
@@ -279,6 +279,7 @@ perceptron of the bundled segmentation models’ collapse recipe (see
 <tbody>
 <tr><td><code>--perceptron</code></td><td>off</td><td>Enable generic perceptron training mode</td></tr>
 <tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>Number of training epochs</td></tr>
+<tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>URI of an existing perceptron model to continue training from</td></tr>
 </tbody>
 </table>
 </div>

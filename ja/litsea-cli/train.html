@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -204,8 +204,8 @@
 <tr><th>Option</th><th>Default</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる</td></tr>
-<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数</td></tr>
+<tr><td><code>-t</code>, <code>--threshold &lt;THRESHOLD&gt;</code></td><td><code>0.01</code></td><td>早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる。AdaBoost のみで、<code>--perceptron</code> と <code>--pos</code> では無視される</td></tr>
+<tr><td><code>-i</code>, <code>--num-iterations &lt;NUM_ITERATIONS&gt;</code></td><td><code>100</code></td><td>ブースティング反復の最大回数。AdaBoost のみで、<code>--perceptron</code> と <code>--pos</code> では無視される</td></tr>
 <tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL）</td></tr>
 <tr><td><code>--perceptron</code></td><td>off</td><td>不透明な文字列ラベルに対する汎用の Averaged Perceptron を学習する（同梱分割モデルの畳み込みレシピの学習ステップ）</td></tr>
 <tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数（<code>--perceptron</code> モードおよび <code>--pos</code> モード）</td></tr>
@@ -279,6 +279,7 @@ Perceptron</strong> アルゴリズムを使用します。ラベルは不透明
 <tbody>
 <tr><td><code>--perceptron</code></td><td>off</td><td>汎用パーセプトロン学習モードを有効にする</td></tr>
 <tr><td><code>--num-epochs &lt;NUM_EPOCHS&gt;</code></td><td><code>10</code></td><td>学習エポック数</td></tr>
+<tr><td><code>-m</code>, <code>--load-model-uri &lt;LOAD_MODEL_URI&gt;</code></td><td>None</td><td>学習を続けるための既存のパーセプトロンモデルの URI</td></tr>
 </tbody>
 </table>
 </div>

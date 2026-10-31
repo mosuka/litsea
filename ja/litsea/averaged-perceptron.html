@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -209,6 +209,7 @@ let mut learner = AveragedPerceptron::new();
 </span>pub fn add_instance(&amp;mut self, features: HashSet&lt;String&gt;, label: String)
 <span class="boring">}</span></code></pre>
 <p>特徴量セットとラベルを持つ学習インスタンスを追加します。未知のクラスは自動的に登録されます。</p>
+<p>ラベルは不透明な文字列です。二段構成モデルでは、stage 1 が各文字位置に <code>B</code>（ここで単語が始まる）か <code>O</code>（単語の続き）を付け、stage 2 が各単語に 17 個の UPOS タグのどれかを付けます。削除された以前の joint モデルの <code>B-&lt;UPOS&gt;</code> ラベルは、もう使われていません。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::HashSet;
@@ -218,7 +219,7 @@ let mut learner = AveragedPerceptron::new();
 let mut feats = HashSet::new();
 feats.insert("UW4:猫".to_string());
 feats.insert("UC4:H".to_string());
-learner.add_instance(feats, "B-NOUN".to_string());
+learner.add_instance(feats, "B".to_string());
 <span class="boring">}</span></code></pre>
 <h2 id="学習"><a class="header" href="#学習">学習</a></h2>
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
@@ -251,7 +252,7 @@ attrs.insert("UC4:I".to_string());
 // ... more features
 
 let label = learner.predict(&amp;attrs);
-// label == "B-ADP", "O", etc.
+// label == "B" or "O" for a boundary model; a stage-2 tagger returns UPOS tags such as "ADP"
 <span class="boring">}</span></code></pre>
 <h2 id="アクセサ"><a class="header" href="#アクセサ">アクセサ</a></h2>
 <h3 id="classes"><a class="header" href="#classes"><code>classes</code></a></h3>
@@ -259,7 +260,7 @@ let label = learner.predict(&amp;attrs);
 </span><span class="boring">fn main() {
 </span>pub fn classes(&amp;self) -&gt; &amp;[String]
 <span class="boring">}</span></code></pre>
-<p>登録されているクラス名を、格納順（重みベクトルのインデックスや <code>predict</code> の argmax タイブレーク〔先勝ちの strictly-greater〕で使われる並び）で返します。クラスが未登録の場合は空です。二段構成モデルへの畳み込み手順（<a href="../pre-trained-models.html#学習手順">事前学習済みモデル</a>を参照）や、packed 二段構成ランタイムで使用されています。</p>
+<p>登録されているクラス名を、格納順（重みベクトルのインデックスや <code>predict</code> の argmax タイブレーク〔先勝ちの strictly-greater〕で使われる並び）で返します。クラスが未登録の場合は空です。たとえば二段構成モデルを組み立てるときや読み込むときに、stage-2 のすべてのクラスが UPOS タグであることを確かめるのに使われます。</p>
 <h2 id="モデルの入出力"><a class="header" href="#モデルの入出力">モデルの入出力</a></h2>
 <h3 id="save_model"><a class="header" href="#save_model"><code>save_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

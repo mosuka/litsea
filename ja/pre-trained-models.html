@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -190,7 +190,7 @@ https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese_pos.mode
 </code></pre>
 <p>これらの URL はリリースごとに固定で、必要な言語だけを取得できます（8 個すべてで 25MB に対し、1 つあたり 86KB〜8.3MB）。これにより次の 2 つが可能になります。</p>
 <ul>
-<li><code>remote_model</code> feature を有効にすれば、CLI やライブラリが URL を直接受け取れます: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code></li>
+<li>CLI は URL を直接受け取れます（CLI は常に <code>remote_model</code> feature 付きでビルドされます）。ライブラリも <code>remote_model</code> feature を有効にすれば受け取れます: <code>litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/&lt;tag&gt;/japanese.model</code></li>
 <li><code>fromUri</code> を持たない <a href="bindings/wasm.html">WebAssembly バインディング</a>でも、ページ側で <code>fetch</code> してバイト列を <code>Segmenter.fromBytes</code> に渡せます</li>
 </ul>
 <p><code>main</code> ではなくリリースタグを指定しておくと、デプロイ先のモデル重みが固定されます。モデルはリリース間で再学習されることがあり、held-out スコアもそれに伴って変わります。</p>
@@ -306,14 +306,14 @@ held-out の単語 F1 は韓国語のほぼ決定的な 99.91% を下回りま�
 </table>
 </div>
 <h2 id="学習手順"><a class="header" href="#学習手順">学習手順</a></h2>
-<p><code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code> は binary-perceptron 畳み込み手順
+<p><code>japanese.model</code>、<code>chinese.model</code>、<code>korean.model</code>、<code>english.model</code> は binary-perceptron 畳み込み手順
 （issue #165）で再学習しています。エンジンの変更は不要ですが、通常の
 <code>litsea train</code> に加えて数ステップが必要です（通常の AdaBoost 手順は
 <a href="training-guide/training-models.html">モデルの学習</a>を参照してください）:</p>
 <pre><code class="language-sh"># 1. プレーンな境界特徴量を抽出（従来と同じステップ）。--tag-free を付けると
 #    16 個のタグ依存テンプレートを除外して pointwise モデルを学習できる
-#    （korean.model で使用。次節を参照）。
-litsea extract -l &lt;language&gt; [韓国語なら --format tsv] [--tag-free] &lt;corpus&gt; &lt;features.txt&gt;
+#    （korean.model と english.model で使用。次節を参照）。
+litsea extract -l &lt;language&gt; [韓国語・英語なら --format tsv] [--tag-free] &lt;corpus&gt; &lt;features.txt&gt;
 
 # 2. 境界ラベル 1/-1 を B/O にリマップする。これは見た目の問題ではなく
 #    正しさのために必須: perceptron 自身のタイブレーク（クラスインデックスが
@@ -353,8 +353,10 @@ scripts/prune_adaboost_model.py &lt;collapsed.model&gt; &lt;pruned.model&gt; &lt
 （<code>litsea extract --tag-free</code>）は <em>pointwise</em> – 各位置が入力テキスト
 のみに依存する – になり、<code>segment()</code> はモデルのロード時にこれを検出して
 逐次パスを丸ごとスキップします（issue #183）。</p>
-<p>タグ特徴量の価値は言語によって大きく異なります（すべて UD GSD テスト
-分割上の、収束確認済みエポックスイープによる計測値。issue #183）:</p>
+<p>タグ特徴量の価値は言語によって大きく異なります（韓国語・日本語・中国語は
+UD GSD テスト分割上の、収束確認済みエポックスイープによる計測値です。英語は
+UD English-EWT の dev split での計測値で、表の下の注記を参照してください。
+issue #183）:</p>
 <div class="table-wrapper">
 <table>
 <thead>

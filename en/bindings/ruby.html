@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -249,21 +249,28 @@ tagged.segment_with_pos("チャットGPTに聞く").map { |t| "#{t.surface}/#{t.
 <tr><td><code>Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>A segmenter</td></tr>
 <tr><td><code>Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>A segmenter (accepts a binary String)</td></tr>
 <tr><td><code>Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil, user_word_tags: nil)</code></td><td>A segmenter</td></tr>
+<tr><td><code>#language</code></td><td><code>String</code>, the canonical language name</td></tr>
+<tr><td><code>#has_pos?</code></td><td><code>true</code> or <code>false</code></td></tr>
 <tr><td><code>#segment(text)</code></td><td><code>Array&lt;String&gt;</code></td></tr>
 <tr><td><code>#segment_batch(texts)</code></td><td><code>Array&lt;Array&lt;String&gt;&gt;</code></td></tr>
 <tr><td><code>#segment_tokens(text)</code></td><td><code>Array&lt;Litsea::Token&gt;</code> with byte offsets</td></tr>
 <tr><td><code>#segment_with_pos(text)</code></td><td><code>Array&lt;Litsea::Token&gt;</code> with tags and offsets</td></tr>
 <tr><td><code>#segment_with_pos_batch(texts)</code></td><td><code>Array&lt;Array&lt;Litsea::Token&gt;&gt;</code></td></tr>
-<tr><td><code>Litsea::Extractor.new(language)#extract(...)</code></td><td><code>nil</code></td></tr>
-<tr><td><code>Litsea::Extractor.new(language)#extract_two_stage(...)</code></td><td><code>nil</code></td></tr>
-<tr><td><code>Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel:)</code></td><td><code>BinaryMetrics</code></td></tr>
-<tr><td><code>Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel:)</code></td><td><code>MulticlassMetrics</code></td></tr>
-<tr><td><code>Litsea::TwoStageTrainer.new(epochs, prefix, dominance:)#train(model, cancel:)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>Litsea::Extractor.new(language)#extract(corpus_path, features_path, tsv: false, tag_free: false)</code></td><td><code>nil</code> (<code>tsv:</code> reads the TSV corpus format; <code>tag_free:</code> omits the tag-dependent feature templates)</td></tr>
+<tr><td><code>Litsea::Extractor.new(language)#extract_two_stage(corpus_path, output_prefix, feature_set: "fast", tsv: false)</code></td><td><code>nil</code> (writes <code>{output_prefix}.stage1</code>, <code>.stage2</code> and <code>.lexicon</code>; <code>feature_set:</code> is <code>"full"</code>, <code>"balanced"</code> or <code>"fast"</code>)</td></tr>
+<tr><td><code>Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel: nil)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>Litsea::Trainer.new(...)#load_model(model_uri)</code></td><td><code>nil</code> (continues training from an existing model: a path, <code>file://</code> or <code>http(s)://</code>)</td></tr>
+<tr><td><code>Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel: nil)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>Litsea::TwoStageTrainer.new(epochs, prefix, dominance: 0.99)#train(model, cancel: nil)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>Litsea::TwoStageTrainer.new(...)#available?</code></td><td><code>false</code> once <code>train</code> has run</td></tr>
+<tr><td><code>Litsea::CancelToken.new</code> / <code>#cancel</code> / <code>#reset</code> / <code>#cancelled?</code></td><td>A token / <code>nil</code> / <code>nil</code> / <code>true</code> or <code>false</code></td></tr>
+<tr><td><code>Litsea.version</code></td><td><code>String</code>, the <code>litsea</code> version</td></tr>
+<tr><td><code>Litsea.supported_languages</code></td><td><code>Array&lt;String&gt;</code></td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="releasing-the-gvl"><a class="header" href="#releasing-the-gvl">Releasing the GVL</a></h2>
-<p>Long-running work — loading a model, extracting features, training — runs with the Global VM Lock released, so other Ruby threads keep going. That is what makes cancellation useful:</p>
+<p>Long-running work — loading a model with <code>open</code>, <code>from_uri</code> or <code>Trainer#load_model</code>, extracting features, training, and the batch methods <code>segment_batch</code> and <code>segment_with_pos_batch</code> — runs with the Global VM Lock released, so other Ruby threads keep going. That is what makes cancellation useful:</p>
 <pre><code class="language-ruby">cancel = Litsea::CancelToken.new
 Thread.new { sleep 60; cancel.cancel }
 
@@ -271,17 +278,17 @@ metrics = Litsea::Trainer.new(0.01, 100_000, "features.txt").train("japanese.mod
 </code></pre>
 <p>Cancelling is <strong>not</strong> an error: training stops at its next check point, still writes the partially trained model, and returns its metrics. The binding never installs a signal handler.</p>
 <p>Neither magnus nor rb-sys wraps <code>rb_thread_call_without_gvl</code> — magnus lists it among the C functions it does not bind, and it is declared in a header outside rb-sys’s generated bindings — so the binding declares it itself in <code>src/gvl.rs</code>, behind an <code>extern "C"</code> trampoline that catches panics so none can unwind across the C frame. Two tests hold that claim honest: one asserts another Ruby thread keeps ticking during training, and one asserts a cancel from another thread lands inside the training window. Removing the GVL release turns both red.</p>
-<p>Segmentation of a single sentence keeps the GVL: it is short enough that releasing it would cost more than the work.</p>
+<p>Segmentation of a single sentence keeps the GVL: it is short enough that releasing it would cost more than the work. <code>from_bytes</code> keeps it too, because it reads the bytes of the Ruby String in place.</p>
 <p>A <code>TwoStageTrainer</code> can only be used once — training collapses stage 1 into an AdaBoost model, which consumes it. <code>available?</code> reports the state, and a second <code>train</code> raises.</p>
 <h2 id="errors"><a class="header" href="#errors">Errors</a></h2>
-<p>Every error derives from <code>Litsea::Error</code>, so one <code>rescue</code> handles them all — the same hierarchy the Python and PHP bindings expose.</p>
+<p>Every error derives from <code>Litsea::Error</code>, so one <code>rescue</code> handles them all — the same hierarchy the Python and PHP bindings expose. A failure that fits none of the classes below is raised as <code>Litsea::Error</code> itself.</p>
 <div class="table-wrapper">
 <table>
 <thead>
 <tr><th>Error</th><th>Raised when</th></tr>
 </thead>
 <tbody>
-<tr><td><code>Litsea::InvalidArgumentError</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>user_words_gate:</code> outside <code>0.0</code>–<code>1.0</code>, a <code>user_word_tags:</code> value that is not a UPOS tag</td></tr>
+<tr><td><code>Litsea::InvalidArgumentError</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>user_words_gate:</code> outside <code>0.0</code>–<code>1.0</code>, a <code>user_word_tags:</code> value that is not a UPOS tag, <code>dominance:</code> outside (0.5, 1.0], an unknown URI scheme</td></tr>
 <tr><td><code>Litsea::ModelError</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
 <tr><td><code>Litsea::IoError</code></td><td>A file could not be read or written</td></tr>
 <tr><td><code>Litsea::ParseError</code></td><td>The model or training data is malformed</td></tr>

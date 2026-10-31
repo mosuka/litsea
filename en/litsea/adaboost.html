@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -238,6 +238,7 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 </span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Loads model weights from any <code>BufRead</code> source, such as an in-memory buffer or an already-open file.</p>
+<p>On a fresh learner the loaded model replaces the current one. If the learner already holds features or instances (after <code>initialize_features</code> or <code>add_instance</code>), the loaded weights are merged in by feature name and unknown features are appended, so the existing instances stay valid for incremental training; their boosting weights are not recomputed. On an error the learner is left unchanged. <code>load_model_from_path</code> and <code>load_model</code> load the same way.</p>
 <h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -285,6 +286,13 @@ flushed. Returns an error if the model is empty.</p>
 </span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>Reads the same features file and initializes labeled instances with their weights.</p>
+<h3 id="initialize_features_from_str--initialize_instances_from_str"><a class="header" href="#initialize_features_from_str--initialize_instances_from_str"><code>initialize_features_from_str</code> / <code>initialize_instances_from_str</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn initialize_features_from_str(&amp;mut self, features: &amp;str) -&gt; litsea::Result&lt;()&gt;
+pub fn initialize_instances_from_str(&amp;mut self, features: &amp;str) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p>The in-memory counterparts of <code>initialize_features</code> / <code>initialize_instances</code>, taking the contents of a features file. Call them in the same order on the same content (it is scanned twice); <code>Trainer::from_features</code> uses them. The path-based <code>initialize_features</code>, <code>initialize_instances</code> and <code>load_model_from_path</code> are compiled out on <code>wasm32</code>; use these and <code>load_model_from_reader</code> there.</p>
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

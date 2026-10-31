@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -213,6 +213,7 @@ reconstructed; with this, the model’s bias equals the bias line’s value.</p>
 them silently:</p>
 <ul>
 <li>an <strong>empty file</strong></li>
+<li>a <strong>blank line</strong> anywhere in the file</li>
 <li>a file <strong>without a bias line</strong> (the typical symptom of a truncated
 download or interrupted copy)</li>
 <li><strong>more than one</strong> bias line</li>
@@ -274,6 +275,18 @@ magic line (e.g. <code>litsea-two-stage v2</code>); the v1 loader rejects it as 
 unsupported version. The loader validates section order, the lexicon rules
 above, and the parameter range, and reports errors with the section name
 (e.g. <code>[stage2] section: ...</code>).</p>
+<h2 id="averaged-perceptron-model-format"><a class="header" href="#averaged-perceptron-model-format">Averaged Perceptron Model Format</a></h2>
+<p>The standalone Averaged Perceptron format (a class-count line, the class
+names in sorted order, then <code>feature\tclass\tweight</code> lines; see <a href="../algorithm/averaged-perceptron.html#model-file-format">Averaged
+Perceptron</a>) is what
+<code>litsea train --perceptron</code> writes and what a two-stage model embeds in its
+<code>[stage2]</code> section. A standalone file in this format cannot be used as a
+POS model: it is also the format of the removed joint POS model, so the
+two-stage loader and the language bindings reject it with an error that
+asks you to retrain with <code>litsea train --pos</code>. The bindings detect the
+model kind from the first line: the <code>litsea-two-stage</code> magic line means a
+two-stage model, a bare integer means a standalone Averaged Perceptron
+file, and anything else is read as the AdaBoost format.</p>
 <h2 id="file-size"><a class="header" href="#file-size">File Size</a></h2>
 <p>Model file sizes vary considerably by model type and language:</p>
 <div class="table-wrapper">
@@ -296,7 +309,7 @@ above, and the parameter range, and reports errors with the section name
 <p>The segmentation models <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> (see <a href="../pre-trained-models.html">Pre-trained Models</a>) are ~86 KB-2.0 MB, small enough to embed directly in applications or serve over HTTP, and small compared to the multi-megabyte two-stage (<code>*_pos.model</code>) models, which are larger because they carry per-class and per-stage weights.</p>
 <h2 id="compatibility"><a class="header" href="#compatibility">Compatibility</a></h2>
 <ul>
-<li>Model files are <strong>encoding-agnostic</strong> (feature names are stored as-is)</li>
+<li>Model files are <strong>UTF-8</strong> text: feature names are stored as-is (any character except tab and newline), and a file that is not valid UTF-8 fails to load</li>
 <li>The format is <strong>deterministic</strong> for the usual training workflow: <code>save_model</code> writes features in the learner’s feature order, which is sorted (via <code>BTreeMap</code>) for learners initialized from a features file or loaded from disk. A learner populated only via <code>add_instance()</code> writes features in insertion order instead</li>
 <li>Models are <strong>forward-compatible</strong> – new features in the input that are not in the model are simply ignored during prediction</li>
 </ul>

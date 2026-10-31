@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -183,7 +183,7 @@
                         <h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
 <p>Litsea is designed as a compact word segmentation system that needs no dictionary. It treats word segmentation as a <strong>binary classification problem</strong> and uses <strong>AdaBoost</strong> to learn word boundary patterns from character-level features.</p>
 <h2 id="high-level-data-flow"><a class="header" href="#high-level-data-flow">High-Level Data Flow</a></h2>
-<p>Litsea has two main workflows: <strong>training</strong> and <strong>segmentation</strong>.</p>
+<p>Litsea has two main workflows: <strong>training</strong> and <strong>segmentation</strong>. POS tagging runs both with a two-stage model, described at the end of this section.</p>
 <h3 id="training-pipeline"><a class="header" href="#training-pipeline">Training Pipeline</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["Corpus (text)"] --&gt; B["Extractor"]
@@ -196,6 +196,7 @@
 <li><strong>Feature extraction</strong> – The <code>Extractor</code> reads the corpus, classifies characters by type, and outputs labeled feature vectors</li>
 <li><strong>Model training</strong> – The <code>Trainer</code> feeds features into AdaBoost, which iteratively selects the most informative features and produces a compact model</li>
 </ol>
+<p>The bundled segmentation models reach the same model format by a different training route: they are trained as a 2-class Averaged Perceptron (<code>litsea train --perceptron</code>, <code>PerceptronTrainer</code>) and losslessly collapsed into AdaBoost-format weights by <code>scripts/collapse_binary_perceptron.py</code> (see <a href="../pre-trained-models.html#training-procedure">Pre-trained Models</a>). The segmentation pipeline below is the same for both.</p>
 <h3 id="segmentation-pipeline"><a class="header" href="#segmentation-pipeline">Segmentation Pipeline</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     F["Raw text"] --&gt; G["Segmenter (AdaBoost)"]
@@ -208,12 +209,14 @@
 <li><strong>Feature extraction</strong> – Stream character n-gram features for each position through a reused buffer using a sliding window</li>
 <li><strong>Prediction</strong> – AdaBoost predicts whether each position is a word boundary</li>
 </ol>
+<h3 id="pos-tagging-pipeline"><a class="header" href="#pos-tagging-pipeline">POS Tagging Pipeline</a></h3>
+<p>POS tags come from the two-stage model: stage 1 is a binary boundary classifier that labels each character position <code>B</code> (a word starts here) or <code>O</code> (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. <code>litsea extract --pos</code> writes the training files from a <code>word/POS</code> corpus, <code>litsea train --pos</code> (<code>TwoStageTrainer</code>) builds a <code>litsea-two-stage</code> model from them, and <code>Segmenter::with_two_stage_learner</code> with <code>segment_with_pos()</code> (<code>litsea segment --pos</code>) segments and tags the input (see <a href="../algorithm/two-stage-tagging.html">Two-Stage Tagging</a>). The earlier joint model, which predicted one of 18 <code>B-&lt;UPOS&gt;</code> / <code>O</code> labels per character, was removed; loading such a model file fails with an error that asks you to retrain with <code>litsea train --pos</code>.</p>
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <ul>
 <li><strong>No dictionary required</strong> – Unlike MeCab or Lindera, Litsea segments with a statistical model learned from character patterns alone; an optional user dictionary can force specific words into single tokens on top of it (<code>segment --user-words</code>, issue #263)</li>
 <li><strong>Compact models</strong> – the word-segmentation models <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> are ~86 KB-2.0 MB (see <a href="../pre-trained-models.html">Pre-trained Models</a> for their accuracy); two-stage POS models are ~3.1-8.3 MB – all still small enough to embed directly in applications, containing only the feature weights that matter</li>
-<li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns differ</li>
-<li><strong>Simple extensibility</strong> – Adding a new language requires only defining character type patterns and training a model</li>
+<li><strong>Language-agnostic framework</strong> – The core algorithm is the same for all languages; only the character type patterns and the feature-template set differ (Japanese and Chinese use all 42 templates, Korean and English the 38 without <code>WC1</code>–<code>WC4</code>)</li>
+<li><strong>Simple extensibility</strong> – Adding a new language means adding a <code>Language</code> variant with its character type patterns, deciding whether it uses the <code>WC</code> templates, adding it to the bindings’ language lists, and training a model (see <a href="../language-support/adding-a-new-language.html">Adding a New Language</a>)</li>
 </ul>
 
                     </main>

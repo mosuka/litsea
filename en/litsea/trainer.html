@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -363,7 +363,7 @@ let trainer = TwoStageTrainer::new(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn train(
-    mut self,
+    self,
     running: &amp;AtomicBool,
     model_path: &amp;Path,
 ) -&gt; litsea::Result&lt;TwoStageMetrics&gt;
@@ -416,7 +416,7 @@ accuracy plus macro-averaged precision and recall.</p>
 <tr><td><code>PerceptronTrainer::new(epochs, features_path)</code></td><td><code>PerceptronTrainer::from_features(epochs, features)</code></td></tr>
 <tr><td><code>TwoStageTrainer::new(epochs, dominance, prefix)</code></td><td><code>TwoStageTrainer::from_features(epochs, dominance, stage1, stage2, lexicon)</code></td></tr>
 <tr><td><code>train(running, model_path)</code></td><td><code>train_to_writer(running, writer)</code></td></tr>
-<tr><td><code>load_model(uri).await</code></td><td><code>load_model_from_reader(reader)</code></td></tr>
+<tr><td><code>load_model(uri).await</code> (not on <code>TwoStageTrainer</code>)</td><td><code>load_model_from_reader(reader)</code> (not on <code>TwoStageTrainer</code>)</td></tr>
 </tbody>
 </table>
 </div>
@@ -445,13 +445,16 @@ let metrics = Trainer::from_features(0.01, 10_000, &amp;features)?
 
 let mut learner = AdaBoost::new(0.01, 10_000);
 let segmenter = Segmenter::new(Language::Japanese);
-segmenter.add_corpus_with_writer(corpus, |attrs, label| learner.add_instance(attrs, label));
+// One sentence per call: trimmed, non-empty lines, as `Extractor` reads the corpus.
+for line in corpus.lines().map(str::trim).filter(|line| !line.is_empty()) {
+    segmenter.add_corpus_with_writer(line, |attrs, label| learner.add_instance(attrs, label));
+}
 learner.train(&amp;AtomicBool::new(true));
 learner.save_model_to_writer(&amp;mut model)?;
 <span class="boring">}</span></code></pre>
-<p>This is equivalent for a fresh learner. It is <strong>not</strong> equivalent when continuing from a loaded model: <code>Trainer</code>’s two-pass route seeds each instance’s boosting weight from the existing model, while <code>add_instance</code> starts every instance at <code>1.0</code>.</p>
+<p>Both routes start every instance at boosting weight <code>1.0</code>, also when continuing from a loaded model: <code>Trainer::new</code> builds its instances before <code>load_model</code> can merge the existing weights in. What differs is the feature order. <code>Trainer</code> sorts its feature vocabulary, while <code>add_instance</code> appends features in each <code>HashSet</code>’s iteration order, which varies from run to run. The saved model lists the features in that order, and boosting breaks ties between equally good features by it, so this route is not byte-for-byte reproducible and can differ from the <code>Trainer</code> route.</p>
 <h3 id="reproducibility"><a class="header" href="#reproducibility">Reproducibility</a></h3>
-<p>A training run is a function of its input: the same features trained twice produce the same model. This holds because <code>AveragedPerceptron::add_instance</code> stores its features sorted — <code>HashSet</code> iteration order varies between sets, and perceptron updates are order-sensitive, so before that two runs in one process could disagree.</p>
+<p>A training run through <code>Trainer</code>, <code>PerceptronTrainer</code> or <code>TwoStageTrainer</code> is a function of its input: the same features trained twice produce the same model. This holds because <code>Trainer</code> builds its feature vocabulary in sorted order and <code>AveragedPerceptron::add_instance</code> stores its features sorted — <code>HashSet</code> iteration order varies between sets, and perceptron updates are order-sensitive, so before that two runs in one process could disagree. Training <code>AdaBoost</code> directly through <code>add_instance</code>, as above, has no such guarantee.</p>
 
                     </main>
 

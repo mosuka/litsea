@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -184,7 +184,7 @@
 <p>Litsea の各言語は、個々の文字を言語学的に意味のあるカテゴリに分類する<strong>文字種クラス</strong>のセットを定義します。これらの種別コードは AdaBoost 分類器の特徴量として使用されます。</p>
 <h2 id="仕組み"><a class="header" href="#仕組み">仕組み</a></h2>
 <p><code>Language::char_type(c: char) -&gt; &amp;'static str</code> は、Unicode 文字範囲に対する <code>match</code> 式で文字を直接分類します（正規表現・アロケーションなし）。matchアームは上から順に評価され、<strong>最初にマッチしたアーム</strong>が種別コードを決定します。どのアームにもマッチしない場合、その文字は <code>"O"</code>（Other）に分類されます。</p>
-<p>言語ごとに数値の type id を返す分類関数（<code>japanese_char_type_id</code>・<code>chinese_char_type_id</code>・<code>korean_char_type_id</code>）があり、<code>char_type</code> は返された id に対するテーブル参照であるため、文字列コードと数値 id は構造上ずれることがありません。全言語で共通のクラス <code>"P"</code>（句読点）・<code>"A"</code>（ラテン文字）・<code>"N"</code>（数字）は、言語固有クラスの後に評価される共有ヘルパー <code>punct_latin_digit()</code> にまとめられています。単純な範囲を超えるロジックはアーム本体内の追加コードで表現します（例: 韓国語のハングル音節構造に対するコードポイント判定）。</p>
+<p>言語ごとに数値の type id を返す分類関数（<code>japanese_char_type_id</code>・<code>chinese_char_type_id</code>・<code>korean_char_type_id</code>・<code>english_char_type_id</code>）があり、<code>char_type</code> は返された id に対するテーブル参照であるため、文字列コードと数値 id は構造上ずれることがありません。全言語で共通のクラス <code>"P"</code>（句読点）・<code>"A"</code>（ラテン文字）・<code>"N"</code>（数字）は、言語固有クラスの後に評価される共有ヘルパー <code>punct_latin_digit()</code> にまとめられています。単純な範囲を超えるロジックはアーム本体内の追加コードで表現します（例: 韓国語のハングル音節構造に対するコードポイント判定）。</p>
 <h2 id="日本語の文字種"><a class="header" href="#日本語の文字種">日本語の文字種</a></h2>
 <div class="table-wrapper">
 <table>
@@ -196,7 +196,7 @@
 <tr><td><strong>H</strong></td><td>漢字 / CJK 統合漢字</td><td>U+4E00–U+9FFF, plus 々〆ヵヶ</td><td>漢, 字, 学</td></tr>
 <tr><td><strong>I</strong></td><td>ひらがな</td><td><code>[ぁ-ん]</code></td><td>あ, い, う</td></tr>
 <tr><td><strong>K</strong></td><td>カタカナ</td><td><code>[ァ-ヴーｱ-ﾝﾞﾟ]</code></td><td>ア, カ, ー</td></tr>
-<tr><td><strong>P</strong></td><td>句読点</td><td>CJK 記号（U+3000-303F）、全角（U+FF01-FF65）</td><td>。, 、, 「</td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>CJK 記号（U+3000-303F。ただし 々 と 〆 は H）、全角の句読点（U+FF01-FF0F、U+FF1A-FF20、U+FF3B-FF40、U+FF5B-FF65）</td><td>。, 、, 「</td></tr>
 <tr><td><strong>A</strong></td><td>ASCII / ラテン文字</td><td><code>[a-zA-Zａ-ｚＡ-Ｚ]</code></td><td>A, z, Ｂ</td></tr>
 <tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
 <tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>@, #</td></tr>
@@ -272,7 +272,7 @@
 <tr><td><strong>U</strong></td><td>大文字ラテン文字</td><td><code>[A-ZＡ-Ｚ]</code></td><td>A, Z, Ｔ</td></tr>
 <tr><td><strong>W</strong></td><td>空白</td><td>スペース、タブ、U+00A0</td><td><code> </code>, <code>\t</code></td></tr>
 <tr><td><strong>Q</strong></td><td>アポストロフィ</td><td>U+0027, U+2019</td><td><code>'</code>, <code>’</code></td></tr>
-<tr><td><strong>P</strong></td><td>句読点</td><td>ASCII（アポストロフィを除く）+ 一般句読点 + CJK/全角</td><td><code>.</code>, <code>-</code>, <code>@</code>, <code>。</code></td></tr>
+<tr><td><strong>P</strong></td><td>句読点</td><td>ASCII（アポストロフィを除く）+ U+2010-U+2027（U+2019 を除く）+ CJK/全角</td><td><code>.</code>, <code>-</code>, <code>@</code>, <code>。</code></td></tr>
 <tr><td><strong>A</strong></td><td>小文字ラテン文字</td><td><code>[a-zａ-ｚ]</code></td><td>a, z</td></tr>
 <tr><td><strong>N</strong></td><td>数字</td><td><code>[0-9０-９]</code></td><td>0, ５</td></tr>
 <tr><td><strong>O</strong></td><td>その他</td><td>フォールバック</td><td>字, é</td></tr>

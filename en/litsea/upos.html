@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -244,7 +244,7 @@ pub enum Upos {
 <h3 id="trait-implementations"><a class="header" href="#trait-implementations">Trait Implementations</a></h3>
 <ul>
 <li><code>Display</code>: Converts to a string such as <code>"NOUN"</code>, <code>"VERB"</code>, etc.</li>
-<li><code>FromStr</code>: Parses a string into <code>Upos</code>. Returns a <code>ParseUposError</code> for invalid strings.</li>
+<li><code>FromStr</code>: Parses a string into <code>Upos</code>. Matching is case-sensitive (upper case only: <code>"noun"</code> is rejected). Returns a <code>ParseUposError</code> for invalid strings.</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -255,9 +255,14 @@ assert_eq!(pos.to_string(), "NOUN");
 <span class="boring">}</span></code></pre>
 <h3 id="parseuposerror"><a class="header" href="#parseuposerror">ParseUposError</a></h3>
 <p><code>ParseUposError</code> (re-exported at the crate root as <code>litsea::ParseUposError</code>) is returned when a string is not a valid UPOS tag. Its <code>input()</code> accessor returns the string that failed to parse, and the message reads <code>Unknown UPOS tag: '&lt;input&gt;'</code>.</p>
+<h3 id="where-upos-is-used"><a class="header" href="#where-upos-is-used">Where <code>Upos</code> Is Used</a></h3>
+<ul>
+<li><a href="segmenter.html#segment_with_pos"><code>Segmenter::segment_with_pos</code></a> returns <code>(String, Upos)</code> pairs.</li>
+<li><a href="segmenter.html#tags"><code>UserDictionary::add_with_pos(word, pos)</code></a> registers a user word with a <code>Upos</code> tag, and <code>UserDictionary::pos(word)</code> returns the registered tag (<code>Option&lt;Upos&gt;</code>).</li>
+</ul>
 <h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
 <h3 id="definition-1"><a class="header" href="#definition-1">Definition</a></h3>
-<p>The <code>SegmentLabel</code> type combines word boundary detection with POS tagging. Each character position is assigned one of 18 labels:</p>
+<p>The <code>SegmentLabel</code> type is the per-character label of the POS-tagged training-corpus pipeline (<a href="segmenter.html#add_corpus_with_pos_writer"><code>add_corpus_with_pos_writer</code></a>). Each character position of a <code>word/POS</code> corpus is assigned one of 18 labels:</p>
 <ul>
 <li><strong><code>B(Upos)</code></strong> (17 labels): Word boundary with the given UPOS tag (e.g., <code>B-NOUN</code>, <code>B-VERB</code>)</li>
 <li><strong><code>O</code></strong> (1 label): Non-boundary (continuation of the current word)</li>
@@ -270,6 +275,7 @@ pub enum SegmentLabel {
     O,        // Continuation of a word (non-boundary).
 }
 <span class="boring">}</span></code></pre>
+<p>No current model predicts these 18 labels. POS tags come from the two-stage model: stage 1 is a binary boundary classifier that labels each character position <code>B</code> (a word starts here) or <code>O</code> (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. <code>Extractor::extract_two_stage</code> collapses <code>SegmentLabel</code> to <code>B</code>/<code>O</code> to train stage 1. The earlier joint model, which predicted one of 18 <code>B-&lt;UPOS&gt;</code> / <code>O</code> labels per character, was removed; loading such a model file fails with an error that asks you to retrain with <code>litsea train --pos</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::upos::SegmentLabel;

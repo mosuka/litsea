@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -198,15 +198,31 @@
 </tbody>
 </table>
 </div>
+<h2 id="機能の違い"><a class="header" href="#機能の違い">機能の違い</a></h2>
+<p>分割・タグ付け・ユーザー辞書はすべてのバインディングで使えますが、それ以外はホストによって使えるものが異なります。</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>クレート</th><th>モデルの渡し方</th><th>学習</th><th>実行中の学習の停止</th></tr>
+</thead>
+<tbody>
+<tr><td><code>litsea-python</code></td><td>バイト列・パス・<code>file://</code>・<code>http(s)://</code></td><td>可</td><td>可（GIL を解放します）</td></tr>
+<tr><td><code>litsea-nodejs</code></td><td>バイト列・パス・<code>file://</code>・<code>http(s)://</code></td><td>可（Promise を返します）</td><td>可（学習は libuv のスレッドプールで動きます）</td></tr>
+<tr><td><code>litsea-php</code></td><td>バイト列・パス・<code>file://</code>・<code>http(s)://</code></td><td>可（ブロッキング）</td><td>不可（<code>train()</code> の前にキャンセルしたトークンだけが効きます）</td></tr>
+<tr><td><code>litsea-ruby</code></td><td>バイト列・パス・<code>file://</code>・<code>http(s)://</code></td><td>可</td><td>可（GVL を解放します）</td></tr>
+<tr><td><code>litsea-wasm</code></td><td>バイト列のみ</td><td>不可</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="設計方針"><a class="header" href="#設計方針">設計方針</a></h2>
 <p>以下はすべてのバインディングに共通します。</p>
 <h3 id="モデルは同梱しない"><a class="header" href="#モデルは同梱しない">モデルは同梱しない</a></h3>
-<p>バインディングのパッケージにはコードのみを含めます。モデルは呼び出し側がバイト列・ファイルパス・<code>file://</code> パス・<code>http(s)://</code> URL のいずれかで渡します。同梱モデルは 1 つあたり 86KB〜8.3MB あり、4 言語分を埋め込むと wheel や npm パッケージが 20MB を超えてしまうためです。外部に置くことで、バインディングを再公開せずにモデルだけを更新できるという利点もあります。</p>
+<p>バインディングのパッケージにはコードのみを含めます。モデルは呼び出し側がバイト列・ファイルパス・<code>file://</code> パス・<code>http(s)://</code> URL のいずれかで渡します。ただし <code>litsea-wasm</code> が受け取るのはバイト列だけで、モデルはページ側で取得します。同梱モデルは 1 つあたり 86KB〜8.3MB あり、4 言語分を埋め込むと wheel や npm パッケージが 20MB を超えてしまうためです。外部に置くことで、バインディングを再公開せずにモデルだけを更新できるという利点もあります。</p>
 <p>モデルの入手方法は<a href="pre-trained-models.html">事前学習済みモデル</a>を参照してください。</p>
 <h3 id="モデル種別は宣言ではなく判定する"><a class="header" href="#モデル種別は宣言ではなく判定する">モデル種別は宣言ではなく判定する</a></h3>
 <p>CLI では、分割モデルと二段構成 POS モデルのどちらを読み込むかを <code>--pos</code> で指定する必要があります。バインディングではこれが不要です。モデルのバイト列を 1 度だけ読んで種別を判定するため、<code>has_pos</code> は「呼び出し側が正しく指定すべき情報」ではなく「読み込んだモデルの性質」になります。</p>
 <h3 id="キャンセルは明示的に行う"><a class="header" href="#キャンセルは明示的に行う">キャンセルは明示的に行う</a></h3>
-<p>学習は長時間かかることがあり、<code>litsea</code> のトレーナは <code>running</code> フラグが倒されると早期終了します。CLI はこのフラグを Ctrl-C ハンドラから操作していますが、ライブラリが同じことをしてはいけません。シグナルハンドラはプロセス全体で 1 つしか登録できず、ホスト言語が既に握っているのが普通だからです。そのためバインディングは、呼び出し側が操作するキャンセルトークンを提供します。</p>
+<p>学習は長時間かかることがあり、<code>litsea</code> のトレーナは <code>running</code> フラグが倒されると早期終了します。CLI はこのフラグを Ctrl-C ハンドラから操作していますが、ライブラリが同じことをしてはいけません。シグナルハンドラはプロセス全体で 1 つしか登録できず、ホスト言語が既に握っているのが普通だからです。そのため学習を提供するバインディングは、呼び出し側が操作するキャンセルトークンを提供します。学習の無い <code>litsea-wasm</code> にはトークンもありません。PHP では、<code>train()</code> の呼び出し前にキャンセルした場合だけトークンが効きます。</p>
 <h3 id="共通ロジックは-1-つのクレートに集約する"><a class="header" href="#共通ロジックは-1-つのクレートに集約する">共通ロジックは 1 つのクレートに集約する</a></h3>
 <p>FFI に依存しない処理（言語名のパース、モデル読み込みと種別判定、トークンのバイトオフセット、学習の呼び出し、エラー分類）はすべて <a href="bindings/binding-core.html"><code>litsea-binding-core</code></a> に置きます。各バインディングは、その API をホスト言語の型と例外モデルに写像するだけです。</p>
 

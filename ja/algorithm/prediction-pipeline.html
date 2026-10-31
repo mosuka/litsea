@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -298,6 +298,23 @@ stage-2 単語タガーは、これとは別の並行する宣言的テーブル
 ストレス文字列・実テキストコーパス）は無変更で通過しており、将来のモデルで
 スコアが 0 近傍の knife-edge に乗った場合の検出網としてテストスイートに
 残されています。</p>
+<h2 id="ユーザー辞書"><a class="header" href="#ユーザー辞書">ユーザー辞書</a></h2>
+<p>ユーザー辞書を設定すると（<code>Segmenter::with_user_dictionary</code> または
+<code>set_user_dictionary</code>。CLI では <code>--user-words</code> と <code>--user-words-gate</code>）、
+<code>segment()</code> は静的パスと判定の間に 1 つの手順を加えます（issue #263）:</p>
+<ol>
+<li>登録された 2 文字以上の単語の出現を文中から探します。重なる出現は
+leftmost-longest で解決します。</li>
+<li>ゲートがある場合、出現は flip ratio（その出現が判定を覆す位置での
+制約なしスコアの絶対値の和を、その出現が制約する全位置での和で
+割った値）がゲート以下のときだけ適用されます。</li>
+<li>適用された出現は、両端に境界（<code>B</code>）を、内側に非境界（<code>O</code>）を強制します。
+それ以外の位置は上記のとおりモデルが判定します。タグ依存のモデルでは、
+強制された判定もモデルの判定と同じようにタグの履歴に入ります。</li>
+</ol>
+<p>辞書が無い場合や、登録語が文中に現れない場合は、判定はモデルだけで決まります。
+詳しい意味論は <a href="../litsea/segmenter.html#ユーザー辞書">Segmenter: ユーザー辞書</a>
+を参照してください。</p>
 <h2 id="単語分割と品詞タグ付けsegment_with_pos"><a class="header" href="#単語分割と品詞タグ付けsegment_with_pos">単語分割と品詞タグ付け（<code>segment_with_pos</code>）</a></h2>
 <p><code>segment_with_pos</code> は
 <a href="../litsea/segmenter.html#with_two_stage_learner"><code>with_two_stage_learner</code></a>
@@ -308,7 +325,10 @@ stage-2 単語タガーは、これとは別の並行する宣言的テーブル
 全クラス argmax のフォールバックを使用します。したがって POS レイヤーが
 文字単位の採点を追加することは一切ありません。このパイプラインの詳細と
 コストモデルについては、<a href="two-stage-tagging.html">二段構成タグ付け</a>を
-参照してください。</p>
+参照してください。ユーザー辞書にタグ付きの単語がある場合（issue #264）、
+表層がタグ付きの辞書語と一致する単語には、語彙表やタガーのタグの代わりに
+登録されたタグが付きます。1 文字のタグ付きエントリ（issue #276）は境界を
+変えず、その 1 文字とちょうど一致する単語のタグだけを付け替えます。</p>
 <h2 id="学習と予測の比較"><a class="header" href="#学習と予測の比較">学習と予測の比較</a></h2>
 <div class="table-wrapper">
 <table>
@@ -318,7 +338,7 @@ stage-2 単語タガーは、これとは別の並行する宣言的テーブル
 <tbody>
 <tr><td>タグの情報源</td><td>アノテーション済みコーパスから事前計算</td><td>モデルにより動的に生成</td></tr>
 <tr><td>最初のタグ</td><td>“U”（位置 3 の “B” を上書き）</td><td>“U”（先行する判定なし）</td></tr>
-<tr><td>最初の位置</td><td>境界パイプラインはスキップ、POS パイプラインは出力する（#100）</td><td>POS モードは最初の単語の品詞を予測するためにこの位置を予測する</td></tr>
+<tr><td>最初の位置</td><td>境界パイプラインはスキップ、二段構成の stage-1 抽出（<code>extract --pos</code>）は出力し、ラベルは常に <code>B</code>（#100）</td><td>採点しない: 常に最初の単語の先頭であり、<code>segment_with_pos</code> でも同じ</td></tr>
 <tr><td>ラベル</td><td>コーパスから既知（+1 または -1）</td><td>AdaBoost による予測</td></tr>
 <tr><td>特徴量</td><td>コールバックを通じてファイルに書き出し（文字列形式）</td><td>packed <code>u64</code> キー、文字列なし</td></tr>
 </tbody>
@@ -329,10 +349,10 @@ stage-2 単語タガーは、これとは別の並行する宣言的テーブル
 <p>分割アルゴリズムは入力長に対して<strong>線形</strong>です:</p>
 <ul>
 <li>各文字位置を 1 回ずつ訪問: O(n)</li>
-<li>各位置での特徴量抽出: O(1)（固定数のテンプレートを、それぞれスタック上の <code>u64</code> にパック）</li>
-<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42）。ただしファミリー単位でマージされており、静的パスは 1 文字あたり probe 約 2 回（<code>UW</code>, <code>BW</code>）+ 数回のベクトル直接ロード、逐次パスは 16 回の密配列直接ロード</li>
+<li>各位置での特徴量の参照: O(1)（固定数のテンプレートを、マージ済みテーブルの probe と配列の直接ロードで採点する。テンプレートごとのキーや文字列は構築しない）</li>
+<li>各位置での予測: O(f)、f はアクティブな特徴量の数（約 38-42。タグ非依存のモデルでは 16 個少ない）。ただしファミリー単位でマージされており、静的パスは 1 文字あたり probe 約 2 回（<code>UW</code>, <code>BW</code>）+ 数回のベクトル直接ロード、逐次パスは 16 回の密配列直接ロードで、タグ非依存のモデル（同梱の <code>korean.model</code> と <code>english.model</code>）では逐次パスごと省かれます</li>
 <li>合計: O(n * f)、実質的に O(n)</li>
-<li>アロケーションの特性: packed コンテキストは単語スライスを入力から借用し、フラットな <code>u32</code>/<code>u8</code> 配列を保持する。バイアスはキャッシュされ、ホットループ内では文字列を一切構築しない（packed テーブル自体はモデルロードごとに 1 回、ホットパス外でコンパイルされる）</li>
+<li>アロケーションの特性: packed コンテキストは入力のスライスを保持せず、再利用可能な <code>SegmentBuffer</code> 内のフラットな <code>u32</code>/<code>u8</code> 配列と文字ごとのバイトオフセットだけを保持する。バイアスはキャッシュされ、ホットループ内では文字列を一切構築しない（packed テーブル自体はモデルロードごとに 1 回、ホットパス外でコンパイルされる）</li>
 </ul>
 
                     </main>

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -182,7 +182,7 @@
                     <main>
                         <h1 id="はじめに"><a class="header" href="#はじめに">はじめに</a></h1>
 <p><strong>Litsea</strong> は、<a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> および <a href="https://github.com/shogo82148/TinySegmenterMaker">TinySegmenterMaker</a> に触発されて開発された、Rust で実装された極めてコンパクトな単語分割ライブラリです。</p>
-<p><a href="https://taku910.github.io/mecab/">MeCab</a> や <a href="https://github.com/lindera/lindera">Lindera</a> などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、<strong>AdaBoost 二値分類</strong>アルゴリズムに基づくコンパクトな学習済みモデルを使用して単語分割を行います。また、二段構成（two-stage）アーキテクチャにより、<a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットを用いた**単語分割と品詞推定（POS Tagging）**もサポートしています。</p>
+<p><a href="https://taku910.github.io/mecab/">MeCab</a> や <a href="https://github.com/lindera/lindera">Lindera</a> などの従来の形態素解析器とは異なり、Litsea は大規模な辞書に依存しません。代わりに、AdaBoost のモデル形式で保存したコンパクトな学習済みの<strong>二値分類</strong>モデルを使用して単語分割を行います（同梱の単語分割モデルは 2 クラスの Averaged Perceptron として学習し、その形式へ損失なしに変換しています）。また、二段構成（two-stage）アーキテクチャにより、<a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> タグセットを用いた**単語分割と品詞推定（POS Tagging）**もサポートしています。</p>
 <h2 id="主な特徴"><a class="header" href="#主な特徴">主な特徴</a></h2>
 <ul>
 <li><strong>高速かつ安全な Rust 実装</strong> – Rust の安全性保証とパフォーマンスを活用</li>
@@ -203,11 +203,7 @@ Output: ["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h3 id="品詞推定pos-tagging"><a class="header" href="#品詞推定pos-tagging">品詞推定（POS Tagging）</a></h3>
 <p>Litsea は単語分割に加えて、<strong>品詞推定</strong>（Part-of-Speech Tagging）もサポートしています。二段構成アーキテクチャにより、まず二値境界分類器で文を分割し、次に候補タグ語彙表 + 単語単位タガーで各単語にタグを付与します。</p>
-<p>各文字位置に対して、18 クラスの <strong>SegmentLabel</strong> を予測します:</p>
-<ul>
-<li><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code>（17 品詞の境界ラベル）</li>
-<li><code>O</code>（非境界 = 単語の継続）</li>
-</ul>
+<p>stage 1 は各文字位置に <code>B</code>（ここで単語が始まる）か <code>O</code>（単語の続き）を付け、stage 2 は分割された各単語に 17 個の UPOS タグのどれかを付けます。文字ごとに 18 個の <code>B-&lt;UPOS&gt;</code> / <code>O</code> ラベルのどれかを予測していた以前の joint モデルは削除されました。そのモデルファイルを読み込むと、<code>litsea train --pos</code> で学習し直すよう求めるエラーになります。</p>
 <p>品詞タグには <a href="https://universaldependencies.org/">Universal Dependencies</a> の <strong>UPOS タグセット</strong>（17 品詞）を採用しています。</p>
 <pre><code class="language-text">Input:  "今日はいい天気ですね。"
 Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT

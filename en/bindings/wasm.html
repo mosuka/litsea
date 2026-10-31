@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -202,8 +202,11 @@ seg.free()
 </code></pre>
 <p>The language name and its ISO 639-1 code are interchangeable. The model file identifies its own kind, so <code>hasPos</code> reports what was loaded.</p>
 <h2 id="pos-tagging"><a class="header" href="#pos-tagging">POS tagging</a></h2>
-<pre><code class="language-js">seg.segmentWithPos('これはテストです。')
-// [ Token { surface: 'これ', pos: 'PRON', start: 0, end: 6 }, ... ]
+<pre><code class="language-js">const posBytes = new Uint8Array(await (await fetch('/models/japanese_pos.model')).arrayBuffer())
+const seg = Segmenter.fromBytes('japanese', posBytes)
+
+seg.segmentWithPos('これはテストです。').map(String)
+// [ 'これ/PRON [0..6]', ... ]
 </code></pre>
 <p><code>start</code> and <code>end</code> are <strong>byte</strong> offsets into the UTF-8 encoding, and JavaScript string indices are UTF-16 code units, so slice with <code>TextEncoder</code> / <code>TextDecoder</code>:</p>
 <pre><code class="language-js">const bytes = new TextEncoder().encode(text)
@@ -224,6 +227,28 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${
 // [ 'チャットGPT/PROPN', 'に/ADP', '聞く/VERB' ]   (in userWords instead: 'チャットGPT/NOUN')
 </code></pre>
 <p>A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and an untagged word of one character is ignored. With a POS model a word in <code>userWords</code> is tagged like any other word, while a token that is a word in <code>userWordTags</code> gets its tag, ahead of the model’s lexicon and its tagger; <code>segment</code> ignores the tags. A word of one character in <code>userWordTags</code> changes no boundary and retags only the tokens that are exactly that character (issue #276). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a <code>userWordsGate</code> of <code>0</code> applies a word only where the model already agrees with it. A gate outside <code>0</code>–<code>1</code>, or a tag that is not one of the 17 UPOS tags (upper case), throws with the <code>invalid_argument</code> code. See <a href="../litsea/segmenter.html#user-dictionary">Segmenter</a> for the full semantics.</p>
+<h2 id="api"><a class="header" href="#api">API</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Call</th><th>Returns</th></tr>
+</thead>
+<tbody>
+<tr><td><code>Segmenter.fromBytes(language, data, userWords?, userWordsGate?, userWordTags?)</code></td><td>A segmenter</td></tr>
+<tr><td><code>language</code> (getter)</td><td><code>string</code>, the canonical language name</td></tr>
+<tr><td><code>hasPos</code> (getter)</td><td><code>boolean</code></td></tr>
+<tr><td><code>segment(text)</code></td><td><code>string[]</code></td></tr>
+<tr><td><code>segmentBatch(texts)</code></td><td><code>string[][]</code></td></tr>
+<tr><td><code>segmentTokens(text)</code></td><td><code>Token[]</code> with byte offsets (<code>pos</code> is <code>undefined</code>)</td></tr>
+<tr><td><code>segmentWithPos(text)</code></td><td><code>Token[]</code> with tags and offsets</td></tr>
+<tr><td><code>segmentWithPosBatch(texts)</code></td><td><code>Token[][]</code></td></tr>
+<tr><td><code>free()</code></td><td>Releases the segmenter (see Memory below)</td></tr>
+<tr><td><code>version()</code></td><td><code>string</code>, the <code>litsea</code> version</td></tr>
+<tr><td><code>supportedLanguages()</code></td><td><code>string[]</code></td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>Token</code> exposes <code>surface</code>, <code>pos</code>, <code>start</code> and <code>end</code> as getters, and its <code>toString()</code> returns <code>surface/POS [start..end]</code>, for example <code>テスト/NOUN [9..18]</code>.</p>
 <h2 id="what-the-host-removes"><a class="header" href="#what-the-host-removes">What the host removes</a></h2>
 <p>This is the most constrained of the five bindings, and each gap was measured rather than assumed.</p>
 <div class="table-wrapper">
@@ -248,8 +273,8 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${
 <h2 id="memory"><a class="header" href="#memory">Memory</a></h2>
 <p><code>Segmenter</code> holds the compiled model, which is several megabytes for a POS model, and WebAssembly objects are <strong>not</strong> garbage collected. Call <code>free()</code> when one is no longer needed.</p>
 <h2 id="caching-models"><a class="header" href="#caching-models">Caching models</a></h2>
-<p>Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper:</p>
-<pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
+<p>Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. An optional helper lives in the repository as <code>litsea-wasm/js/cache.js</code> (with <code>cache.d.ts</code>). The npm package does not include it: <code>make build-litsea-wasm</code> copies the two files into <code>pkg/</code>, but the <code>files</code> list of the <code>package.json</code> that wasm-pack generates leaves them out. Copy them into your project and import them from there:</p>
+<pre><code class="language-js">import { fetchModel, clearModelCache } from './cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
 </code></pre>

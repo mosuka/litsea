@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -244,7 +244,7 @@ pub enum Upos {
 <h3 id="トレイト実装"><a class="header" href="#トレイト実装">トレイト実装</a></h3>
 <ul>
 <li><code>Display</code>: <code>"NOUN"</code>, <code>"VERB"</code> などの文字列に変換</li>
-<li><code>FromStr</code>: 文字列から <code>Upos</code> にパース。不正な文字列には <code>ParseUposError</code> を返す</li>
+<li><code>FromStr</code>: 文字列から <code>Upos</code> にパース。大文字・小文字を区別する（大文字のみ。<code>"noun"</code> は拒否される）。不正な文字列には <code>ParseUposError</code> を返す</li>
 </ul>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -255,9 +255,14 @@ assert_eq!(pos.to_string(), "NOUN");
 <span class="boring">}</span></code></pre>
 <h3 id="parseuposerror"><a class="header" href="#parseuposerror">ParseUposError</a></h3>
 <p><code>ParseUposError</code>（クレートルートから <code>litsea::ParseUposError</code> として再エクスポート）は、文字列が有効な UPOS タグでない場合に返されます。<code>input()</code> アクセサはパースに失敗した文字列を返し、エラーメッセージは <code>Unknown UPOS tag: '&lt;input&gt;'</code> となります。</p>
+<h3 id="upos-を使う-api"><a class="header" href="#upos-を使う-api"><code>Upos</code> を使う API</a></h3>
+<ul>
+<li><a href="segmenter.html#segment_with_pos"><code>Segmenter::segment_with_pos</code></a> は <code>(String, Upos)</code> の組を返します。</li>
+<li><a href="segmenter.html#タグ"><code>UserDictionary::add_with_pos(word, pos)</code></a> はユーザーの語を <code>Upos</code> のタグ付きで登録し、<code>UserDictionary::pos(word)</code> は登録されたタグ（<code>Option&lt;Upos&gt;</code>）を返します。</li>
+</ul>
 <h2 id="segmentlabel"><a class="header" href="#segmentlabel">SegmentLabel</a></h2>
 <h3 id="定義-1"><a class="header" href="#定義-1">定義</a></h3>
-<p><code>SegmentLabel</code> 型は単語境界検出と品詞タグ付けを組み合わせます。各文字位置に 18 ラベルのいずれかが割り当てられます:</p>
+<p><code>SegmentLabel</code> 型は、品詞タグ付きの学習コーパスを処理するパイプライン（<a href="segmenter.html#add_corpus_with_pos_writer"><code>add_corpus_with_pos_writer</code></a>）が文字ごとに付けるラベルです。<code>word/POS</code> 形式のコーパスの各文字位置に、18 ラベルのいずれかが割り当てられます:</p>
 <ul>
 <li><strong><code>B(Upos)</code></strong>（17 ラベル）: 指定された UPOS タグを持つ単語境界（例: <code>B-NOUN</code>, <code>B-VERB</code>）</li>
 <li><strong><code>O</code></strong>（1 ラベル）: 非境界（現在の単語の継続）</li>
@@ -270,6 +275,7 @@ pub enum SegmentLabel {
     O,        // Continuation of a word (non-boundary).
 }
 <span class="boring">}</span></code></pre>
+<p>現在のモデルは、この 18 個のラベルを予測しません。品詞タグは二段構成モデルが付けます。stage 1 は二値の境界分類器で、各文字位置に <code>B</code>（ここで単語が始まる）か <code>O</code>（単語の続き）を付けます。stage 2 は、分割された各単語に 17 個の UPOS タグのどれかを付けます。<code>Extractor::extract_two_stage</code> は、stage 1 を学習するために <code>SegmentLabel</code> を <code>B</code>/<code>O</code> にまとめます。文字ごとに 18 個の <code>B-&lt;UPOS&gt;</code> / <code>O</code> ラベルのどれかを予測していた以前の joint モデルは削除されました。そのモデルファイルを読み込むと、<code>litsea train --pos</code> で学習し直すよう求めるエラーになります。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use litsea::upos::SegmentLabel;

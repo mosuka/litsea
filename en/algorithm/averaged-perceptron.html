@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -183,12 +183,12 @@
                         <h1 id="averaged-perceptron"><a class="header" href="#averaged-perceptron">Averaged Perceptron</a></h1>
 <p>Litsea uses the <strong>Averaged Perceptron</strong> algorithm for multiclass classification as the training-side learner behind both stages of the two-stage POS architecture and the bundled segmentation models’ collapse recipe. This chapter explains the algorithm as implemented in Litsea.</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>While <a href="adaboost.html">AdaBoost</a> performs <strong>binary classification</strong> (boundary vs. non-boundary), the Averaged Perceptron performs <strong>multiclass classification</strong> – predicting one of 18 segment labels for each character position:</p>
+<p>While <a href="adaboost.html">AdaBoost</a> performs <strong>binary classification</strong> (boundary vs. non-boundary), the Averaged Perceptron performs <strong>multiclass classification</strong> over the class labels found in its training data. Litsea trains it with one of two label sets:</p>
 <ul>
-<li><strong>17 boundary labels</strong>: <code>B-ADJ</code>, <code>B-ADP</code>, <code>B-ADV</code>, <code>B-AUX</code>, <code>B-CCONJ</code>, <code>B-DET</code>, <code>B-INTJ</code>, <code>B-NOUN</code>, <code>B-NUM</code>, <code>B-PART</code>, <code>B-PRON</code>, <code>B-PROPN</code>, <code>B-PUNCT</code>, <code>B-SCONJ</code>, <code>B-SYM</code>, <code>B-VERB</code>, <code>B-X</code></li>
-<li><strong>1 non-boundary label</strong>: <code>O</code> (continuation of the current word)</li>
+<li><strong>2 boundary labels</strong> over the character-level templates: <code>B</code> (a word starts at this character position) and <code>O</code> (continuation of the current word)</li>
+<li><strong>The 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags</strong> over the word-level templates, one tag per word: <code>ADJ</code>, <code>ADP</code>, <code>ADV</code>, <code>AUX</code>, <code>CCONJ</code>, <code>DET</code>, <code>INTJ</code>, <code>NOUN</code>, <code>NUM</code>, <code>PART</code>, <code>PRON</code>, <code>PROPN</code>, <code>PUNCT</code>, <code>SCONJ</code>, <code>SYM</code>, <code>VERB</code>, <code>X</code></li>
 </ul>
-<p>These labels correspond to the 17 <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tags from the Universal Dependencies project, prefixed with <code>B-</code> to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.</p>
+<p>POS tags come from the two-stage model: stage 1 is a binary boundary classifier that labels each character position <code>B</code> (a word starts here) or <code>O</code> (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. The earlier joint model, which predicted one of 18 <code>B-&lt;UPOS&gt;</code> / <code>O</code> labels per character, was removed; loading such a model file fails with an error that asks you to retrain with <code>litsea train --pos</code>.</p>
 <p>The Averaged Perceptron in 2-class mode (<code>B</code>/<code>O</code> labels only) is what actually trains the bundled <code>japanese.model</code>, <code>chinese.model</code>, <code>korean.model</code>, and <code>english.model</code> segmentation models before they are losslessly collapsed to the AdaBoost model format for inference – see <a href="../pre-trained-models.html#training-procedure">Pre-trained Models: Training Procedure</a> for the full derivation. The same collapse trains the <a href="two-stage-tagging.html">two-stage architecture</a>’s stage-1 boundary classifier, and the multiclass form is the algorithm behind its stage-2 word-level tagger.</p>
 <h2 id="algorithm"><a class="header" href="#algorithm">Algorithm</a></h2>
 <h3 id="weight-representation"><a class="header" href="#weight-representation">Weight Representation</a></h3>
@@ -197,9 +197,9 @@
 // FeatureSlot { w: Vec&lt;f64&gt;, acc: Vec&lt;f64&gt;, ts: Vec&lt;usize&gt; } -- one entry per class
 </code></pre>
 <p>For example:</p>
-<pre><code class="language-text">weights["UW4:猫"]["B-NOUN"] = 2.5
-weights["UC4:H"]["B-NOUN"]  = 1.8
-weights["UW4:猫"]["O"]      = -0.3
+<pre><code class="language-text">weights["UW4:猫"]["B"]    = 2.5     (boundary perceptron)
+weights["UW4:猫"]["O"]    = -0.3
+weights["WS:猫"]["NOUN"]  = 1.8     (stage-2 word tagger)
 ...
 </code></pre>
 <p>For a given feature set, the score for each class is the sum of its feature weights:</p>
@@ -249,20 +249,19 @@ let running = AtomicBool::new(true);
 perceptron.train(10, &amp;running);  // 10 epochs
 <span class="boring">}</span></code></pre>
 <h2 id="model-file-format"><a class="header" href="#model-file-format">Model File Format</a></h2>
-<p>The Averaged Perceptron model is saved as a text file with the following structure:</p>
-<pre><code class="language-text">18
-O
-B-ADJ
-B-ADP
+<p>The Averaged Perceptron model is saved as a text file with the following structure (this example is the start of the <code>[stage2]</code> section of the bundled <code>japanese_pos.model</code>, whose tagger knows 16 UPOS tags):</p>
+<pre><code class="language-text">16
+ADJ
+ADP
 ...
-B-X
+VERB
 feature1\tclass1\tweight1
 feature2\tclass2\tweight2
 ...
 </code></pre>
 <ul>
-<li><strong>Line 1</strong>: Number of classes (18)</li>
-<li><strong>Lines 2 to N+1</strong>: Class names, one per line</li>
+<li><strong>Line 1</strong>: Number of classes <em>N</em> (2 for a boundary perceptron; 16 or 17 for the bundled stage-2 taggers)</li>
+<li><strong>Lines 2 to N+1</strong>: Class names, one per line, in sorted order (a boundary perceptron writes <code>B</code>, then <code>O</code>)</li>
 <li><strong>Remaining lines</strong>: Feature weights, tab-separated as <code>feature\tclass\tweight</code></li>
 <li>Zero-weight entries are omitted</li>
 <li>Weight lines are written in sorted feature order, so saving the same model
@@ -275,8 +274,8 @@ always produces byte-identical files; loading does not depend on the order</li>
 <tr><th>Aspect</th><th>AdaBoost</th><th>Averaged Perceptron</th></tr>
 </thead>
 <tbody>
-<tr><td>Classification</td><td>Binary (+1/-1)</td><td>Multiclass (18 classes)</td></tr>
-<tr><td>Output</td><td>Word boundaries only</td><td>Word boundaries + POS tags</td></tr>
+<tr><td>Classification</td><td>Binary (+1/-1)</td><td>Multiclass (2 classes <code>B</code>/<code>O</code>, or up to 17 UPOS tags)</td></tr>
+<tr><td>Output</td><td>Word boundaries only</td><td>Word boundaries (<code>B</code>/<code>O</code>, collapsed to the AdaBoost format) or one UPOS tag per word</td></tr>
 <tr><td>Weak learner</td><td>Decision stumps per feature</td><td>None (linear classifier)</td></tr>
 <tr><td>Weight management</td><td>One weight per feature</td><td>Class x feature weight matrix</td></tr>
 <tr><td>Generalization</td><td>Ensemble</td><td>Weight averaging</td></tr>

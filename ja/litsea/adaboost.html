@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -238,6 +238,7 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 </span>pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>メモリ上のバッファや既に開いているファイルなど、任意の <code>BufRead</code> ソースからモデルの重みを読み込みます。</p>
+<p>新規の学習器では、読み込んだモデルが現在のモデルを置き換えます。学習器がすでに特徴量やインスタンスを持っている場合（<code>initialize_features</code> や <code>add_instance</code> の後）は、読み込んだ重みを特徴名をキーとしてマージし、未知の特徴量は末尾に追加します。そのため既存のインスタンスは増分学習にそのまま使えます。インスタンスのブースティング重みは計算し直しません。エラーのときは学習器を変更しません。<code>load_model_from_path</code> と <code>load_model</code> も同じように読み込みます。</p>
 <h3 id="load_model"><a class="header" href="#load_model"><code>load_model</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -279,6 +280,13 @@ learner.load_model_from_path(Path::new("./models/japanese.model"))?;
 </span>pub fn initialize_instances(&amp;mut self, filename: &amp;Path) -&gt; litsea::Result&lt;()&gt;
 <span class="boring">}</span></code></pre>
 <p>同じ特徴量ファイルを読み込み、ラベル付きインスタンスとその重みを初期化します。</p>
+<h3 id="initialize_features_from_str--initialize_instances_from_str"><a class="header" href="#initialize_features_from_str--initialize_instances_from_str"><code>initialize_features_from_str</code> / <code>initialize_instances_from_str</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn initialize_features_from_str(&amp;mut self, features: &amp;str) -&gt; litsea::Result&lt;()&gt;
+pub fn initialize_instances_from_str(&amp;mut self, features: &amp;str) -&gt; litsea::Result&lt;()&gt;
+<span class="boring">}</span></code></pre>
+<p><code>initialize_features</code> / <code>initialize_instances</code> の in-memory 版で、特徴量ファイルの内容を受け取ります。同じ内容に対して同じ順序で呼び出してください（内容を 2 回走査します）。<code>Trainer::from_features</code> はこれらを使っています。パス版の <code>initialize_features</code>・<code>initialize_instances</code>・<code>load_model_from_path</code> は <code>wasm32</code> ではコンパイル対象外なので、そこではこれらと <code>load_model_from_reader</code> を使ってください。</p>
 <h3 id="train"><a class="header" href="#train"><code>train</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

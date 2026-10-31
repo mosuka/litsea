@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -218,7 +218,10 @@ litsea train -t 0.0001 -i 20000 \
 <li>出力モデルのパスは入力モデルと同じパスを指定できます（上書き）</li>
 <li><code>-m</code> フラグはファイルパス、<code>file://</code>、<code>http://</code>、<code>https://</code> URI に対応しています</li>
 <li>再学習は既存の重みから開始するため、必要な反復回数が少なくなる場合があります</li>
-<li><code>-m</code> は通常の AdaBoost 学習でのみ利用できます。<code>train --pos</code> は
+<li><code>-m</code> は通常の AdaBoost 学習と <code>train --perceptron</code> で利用できます。
+<code>train --perceptron</code> では、<code>train --perceptron</code> が書き出すパーセプトロン形式の
+モデルを読み込みます（畳み込み済みの AdaBoost 形式のモデルは読み込めません）。
+<code>train --pos</code> は
 <code>-m</code>/<code>--load-model-uri</code> に<strong>対応していません</strong> – 二段構成モデルの増分学習は
 サポートされていないため、更新したい場合は <code>train --pos</code> で
 ゼロから再学習する必要があります</li>

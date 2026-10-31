@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -213,8 +213,10 @@ pub fn from_parts(
     dominance: f64,
 ) -&gt; Result&lt;Self&gt;
 <span class="boring">}</span></code></pre>
-<p><code>new</code> は空の learner を作成します（使用前に <code>load_model*</code> 系メソッドで
-埋める必要があります）。<code>from_parts</code> はパーツから learner を構築し、
+<p><code>new</code> は、既定の dominance 閾値
+<code>litsea::two_stage::DEFAULT_DOMINANCE</code>（<code>0.99</code>）を持つ空の learner を
+作成します（使用前に <code>load_model*</code> 系メソッドで埋める必要があります）。
+<code>from_parts</code> はパーツから learner を構築し、
 組み合わせを検証します: <code>dominance</code> は <code>(0.5, 1.0]</code> の範囲内、
 stage-2 の各クラス名は有効な <code>Upos</code> タグである必要があり、
 各語彙エントリは非空のサーフェス（タブ・改行を含まない）、
@@ -239,7 +241,13 @@ pub fn load_model_from_reader&lt;R: BufRead&gt;(&amp;mut self, reader: R) -&gt; 
 読み込みはファイル構造全体を検証します（オンディスクのレイアウトは
 <a href="../advanced/model-file-format.html">モデルファイル形式</a> を参照）。
 不正な内容は <code>LitseaError::InvalidData</code> で拒否され、読み込みエラー時に
-learner は変更されません。</p>
+learner は変更されません。<code>[params]</code> セクションの無い（またはその中に
+<code>dominance</code> 行の無い）モデルファイルは、<code>DEFAULT_DOMINANCE</code> で
+読み込まれます。</p>
+<p>wasm32 では <code>load_model_from_path</code> は使えず、プレーンなパスや
+<code>file://</code> の URI を渡した <code>load_model</code> は <code>LitseaError::Unsupported</code> で
+失敗します。<code>load_model_from_reader</code> か、<code>remote_model</code> フィーチャを
+有効にして <code>http(s)://</code> の URI を使ってください。</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::path::Path;
@@ -293,7 +301,13 @@ rustdoc に記載の数値は、同梱モデルとは異なるエポック数で
 を参照してください。</p>
 <p><code>FromStr</code>（大文字小文字を区別しない: <code>"full"</code>, <code>"balanced"</code>, <code>"fast"</code>）と
 <code>Display</code>（小文字）を実装しています。<code>#[non_exhaustive]</code> が付与されて
-おり、外部の <code>match</code> 式にはワイルドカードアームが必要です。</p>
+おり、外部の <code>match</code> 式にはワイルドカードアームが必要です。それ以外の名前の
+パースは <code>ParseTwoStageFeatureSetError</code>（クレートルートから
+<code>litsea::ParseTwoStageFeatureSetError</code> として再エクスポート）で失敗し、
+エラーメッセージは
+<code>invalid two-stage feature set: '&lt;input&gt;' (expected full, balanced, or fast)</code>
+となります。<code>ParseLanguageError</code> や <code>ParseUposError</code> と異なり、<code>input()</code>
+アクセサはありません。</p>
 <h2 id="modelkind"><a class="header" href="#modelkind"><code>ModelKind</code></a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

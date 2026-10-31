@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -243,15 +243,21 @@ seg.segment("雪だるまを作る")
 <tr><td><code>segment_tokens(text)</code></td><td><code>list[Token]</code> with byte offsets</td></tr>
 <tr><td><code>segment_with_pos(text)</code></td><td><code>list[Token]</code> with tags and offsets</td></tr>
 <tr><td><code>segment_with_pos_batch(texts)</code></td><td><code>list[list[Token]]</code></td></tr>
-<tr><td><code>Extractor(language).extract(...)</code></td><td>Writes a features file</td></tr>
-<tr><td><code>Extractor(language).extract_two_stage(...)</code></td><td>Writes <code>.stage1</code> / <code>.stage2</code> / <code>.lexicon</code></td></tr>
-<tr><td><code>Trainer(threshold, iterations, features).train(model, cancel=None)</code></td><td><code>BinaryMetrics</code></td></tr>
-<tr><td><code>PerceptronTrainer(epochs, features).train(model, cancel=None)</code></td><td><code>MulticlassMetrics</code></td></tr>
-<tr><td><code>TwoStageTrainer(epochs, prefix, dominance=0.99).train(model, cancel=None)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>language</code>, <code>has_pos</code> (properties)</td><td>The <code>Language</code> the segmenter was built for; whether the model supports POS tagging</td></tr>
+<tr><td><code>Extractor(language).extract(corpus_path, features_path, *, tsv=False, tag_free=False)</code></td><td>Writes a features file</td></tr>
+<tr><td><code>Extractor(language).extract_two_stage(corpus_path, output_prefix, *, feature_set="fast", tsv=False)</code></td><td>Writes <code>.stage1</code> / <code>.stage2</code> / <code>.lexicon</code></td></tr>
+<tr><td><code>Trainer(threshold, iterations, features).train(model, *, cancel=None)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>PerceptronTrainer(epochs, features).train(model, *, cancel=None)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>TwoStageTrainer(epochs, prefix, *, dominance=0.99).train(model, *, cancel=None)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>Trainer(...).load_model(uri)</code>, <code>PerceptronTrainer(...).load_model(uri)</code></td><td><code>None</code>; loads an existing model (path, <code>file://</code>, or <code>http(s)://</code> URL) to continue training from it</td></tr>
+<tr><td><code>CancelToken()</code>: <code>cancel()</code>, <code>reset()</code>, <code>cancelled</code> (property)</td><td>A flag to pass as <code>train(..., cancel=...)</code></td></tr>
+<tr><td><code>Language.parse(name)</code></td><td>A <code>Language</code>; raises <code>InvalidArgumentError</code> for an unknown name</td></tr>
+<tr><td><code>version()</code>, <code>__version__</code></td><td>The <code>litsea</code> version string</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>Language</code> and <code>Upos</code> are PyO3 classes, not <code>enum.Enum</code> subclasses: their members are class attributes, so iterate them with <code>Language.all()</code> and <code>Upos.all()</code> rather than <code>for x in Language</code>.</p>
+<p><code>feature_set</code> is <code>"full"</code>, <code>"balanced"</code>, or <code>"fast"</code>, and <code>tsv=True</code> reads the corpus in the space-preserving TSV format.</p>
+<p><code>Language</code> and <code>Upos</code> are PyO3 classes, not <code>enum.Enum</code> subclasses: their members are class attributes, so iterate them with <code>Language.all()</code> and <code>Upos.all()</code> rather than <code>for x in Language</code>. Their <code>name</code> property gives the canonical name (<code>"japanese"</code>, <code>"NOUN"</code>).</p>
 <h2 id="training"><a class="header" href="#training">Training</a></h2>
 <pre><code class="language-python">from litsea import Extractor, Language, Trainer
 
@@ -278,17 +284,18 @@ metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=
 <tr><th>Exception</th><th>Raised when</th></tr>
 </thead>
 <tbody>
-<tr><td><code>InvalidArgumentError</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>user_words_gate</code> outside <code>0.0</code>–<code>1.0</code>, a <code>user_word_tags</code> value that is not a UPOS tag</td></tr>
-<tr><td><code>ModelError</code></td><td>Download failed, or the file is a legacy joint POS model</td></tr>
+<tr><td><code>InvalidArgumentError</code></td><td>Unknown language name, unknown feature set, reused trainer, <code>user_words_gate</code> outside <code>0.0</code>–<code>1.0</code>, a <code>user_word_tags</code> value that is not a UPOS tag, <code>dominance</code> outside <code>(0.5, 1.0]</code>, unknown model URI scheme</td></tr>
+<tr><td><code>ModelError</code></td><td>Download failed, or the file is a legacy joint POS model (no longer supported; retrain with <code>litsea train --pos</code>)</td></tr>
 <tr><td><code>IoError</code></td><td>A file could not be read or written</td></tr>
 <tr><td><code>ParseError</code></td><td>The model or training data is malformed</td></tr>
 <tr><td><code>UnsupportedError</code></td><td>The scheme or operation is unavailable in this build</td></tr>
 <tr><td><code>PosUnavailableError</code></td><td>POS tagging requested from a segmentation-only model</td></tr>
+<tr><td><code>LitseaError</code></td><td>Any other failure: the base class itself is raised for errors that fit no subclass</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="threading-and-the-gil"><a class="header" href="#threading-and-the-gil">Threading and the GIL</a></h2>
-<p>A <code>Segmenter</code> is immutable and safe to share between threads. <code>segment_batch</code>, <code>segment_with_pos_batch</code>, <code>extract</code>, and every <code>train</code> release the GIL.</p>
+<p>A <code>Segmenter</code> is immutable and safe to share between threads. <code>Segmenter.open</code>, <code>Segmenter.from_uri</code>, <code>segment_batch</code>, <code>segment_with_pos_batch</code>, <code>extract</code>, <code>extract_two_stage</code>, the trainer constructors, <code>load_model</code>, and every <code>train</code> release the GIL.</p>
 <p>Single-sentence <code>segment</code> and <code>segment_with_pos</code> keep it. Releasing the GIL requires owning the input string (PyO3’s <code>Ungil</code> bound forbids touching Python-owned memory with the GIL released), and that copy costs more than segmenting one sentence. Use the batch methods for bulk work.</p>
 <h2 id="development"><a class="header" href="#development">Development</a></h2>
 <pre><code class="language-sh">make setup-venv            # create the venv and install the dev tools

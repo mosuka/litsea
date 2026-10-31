@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -182,7 +182,7 @@
                     <main>
                         <h1 id="evaluate"><a class="header" href="#evaluate">evaluate</a></h1>
 <p>Evaluate a trained model against a held-out gold corpus and print quality
-metrics. Unlike the in-sample metrics printed by <code>train</code>, this measures
+metrics to stderr (nothing is written to stdout). Unlike the in-sample metrics printed by <code>train</code>, this measures
 quality on text the model has never seen.</p>
 <p>A <strong>gold corpus</strong> is a text file containing the correct answers: one
 sentence per line, already segmented into the correct tokens by human
@@ -191,8 +191,9 @@ tab-separated tokens, or <code>word/POS</code> with <code>--pos</code>). A byte 
 the start of the file is ignored (issue #281). “Gold” refers to the
 gold standard the model’s output is judged against. For a meaningful
 <strong>held-out</strong> evaluation it must contain sentences that were <em>not</em> used to
-train the model — the bundled files in <code>resources/eval/</code> are the UD GSD
-<strong>test</strong> splits, while the bundled models are trained on the train splits.</p>
+train the model — the bundled files in <code>resources/eval/</code> are the <strong>test</strong>
+splits of UD GSD (Japanese, Chinese, Korean) and UD English-EWT (English),
+while the bundled models are trained on the train splits.</p>
 <h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
 <pre><code class="language-sh">litsea evaluate [OPTIONS] &lt;MODEL_URI&gt; &lt;GOLD_FILE&gt;
 </code></pre>
@@ -227,8 +228,8 @@ train the model — the bundled files in <code>resources/eval/</code> are the UD
 <p>Two token sequences are compared for every sentence:</p>
 <ul>
 <li><strong>Gold tokens</strong> – the reference segmentation from the gold corpus: the
-human-annotated correct answer (here, the tokenization of the UD GSD
-treebank test split). The evaluated sentence text is reconstructed by
+human-annotated correct answer (here, the tokenization of the UD GSD or
+UD English-EWT treebank test split). The evaluated sentence text is reconstructed by
 concatenating them.</li>
 <li><strong>Predicted tokens</strong> – what the model produces when the reconstructed
 sentence text is fed to <code>segment</code> (or <code>segment --pos</code>), exactly as a
@@ -255,17 +256,41 @@ the numbers.</p>
 </table>
 </div>
 <p>A word counts as correct only when <strong>both</strong> of its boundaries are correct,
-so word metrics are always at least as strict as boundary metrics — a
-single misplaced boundary invalidates the two words on either side of it.
-<code>Sentences</code> is the number of evaluated (non-empty) gold sentences.</p>
+so word metrics are usually stricter than boundary metrics — a single
+misplaced boundary invalidates the two words on either side of it.
+Boundary metrics leave out the start of each sentence, which is always a
+word start, so on a corpus with many one-word sentences the word metrics
+can come out higher. <code>Sentences</code> is the number of evaluated (non-empty) gold sentences.</p>
 <h2 id="examples"><a class="header" href="#examples">Examples</a></h2>
 <p>Reproduce the documented held-out figures with the bundled gold data
-(<code>resources/eval/</code>, converted from the UD GSD test splits):</p>
+(<code>resources/eval/</code>, converted from the UD GSD and UD English-EWT test
+splits):</p>
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+</code></pre>
+<p>Each command writes its metrics to stderr. The first command prints:</p>
+<pre><code class="language-text">Evaluation Metrics:
+  Sentences: 543
+  Word Precision: 96.73%
+  Word Recall: 96.66%
+  Word F1: 96.70%
+  Boundary Precision: 98.63%
+  Boundary Recall: 98.56%
+  Boundary F1: 98.59%
+</code></pre>
+<p>With <code>--pos</code> (the last command), the boundary lines are not printed; the
+tagged-word metrics follow the word metrics instead:</p>
+<pre><code class="language-text">Evaluation Metrics (POS):
+  Sentences: 543
+  Word Precision: 96.78%
+  Word Recall: 96.79%
+  Word F1: 96.78%
+  Tagged Word Precision: 92.94%
+  Tagged Word Recall: 92.95%
+  Tagged Word F1: 92.95%
 </code></pre>
 <p>Measure what a user dictionary does on the same gold — it is applied
 exactly as <code>segment --user-words</code> applies it, so the metrics are what a
@@ -288,16 +313,6 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
 protocol they used before #198; it is kept only for reproducing the older
 published numbers (see
 <a href="../pre-trained-models.html#english_posmodel">Pre-trained Models</a>).</p>
-<p>Output:</p>
-<pre><code class="language-text">Evaluation Metrics:
-  Sentences: 543
-  Word Precision: 96.73%
-  Word Recall: 96.66%
-  Word F1: 96.70%
-  Boundary Precision: 98.63%
-  Boundary Recall: 98.56%
-  Boundary F1: 98.59%
-</code></pre>
 
                     </main>
 

@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -182,7 +182,7 @@
                     <main>
                         <h1 id="introduction"><a class="header" href="#introduction">Introduction</a></h1>
 <p><strong>Litsea</strong> is an extremely compact word segmentation library implemented in Rust, inspired by <a href="http://chasen.org/~taku/software/TinySegmenter/">TinySegmenter</a> and <a href="https://github.com/shogo82148/TinySegmenterMaker">TinySegmenterMaker</a>.</p>
-<p>Unlike traditional morphological analyzers such as <a href="https://taku910.github.io/mecab/">MeCab</a> and <a href="https://github.com/lindera/lindera">Lindera</a>, Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained model based on the <strong>AdaBoost binary classification</strong> algorithm. Litsea also supports <strong>word segmentation and POS (Part-of-Speech) tagging</strong> with the <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tagset via a two-stage architecture.</p>
+<p>Unlike traditional morphological analyzers such as <a href="https://taku910.github.io/mecab/">MeCab</a> and <a href="https://github.com/lindera/lindera">Lindera</a>, Litsea does not rely on large-scale dictionaries. Instead, it performs word segmentation using a compact pre-trained <strong>binary classification</strong> model stored in the AdaBoost model format (the bundled segmentation models are trained as 2-class Averaged Perceptrons and converted to that format without loss). Litsea also supports <strong>word segmentation and POS (Part-of-Speech) tagging</strong> with the <a href="https://universaldependencies.org/u/pos/">Universal POS (UPOS)</a> tagset via a two-stage architecture.</p>
 <h2 id="key-features"><a class="header" href="#key-features">Key Features</a></h2>
 <ul>
 <li><strong>Fast and safe Rust implementation</strong> – built with Rust’s safety guarantees and performance</li>
@@ -203,11 +203,7 @@ Output: ["これ", "は", "テスト", "です", "。"]
 </code></pre>
 <h3 id="pos-tagging"><a class="header" href="#pos-tagging">POS Tagging</a></h3>
 <p>Litsea also supports <strong>POS (Part-of-Speech) tagging</strong> in addition to word segmentation, through the two-stage architecture: the sentence is segmented by a binary boundary classifier, then each word is tagged through a candidate-tag lexicon plus a word-level tagger.</p>
-<p>For each character position, the model predicts one of 18 <strong>SegmentLabel</strong> classes:</p>
-<ul>
-<li><code>B-NOUN</code>, <code>B-VERB</code>, …, <code>B-X</code> (boundary labels for 17 POS tags)</li>
-<li><code>O</code> (non-boundary = continuation of the current word)</li>
-</ul>
+<p>Stage 1 labels each character position <code>B</code> (a word starts here) or <code>O</code> (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. The earlier joint model, which predicted one of 18 <code>B-&lt;UPOS&gt;</code> / <code>O</code> labels per character, was removed; loading such a model file fails with an error that asks you to retrain with <code>litsea train --pos</code>.</p>
 <p>The POS tags follow the <a href="https://universaldependencies.org/">Universal Dependencies</a> <strong>UPOS tagset</strong> (17 POS tags).</p>
 <pre><code class="language-text">Input:  "今日はいい天気ですね。"
 Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT

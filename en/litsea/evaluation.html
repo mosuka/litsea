@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -213,7 +213,12 @@ pub struct PosMetrics {
 <p>Both are re-exported at the crate root. Tokens are matched by exact
 character-offset spans over the concatenation of the gold tokens;
 pure-whitespace tokens are excluded from scoring (the Korean/English
-space-preserving protocol; a no-op for languages written without spaces).</p>
+space-preserving protocol; a no-op for languages written without spaces).
+The word metrics count exact span matches; the boundary metrics score the
+start offset of each token except the sentence start (offset 0).
+<code>gold_words</code> and <code>predicted_words</code> count non-whitespace tokens only. A
+percentage whose denominator is zero is <code>0.0</code>, and so is an F1 whose
+precision and recall are both zero.</p>
 <h2 id="functions"><a class="header" href="#functions">Functions</a></h2>
 <h3 id="evaluate_segmentation"><a class="header" href="#evaluate_segmentation"><code>evaluate_segmentation</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -224,7 +229,7 @@ where
     S: Into&lt;String&gt;,
 <span class="boring">}</span></code></pre>
 <p>Segments the concatenation of each gold sentence’s tokens with
-[<code>Segmenter::segment</code>] and scores the result. Empty sentences are skipped.</p>
+<a href="segmenter.html#segment"><code>Segmenter::segment</code></a> and scores the result. Empty sentences are skipped.</p>
 <h3 id="evaluate_pos"><a class="header" href="#evaluate_pos"><code>evaluate_pos</code></a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -233,10 +238,10 @@ where
     I: IntoIterator&lt;Item = Vec&lt;(S, Upos)&gt;&gt;,
     S: Into&lt;String&gt;,
 <span class="boring">}</span></code></pre>
-<p>Like <code>evaluate_segmentation</code> but drives [<code>Segmenter::segment_with_pos</code>]
+<p>Like <code>evaluate_segmentation</code> but drives <a href="segmenter.html#segment_with_pos"><code>Segmenter::segment_with_pos</code></a>
 and additionally scores tagged words. Returns
-<code>LitseaError::PosLearnerNotSet</code> if the segmenter has neither a POS learner
-nor a two-stage learner set.</p>
+<code>LitseaError::PosLearnerNotSet</code> if the segmenter has no two-stage learner
+set.</p>
 <h3 id="gold-line-parsers"><a class="header" href="#gold-line-parsers">Gold-line parsers</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {

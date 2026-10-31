@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -244,7 +244,7 @@ gap is residual ambiguity English keeps even with spaces present
 (contractions, hyphenated compounds, abbreviations).</p>
 <h3 id="reproducing-the-benchmarks"><a class="header" href="#reproducing-the-benchmarks">Reproducing the Benchmarks</a></h3>
 <p>Every figure in the table above is reproducible with one command using the
-bundled gold data (<code>resources/eval/</code>, converted from the UD GSD <strong>test</strong>
+bundled gold data (<code>resources/eval/</code>, converted from the UD GSD/EWT <strong>test</strong>
 splits — held-out for the bundled models, which are trained on the train
 splits):</p>
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt

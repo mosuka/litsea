@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -198,15 +198,31 @@
 </tbody>
 </table>
 </div>
+<h2 id="capabilities"><a class="header" href="#capabilities">Capabilities</a></h2>
+<p>Every binding segments, tags and takes a user dictionary, but not every host allows the rest:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Crate</th><th>Model input</th><th>Training</th><th>Stopping a training run in progress</th></tr>
+</thead>
+<tbody>
+<tr><td><code>litsea-python</code></td><td>Bytes, path, <code>file://</code>, <code>http(s)://</code></td><td>Yes</td><td>Yes: the GIL is released</td></tr>
+<tr><td><code>litsea-nodejs</code></td><td>Bytes, path, <code>file://</code>, <code>http(s)://</code></td><td>Yes, returning a Promise</td><td>Yes: training runs on the libuv threadpool</td></tr>
+<tr><td><code>litsea-php</code></td><td>Bytes, path, <code>file://</code>, <code>http(s)://</code></td><td>Yes, blocking</td><td>No: a token takes effect only if cancelled before <code>train()</code></td></tr>
+<tr><td><code>litsea-ruby</code></td><td>Bytes, path, <code>file://</code>, <code>http(s)://</code></td><td>Yes</td><td>Yes: the GVL is released</td></tr>
+<tr><td><code>litsea-wasm</code></td><td>Bytes only</td><td>No</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
 <h2 id="design-principles"><a class="header" href="#design-principles">Design principles</a></h2>
 <p>These apply to every binding.</p>
 <h3 id="models-are-never-embedded"><a class="header" href="#models-are-never-embedded">Models are never embedded</a></h3>
-<p>A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a <code>file://</code> path, or an <code>http(s)://</code> URL. The bundled models range from 86 KB to 8.3 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.</p>
+<p>A binding package ships code only. The caller supplies a model as raw bytes, a filesystem path, a <code>file://</code> path, or an <code>http(s)://</code> URL; <code>litsea-wasm</code> takes raw bytes only, and the page fetches the model. The bundled models range from 86 KB to 8.3 MB each, so embedding all four languages would push a wheel or npm package past 20 MB; keeping models external also means a model can be updated without republishing the binding.</p>
 <p>See <a href="pre-trained-models.html">Pre-trained Models</a> for where to get a model.</p>
 <h3 id="the-model-kind-is-detected-not-declared"><a class="header" href="#the-model-kind-is-detected-not-declared">The model kind is detected, not declared</a></h3>
 <p>The CLI needs <code>--pos</code> to know whether it is loading a segmentation model or a two-stage POS model. Bindings do not: they read the model bytes once and dispatch on the detected kind, so <code>has_pos</code> is a property of the loaded model rather than something the caller has to get right.</p>
 <h3 id="cancellation-is-explicit"><a class="header" href="#cancellation-is-explicit">Cancellation is explicit</a></h3>
-<p>Training can run for a long time, and <code>litsea</code>’s trainers stop early when their <code>running</code> flag is cleared. The CLI drives that flag from a Ctrl-C handler, but a library must not install one: signal handling is process-global and the host language usually owns it already. Bindings therefore expose a cancellation token that the caller triggers.</p>
+<p>Training can run for a long time, and <code>litsea</code>’s trainers stop early when their <code>running</code> flag is cleared. The CLI drives that flag from a Ctrl-C handler, but a library must not install one: signal handling is process-global and the host language usually owns it already. The bindings that train therefore expose a cancellation token that the caller triggers; <code>litsea-wasm</code> has no training and so no token, and in PHP the token takes effect only when it is cancelled before <code>train()</code>.</p>
 <h3 id="shared-logic-lives-in-one-crate"><a class="header" href="#shared-logic-lives-in-one-crate">Shared logic lives in one crate</a></h3>
 <p>Everything that is not FFI-specific — language-name parsing, model loading and kind detection, token offsets, trainer orchestration, error categories — lives in <a href="bindings/binding-core.html"><code>litsea-binding-core</code></a>. Each binding only maps that surface onto its host language’s types and exception model.</p>
 

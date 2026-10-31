@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -182,7 +182,7 @@
                     <main>
                         <h1 id="evaluate"><a class="header" href="#evaluate">evaluate</a></h1>
 <p>学習済みモデルを held-out のゴールドコーパスに対して評価し、品質メトリクスを
-出力します。<code>train</code> が出力する in-sample 指標とは異なり、モデルが学習で一度も
+stderr に出力します（stdout には何も出力しません）。<code>train</code> が出力する in-sample 指標とは異なり、モデルが学習で一度も
 見ていないテキストに対する品質を測定します。</p>
 <p><strong>ゴールドコーパス</strong>とは、正解が書かれたテキストファイルです: 1 行 1 文で、
 人手アノテーションにより正しいトークンへ分割済みのもの（学習用コーパスと同じ
@@ -190,8 +190,9 @@
 バイトオーダーマーク（BOM）は無視します（issue #281）。「ゴールド」は
 モデル出力の採点基準となる正解（ゴールドスタンダード）を指します。意味のある
 <strong>held-out</strong> 評価にするには、モデルの学習に使っていない文で構成されている必要が
-あります — 同梱の <code>resources/eval/</code> は UD GSD の <strong>test</strong> 分割で、同梱モデルは
-train 分割で学習されているため、この条件を満たします。</p>
+あります — 同梱の <code>resources/eval/</code> は UD GSD（日本語・中国語・韓国語）と
+UD English-EWT（英語）の <strong>test</strong> 分割で、同梱モデルは train 分割で学習されて
+いるため、この条件を満たします。</p>
 <h2 id="使い方"><a class="header" href="#使い方">使い方</a></h2>
 <pre><code class="language-sh">litsea evaluate [OPTIONS] &lt;MODEL_URI&gt; &lt;GOLD_FILE&gt;
 </code></pre>
@@ -226,8 +227,8 @@ train 分割で学習されているため、この条件を満たします。</
 <p>各文について、次の 2 つのトークン列を比較します:</p>
 <ul>
 <li><strong>ゴールドトークン</strong> – ゴールドコーパスに記録された基準の分割。人手で
-アノテーションされた正解（ここでは UD GSD ツリーバンク test 分割の
-トークン分割）です。評価対象の文テキストは、これらを連結して復元します</li>
+アノテーションされた正解（ここでは UD GSD または UD English-EWT
+ツリーバンク test 分割のトークン分割）です。評価対象の文テキストは、これらを連結して復元します</li>
 <li><strong>予測トークン</strong> – 復元した文テキストを <code>segment</code>（<code>--pos</code> 時は
 <code>segment --pos</code>）に与えたときにモデルが出力する分割。ユーザーが推論時に
 得るものと完全に同じです</li>
@@ -252,16 +253,39 @@ train 分割で学習されているため、この条件を満たします。</
 </table>
 </div>
 <p>単語は<strong>両端の境界がともに正しい</strong>場合のみ正解と数えるため、単語メトリクスは
-常に境界メトリクスと同等以上に厳しくなります — 境界が 1 つずれるだけで、その
-両側の 2 単語が不正解になります。<code>Sentences</code> は評価対象（非空）のゴールド文数です。</p>
+多くの場合、境界メトリクスより厳しくなります — 境界が 1 つずれるだけで、その
+両側の 2 単語が不正解になります。境界メトリクスは各文の先頭（必ず単語の開始
+位置）を数えないため、1 語だけの文が多いコーパスでは単語メトリクスのほうが
+高くなることがあります。<code>Sentences</code> は評価対象（非空）のゴールド文数です。</p>
 <h2 id="使用例"><a class="header" href="#使用例">使用例</a></h2>
-<p>同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD テスト分割から変換）を使って、
-ドキュメントに記載の held-out の数値を再現します:</p>
+<p>同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD と UD English-EWT のテスト
+分割から変換）を使って、ドキュメントに記載の held-out の数値を再現します:</p>
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt
 litsea evaluate -l korean --format tsv models/korean.model resources/eval/korean_gsd_test.tsv
 litsea evaluate -l chinese models/chinese.model resources/eval/chinese_gsd_test.txt
 litsea evaluate -l english --format tsv models/english.model resources/eval/english_ewt_test.tsv
 litsea evaluate --pos -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
+</code></pre>
+<p>各コマンドはメトリクスを stderr に出力します。最初のコマンドの出力は次のとおりです:</p>
+<pre><code class="language-text">Evaluation Metrics:
+  Sentences: 543
+  Word Precision: 96.73%
+  Word Recall: 96.66%
+  Word F1: 96.70%
+  Boundary Precision: 98.63%
+  Boundary Recall: 98.56%
+  Boundary F1: 98.59%
+</code></pre>
+<p><code>--pos</code>（最後のコマンド）では境界の行は出力されず、単語メトリクスの後に
+タグ付き単語のメトリクスが続きます:</p>
+<pre><code class="language-text">Evaluation Metrics (POS):
+  Sentences: 543
+  Word Precision: 96.78%
+  Word Recall: 96.79%
+  Word F1: 96.78%
+  Tagged Word Precision: 92.94%
+  Tagged Word Recall: 92.95%
+  Tagged Word F1: 92.95%
 </code></pre>
 <p>同じゴールドでユーザー辞書の効果を測ります — 辞書は <code>segment --user-words</code>
 と全く同じように適用されるため、メトリクスはその辞書の利用者が得るものその
@@ -273,25 +297,16 @@ litsea evaluate --user-words words.txt --user-words-gate 0.5 -l japanese models/
 メトリクスでタグの効果が分かります:</p>
 <pre><code class="language-sh">litsea evaluate --pos --user-words words.txt -l japanese models/japanese_pos.model resources/eval/japanese_gsd_test_pos.txt
 </code></pre>
-<p>韓国語・英語では、<code>--pos</code> 単体は #198 以前に二段構成モデルが学習に使っていた
-空白非保持プロトコルを再現します。現在のモデルの品質を測るには、
-<code>--pos --format tsv</code> を <code>*_pos_spaced.tsv</code> のゴールドに対して実行してください
-— 学習時のプロトコルと実際のスペース付き入力の双方に一致します。2 つの数値は
-互いに比較できません
-（<a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a> 参照）:</p>
-<pre><code class="language-sh">litsea evaluate --pos -l english models/english_pos.model resources/eval/english_ewt_test_pos.txt
+<p>韓国語と英語の二段構成モデルは空白保持コーパスで学習しているため
+（issue #198）、<code>--pos --format tsv</code> を <code>*_pos_spaced.tsv</code> のゴールドに対して
+実行して評価してください – このプロトコルは、学習時と、<code>segment --pos</code> が実際に受け取る
+スペース付きのテキストの双方に一致します:</p>
+<pre><code class="language-sh">litsea evaluate --pos --format tsv -l korean models/korean_pos.model resources/eval/korean_gsd_test_pos_spaced.tsv
 litsea evaluate --pos --format tsv -l english models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 </code></pre>
-<p>出力:</p>
-<pre><code class="language-text">Evaluation Metrics:
-  Sentences: 543
-  Word Precision: 96.73%
-  Word Recall: 96.66%
-  Word F1: 96.70%
-  Boundary Precision: 98.63%
-  Boundary Recall: 98.56%
-  Boundary F1: 98.59%
-</code></pre>
+<p>この 2 言語の <code>*_pos.txt</code> のゴールドは、issue #198 以前に使っていた空白非保持の
+プロトコルを測るもので、以前に公開した数値を再現するためだけに残しています
+（<a href="../pre-trained-models.html#english_posmodel">事前学習済みモデル</a> 参照）。</p>
 
                     </main>
 

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -243,15 +243,21 @@ seg.segment("雪だるまを作る")
 <tr><td><code>segment_tokens(text)</code></td><td>バイトオフセット付き <code>list[Token]</code></td></tr>
 <tr><td><code>segment_with_pos(text)</code></td><td>タグとオフセット付き <code>list[Token]</code></td></tr>
 <tr><td><code>segment_with_pos_batch(texts)</code></td><td><code>list[list[Token]]</code></td></tr>
-<tr><td><code>Extractor(language).extract(...)</code></td><td>特徴量ファイルを書き出す</td></tr>
-<tr><td><code>Extractor(language).extract_two_stage(...)</code></td><td><code>.stage1</code> / <code>.stage2</code> / <code>.lexicon</code> を書き出す</td></tr>
-<tr><td><code>Trainer(threshold, iterations, features).train(model, cancel=None)</code></td><td><code>BinaryMetrics</code></td></tr>
-<tr><td><code>PerceptronTrainer(epochs, features).train(model, cancel=None)</code></td><td><code>MulticlassMetrics</code></td></tr>
-<tr><td><code>TwoStageTrainer(epochs, prefix, dominance=0.99).train(model, cancel=None)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>language</code>・<code>has_pos</code>（プロパティ）</td><td>セグメンタを構築したときの <code>Language</code>、モデルが POS タグ付けに対応しているか</td></tr>
+<tr><td><code>Extractor(language).extract(corpus_path, features_path, *, tsv=False, tag_free=False)</code></td><td>特徴量ファイルを書き出す</td></tr>
+<tr><td><code>Extractor(language).extract_two_stage(corpus_path, output_prefix, *, feature_set="fast", tsv=False)</code></td><td><code>.stage1</code> / <code>.stage2</code> / <code>.lexicon</code> を書き出す</td></tr>
+<tr><td><code>Trainer(threshold, iterations, features).train(model, *, cancel=None)</code></td><td><code>BinaryMetrics</code></td></tr>
+<tr><td><code>PerceptronTrainer(epochs, features).train(model, *, cancel=None)</code></td><td><code>MulticlassMetrics</code></td></tr>
+<tr><td><code>TwoStageTrainer(epochs, prefix, *, dominance=0.99).train(model, *, cancel=None)</code></td><td><code>TwoStageMetrics</code></td></tr>
+<tr><td><code>Trainer(...).load_model(uri)</code>、<code>PerceptronTrainer(...).load_model(uri)</code></td><td><code>None</code>。既存のモデル（パス・<code>file://</code>・<code>http(s)://</code>）を読み込み、そこから学習を続ける</td></tr>
+<tr><td><code>CancelToken()</code>：<code>cancel()</code>・<code>reset()</code>・<code>cancelled</code>（プロパティ）</td><td><code>train(..., cancel=...)</code> に渡すフラグ</td></tr>
+<tr><td><code>Language.parse(name)</code></td><td><code>Language</code>。未知の名前には <code>InvalidArgumentError</code> を送出する</td></tr>
+<tr><td><code>version()</code>、<code>__version__</code></td><td><code>litsea</code> のバージョン文字列</td></tr>
 </tbody>
 </table>
 </div>
-<p><code>Language</code> と <code>Upos</code> は <code>enum.Enum</code> のサブクラスではなく PyO3 のクラスです。メンバーはクラス属性なので、列挙には <code>for x in Language</code> ではなく <code>Language.all()</code> / <code>Upos.all()</code> を使ってください。</p>
+<p><code>feature_set</code> は <code>"full"</code>・<code>"balanced"</code>・<code>"fast"</code> のいずれかで、<code>tsv=True</code> はコーパスを空白を保持する TSV 形式として読みます。</p>
+<p><code>Language</code> と <code>Upos</code> は <code>enum.Enum</code> のサブクラスではなく PyO3 のクラスです。メンバーはクラス属性なので、列挙には <code>for x in Language</code> ではなく <code>Language.all()</code> / <code>Upos.all()</code> を使ってください。<code>name</code> プロパティは正規の名前（<code>"japanese"</code>、<code>"NOUN"</code>）を返します。</p>
 <h2 id="学習"><a class="header" href="#学習">学習</a></h2>
 <pre><code class="language-python">from litsea import Extractor, Language, Trainer
 
@@ -278,17 +284,18 @@ metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=
 <tr><th>例外</th><th>発生条件</th></tr>
 </thead>
 <tbody>
-<tr><td><code>InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate</code>、UPOS タグでない <code>user_word_tags</code> の値</td></tr>
-<tr><td><code>ModelError</code></td><td>ダウンロード失敗、または旧 joint POS モデル</td></tr>
+<tr><td><code>InvalidArgumentError</code></td><td>未知の言語名、未知の feature set、使用済みトレーナ、<code>0.0</code>〜<code>1.0</code> の外の <code>user_words_gate</code>、UPOS タグでない <code>user_word_tags</code> の値、<code>(0.5, 1.0]</code> の外の <code>dominance</code>、未知のモデル URI スキーム</td></tr>
+<tr><td><code>ModelError</code></td><td>ダウンロード失敗、または旧 joint POS モデル（サポートされなくなったため、<code>litsea train --pos</code> で学習し直す）</td></tr>
 <tr><td><code>IoError</code></td><td>ファイルの読み書き失敗</td></tr>
 <tr><td><code>ParseError</code></td><td>モデルまたは学習データの形式不正</td></tr>
 <tr><td><code>UnsupportedError</code></td><td>このビルドでは利用できないスキームや操作</td></tr>
 <tr><td><code>PosUnavailableError</code></td><td>分割専用モデルに対する POS タグ付けの要求</td></tr>
+<tr><td><code>LitseaError</code></td><td>上記以外の失敗。どのサブクラスにも当てはまらないエラーでは、基底クラスそのものを送出する</td></tr>
 </tbody>
 </table>
 </div>
 <h2 id="スレッドと-gil"><a class="header" href="#スレッドと-gil">スレッドと GIL</a></h2>
-<p><code>Segmenter</code> はイミュータブルで、スレッド間で共有できます。<code>segment_batch</code>・<code>segment_with_pos_batch</code>・<code>extract</code>・各 <code>train</code> は GIL を解放します。</p>
+<p><code>Segmenter</code> はイミュータブルで、スレッド間で共有できます。<code>Segmenter.open</code>・<code>Segmenter.from_uri</code>・<code>segment_batch</code>・<code>segment_with_pos_batch</code>・<code>extract</code>・<code>extract_two_stage</code>・各トレーナのコンストラクタ・<code>load_model</code>・各 <code>train</code> は GIL を解放します。</p>
 <p>単文の <code>segment</code> / <code>segment_with_pos</code> は GIL を保持します。GIL を解放するには入力文字列を所有する必要があり（PyO3 の <code>Ungil</code> 境界により、GIL 解放中に Python 所有のメモリへ触れられないため）、そのコピーのコストが 1 文の分割コストを上回るからです。大量処理にはバッチ版を使ってください。</p>
 <h2 id="開発"><a class="header" href="#開発">開発</a></h2>
 <pre><code class="language-sh">make setup-venv            # venv 作成と開発ツールのインストール

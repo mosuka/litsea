@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -183,7 +183,7 @@
                         <h1 id="アーキテクチャ概要"><a class="header" href="#アーキテクチャ概要">アーキテクチャ概要</a></h1>
 <p>Litsea は、辞書を必要としないコンパクトな単語分割システムとして設計されています。単語分割を<strong>二値分類問題</strong>として扱い、文字レベルの特徴量から単語境界パターンを学習するために <strong>AdaBoost</strong> を使用します。</p>
 <h2 id="高レベルデータフロー"><a class="header" href="#高レベルデータフロー">高レベルデータフロー</a></h2>
-<p>Litsea には<strong>学習</strong>と<strong>分割</strong>の 2 つの主要なワークフローがあります。</p>
+<p>Litsea には<strong>学習</strong>と<strong>分割</strong>の 2 つの主要なワークフローがあります。品詞付与は、二段構成モデルでこの 2 つを行います（この節の最後で説明します）。</p>
 <h3 id="学習パイプライン"><a class="header" href="#学習パイプライン">学習パイプライン</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     A["Corpus (text)"] --&gt; B["Extractor"]
@@ -196,6 +196,7 @@
 <li><strong>特徴量抽出</strong> – <code>Extractor</code> がコーパスを読み込み、文字を種別に分類し、ラベル付き特徴量ベクトルを出力</li>
 <li><strong>モデル学習</strong> – <code>Trainer</code> が特徴量を AdaBoost に入力し、最も情報量の多い特徴量を反復的に選択してコンパクトなモデルを生成</li>
 </ol>
+<p>同梱の分割モデルは、同じモデル形式に別の経路で学習しています。2 クラスの Averaged Perceptron として学習し（<code>litsea train --perceptron</code>、<code>PerceptronTrainer</code>）、<code>scripts/collapse_binary_perceptron.py</code> で AdaBoost 形式の重みへ無損失で畳み込みます（<a href="../pre-trained-models.html#学習手順">事前学習済みモデル</a>を参照）。下の分割パイプラインはどちらのモデルでも同じです。</p>
 <h3 id="分割パイプライン"><a class="header" href="#分割パイプライン">分割パイプライン</a></h3>
 <pre><code class="language-mermaid">flowchart LR
     F["Raw text"] --&gt; G["Segmenter (AdaBoost)"]
@@ -208,12 +209,14 @@
 <li><strong>特徴量抽出</strong> – スライディングウィンドウを使用し、再利用するバッファを通して各文字位置の文字 n-gram 特徴量をストリーム処理</li>
 <li><strong>予測</strong> – AdaBoost が各位置が単語境界かどうかを予測</li>
 </ol>
+<h3 id="品詞付与パイプライン"><a class="header" href="#品詞付与パイプライン">品詞付与パイプライン</a></h3>
+<p>品詞タグは二段構成モデルが付けます。stage 1 は二値の境界分類器で、各文字位置に <code>B</code>（ここで単語が始まる）か <code>O</code>（単語の続き）を付けます。stage 2 は、分割された各単語に 17 個の UPOS タグのどれかを付けます。<code>litsea extract --pos</code> が <code>word/POS</code> コーパスから学習用ファイルを書き出し、<code>litsea train --pos</code>（<code>TwoStageTrainer</code>）がそれらから <code>litsea-two-stage</code> モデルを作り、<code>Segmenter::with_two_stage_learner</code> と <code>segment_with_pos()</code>（<code>litsea segment --pos</code>）が入力を分割して品詞を付けます（<a href="../algorithm/two-stage-tagging.html">二段構成タグ付け</a>を参照）。文字ごとに 18 個の <code>B-&lt;UPOS&gt;</code> / <code>O</code> ラベルのどれかを予測していた以前の joint モデルは削除されました。そのモデルファイルを読み込むと、<code>litsea train --pos</code> で学習し直すよう求めるエラーになります。</p>
 <h2 id="設計原則"><a class="header" href="#設計原則">設計原則</a></h2>
 <ul>
 <li><strong>辞書は不要</strong> – MeCab や Lindera とは異なり、Litsea は文字パターンから学習した統計モデルだけで分割する。その上に、任意のユーザー辞書で特定の語を 1 トークンに強制できる（<code>segment --user-words</code>、issue #263）</li>
 <li><strong>コンパクトなモデル</strong> – 単語分割モデル <code>japanese</code>/<code>chinese</code>/<code>korean</code>/<code>english.model</code> は約 86 KB〜2.0 MB（精度は<a href="../pre-trained-models.html">事前学習済みモデル</a>を参照）。二段構成の品詞モデルは約 3.1-8.3 MB – いずれもアプリケーションに直接埋め込める程度に小さく、重要な特徴量の重みのみを含む</li>
-<li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、文字種パターンのみが異なる</li>
-<li><strong>簡単な拡張性</strong> – 新しい言語の追加には、文字種パターンの定義とモデルの学習のみが必要</li>
+<li><strong>言語非依存のフレームワーク</strong> – コアアルゴリズムはすべての言語で共通であり、異なるのは文字種パターンと特徴テンプレートの集合のみ（日本語と中国語は 42 テンプレートすべて、韓国語と英語は <code>WC1</code>〜<code>WC4</code> を除く 38 テンプレートを使う）</li>
+<li><strong>簡単な拡張性</strong> – 新しい言語の追加では、文字種パターンを持つ <code>Language</code> のバリアントを追加し、<code>WC</code> テンプレートを使うかを決め、バインディングの言語一覧に加え、モデルを学習する（<a href="../language-support/adding-a-new-language.html">新しい言語の追加</a>を参照）</li>
 </ul>
 
                     </main>

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b77e8b6.js";
+            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -186,7 +186,7 @@
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Count</th><th>Word F1 (held-out)</th></tr>
+<tr><th>Language</th><th>Enum Variant</th><th>CLI Values</th><th>Feature Templates</th><th>Word F1 (held-out)</th></tr>
 </thead>
 <tbody>
 <tr><td>Japanese</td><td><code>Language::Japanese</code></td><td><code>japanese</code>, <code>ja</code></td><td>42</td><td>96.70%</td></tr>
@@ -196,6 +196,7 @@
 </tbody>
 </table>
 </div>
+<p>“Feature Templates” is the number of feature templates the language can use (<code>templates_for()</code> in <code>packed_model.rs</code>), not the number of features in a model. The bundled <code>korean.model</code> and <code>english.model</code> are trained tag-free (<code>--tag-free</code>), so they use only the 22 of their 38 templates that do not read previous boundary decisions.</p>
 <h2 id="the-language-enum"><a class="header" href="#the-language-enum">The Language Enum</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -235,7 +236,7 @@ let err = "french".parse::&lt;Language&gt;();          // Err(...)
 <tbody>
 <tr><td>Character types</td><td>8 (M, H, I, K, P, A, N, O)</td><td>9 (F, C, X, R, P, B, A, N, O)</td><td>10 (E, SN, SF, J, G, H, P, A, N, O)</td><td>7 (U, W, Q, P, A, N, O)</td></tr>
 <tr><td>WC features</td><td>Yes (4 extra)</td><td>Yes (4 extra)</td><td>No</td><td>No</td></tr>
-<tr><td>Total features</td><td>42</td><td>42</td><td>38</td><td>38</td></tr>
+<tr><td>Feature templates</td><td>42</td><td>42</td><td>38</td><td>38</td></tr>
 <tr><td>Matching method</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges</td><td><code>match</code> on char ranges + codepoint test</td><td><code>match</code> on char ranges</td></tr>
 </tbody>
 </table>

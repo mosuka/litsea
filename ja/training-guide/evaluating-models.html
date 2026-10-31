@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -238,7 +238,7 @@
 空白保持プロトコルによるものですが、両者の差は空白があってもなお英語に残る
 曖昧性（短縮形、ハイフン付き複合語、省略語）に由来します。</p>
 <h3 id="ベンチマークの再現"><a class="header" href="#ベンチマークの再現">ベンチマークの再現</a></h3>
-<p>上の表のすべての数値は、同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD の
+<p>上の表のすべての数値は、同梱のゴールドデータ（<code>resources/eval/</code>、UD GSD/EWT の
 <strong>test</strong> 分割から変換。同梱モデルは train 分割で学習しているため held-out に
 あたります）を使って、それぞれ 1 コマンドで再現できます:</p>
 <pre><code class="language-sh">litsea evaluate -l japanese models/japanese.model resources/eval/japanese_gsd_test.txt

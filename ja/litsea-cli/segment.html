@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -205,7 +205,7 @@
 <tbody>
 <tr><td><code>-l</code>, <code>--language &lt;LANGUAGE&gt;</code></td><td><code>japanese</code></td><td>文字タイプ分類に使用する言語。指定可能な値: <code>japanese</code> / <code>ja</code>, <code>chinese</code> / <code>zh</code>, <code>korean</code> / <code>ko</code>, <code>english</code> / <code>en</code></td></tr>
 <tr><td><code>--pos</code></td><td>off</td><td>品詞推定付き分割を有効にします。<a href="../advanced/model-file-format.html#二段構成モデル形式litsea-two-stage-v1">二段構成</a>モデル（<code>train --pos</code>）が必要です</td></tr>
-<tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません</td></tr>
+<tr><td><code>--threads &lt;N&gt;</code></td><td><code>1</code></td><td>バッチ分割のワーカースレッド数（issue #185）。既定値では従来どおりのシングルスレッド動作。<code>N &gt; 1</code> では入力行を並列に分割しつつ<strong>入力順で</strong>出力するため、出力はどちらでもバイト単位で同一です（<code>--pos</code> の有無を問わず使用可）。大きな入力の実時間はコア数に応じて短縮されますが、1 行あたりのレイテンシは変わりません。<code>N</code> は 1 から 65535 までで、<code>--threads 0</code> はエラーになります</td></tr>
 <tr><td><code>--user-words &lt;FILE&gt;</code></td><td>なし</td><td>ユーザー辞書（issue #263、#264、#276）。1 行 1 語の UTF-8 ファイルで、語の後ろに TAB と UPOS タグを続けることもできます。登録語の出現箇所はすべて 1 トークンとして出力されます — 両端に境界を置き、内側には置きません。重なった出現箇所は leftmost-longest で解決します。<code>--pos</code> では、タグ付きの語のトークンに登録されたタグを付けます。タグ付きの 1 文字の語は境界を変えず、その 1 文字ちょうどのトークンのタグだけを置き換えます。タグのない 1 文字の語と空行は無視されます</td></tr>
 <tr><td><code>--user-words-gate &lt;RATIO&gt;</code></td><td>なし</td><td><code>--user-words</code> の flip ratio による gate（<code>0.0..=1.0</code>）。語が覆すモデルの margin の割合が <code>RATIO</code> 以下のときだけ出現箇所を適用します（<code>0</code> = モデルがすでに同意している場所だけ、<code>1</code> = 常に）。<code>--user-words</code> が必要です</td></tr>
 </tbody>
@@ -213,8 +213,8 @@
 </div>
 <h2 id="入力--出力"><a class="header" href="#入力--出力">入力 / 出力</a></h2>
 <ul>
-<li><strong>入力</strong>: stdinから読み取り、1行に1文。入力の先頭のバイトオーダーマーク（BOM）は無視します（issue #281）。空行はスキップされます。</li>
-<li><strong>出力</strong>: stdoutに書き込み、スペース区切りのトークン、入力行ごとに1行。</li>
+<li><strong>入力</strong>: stdinから読み取り、1行に1文。入力の先頭のバイトオーダーマーク（BOM）は無視します（issue #281）。各行は前後の空白を取り除いてから分割します。空行と空白だけの行はスキップされます。</li>
+<li><strong>出力</strong>: stdoutに書き込み、空でない入力行ごとに1行。トークンは空白 1 つで区切ります。韓国語と英語のモデルでは文中の空白がそれ自体 1 つのトークンになるため、区切りの空白 2 つの間に現れます（下の英語の例を参照）。</li>
 <li><strong>パイプライン</strong>: 後段の処理がパイプを早期に閉じた場合（例:
 <code>litsea segment model | head -1</code>）、コマンドは正常終了します（終了コード0）。
 そのため <code>segment</code> はシェルのパイプライン内で問題なく連携できます。</li>
@@ -235,6 +235,8 @@
 </code></pre>
 <p><strong>英語:</strong></p>
 <pre><code class="language-sh">echo "I don't know." | litsea segment -l english ./models/english.model
+</code></pre>
+<pre><code class="language-text">I   do n't   know .
 </code></pre>
 <p><strong>ファイルの処理:</strong></p>
 <pre><code class="language-sh">cat input.txt | litsea segment -l japanese ./models/japanese.model &gt; output.txt
@@ -355,7 +357,7 @@ printf '楓が笑った。\n★が三つ付いた。\n' \
 <ul>
 <li><code>--language</code> フラグは、モデルが学習された言語と一致する必要があります</li>
 <li>CLIは非同期のURI APIを通じてモデルを読み込み、TLS（rustls）を使用したHTTP/HTTPSをサポートしています。ライブラリには同期的なローカル読み込み（<code>load_model_from_path</code>）も用意されています</li>
-<li>モデルURIはファイルパスに限定されません – 有効なURLであれば使用可能です</li>
+<li>モデルURIには、ファイルパス、<code>file://</code> の URI、<code>http://</code> / <code>https://</code> の URL を使えます。それ以外のスキームは <code>Error: invalid input: Invalid model scheme: &lt;scheme&gt;</code> で失敗します</li>
 <li><code>--pos</code> を使用する場合、モデルは <code>train --pos</code> で学習した二段構成モデルである必要があります</li>
 </ul>
 

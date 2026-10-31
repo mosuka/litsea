@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -197,9 +197,9 @@
 </thead>
 <tbody>
 <tr><td><code>segment_short/adaboost/{japanese,chinese,korean,english}</code></td><td>短い文の分割（AdaBoost）</td></tr>
-<tr><td><code>segment_short/averaged_perceptron/{japanese,chinese,korean,english}</code></td><td>短い文の分割+品詞付与</td></tr>
-<tr><td><code>segment_long_japanese/{adaboost,averaged_perceptron}</code></td><td>坊っちゃん全文の処理（約 314 KB）</td></tr>
+<tr><td><code>segment_long_japanese/adaboost</code></td><td>坊っちゃん全文の処理（約 314 KB）</td></tr>
 <tr><td><code>external_corpus/*</code></td><td>tokenizer-speed-bench と同一のコーパススループット計測（後述）</td></tr>
+<tr><td><code>segment_into/*</code></td><td><code>external_corpus</code> と同じコーパスでの <code>segment()</code> とバッファ再利用の <code>segment_into()</code> の比較（後述）</td></tr>
 <tr><td><code>char_type_hiragana</code></td><td>文字種分類</td></tr>
 <tr><td><code>add_corpus</code></td><td>学習用コーパスの取り込み</td></tr>
 <tr><td><code>predict_adaboost</code></td><td>単一の AdaBoost 予測</td></tr>
@@ -314,7 +314,7 @@ chars/sec は CLI のスレッドスケーリングについて何も語りま�
 <ul>
 <li><strong>分割処理</strong>は入力長に対して線形（O(n)）</li>
 <li><strong>文字種分類</strong>は文字範囲に対する <code>match</code> で直接行われる（数ナノ秒、セットアップコストなし）</li>
-<li>各位置での<strong>予測</strong>は特徴量の数に依存（38-42個、定数）</li>
+<li>各位置での<strong>予測</strong>は特徴量テンプレートの数に依存し、その数はモデルごとに一定（日本語・中国語は 42 個、韓国語・英語は 38 個。タグなしモデルではタグ依存のパスをスキップするため 16 個少ない。同梱の <code>korean.model</code> と <code>english.model</code> はタグなしなので 22 個）</li>
 <li><strong>モデル読み込み</strong>時間はモデルファイルサイズに比例</li>
 </ul>
 

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -212,6 +212,7 @@ UC4:I	0.2345
 <p>ローダーは、不正な形式のファイルを黙って読み込まず、明示的なエラーとして拒否します:</p>
 <ul>
 <li><strong>空のファイル</strong></li>
+<li>どこかに<strong>空行</strong>を含むファイル</li>
 <li><strong>バイアス行を持たない</strong>ファイル（ダウンロードの途中切断やコピーの中断で
 典型的に発生する症状）</li>
 <li>バイアス行が <strong>2 行以上</strong>あるファイル</li>
@@ -269,6 +270,16 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 ローダーはそれを未対応バージョンとして拒否します。ローダーはセクションの順序、
 上記の lexicon 規則、パラメータの範囲を検証し、エラーにはセクション名を付けて
 報告します（例: <code>[stage2] section: ...</code>）。</p>
+<h2 id="averaged-perceptron-モデル形式"><a class="header" href="#averaged-perceptron-モデル形式">Averaged Perceptron モデル形式</a></h2>
+<p>単独の Averaged Perceptron 形式（クラス数の行、ソート順のクラス名、続いて
+<code>feature\tclass\tweight</code> の行。<a href="../algorithm/averaged-perceptron.html#モデルファイル形式">Averaged Perceptron</a>
+を参照）は、<code>litsea train --perceptron</code> が書き出す形式であり、二段構成モデルの
+<code>[stage2]</code> セクションに埋め込まれる形式でもあります。この形式の単独のファイルは
+品詞タグ付けのモデルとしては使えません。削除された joint POS モデルと同じ形式なので、
+二段構成のローダーと言語バインディングは、<code>litsea train --pos</code> で学習し直すよう
+求めるエラーでこれを拒否します。バインディングはモデルの種類を 1 行目から判定します:
+<code>litsea-two-stage</code> のマジック行なら二段構成モデル、整数だけの行なら単独の
+Averaged Perceptron ファイル、それ以外は AdaBoost 形式として読み込みます。</p>
 <h2 id="ファイルサイズ"><a class="header" href="#ファイルサイズ">ファイルサイズ</a></h2>
 <p>モデルファイルのサイズは、モデルの種類と言語によって大きく異なります:</p>
 <div class="table-wrapper">
@@ -291,7 +302,7 @@ Perceptron のクラス数としても解釈できないため、既存のロー
 <p>単語分割モデル <code>japanese.model</code>・<code>chinese.model</code>・<code>korean.model</code>・<code>english.model</code>（<a href="../pre-trained-models.html">事前学習済みモデル</a>を参照）は約 86 KB〜2.0 MB で、アプリケーションへの直接埋め込みや HTTP 配信に十分な小ささです。二段構成モデル（<code>*_pos.model</code>）の数メガバイトに比べても小さく、後者はクラスごと・ステージごとの重みを保持するためサイズが大きくなります。</p>
 <h2 id="互換性"><a class="header" href="#互換性">互換性</a></h2>
 <ul>
-<li>モデルファイルは<strong>エンコーディング非依存</strong>です（特徴量名はそのまま保存されます）</li>
+<li>モデルファイルは <strong>UTF-8</strong> のテキストです。特徴量名はそのまま保存され（タブと改行以外の任意の文字）、有効な UTF-8 でないファイルは読み込みに失敗します</li>
 <li>形式は、通常の学習ワークフローにおいては<strong>決定的</strong>です: <code>save_model</code> は学習器の特徴量順で特徴量を書き出します。特徴量ファイルから初期化された学習器やディスクから読み込まれた学習器では、この順序は（<code>BTreeMap</code> により）ソートされています。一方、<code>add_instance()</code> のみで構築された学習器は挿入順で書き出します</li>
 <li>モデルは<strong>前方互換性</strong>があります。入力に含まれるがモデルにない新しい特徴量は、予測時に単純に無視されます</li>
 </ul>

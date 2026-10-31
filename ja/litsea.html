@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1b2816ba.js";
+            window.path_to_searchindex_js = "searchindex-49bd43e5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -186,7 +186,11 @@
 <pre><code class="language-toml">[dependencies]
 litsea = "0.15.0"
 </code></pre>
-<p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>）で行えるため、tokio などの非同期ランタイムは不要です。HTTP(S) からのリモートモデル取得など async API（<code>load_model</code>）を使う場合のみ、非同期ランタイムを追加してください（例えば <code>TwoStageLearner::load_model</code> も常に同じ非同期経路でモデル URI を解決するため、これに該当します）。</p>
+<p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>、<code>load_model_from_reader</code>）で行えるため、tokio などの非同期ランタイムは不要です。<code>load_model</code> 系のメソッド（例えば <code>TwoStageLearner::load_model</code>）と <code>model_io::read_model_bytes</code> は、ローカルのパスを含むどの形式の URI でも async なので、呼び出すには <code>tokio</code> などの非同期ランタイムが必要です。</p>
+<p>HTTP(S) からのモデル読み込みには、既定では無効な <code>remote_model</code> フィーチャも必要です。無効のままでは、<code>http://</code> と <code>https://</code> の URI は <code>LitseaError::Unsupported</code> で失敗します（<a href="advanced/remote-model-loading.html">リモートモデルの読み込み</a>を参照）:</p>
+<pre><code class="language-toml">[dependencies]
+litsea = { version = "0.15.0", features = ["remote_model"] }
+</code></pre>
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
     A["litsea::segmenter"] --- B["Segmenter"]
@@ -200,6 +204,8 @@ litsea = "0.15.0"
     Q["litsea::metrics"] --- R["BinaryMetrics, MulticlassMetrics"]
     S["litsea::evaluation"] --- T["PosMetrics, SegmentationMetrics"]
     U["litsea::two_stage"] --- V["ModelKind, TwoStageFeatureSet, TwoStageLearner"]
+    W["litsea::user_dictionary"] --- X["UserDictionary"]
+    Y["litsea::model_io"] --- Z["read_model_bytes"]
 </code></pre>
 <div class="table-wrapper">
 <table>
@@ -208,6 +214,7 @@ litsea = "0.15.0"
 </thead>
 <tbody>
 <tr><td><code>litsea::segmenter</code></td><td><code>Segmenter</code>, <code>SegmentBuffer</code></td><td>単語分割（所有出力またはアロケーションフリー出力）、二段構成の品詞推定付き分割</td></tr>
+<tr><td><code>litsea::user_dictionary</code></td><td><code>UserDictionary</code></td><td>ユーザー辞書: 1 トークンとして出力する語と、<code>segment_with_pos</code> が付ける任意の UPOS タグ（<a href="litsea/segmenter.html#ユーザー辞書">ユーザー辞書</a>を参照）</td></tr>
 <tr><td><code>litsea::adaboost</code></td><td><code>AdaBoost</code></td><td>二値分類、モデルの入出力</td></tr>
 <tr><td><code>litsea::perceptron</code></td><td><code>AveragedPerceptron</code></td><td>多クラス分類（二段構成の学習）、モデルの入出力</td></tr>
 <tr><td><code>litsea::upos</code></td><td><code>Upos</code>, <code>SegmentLabel</code></td><td>UPOS 品詞タグ、セグメントラベル</td></tr>
@@ -218,11 +225,11 @@ litsea = "0.15.0"
 <tr><td><code>litsea::metrics</code></td><td><code>BinaryMetrics</code>, <code>MulticlassMetrics</code></td><td>学習結果の評価指標(in-sample)</td></tr>
 <tr><td><code>litsea::evaluation</code></td><td><code>PosMetrics</code>, <code>SegmentationMetrics</code></td><td>gold コーパスに対する held-out 評価</td></tr>
 <tr><td><code>litsea::two_stage</code></td><td><code>ModelKind</code>, <code>TwoStageFeatureSet</code>, <code>TwoStageLearner</code></td><td>二段構成モデルのコンテナとモデル種別の判定</td></tr>
-<tr><td><code>litsea::model_io</code></td><td><code>read_model_bytes</code></td><td>モデル URI（パス・<code>file://</code>・<code>http(s)://</code>）をバイト列へ解決する</td></tr>
+<tr><td><code>litsea::model_io</code></td><td><code>read_model_bytes</code></td><td>モデル URI（パス・<code>file://</code>・<code>remote_model</code> フィーチャを有効にしたときの <code>http(s)://</code>）をバイト列へ解決する（async）</td></tr>
 </tbody>
 </table>
 </div>
-<p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::Segmenter;</code> は <code>use litsea::segmenter::Segmenter;</code> の短縮形として使えます。</p>
+<p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::Segmenter;</code> は <code>use litsea::segmenter::Segmenter;</code> の短縮形として使えます。クレートルートには、クレートのバージョン（例: <code>"0.15.0"</code>）を返す <code>litsea::version()</code> もあります。</p>
 <p>各学習器は自身で URI を解決するため、<code>model_io::read_model_bytes</code> を直接使う場面はほとんどありません。これが公開されているのは、学習器を選ぶ前にモデルの中身を確認する必要がある呼び出し側のためです。<code>litsea-binding-core</code> はこれでバイト列を 1 度読み、<code>ModelKind::detect</code> で種別を判定し、同じバイト列を <code>load_model_from_reader</code> に渡すことで、リモートモデルを 2 回ダウンロードすることを避けています。</p>
 <h2 id="クイックスタート"><a class="header" href="#クイックスタート">クイックスタート</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;
