@@ -21,7 +21,7 @@ use crate::metrics::{PyBinaryMetrics, PyMulticlassMetrics, PyTwoStageMetrics};
 ///
 /// The binding never installs a signal handler - handling Ctrl-C is the
 /// application's decision, and Python already owns SIGINT.
-#[pyclass(name = "CancelToken", frozen, skip_from_py_object, module = "litsea")]
+#[pyclass(name = "CancelToken", frozen, module = "litsea")]
 #[derive(Debug, Clone, Default)]
 pub struct PyCancelToken {
     /// The wrapped token.

@@ -8,7 +8,7 @@ use pyo3::prelude::*;
 /// Metrics from training a binary (segmentation) model.
 ///
 /// All percentages are 0-100.
-#[pyclass(name = "BinaryMetrics", frozen, skip_from_py_object, module = "litsea")]
+#[pyclass(name = "BinaryMetrics", frozen, module = "litsea")]
 #[derive(Debug, Clone)]
 pub struct PyBinaryMetrics {
     /// Accuracy, as a percentage.
@@ -77,12 +77,7 @@ impl From<BinaryMetrics> for PyBinaryMetrics {
 ///
 /// All percentages are 0-100. The per-class counts are dictionaries keyed by
 /// the label name.
-#[pyclass(
-    name = "MulticlassMetrics",
-    frozen,
-    skip_from_py_object,
-    module = "litsea"
-)]
+#[pyclass(name = "MulticlassMetrics", frozen, module = "litsea")]
 #[derive(Debug, Clone)]
 pub struct PyMulticlassMetrics {
     /// Accuracy, as a percentage.
@@ -144,12 +139,7 @@ impl From<MulticlassMetrics> for PyMulticlassMetrics {
 }
 
 /// Metrics from training a two-stage model: one set per stage.
-#[pyclass(
-    name = "TwoStageMetrics",
-    frozen,
-    skip_from_py_object,
-    module = "litsea"
-)]
+#[pyclass(name = "TwoStageMetrics", frozen, module = "litsea")]
 #[derive(Debug, Clone)]
 pub struct PyTwoStageMetrics {
     /// Boundary-classifier (stage 1) metrics.
