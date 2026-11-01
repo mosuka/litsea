@@ -1,5 +1,31 @@
 # Changelog
 
+## Unreleased
+
+### Changed (breaking)
+
+- **Node.js types:** `index.d.ts` declares the training metrics as
+  `BinaryMetrics`, `MulticlassMetrics` and `TwoStageMetrics` instead of
+  `JsBinaryMetrics`, `JsMulticlassMetrics` and `JsTwoStageMetrics` (#286).
+  The new names are the ones the `train()` signatures already used, and
+  they match the classes (`Segmenter`, `Trainer` and so on) and the Python
+  binding. TypeScript code that imports a `Js…Metrics` type must import the
+  new name; JavaScript is unaffected.
+
+### Fixed
+
+- Node.js: the return types of `Trainer`, `PerceptronTrainer` and
+  `TwoStageTrainer` `train()` in `index.d.ts` named types the file did not
+  declare, so TypeScript could not resolve them (`Cannot find name
+  'BinaryMetrics'`) (#286). `make test-litsea-nodejs` now type-checks
+  `index.d.ts` with `tsc`.
+- WebAssembly: the `litsea-wasm` npm package ships the `cache.js` helper and
+  its `cache.d.ts`; import it as `litsea-wasm/cache.js` (#286). None of the
+  published versions (0.13.0 to 0.15.0) did: `make build-litsea-wasm`
+  copied the two files into `pkg/`, but the `files` list of the
+  `package.json` that wasm-pack writes left them out. Regression now builds
+  the package and checks its file list (`make check-litsea-wasm-package`).
+
 ## 0.15.0 (2026-10-28)
 
 ### Added

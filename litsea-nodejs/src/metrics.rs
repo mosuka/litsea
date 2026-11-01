@@ -7,7 +7,7 @@ use litsea::{BinaryMetrics, MulticlassMetrics, TwoStageMetrics};
 /// Metrics from training a binary (segmentation) model.
 ///
 /// All percentages are 0-100.
-#[napi(object)]
+#[napi(object, js_name = "BinaryMetrics")]
 pub struct JsBinaryMetrics {
     /// Accuracy, as a percentage.
     pub accuracy: f64,
@@ -53,7 +53,7 @@ impl From<BinaryMetrics> for JsBinaryMetrics {
 ///
 /// All percentages are 0-100. The per-class counts are objects keyed by the
 /// label name.
-#[napi(object)]
+#[napi(object, js_name = "MulticlassMetrics")]
 pub struct JsMulticlassMetrics {
     /// Accuracy, as a percentage.
     pub accuracy: f64,
@@ -104,7 +104,7 @@ fn to_u32_map(map: HashMap<String, usize>) -> HashMap<String, u32> {
 }
 
 /// Metrics from training a two-stage model: one set per stage.
-#[napi(object)]
+#[napi(object, js_name = "TwoStageMetrics")]
 pub struct JsTwoStageMetrics {
     /// Boundary-classifier (stage 1) metrics.
     pub stage1: JsMulticlassMetrics,

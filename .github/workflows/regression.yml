@@ -352,6 +352,21 @@ jobs:
         # expectation being refreshed.
         run: git diff --exit-code litsea-wasm/tests/fixtures.tsv
 
+      - name: Setup Node.js
+        # The same version as the release job that publishes the package.
+        uses: actions/setup-node@v7
+        with:
+          node-version: "20"
+
+      - name: Build the npm package
+        run: make build-litsea-wasm
+
+      - name: Verify the npm package ships the cache helper
+        # The release job publishes litsea-wasm/pkg/ as built above; the
+        # package.json that wasm-pack writes leaves the helper out unless
+        # build-litsea-wasm adds it (#286).
+        run: make check-litsea-wasm-package
+
   feature-check:
     name: Feature check
     needs: [format]

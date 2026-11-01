@@ -92,16 +92,16 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.p
 | `language`・`hasPos`（getter） | セグメンタを構築したときの言語名、モデルが POS タグ付けに対応しているか |
 | `new Extractor(language).extract(corpusPath, featuresPath, tsv?, tagFree?)` | `Promise<void>` |
 | `new Extractor(language).extractTwoStage(corpusPath, outputPrefix, featureSet?, tsv?)` | `Promise<void>`。未知の `featureSet` は同期的に throw される |
-| `new Trainer(threshold, iterations, features).train(model, cancel?)` | `Promise<JsBinaryMetrics>` |
-| `new PerceptronTrainer(epochs, features).train(model, cancel?)` | `Promise<JsMulticlassMetrics>` |
-| `new TwoStageTrainer(epochs, prefix, dominance?).train(model, cancel?)` | `Promise<JsTwoStageMetrics>` |
+| `new Trainer(threshold, iterations, features).train(model, cancel?)` | `Promise<BinaryMetrics>` |
+| `new PerceptronTrainer(epochs, features).train(model, cancel?)` | `Promise<MulticlassMetrics>` |
+| `new TwoStageTrainer(epochs, prefix, dominance?).train(model, cancel?)` | `Promise<TwoStageMetrics>` |
 | `new CancelToken()`：`cancel()`・`reset()`・`cancelled`（getter） | `train(model, cancel)` に渡すフラグ |
 | `supportedLanguages()` | `string[]`（正規の言語名） |
 | `version()` | `string`（`litsea` のバージョン） |
 
 `featureSet` は `'full'`・`'balanced'`・`'fast'`（既定）のいずれかで、`tsv` を `true` にするとコーパスを空白を保持する TSV 形式として読みます。
 
-型定義は napi-rs が生成し、`index.d.ts` として同梱されます。メトリクスのオブジェクトは、そこで `JsBinaryMetrics`・`JsMulticlassMetrics`・`JsTwoStageMetrics` として宣言されています。
+型定義は napi-rs が生成し、`index.d.ts` として同梱されます。メトリクスのオブジェクトは、そこで `BinaryMetrics`・`MulticlassMetrics`・`TwoStageMetrics` として宣言されています。TypeScript のコードからは `import type { BinaryMetrics } from 'litsea'` のように名前で参照できます。0.15.0 までは `JsBinaryMetrics`・`JsMulticlassMetrics`・`JsTwoStageMetrics` として宣言されていて、`train()` の型の書き方とは名前が違っていました。
 
 ## 非同期設計
 

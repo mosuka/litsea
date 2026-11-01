@@ -113,13 +113,15 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.p
 
 ## モデルのキャッシュ
 
-モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。任意で使える補助モジュールが、リポジトリに `litsea-wasm/js/cache.js`（と `cache.d.ts`）としてあります。npm のパッケージには含まれません。`make build-litsea-wasm` は 2 つのファイルを `pkg/` に写しますが、wasm-pack が生成する `package.json` の `files` の一覧に入っていないためです。プロジェクトに写して、そこから import してください。
+モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。そのための任意の補助モジュール `cache.js`（と `cache.d.ts`）が、wasm モジュールと並んでパッケージに入っています。次のように import します。
 
 ```js
-import { fetchModel, clearModelCache } from './cache.js'
+import { fetchModel, clearModelCache } from 'litsea-wasm/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
 ```
+
+0.15.0 までの npm のパッケージには、この補助モジュールが入っていません。その版では、リポジトリの `litsea-wasm/js/cache.js`（と `cache.d.ts`）をプロジェクトに写して、そこから import してください。
 
 URL をキーに Cache Storage へ保存し、利用できない環境（非セキュアコンテキストなど）では通常の fetch にフォールバックするため、呼び出し側での分岐は不要です。wasm モジュール外の素の JavaScript なので、使わないページには一切コストがかかりません。
 

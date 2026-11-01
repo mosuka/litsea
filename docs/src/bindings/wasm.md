@@ -113,13 +113,15 @@ Train with the CLI or one of the native bindings, and load the resulting model h
 
 ## Caching models
 
-Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. An optional helper lives in the repository as `litsea-wasm/js/cache.js` (with `cache.d.ts`). The npm package does not include it: `make build-litsea-wasm` copies the two files into `pkg/`, but the `files` list of the `package.json` that wasm-pack generates leaves them out. Copy them into your project and import them from there:
+Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper for this, `cache.js` (with `cache.d.ts`), next to the wasm module:
 
 ```js
-import { fetchModel, clearModelCache } from './cache.js'
+import { fetchModel, clearModelCache } from 'litsea-wasm/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
 ```
+
+Up to 0.15.0 the npm package left the helper out; with those versions, copy `litsea-wasm/js/cache.js` (and `cache.d.ts`) from the repository into your project and import it from there.
 
 It stores fetched models in Cache Storage keyed by URL, and falls back to a plain fetch when Cache Storage is unavailable (an insecure context), so callers do not branch. It is plain JavaScript outside the wasm module, so a page that does not use it pays nothing.
 

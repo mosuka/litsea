@@ -34,7 +34,8 @@
     "build": "napi build --platform --release -p litsea-nodejs",
     "build:debug": "napi build --platform -p litsea-nodejs",
     "artifacts": "napi artifacts",
-    "test": "node --test tests/test-*.mjs"
+    "test": "node --test tests/test-*.mjs",
+    "typecheck": "tsc -p tests/tsconfig.json"
   },
   "files": [
     "index.js",
@@ -60,6 +61,8 @@
     "english"
   ],
   "devDependencies": {
-    "@napi-rs/cli": "3.10.9"
+    "@napi-rs/cli": "3.10.9",
+    "@types/node": "20.19.43",
+    "typescript": "7.0.2"
   }
 }
