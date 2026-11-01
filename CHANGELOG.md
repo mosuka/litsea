@@ -19,6 +19,12 @@
   declare, so TypeScript could not resolve them (`Cannot find name
   'BinaryMetrics'`) (#286). `make test-litsea-nodejs` now type-checks
   `index.d.ts` with `tsc`.
+- WebAssembly: the `litsea-wasm` npm package ships the `cache.js` helper and
+  its `cache.d.ts`; import it as `litsea-wasm/cache.js` (#286). None of the
+  published versions (0.13.0 to 0.15.0) did: `make build-litsea-wasm`
+  copied the two files into `pkg/`, but the `files` list of the
+  `package.json` that wasm-pack writes left them out. Regression now builds
+  the package and checks its file list (`make check-litsea-wasm-package`).
 
 ## 0.15.0 (2026-10-28)
 

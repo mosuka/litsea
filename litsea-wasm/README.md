@@ -81,7 +81,7 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.p
 Models are 86 KB – 8.3 MB and cross the network once per visitor. The package ships an optional helper that keeps them in Cache Storage:
 
 ```js
-import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
+import { fetchModel, clearModelCache } from 'litsea-wasm/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')   // cached after the first visit
 ```

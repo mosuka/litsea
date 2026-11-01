@@ -181,9 +181,17 @@ build-litsea-ruby: check-bundler ## Build litsea-ruby (release)
 package-litsea-ruby: check-bundler ## Build the litsea-ruby source gem into litsea-ruby/pkg/
 	cd litsea-ruby && bundle install --quiet && bundle exec rake build
 
-build-litsea-wasm: ## Build litsea-wasm (wasm-pack, --target web)
+# The release job publishes litsea-wasm/pkg/ as built here. wasm-pack writes a
+# package.json whose `files` lists only the wasm module, its JS glue and its
+# typings, so the cache helper copied next to them is added there too, or npm
+# leaves it out of the package (#286).
+build-litsea-wasm: ## Build litsea-wasm (wasm-pack, --target web) into litsea-wasm/pkg/
 	cd litsea-wasm && wasm-pack build --release --target web --out-dir pkg
 	cp litsea-wasm/js/cache.js litsea-wasm/js/cache.d.ts litsea-wasm/pkg/
+	cd litsea-wasm/pkg && npm pkg set 'files[]=cache.js' 'files[]=cache.d.ts'
+
+check-litsea-wasm-package: ## Check that the npm package in litsea-wasm/pkg/ ships the cache helper (after build-litsea-wasm)
+	cd litsea-wasm/pkg && npm pack --dry-run --json | node ../tests/check_package.mjs
 
 build-litsea-php: ## Build litsea-php (release)
 	cargo build -p litsea-php --release

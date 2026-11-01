@@ -81,7 +81,7 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.p
 モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。Cache Storage に保持する補助モジュールを同梱しています。
 
 ```js
-import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
+import { fetchModel, clearModelCache } from 'litsea-wasm/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')   // 2 回目以降はキャッシュから
 ```
