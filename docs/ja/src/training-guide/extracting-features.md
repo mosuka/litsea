@@ -27,7 +27,7 @@ flowchart TD
     A["Read corpus line by line"] --> B["Split line into words"]
     B --> C["Build chars, types, and tags arrays"]
     C --> D["For each character position"]
-    D --> E["Extract 38-42 features"]
+    D --> E["Extract 38-42 features<br/>(22-26 with --tag-free)"]
     E --> F["Write label + features to file"]
 ```
 
@@ -67,6 +67,18 @@ litsea extract --format tsv --tag-free -l english ./en_corpus.tsv ./en_features.
 空白文字そのもの（`" "`）を含められます。出力される特徴量ファイルの形式は既定の
 `extract` と同一で、コーパスの解析方法のみが異なります。`--format tsv` は
 `--pos` とも併用できます（issue #198。後述の[二段構成の特徴量抽出](#二段構成の特徴量抽出)を参照）。
+
+## タグなし（pointwise）の抽出
+
+`--tag-free` は、16 個のタグ依存の特徴量テンプレート
+（`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`。直前の境界判定を参照する）を除外します。
+そのため各行の特徴量は 16 個少なくなり（38-42 個ではなく 22-26 個）、学習した
+モデルは *pointwise* になります: `segment()` は逐次スコアリングパスを
+スキップします。`--format tsv` とは併用でき（同梱の `korean.model` と
+`english.model` はこの方法で学習しています）、`--pos` とは併用できません
+（`--tag-free cannot be combined with --pos` というエラーになります）。言語ごとの
+品質とスループットのトレードオフは[タグなし（pointwise）モデル](../pre-trained-models.md#タグなしpointwiseモデル)を
+参照してください。
 
 ## 二段構成の特徴量抽出
 
@@ -117,4 +129,4 @@ litsea extract --pos --stage2-features balanced -l chinese ./pos_corpus.txt ./po
 
 ## ファイルサイズの目安
 
-特徴量ファイルは、各文字位置が38-42個の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。
+特徴量ファイルは、各文字位置が38-42個（`--tag-free` では22-26個）の特徴量文字列を生成するため、コーパスよりも大幅に大きくなります。1 MB のコーパスに対して、特徴量ファイルはおよそ 50-100 MB になることが見込まれます。

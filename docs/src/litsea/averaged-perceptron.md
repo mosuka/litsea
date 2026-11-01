@@ -36,6 +36,8 @@ pub fn add_instance(&mut self, features: HashSet<String>, label: String)
 
 Adds a training instance with a feature set and a label. Unknown classes are automatically registered.
 
+Labels are opaque strings. In the two-stage model, stage 1 labels each character position `B` (a word starts here) or `O` (continuation), and stage 2 tags each word with one of the 17 UPOS tags. The `B-<UPOS>` labels of the earlier joint model, which was removed, are no longer used.
+
 ```rust
 use std::collections::HashSet;
 use litsea::perceptron::AveragedPerceptron;
@@ -44,7 +46,7 @@ let mut learner = AveragedPerceptron::new();
 let mut feats = HashSet::new();
 feats.insert("UW4:猫".to_string());
 feats.insert("UC4:H".to_string());
-learner.add_instance(feats, "B-NOUN".to_string());
+learner.add_instance(feats, "B".to_string());
 ```
 
 ## Training
@@ -83,7 +85,7 @@ attrs.insert("UC4:I".to_string());
 // ... more features
 
 let label = learner.predict(&attrs);
-// label == "B-ADP", "O", etc.
+// label == "B" or "O" for a boundary model; a stage-2 tagger returns UPOS tags such as "ADP"
 ```
 
 ## Accessors
@@ -97,9 +99,8 @@ pub fn classes(&self) -> &[String]
 Returns the registered class names in their sorted storage order -- the
 order used for weight-vector indexing and `predict`'s argmax tie-breaking
 (first strictly-greater class wins). Empty if no classes are registered.
-Used by the two-stage collapse procedure (see [Pre-trained
-Models](../pre-trained-models.md#training-procedure)) and by the packed
-two-stage runtime.
+Used, for example, when a two-stage model is assembled or loaded, to check
+that every stage-2 class is a UPOS tag.
 
 ## Model I/O
 

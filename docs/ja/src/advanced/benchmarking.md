@@ -21,9 +21,9 @@ make bench
 | ベンチマーク | 説明 |
 |-----------|------------|
 | `segment_short/adaboost/{japanese,chinese,korean,english}` | 短い文の分割（AdaBoost） |
-| `segment_short/averaged_perceptron/{japanese,chinese,korean,english}` | 短い文の分割+品詞付与 |
-| `segment_long_japanese/{adaboost,averaged_perceptron}` | 坊っちゃん全文の処理（約 314 KB） |
+| `segment_long_japanese/adaboost` | 坊っちゃん全文の処理（約 314 KB） |
 | `external_corpus/*` | tokenizer-speed-bench と同一のコーパススループット計測（後述） |
+| `segment_into/*` | `external_corpus` と同じコーパスでの `segment()` とバッファ再利用の `segment_into()` の比較（後述） |
 | `char_type_hiragana` | 文字種分類 |
 | `add_corpus` | 学習用コーパスの取り込み |
 | `predict_adaboost` | 単一の AdaBoost 予測 |
@@ -143,5 +143,5 @@ target/criterion/report/index.html
 
 - **分割処理**は入力長に対して線形（O(n)）
 - **文字種分類**は文字範囲に対する `match` で直接行われる（数ナノ秒、セットアップコストなし）
-- 各位置での**予測**は特徴量の数に依存（38-42個、定数）
+- 各位置での**予測**は特徴量テンプレートの数に依存し、その数はモデルごとに一定（日本語・中国語は 42 個、韓国語・英語は 38 個。タグなしモデルではタグ依存のパスをスキップするため 16 個少ない。同梱の `korean.model` と `english.model` はタグなしなので 22 個）
 - **モデル読み込み**時間はモデルファイルサイズに比例

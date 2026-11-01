@@ -19,8 +19,8 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `-t`, `--threshold <THRESHOLD>` | `0.01` | 早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる |
-| `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | ブースティング反復の最大回数 |
+| `-t`, `--threshold <THRESHOLD>` | `0.01` | 早期停止のための弱分類器精度の閾値。値を小さくするとより多くの反復が可能になる。AdaBoost のみで、`--perceptron` と `--pos` では無視される |
+| `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | ブースティング反復の最大回数。AdaBoost のみで、`--perceptron` と `--pos` では無視される |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | 学習を再開するための既存モデルのURI（ファイルパスまたはHTTP/HTTPS URL） |
 | `--perceptron` | off | 不透明な文字列ラベルに対する汎用の Averaged Perceptron を学習する（同梱分割モデルの畳み込みレシピの学習ステップ） |
 | `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数（`--perceptron` モードおよび `--pos` モード） |
@@ -107,6 +107,7 @@ litsea train --perceptron [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 |--------|---------|------------|
 | `--perceptron` | off | 汎用パーセプトロン学習モードを有効にする |
 | `--num-epochs <NUM_EPOCHS>` | `10` | 学習エポック数 |
+| `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | 学習を続けるための既存のパーセプトロンモデルの URI |
 
 ### 使用例
 

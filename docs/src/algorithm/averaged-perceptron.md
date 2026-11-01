@@ -4,12 +4,12 @@ Litsea uses the **Averaged Perceptron** algorithm for multiclass classification 
 
 ## Overview
 
-While [AdaBoost](adaboost.md) performs **binary classification** (boundary vs. non-boundary), the Averaged Perceptron performs **multiclass classification** -- predicting one of 18 segment labels for each character position:
+While [AdaBoost](adaboost.md) performs **binary classification** (boundary vs. non-boundary), the Averaged Perceptron performs **multiclass classification** over the class labels found in its training data. Litsea trains it with one of two label sets:
 
-- **17 boundary labels**: `B-ADJ`, `B-ADP`, `B-ADV`, `B-AUX`, `B-CCONJ`, `B-DET`, `B-INTJ`, `B-NOUN`, `B-NUM`, `B-PART`, `B-PRON`, `B-PROPN`, `B-PUNCT`, `B-SCONJ`, `B-SYM`, `B-VERB`, `B-X`
-- **1 non-boundary label**: `O` (continuation of the current word)
+- **2 boundary labels** over the character-level templates: `B` (a word starts at this character position) and `O` (continuation of the current word)
+- **The 17 [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tags** over the word-level templates, one tag per word: `ADJ`, `ADP`, `ADV`, `AUX`, `CCONJ`, `DET`, `INTJ`, `NOUN`, `NUM`, `PART`, `PRON`, `PROPN`, `PUNCT`, `SCONJ`, `SYM`, `VERB`, `X`
 
-These labels correspond to the 17 [Universal POS (UPOS)](https://universaldependencies.org/u/pos/) tags from the Universal Dependencies project, prefixed with `B-` to indicate a word boundary. This enables simultaneous word boundary detection and POS estimation in a single classification step.
+POS tags come from the two-stage model: stage 1 is a binary boundary classifier that labels each character position `B` (a word starts here) or `O` (continuation), and stage 2 tags each resulting word with one of the 17 UPOS tags. The earlier joint model, which predicted one of 18 `B-<UPOS>` / `O` labels per character, was removed; loading such a model file fails with an error that asks you to retrain with `litsea train --pos`.
 
 The Averaged Perceptron in 2-class mode (`B`/`O` labels only) is what actually trains the bundled `japanese.model`, `chinese.model`, `korean.model`, and `english.model` segmentation models before they are losslessly collapsed to the AdaBoost model format for inference -- see [Pre-trained Models: Training Procedure](../pre-trained-models.md#training-procedure) for the full derivation. The same collapse trains the [two-stage architecture](two-stage-tagging.md)'s stage-1 boundary classifier, and the multiclass form is the algorithm behind its stage-2 word-level tagger.
 
@@ -27,9 +27,9 @@ slots: FxHashMap<Feature, FeatureSlot>
 For example:
 
 ```text
-weights["UW4:猫"]["B-NOUN"] = 2.5
-weights["UC4:H"]["B-NOUN"]  = 1.8
-weights["UW4:猫"]["O"]      = -0.3
+weights["UW4:猫"]["B"]    = 2.5     (boundary perceptron)
+weights["UW4:猫"]["O"]    = -0.3
+weights["WS:猫"]["NOUN"]  = 1.8     (stage-2 word tagger)
 ...
 ```
 
@@ -101,22 +101,21 @@ perceptron.train(10, &running);  // 10 epochs
 
 ## Model File Format
 
-The Averaged Perceptron model is saved as a text file with the following structure:
+The Averaged Perceptron model is saved as a text file with the following structure (this example is the start of the `[stage2]` section of the bundled `japanese_pos.model`, whose tagger knows 16 UPOS tags):
 
 ```text
-18
-O
-B-ADJ
-B-ADP
+16
+ADJ
+ADP
 ...
-B-X
+VERB
 feature1\tclass1\tweight1
 feature2\tclass2\tweight2
 ...
 ```
 
-- **Line 1**: Number of classes (18)
-- **Lines 2 to N+1**: Class names, one per line
+- **Line 1**: Number of classes *N* (2 for a boundary perceptron; 16 or 17 for the bundled stage-2 taggers)
+- **Lines 2 to N+1**: Class names, one per line, in sorted order (a boundary perceptron writes `B`, then `O`)
 - **Remaining lines**: Feature weights, tab-separated as `feature\tclass\tweight`
 - Zero-weight entries are omitted
 - Weight lines are written in sorted feature order, so saving the same model
@@ -126,8 +125,8 @@ feature2\tclass2\tweight2
 
 | Aspect | AdaBoost | Averaged Perceptron |
 |--------|----------|---------------------|
-| Classification | Binary (+1/-1) | Multiclass (18 classes) |
-| Output | Word boundaries only | Word boundaries + POS tags |
+| Classification | Binary (+1/-1) | Multiclass (2 classes `B`/`O`, or up to 17 UPOS tags) |
+| Output | Word boundaries only | Word boundaries (`B`/`O`, collapsed to the AdaBoost format) or one UPOS tag per word |
 | Weak learner | Decision stumps per feature | None (linear classifier) |
 | Weight management | One weight per feature | Class x feature weight matrix |
 | Generalization | Ensemble | Weight averaging |

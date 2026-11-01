@@ -17,7 +17,7 @@ The training loop in `AdaBoost::train()` works as follows:
 ### Initialization
 
 1. Load features and instances from the training file
-2. Initialize instance weights uniformly (later adjusted based on initial score)
+2. Initialize each instance weight from the instance's initial score: `D[i] = exp(-2 * y[i] * score[i])`, where `score[i]` is the bias plus the weights of the instance's features (1.0 for every instance when the model starts at zero; not normalized)
 3. All model weights start at zero
 
 ### Iterative Boosting
@@ -36,7 +36,7 @@ where *D[i]* is the instance weight and *y[i]* is the true label.
 
 #### Step 2: Select the best weak learner
 
-Find the feature with the lowest weighted error rate:
+Find the feature whose weighted error rate is farthest from 0.5 (a feature with an error rate above 0.5 can also be selected; it gets a negative alpha in Step 4):
 
 ```text
 error_rate(h) = (error[h] + positive_weight_sum) / instance_weight_sum
@@ -124,7 +124,7 @@ bias_value
 - Zero-weight features are omitted
 - The last line contains the bias term (a single number)
 
-Malformed files (empty, truncated before the bias line, duplicate bias lines or
+Malformed files (empty, a blank line, truncated before the bias line, duplicate bias lines or
 features, a weight line after the bias line, non-finite weights) are rejected
 at load time. See
 [Model File Format](../advanced/model-file-format.md) for details.

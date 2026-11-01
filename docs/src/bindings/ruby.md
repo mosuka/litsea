@@ -92,20 +92,27 @@ A registered word gets a boundary at each edge and none inside, overlapping occu
 | `Litsea::Segmenter.open(language, path, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | A segmenter |
 | `Litsea::Segmenter.from_bytes(language, data, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | A segmenter (accepts a binary String) |
 | `Litsea::Segmenter.from_uri(language, uri, user_words: nil, user_words_gate: nil, user_word_tags: nil)` | A segmenter |
+| `#language` | `String`, the canonical language name |
+| `#has_pos?` | `true` or `false` |
 | `#segment(text)` | `Array<String>` |
 | `#segment_batch(texts)` | `Array<Array<String>>` |
 | `#segment_tokens(text)` | `Array<Litsea::Token>` with byte offsets |
 | `#segment_with_pos(text)` | `Array<Litsea::Token>` with tags and offsets |
 | `#segment_with_pos_batch(texts)` | `Array<Array<Litsea::Token>>` |
-| `Litsea::Extractor.new(language)#extract(...)` | `nil` |
-| `Litsea::Extractor.new(language)#extract_two_stage(...)` | `nil` |
-| `Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel:)` | `BinaryMetrics` |
-| `Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel:)` | `MulticlassMetrics` |
-| `Litsea::TwoStageTrainer.new(epochs, prefix, dominance:)#train(model, cancel:)` | `TwoStageMetrics` |
+| `Litsea::Extractor.new(language)#extract(corpus_path, features_path, tsv: false, tag_free: false)` | `nil` (`tsv:` reads the TSV corpus format; `tag_free:` omits the tag-dependent feature templates) |
+| `Litsea::Extractor.new(language)#extract_two_stage(corpus_path, output_prefix, feature_set: "fast", tsv: false)` | `nil` (writes `{output_prefix}.stage1`, `.stage2` and `.lexicon`; `feature_set:` is `"full"`, `"balanced"` or `"fast"`) |
+| `Litsea::Trainer.new(threshold, iterations, features)#train(model, cancel: nil)` | `BinaryMetrics` |
+| `Litsea::Trainer.new(...)#load_model(model_uri)` | `nil` (continues training from an existing model: a path, `file://` or `http(s)://`) |
+| `Litsea::PerceptronTrainer.new(epochs, features)#train(model, cancel: nil)` | `MulticlassMetrics` |
+| `Litsea::TwoStageTrainer.new(epochs, prefix, dominance: 0.99)#train(model, cancel: nil)` | `TwoStageMetrics` |
+| `Litsea::TwoStageTrainer.new(...)#available?` | `false` once `train` has run |
+| `Litsea::CancelToken.new` / `#cancel` / `#reset` / `#cancelled?` | A token / `nil` / `nil` / `true` or `false` |
+| `Litsea.version` | `String`, the `litsea` version |
+| `Litsea.supported_languages` | `Array<String>` |
 
 ## Releasing the GVL
 
-Long-running work — loading a model, extracting features, training — runs with the Global VM Lock released, so other Ruby threads keep going. That is what makes cancellation useful:
+Long-running work — loading a model with `open`, `from_uri` or `Trainer#load_model`, extracting features, training, and the batch methods `segment_batch` and `segment_with_pos_batch` — runs with the Global VM Lock released, so other Ruby threads keep going. That is what makes cancellation useful:
 
 ```ruby
 cancel = Litsea::CancelToken.new
@@ -118,17 +125,17 @@ Cancelling is **not** an error: training stops at its next check point, still wr
 
 Neither magnus nor rb-sys wraps `rb_thread_call_without_gvl` — magnus lists it among the C functions it does not bind, and it is declared in a header outside rb-sys's generated bindings — so the binding declares it itself in `src/gvl.rs`, behind an `extern "C"` trampoline that catches panics so none can unwind across the C frame. Two tests hold that claim honest: one asserts another Ruby thread keeps ticking during training, and one asserts a cancel from another thread lands inside the training window. Removing the GVL release turns both red.
 
-Segmentation of a single sentence keeps the GVL: it is short enough that releasing it would cost more than the work.
+Segmentation of a single sentence keeps the GVL: it is short enough that releasing it would cost more than the work. `from_bytes` keeps it too, because it reads the bytes of the Ruby String in place.
 
 A `TwoStageTrainer` can only be used once — training collapses stage 1 into an AdaBoost model, which consumes it. `available?` reports the state, and a second `train` raises.
 
 ## Errors
 
-Every error derives from `Litsea::Error`, so one `rescue` handles them all — the same hierarchy the Python and PHP bindings expose.
+Every error derives from `Litsea::Error`, so one `rescue` handles them all — the same hierarchy the Python and PHP bindings expose. A failure that fits none of the classes below is raised as `Litsea::Error` itself.
 
 | Error | Raised when |
 |-------|-------------|
-| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate:` outside `0.0`–`1.0`, a `user_word_tags:` value that is not a UPOS tag |
+| `Litsea::InvalidArgumentError` | Unknown language name, unknown feature set, reused trainer, `user_words_gate:` outside `0.0`–`1.0`, a `user_word_tags:` value that is not a UPOS tag, `dominance:` outside (0.5, 1.0], an unknown URI scheme |
 | `Litsea::ModelError` | Download failed, or the file is a legacy joint POS model |
 | `Litsea::IoError` | A file could not be read or written |
 | `Litsea::ParseError` | The model or training data is malformed |

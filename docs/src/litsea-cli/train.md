@@ -19,8 +19,8 @@ litsea train [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 
 | Option | Default | Description |
 |--------|---------|------------|
-| `-t`, `--threshold <THRESHOLD>` | `0.01` | Weak classifier accuracy threshold for early stopping. Lower values allow more iterations |
-| `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | Maximum number of boosting iterations |
+| `-t`, `--threshold <THRESHOLD>` | `0.01` | Weak classifier accuracy threshold for early stopping. Lower values allow more iterations. AdaBoost only; ignored with `--perceptron` or `--pos` |
+| `-i`, `--num-iterations <NUM_ITERATIONS>` | `100` | Maximum number of boosting iterations. AdaBoost only; ignored with `--perceptron` or `--pos` |
 | `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | URI of an existing model to resume training from (file path or HTTP/HTTPS URL) |
 | `--perceptron` | off | Train a generic Averaged Perceptron over opaque string labels (the training step of the bundled segmentation models' collapse recipe) |
 | `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs (`--perceptron` and `--pos` modes) |
@@ -107,6 +107,7 @@ litsea train --perceptron [OPTIONS] <FEATURES_FILE> <MODEL_FILE>
 |--------|---------|------------|
 | `--perceptron` | off | Enable generic perceptron training mode |
 | `--num-epochs <NUM_EPOCHS>` | `10` | Number of training epochs |
+| `-m`, `--load-model-uri <LOAD_MODEL_URI>` | None | URI of an existing perceptron model to continue training from |
 
 ### Examples
 

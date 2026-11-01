@@ -33,8 +33,11 @@ The language name and its ISO 639-1 code are interchangeable. The model file ide
 ## POS tagging
 
 ```js
-seg.segmentWithPos('これはテストです。')
-// [ Token { surface: 'これ', pos: 'PRON', start: 0, end: 6 }, ... ]
+const posBytes = new Uint8Array(await (await fetch('/models/japanese_pos.model')).arrayBuffer())
+const seg = Segmenter.fromBytes('japanese', posBytes)
+
+seg.segmentWithPos('これはテストです。').map(String)
+// [ 'これ/PRON [0..6]', ... ]
 ```
 
 `start` and `end` are **byte** offsets into the UTF-8 encoding, and JavaScript string indices are UTF-16 code units, so slice with `TextEncoder` / `TextDecoder`:
@@ -67,6 +70,24 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) => `${t.surface}/${t.p
 
 A registered word gets a boundary at each edge and none inside, overlapping occurrences are resolved leftmost-longest, and an untagged word of one character is ignored. With a POS model a word in `userWords` is tagged like any other word, while a token that is a word in `userWordTags` gets its tag, ahead of the model's lexicon and its tagger; `segment` ignores the tags. A word of one character in `userWordTags` changes no boundary and retags only the tokens that are exactly that character (issue #276). Matching is context-free, so a short fragment registered as a word breaks every other word it occurs in; a `userWordsGate` of `0` applies a word only where the model already agrees with it. A gate outside `0`–`1`, or a tag that is not one of the 17 UPOS tags (upper case), throws with the `invalid_argument` code. See [Segmenter](../litsea/segmenter.md#user-dictionary) for the full semantics.
 
+## API
+
+| Call | Returns |
+|------|---------|
+| `Segmenter.fromBytes(language, data, userWords?, userWordsGate?, userWordTags?)` | A segmenter |
+| `language` (getter) | `string`, the canonical language name |
+| `hasPos` (getter) | `boolean` |
+| `segment(text)` | `string[]` |
+| `segmentBatch(texts)` | `string[][]` |
+| `segmentTokens(text)` | `Token[]` with byte offsets (`pos` is `undefined`) |
+| `segmentWithPos(text)` | `Token[]` with tags and offsets |
+| `segmentWithPosBatch(texts)` | `Token[][]` |
+| `free()` | Releases the segmenter (see Memory below) |
+| `version()` | `string`, the `litsea` version |
+| `supportedLanguages()` | `string[]` |
+
+A `Token` exposes `surface`, `pos`, `start` and `end` as getters, and its `toString()` returns `surface/POS [start..end]`, for example `テスト/NOUN [9..18]`.
+
 ## What the host removes
 
 This is the most constrained of the five bindings, and each gap was measured rather than assumed.
@@ -92,13 +113,15 @@ Train with the CLI or one of the native bindings, and load the resulting model h
 
 ## Caching models
 
-Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper:
+Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper for this, `cache.js` (with `cache.d.ts`), next to the wasm module:
 
 ```js
-import { fetchModel, clearModelCache } from 'litsea-wasm/js/cache.js'
+import { fetchModel, clearModelCache } from 'litsea-wasm/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
 ```
+
+Up to 0.15.0 the npm package left the helper out; with those versions, copy `litsea-wasm/js/cache.js` (and `cache.d.ts`) from the repository into your project and import it from there.
 
 It stores fetched models in Cache Storage keyed by URL, and falls back to a plain fetch when Cache Storage is unavailable (an insecure context), so callers do not branch. It is plain JavaScript outside the wasm module, so a page that does not use it pays nothing.
 

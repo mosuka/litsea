@@ -27,7 +27,7 @@ flowchart TD
     A["Read corpus line by line"] --> B["Split line into words"]
     B --> C["Build chars, types, and tags arrays"]
     C --> D["For each character position"]
-    D --> E["Extract 38-42 features"]
+    D --> E["Extract 38-42 features<br/>(22-26 with --tag-free)"]
     E --> F["Write label + features to file"]
 ```
 
@@ -68,6 +68,18 @@ separated by tabs) in which a token may be a literal space character
 `extract`; only the corpus parsing differs. `--format tsv` also combines
 with `--pos` -- see [Two-Stage Feature
 Extraction](#two-stage-feature-extraction) below.
+
+## Tag-Free (Pointwise) Extraction
+
+`--tag-free` drops the 16 tag-dependent feature templates
+(`UP*`/`BP*`/`UQ*`/`BQ*`/`TQ*`, which read the previous boundary
+decisions), so each row has 16 fewer features (22-26 instead of 38-42) and
+the trained model is *pointwise*: `segment()` skips its sequential scoring
+pass. It combines with `--format tsv` (the bundled `korean.model` and
+`english.model` are trained this way) but not with `--pos`, which fails
+with `--tag-free cannot be combined with --pos`. See [Tag-Free (Pointwise)
+Models](../pre-trained-models.md#tag-free-pointwise-models) for the
+quality/throughput trade-off per language.
 
 ## Two-Stage Feature Extraction
 
@@ -120,4 +132,4 @@ litsea extract --pos --stage2-features balanced -l chinese ./pos_corpus.txt ./po
 
 ## File Size Expectations
 
-The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings. For a 1 MB corpus, expect a features file of roughly 50-100 MB.
+The features file will be significantly larger than the corpus because each character position generates 38-42 feature strings (22-26 with `--tag-free`). For a 1 MB corpus, expect a features file of roughly 50-100 MB.

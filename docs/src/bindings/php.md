@@ -4,7 +4,7 @@
 
 ## Installation
 
-A PHP extension is a shared object built against a specific PHP ABI, so unlike PyPI and npm there is no prebuilt package: the extension is compiled for your PHP, by PIE or by hand.
+A PHP extension is a shared object built against a specific PHP ABI, so a prebuilt binary fits only one PHP version, thread-safety mode and platform: PIE downloads a matching one from the GitHub release when there is one, and otherwise compiles the extension for your PHP. You can also build it by hand.
 
 ```sh
 pie install mosuka/litsea
@@ -19,7 +19,7 @@ cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 ```
 
-Add it to `php.ini` (`extension=/path/to/liblitsea_php.so`) to load it everywhere. Either way `php -m` lists the extension as `litsea`.
+Add it to `php.ini` (`extension=/path/to/liblitsea_php.so`) to load it everywhere. On macOS, cargo writes `liblitsea_php.dylib` instead; load that path. Either way `php -m` lists the extension as `litsea`.
 
 ## Stubs for static analysis
 
@@ -95,18 +95,25 @@ A registered word gets a boundary at each edge and none inside, overlapping occu
 | Call | Returns |
 |------|---------|
 | `Segmenter::open($language, $path, $user_words?, $user_words_gate?, $user_word_tags?)` | A segmenter |
-| `Segmenter::fromBytes($language, $contents, $user_words?, $user_words_gate?, $user_word_tags?)` | A segmenter |
+| `Segmenter::fromBytes($language, $data, $user_words?, $user_words_gate?, $user_word_tags?)` | A segmenter |
 | `Segmenter::fromUri($language, $uri, $user_words?, $user_words_gate?, $user_word_tags?)` | A segmenter (blocking download) |
+| `language()` | `string`, the canonical language name |
+| `hasPos()` | `bool` |
 | `segment($text)` | `string[]` |
 | `segmentBatch($texts)` | `string[][]` |
 | `segmentTokens($text)` | `Token[]` with byte offsets |
 | `segmentWithPos($text)` | `Token[]` with tags and offsets |
 | `segmentWithPosBatch($texts)` | `Token[][]` |
-| `(new Extractor($language))->extract(...)` | `void` |
-| `(new Extractor($language))->extractTwoStage(...)` | `void` |
-| `(new Trainer($threshold, $iterations, $features))->train($model, $cancel?)` | `BinaryMetrics` |
-| `(new PerceptronTrainer($epochs, $features))->train($model, $cancel?)` | `MulticlassMetrics` |
-| `(new TwoStageTrainer($epochs, $prefix, $dominance?))->train($model, $cancel?)` | `TwoStageMetrics` |
+| `(new Extractor($language))->extract($corpus_path, $features_path, $tsv = false, $tag_free = false)` | `void` (`$tsv` reads the TSV corpus format; `$tag_free` omits the tag-dependent feature templates) |
+| `(new Extractor($language))->extractTwoStage($corpus_path, $output_prefix, $feature_set = null, $tsv = false)` | `void` (writes `{$output_prefix}.stage1`, `.stage2` and `.lexicon`; `$feature_set` is `'full'`, `'balanced'` or `'fast'`, and `null` means `'fast'`) |
+| `(new Trainer($threshold, $num_iterations, $features_path))->train($model_path, $cancel?)` | `BinaryMetrics` |
+| `(new Trainer(...))->loadModel($model_uri)` | `void` (continues training from an existing model: a path, `file://` or `http(s)://`) |
+| `(new PerceptronTrainer($num_epochs, $features_path))->train($model_path, $cancel?)` | `MulticlassMetrics` |
+| `(new TwoStageTrainer($num_epochs, $features_prefix, $dominance = 0.99))->train($model_path, $cancel?)` | `TwoStageMetrics` |
+| `(new TwoStageTrainer(...))->isAvailable()` | `bool` (`false` once `train()` has run) |
+| `(new CancelToken())->cancel()` / `reset()` / `isCancelled()` | `void` / `void` / `bool` |
+| `Litsea\version()` | `string`, the `litsea` version |
+| `Litsea\supported_languages()` | `string[]` |
 
 ext-php-rs renames methods and properties to camelCase, so the PHP surface reads as `segmentWithPos()`, `hasPos()`, and `$metrics->numInstances`.
 
@@ -129,11 +136,11 @@ Because everything blocks, run training from the CLI SAPI rather than a web requ
 
 ## Errors
 
-Every exception derives from `Litsea\LitseaException`, so one `catch` handles them all — the same hierarchy the Python binding exposes.
+Every exception derives from `Litsea\LitseaException`, so one `catch` handles them all — the same hierarchy the Python binding exposes. A failure that fits none of the classes below is thrown as `Litsea\LitseaException` itself.
 
 | Exception | Thrown when |
 |-----------|-------------|
-| `Litsea\InvalidArgumentException` | Unknown language name, unknown feature set, reused trainer, `$user_words_gate` outside `0.0`–`1.0`, a `$user_word_tags` value that is not a UPOS tag |
+| `Litsea\InvalidArgumentException` | Unknown language name, unknown feature set, reused trainer, `$user_words_gate` outside `0.0`–`1.0`, a `$user_word_tags` value that is not a UPOS tag, `$dominance` outside (0.5, 1.0], an unknown URI scheme |
 | `Litsea\ModelException` | Download failed, or the file is a legacy joint POS model |
 | `Litsea\IoException` | A file could not be read or written |
 | `Litsea\ParseException` | The model or training data is malformed |

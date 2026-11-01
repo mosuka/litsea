@@ -346,7 +346,7 @@ export type JsTwoStageTrainer = TwoStageTrainer
  *
  * All percentages are 0-100.
  */
-export interface JsBinaryMetrics {
+export interface BinaryMetrics {
   /** Accuracy, as a percentage. */
   accuracy: number
   /** Precision, as a percentage. */
@@ -371,7 +371,7 @@ export interface JsBinaryMetrics {
  * All percentages are 0-100. The per-class counts are objects keyed by the
  * label name.
  */
-export interface JsMulticlassMetrics {
+export interface MulticlassMetrics {
   /** Accuracy, as a percentage. */
   accuracy: number
   /** Macro-averaged precision, as a percentage. */
@@ -386,14 +386,6 @@ export interface JsMulticlassMetrics {
   predictedPerClass: Record<string, number>
   /** Gold instances per class. */
   goldPerClass: Record<string, number>
-}
-
-/** Metrics from training a two-stage model: one set per stage. */
-export interface JsTwoStageMetrics {
-  /** Boundary-classifier (stage 1) metrics. */
-  stage1: JsMulticlassMetrics
-  /** Word-level tagger (stage 2) metrics. */
-  stage2: JsMulticlassMetrics
 }
 
 /**
@@ -428,6 +420,14 @@ export interface Token {
   start: number
   /** Ending byte offset (exclusive) in the input string. */
   end: number
+}
+
+/** Metrics from training a two-stage model: one set per stage. */
+export interface TwoStageMetrics {
+  /** Boundary-classifier (stage 1) metrics. */
+  stage1: MulticlassMetrics
+  /** Word-level tagger (stage 2) metrics. */
+  stage2: MulticlassMetrics
 }
 
 /**

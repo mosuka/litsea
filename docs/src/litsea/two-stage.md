@@ -36,8 +36,9 @@ pub fn from_parts(
 ) -> Result<Self>
 ```
 
-`new` creates an empty learner (fill it with a `load_model*` call before
-use). `from_parts` builds a learner from its pieces, validating the
+`new` creates an empty learner with the default dominance threshold
+`litsea::two_stage::DEFAULT_DOMINANCE` (`0.99`); fill it with a
+`load_model*` call before use. `from_parts` builds a learner from its pieces, validating the
 combination: `dominance` must be in `(0.5, 1.0]`, every stage-2 class name
 must be a valid `Upos` tag, and every lexicon entry must have a non-empty
 surface (no tab/newline), a non-empty tag list with positive counts, and no
@@ -63,7 +64,14 @@ entries, or either embedded learner untrained) returns
 `LitseaError::InvalidInput`. Loading validates the full file structure — see
 [Model File Format](../advanced/model-file-format.md) for the on-disk layout
 — and rejects malformed content with `LitseaError::InvalidData`; the learner
-is left unmodified on a load error.
+is left unmodified on a load error. A model file without a `[params]`
+section (or without a `dominance` line in it) loads with
+`DEFAULT_DOMINANCE`.
+
+On wasm32, `load_model_from_path` is not available, and `load_model` with a
+plain path or a `file://` URI fails with `LitseaError::Unsupported`; use
+`load_model_from_reader`, or an `http(s)://` URI with the `remote_model`
+feature.
 
 ```rust
 use std::path::Path;
@@ -123,7 +131,12 @@ current, measured numbers.
 
 Implements `FromStr` (case-insensitive: `"full"`, `"balanced"`, `"fast"`) and
 `Display` (lowercase). Marked `#[non_exhaustive]` — external `match`
-expressions need a wildcard arm.
+expressions need a wildcard arm. Parsing any other name fails with
+`ParseTwoStageFeatureSetError` (re-exported as
+`litsea::ParseTwoStageFeatureSetError`), whose message reads
+`invalid two-stage feature set: '<input>' (expected full, balanced, or fast)`;
+unlike `ParseLanguageError` and `ParseUposError`, it has no `input()`
+accessor.
 
 ## `ModelKind`
 

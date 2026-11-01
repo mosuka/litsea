@@ -47,7 +47,7 @@ flowchart TD
 **注**: これらはゼロから通常の AdaBoost モデルを学習する際の一般的な
 出発点です。同梱の `japanese.model`、`chinese.model`、`korean.model`、
 `english.model` は別の手順（2 クラスの Averaged Perceptron を AdaBoost の重みへ畳み込み、
-言語ごとに異なるエポック数と剪定を適用）で作られています -- これらの
+言語ごとに異なるエポック数を使い、日本語・中国語では剪定も適用）で作られています -- これらの
 ファイルが実際にどう作られているかは、事前学習済みモデルの
 [学習手順](../pre-trained-models.md#学習手順)を参照してください。
 

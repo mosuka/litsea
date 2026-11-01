@@ -14,7 +14,7 @@ https://github.com/mosuka/litsea/releases/download/<tag>/japanese_pos.model
 
 Those URLs are stable per release, and small enough to fetch only what you need (86 KB to 8.3 MB each, rather than 25 MB for all eight). Two consequences:
 
-- With the `remote_model` feature, the CLI and the library take one directly: `litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model`.
+- The CLI takes one directly (it is always built with the `remote_model` feature), and so does the library with `remote_model` enabled: `litsea segment -l japanese https://github.com/mosuka/litsea/releases/download/<tag>/japanese.model`.
 - The [WebAssembly binding](bindings/wasm.md), which has no `fromUri`, can `fetch` one in the page and pass the bytes to `Segmenter.fromBytes`.
 
 Pinning a release tag rather than `main` keeps a deployment on one set of model weights; the models are retrained between releases, and held-out scores move with them.
@@ -124,7 +124,7 @@ the same space-preserving recipe.
 
 ## Training Procedure
 
-`japanese.model`, `chinese.model`, and `korean.model` are retrained with the
+`japanese.model`, `chinese.model`, `korean.model`, and `english.model` are retrained with the
 binary-perceptron-collapse procedure (#165), which needs no engine changes
 but does need a few extra steps beyond plain `litsea train` (see [Training
 Models](training-guide/training-models.md) for the plain AdaBoost
@@ -133,8 +133,9 @@ procedure):
 ```sh
 # 1. Extract plain boundary features (the same step as before). Add
 #    --tag-free to drop the 16 tag-dependent templates and train a
-#    pointwise model (used for korean.model; see the next section).
-litsea extract -l <language> [--format tsv for Korean] [--tag-free] <corpus> <features.txt>
+#    pointwise model (used for korean.model and english.model; see the
+#    next section).
+litsea extract -l <language> [--format tsv for Korean and English] [--tag-free] <corpus> <features.txt>
 
 # 2. Remap boundary labels 1/-1 -> B/O. This is required for correctness. not
 #    cosmetic: it makes the perceptron's own tie-break (lowest class index
@@ -177,8 +178,10 @@ scoring into a strictly sequential pass. A model trained **without** them
 only on the input text -- and `segment()` detects this at model-load time
 and skips the sequential pass entirely (issue #183).
 
-What the tag features are worth differs sharply by language (all figures
-from converged epoch sweeps on the UD GSD test splits, issue #183):
+What the tag features are worth differs sharply by language (Korean,
+Japanese and Chinese figures from converged epoch sweeps on the UD GSD test
+splits; English figures from the UD English-EWT dev split, see the note
+below the table; issue #183):
 
 | Language | Word F1 with tags | Word F1 tag-free | Throughput change |
 |----------|-------------------|------------------|-------------------|

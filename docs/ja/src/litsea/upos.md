@@ -64,7 +64,7 @@ pub const ALL: [Upos; 17]
 ### トレイト実装
 
 - `Display`: `"NOUN"`, `"VERB"` などの文字列に変換
-- `FromStr`: 文字列から `Upos` にパース。不正な文字列には `ParseUposError` を返す
+- `FromStr`: 文字列から `Upos` にパース。大文字・小文字を区別する（大文字のみ。`"noun"` は拒否される）。不正な文字列には `ParseUposError` を返す
 
 ```rust
 use litsea::upos::Upos;
@@ -77,11 +77,16 @@ assert_eq!(pos.to_string(), "NOUN");
 
 `ParseUposError`（クレートルートから `litsea::ParseUposError` として再エクスポート）は、文字列が有効な UPOS タグでない場合に返されます。`input()` アクセサはパースに失敗した文字列を返し、エラーメッセージは `Unknown UPOS tag: '<input>'` となります。
 
+### `Upos` を使う API
+
+- [`Segmenter::segment_with_pos`](segmenter.md#segment_with_pos) は `(String, Upos)` の組を返します。
+- [`UserDictionary::add_with_pos(word, pos)`](segmenter.md#タグ) はユーザーの語を `Upos` のタグ付きで登録し、`UserDictionary::pos(word)` は登録されたタグ（`Option<Upos>`）を返します。
+
 ## SegmentLabel
 
 ### 定義
 
-`SegmentLabel` 型は単語境界検出と品詞タグ付けを組み合わせます。各文字位置に 18 ラベルのいずれかが割り当てられます:
+`SegmentLabel` 型は、品詞タグ付きの学習コーパスを処理するパイプライン（[`add_corpus_with_pos_writer`](segmenter.md#add_corpus_with_pos_writer)）が文字ごとに付けるラベルです。`word/POS` 形式のコーパスの各文字位置に、18 ラベルのいずれかが割り当てられます:
 
 - **`B(Upos)`**（17 ラベル）: 指定された UPOS タグを持つ単語境界（例: `B-NOUN`, `B-VERB`）
 - **`O`**（1 ラベル）: 非境界（現在の単語の継続）
@@ -93,6 +98,8 @@ pub enum SegmentLabel {
     O,        // Continuation of a word (non-boundary).
 }
 ```
+
+現在のモデルは、この 18 個のラベルを予測しません。品詞タグは二段構成モデルが付けます。stage 1 は二値の境界分類器で、各文字位置に `B`（ここで単語が始まる）か `O`（単語の続き）を付けます。stage 2 は、分割された各単語に 17 個の UPOS タグのどれかを付けます。`Extractor::extract_two_stage` は、stage 1 を学習するために `SegmentLabel` を `B`/`O` にまとめます。文字ごとに 18 個の `B-<UPOS>` / `O` ラベルのどれかを予測していた以前の joint モデルは削除されました。そのモデルファイルを読み込むと、`litsea train --pos` で学習し直すよう求めるエラーになります。
 
 ```rust
 use litsea::upos::SegmentLabel;
