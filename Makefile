@@ -60,9 +60,9 @@ clean-litsea-nodejs: ## Clean litsea-nodejs build artifacts
 	rm -f litsea-nodejs/*.node
 	rm -f litsea-nodejs/package-lock.json
 
-test-litsea-nodejs: ## Test litsea-nodejs (Rust unit tests + node --test)
+test-litsea-nodejs: ## Test litsea-nodejs (Rust unit tests + node --test + tsc on index.d.ts)
 	cargo test -p litsea-nodejs --lib
-	cd litsea-nodejs && npm install --silent --no-audit --no-fund && npx napi build --platform -p litsea-nodejs && npm test
+	cd litsea-nodejs && npm install --silent --no-audit --no-fund && npx napi build --platform -p litsea-nodejs && npm test && npm run typecheck
 
 lint-litsea-nodejs: ## Lint litsea-nodejs (clippy)
 	cargo clippy -p litsea-nodejs --all-targets -- -D warnings
