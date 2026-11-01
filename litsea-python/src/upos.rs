@@ -145,7 +145,7 @@ impl From<Upos> for PyUpos {
 /// `start` and `end` are byte offsets into the input string, so
 /// `text.encode()[token.start:token.end].decode()` is `token.surface`.
 /// They are exact for both segmentation and POS output.
-#[pyclass(name = "Token", frozen, skip_from_py_object, module = "litsea")]
+#[pyclass(name = "Token", frozen, module = "litsea")]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PyToken {
     /// The token's surface form.
