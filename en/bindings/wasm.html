@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-f7b9a1a4.js";
+            window.path_to_searchindex_js = "../searchindex-0e59f8ff.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -273,11 +273,12 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${
 <h2 id="memory"><a class="header" href="#memory">Memory</a></h2>
 <p><code>Segmenter</code> holds the compiled model, which is several megabytes for a POS model, and WebAssembly objects are <strong>not</strong> garbage collected. Call <code>free()</code> when one is no longer needed.</p>
 <h2 id="caching-models"><a class="header" href="#caching-models">Caching models</a></h2>
-<p>Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. An optional helper lives in the repository as <code>litsea-wasm/js/cache.js</code> (with <code>cache.d.ts</code>). The npm package does not include it: <code>make build-litsea-wasm</code> copies the two files into <code>pkg/</code>, but the <code>files</code> list of the <code>package.json</code> that wasm-pack generates leaves them out. Copy them into your project and import them from there:</p>
-<pre><code class="language-js">import { fetchModel, clearModelCache } from './cache.js'
+<p>Models are 86 KB – 8.3 MB and cross the network once per visitor — the one cost this binding has that the native ones do not. The package ships an optional helper for this, <code>cache.js</code> (with <code>cache.d.ts</code>), next to the wasm module:</p>
+<pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
 </code></pre>
+<p>Up to 0.15.0 the npm package left the helper out; with those versions, copy <code>litsea-wasm/js/cache.js</code> (and <code>cache.d.ts</code>) from the repository into your project and import it from there.</p>
 <p>It stores fetched models in Cache Storage keyed by URL, and falls back to a plain fetch when Cache Storage is unavailable (an insecure context), so callers do not branch. It is plain JavaScript outside the wasm module, so a page that does not use it pays nothing.</p>
 <h2 id="errors"><a class="header" href="#errors">Errors</a></h2>
 <p>Every error carries a <code>code</code>, matching the Node.js binding so the two JavaScript bindings agree.</p>

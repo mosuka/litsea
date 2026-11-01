@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-49bd43e5.js";
+            window.path_to_searchindex_js = "../searchindex-4f35845a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -273,11 +273,12 @@ tagged.segmentWithPos('チャットGPTに聞く').map((t) =&gt; `${t.surface}/${
 <h2 id="メモリ"><a class="header" href="#メモリ">メモリ</a></h2>
 <p><code>Segmenter</code> はコンパイル済みモデル（POS モデルなら数 MB）を保持し、WebAssembly のオブジェクトは <strong>GC されません</strong>。不要になったら <code>free()</code> を呼んでください。</p>
 <h2 id="モデルのキャッシュ"><a class="header" href="#モデルのキャッシュ">モデルのキャッシュ</a></h2>
-<p>モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。任意で使える補助モジュールが、リポジトリに <code>litsea-wasm/js/cache.js</code>（と <code>cache.d.ts</code>）としてあります。npm のパッケージには含まれません。<code>make build-litsea-wasm</code> は 2 つのファイルを <code>pkg/</code> に写しますが、wasm-pack が生成する <code>package.json</code> の <code>files</code> の一覧に入っていないためです。プロジェクトに写して、そこから import してください。</p>
-<pre><code class="language-js">import { fetchModel, clearModelCache } from './cache.js'
+<p>モデルは 86KB〜8.3MB あり、訪問者ごとにネットワークを通ります。これはネイティブ版には無い、このバインディング固有のコストです。そのための任意の補助モジュール <code>cache.js</code>（と <code>cache.d.ts</code>）が、wasm モジュールと並んでパッケージに入っています。次のように import します。</p>
+<pre><code class="language-js">import { fetchModel, clearModelCache } from 'litsea-wasm/cache.js'
 
 const bytes = await fetchModel('/models/japanese.model')
 </code></pre>
+<p>0.15.0 までの npm のパッケージには、この補助モジュールが入っていません。その版では、リポジトリの <code>litsea-wasm/js/cache.js</code>（と <code>cache.d.ts</code>）をプロジェクトに写して、そこから import してください。</p>
 <p>URL をキーに Cache Storage へ保存し、利用できない環境（非セキュアコンテキストなど）では通常の fetch にフォールバックするため、呼び出し側での分岐は不要です。wasm モジュール外の素の JavaScript なので、使わないページには一切コストがかかりません。</p>
 <h2 id="エラー"><a class="header" href="#エラー">エラー</a></h2>
 <p>すべてのエラーは Node.js バインディングと同じ <code>code</code> を持ち、2 つの JavaScript バインディングで扱いが揃います。</p>
