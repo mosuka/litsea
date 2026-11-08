@@ -20,6 +20,8 @@ PIE 1.4 以降は、使っている PHP（8.1〜8.5、NTS / ZTS）とプラッ�
 
 それ以外の組み合わせ（Alpine などの musl 環境、glibc 2.35 未満、Intel Mac、PIE 1.4 未満）では同じコマンドがソースビルドにフォールバックし、Rust ツールチェーン（<https://rustup.rs/>）、libclang（Debian/Ubuntu では `libclang-dev`、macOS では Xcode コマンドラインツールか `brew install llvm`）、および PIE の標準的なビルドツール（`autoconf`、`libtool`、`make`）が必要になります。Windows は未対応です。
 
+ソースビルドが clang の `xmmintrin.h` や `emmintrin.h` のエラーのあとに `Unable to generate bindings for PHP` で止まる場合は、複数の LLVM が入っていて、bindgen が libclang と clang のヘッダを別々のバージョンから取っています。`LIBCLANG_PATH` と `CLANG_PATH` を同じバージョンに合わせて（Debian や Ubuntu なら、たとえば `/usr/lib/llvm-21/lib` と `/usr/lib/llvm-21/bin/clang`）、もう一度ビルドしてください。
+
 ### 手動ビルド
 
 ```sh
