@@ -62,7 +62,7 @@
   ],
   "devDependencies": {
     "@napi-rs/cli": "3.10.12",
-    "@types/node": "20.19.43",
+    "@types/node": "26.6.6",
     "typescript": "7.0.2"
   }
 }
