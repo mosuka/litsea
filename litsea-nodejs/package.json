@@ -61,7 +61,7 @@
     "english"
   ],
   "devDependencies": {
-    "@napi-rs/cli": "3.10.9",
+    "@napi-rs/cli": "3.10.12",
     "@types/node": "20.19.43",
     "typescript": "7.0.2"
   }
