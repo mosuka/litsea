@@ -15,9 +15,7 @@ jobs:
     strategy:
       matrix:
         platform:
-          # Pinned to 24.04: clippy --workspace builds litsea-php, and
-          # ext-php-rs cannot generate its PHP bindings on Ubuntu 26.04 (#291).
-          - runner: ubuntu-24.04
+          - runner: ubuntu-latest
         toolchain: [stable]
     runs-on: ${{ matrix.platform.runner }}
     steps:
@@ -32,6 +30,12 @@ jobs:
 
       - name: Run format
         run: cargo fmt --all -- --check
+
+      # clippy --workspace builds litsea-php, and bindgen in the ext-php-rs
+      # build script must parse clang's headers with the libclang of the same
+      # LLVM, while the runner image ships several (#299).
+      - name: Pair libclang with clang
+        uses: ./.github/actions/setup-libclang
 
       - name: Run clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
@@ -170,9 +174,7 @@ jobs:
   test-litsea-php:
     name: Test litsea-php
     needs: [format]
-    # Pinned to 24.04: ext-php-rs cannot generate its PHP bindings on
-    # Ubuntu 26.04 (#291).
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         php-version: ["8.1", "8.3", "8.5"]
@@ -200,6 +202,12 @@ jobs:
           php-version: ${{ matrix.php-version }}
           tools: composer
 
+      # bindgen in the ext-php-rs build script must parse clang's headers with
+      # the libclang of the same LLVM, and the runner image ships several
+      # (#299). Every later step builds ext-php-rs with this pair.
+      - name: Pair libclang with clang
+        uses: ./.github/actions/setup-libclang
+
       - name: Run PHP test
         run: make test-litsea-php
 
@@ -209,9 +217,7 @@ jobs:
   test-litsea-ruby:
     name: Test litsea-ruby
     needs: [format]
-    # Pinned to 24.04: setup-ruby has no Ruby 3.1 build for Ubuntu 26.04,
-    # and the gem supports Ruby 3.1 (#291).
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         ruby-version: ["3.1", "3.3", "3.4"]
@@ -237,6 +243,13 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby-version }}
+
+      # bindgen in the rb-sys build script opens the newest libclang of the
+      # runner image but takes clang's headers from the clang on PATH. The
+      # Ruby headers happen to parse with that mismatch; the pair keeps the
+      # build from depending on it (#299).
+      - name: Pair libclang with clang
+        uses: ./.github/actions/setup-libclang
 
       - name: Run Ruby test
         run: make test-litsea-ruby
