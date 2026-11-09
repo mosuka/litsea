@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-e961cd6c.js";
+            window.path_to_searchindex_js = "../searchindex-69346b6a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -288,7 +288,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </tbody>
 </table>
 </div>
-<p>このスクリプトには、<code>PATH</code> 上の <code>wicket</code> と <code>lindera</code> が必要です。wicket の出力ファイルは、フィルタと <code>-n</code> の上限を適用する前にランダムな順序（<code>shuf</code>）で連結されます。そのため上限を付けたコーパスはダンプからのランダムな抽出になり、実行のたびに変わります。</p>
+<p>このスクリプトには、<code>wicket</code>、<code>shuf</code>、bash 4 以降と、言語の辞書（下の表）を埋め込んだ <code>lindera</code> が <code>PATH</code> 上に必要です。<code>cargo install lindera-cli</code> だけでは辞書が埋め込まれないため、<code>ja</code> なら <code>--features embed-unidic</code>、<code>ko</code> なら <code>embed-ko-dic</code>、<code>zh</code> なら <code>embed-cc-cedict</code> を付けてインストールしてください。wicket の出力ファイルは、フィルタと <code>-n</code> の上限を適用する前にランダムな順序（<code>shuf</code>）で連結されます。そのため上限を付けたコーパスはダンプからのランダムな抽出になり、実行のたびに変わります。</p>
 <h3 id="文章フィルタリング"><a class="header" href="#文章フィルタリング">文章フィルタリング</a></h3>
 <p>スクリプトは以下の2つのフィルタを適用し、整形された文章のみを抽出します:</p>
 <ol>

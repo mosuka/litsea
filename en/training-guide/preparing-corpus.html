@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-273b79c3.js";
+            window.path_to_searchindex_js = "../searchindex-1303119c.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -303,7 +303,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 </tbody>
 </table>
 </div>
-<p>The script needs <code>wicket</code> and <code>lindera</code> on <code>PATH</code>. It concatenates wicket’s output files in random order (<code>shuf</code>) before the filters and the <code>-n</code> limit, so a limited corpus is a random sample of the dump and differs from run to run.</p>
+<p>The script needs <code>wicket</code>, <code>shuf</code> and bash 4 or later, and a <code>lindera</code> on <code>PATH</code> that embeds the dictionary of the language (the table below): a plain <code>cargo install lindera-cli</code> has none, so install it with <code>--features embed-unidic</code> for <code>ja</code>, <code>embed-ko-dic</code> for <code>ko</code> or <code>embed-cc-cedict</code> for <code>zh</code>. It concatenates wicket’s output files in random order (<code>shuf</code>) before the filters and the <code>-n</code> limit, so a limited corpus is a random sample of the dump and differs from run to run.</p>
 <h3 id="sentence-filtering"><a class="header" href="#sentence-filtering">Sentence Filtering</a></h3>
 <p>The script applies two filters to keep only well-formed sentences:</p>
 <ol>
