@@ -34,7 +34,9 @@ def main() -> int:
     if segmenter.has_pos:
         print("tagged:")
         for token in segmenter.segment_with_pos(text):
-            print(f"  {token.surface}\t{token.pos.name}\t[{token.start}:{token.end}]")
+            # `pos` is optional on a Token; segment_with_pos always sets it.
+            tag = token.pos.name if token.pos is not None else "-"
+            print(f"  {token.surface}\t{tag}\t[{token.start}:{token.end}]")
 
     return 0
 
