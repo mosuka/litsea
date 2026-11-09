@@ -160,7 +160,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 | `-l lang` | Language code: `ja`, `ko`, `zh` | `ja` |
 | `-n max_lines` | Maximum sentence lines to process (0 = unlimited) | `100000` |
 
-The script needs `wicket` and `lindera` on `PATH`. It concatenates wicket's output files in random order (`shuf`) before the filters and the `-n` limit, so a limited corpus is a random sample of the dump and differs from run to run.
+The script needs `wicket`, `shuf` and bash 4 or later, and a `lindera` on `PATH` that embeds the dictionary of the language (the table below): a plain `cargo install lindera-cli` has none, so install it with `--features embed-unidic` for `ja`, `embed-ko-dic` for `ko` or `embed-cc-cedict` for `zh`. It concatenates wicket's output files in random order (`shuf`) before the filters and the `-n` limit, so a limited corpus is a random sample of the dump and differs from run to run.
 
 ### Sentence Filtering
 

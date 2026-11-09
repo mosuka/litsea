@@ -12,6 +12,14 @@
   binding. TypeScript code that imports a `Js…Metrics` type must import the
   new name; JavaScript is unaffected.
 
+### Changed
+
+- `scripts/wikitexts.sh` is removed (#288). Nothing referenced it: it
+  fetched the plain text of random Wikipedia articles through the
+  MediaWiki API, one request per title, and built no training corpus. Build
+  a corpus from a Wikipedia dump with `scripts/corpus_wikidump.sh`.
+  `scripts/split_sentences.sh`, which it called, stays.
+
 ### Fixed
 
 - Node.js: the return types of `Trainer`, `PerceptronTrainer` and
@@ -30,6 +38,17 @@
   UTF-8, is reported with the file and the line (`cannot read user
   dictionary words.txt, line 2: stream did not contain valid UTF-8`)
   (#287). The error used to be `stream did not contain valid UTF-8` alone.
+- `scripts/corpus_wikidump.sh -l ja` no longer fails at the tokenizer
+  (#288). The Japanese token filter reached lindera as
+  `-t '-t japanese_compound_word:…'`, which lindera 6.0.0 rejects
+  (`a value is required for '--token-filter'`), so
+  the script stopped after the extraction and left an empty corpus. The
+  filter is now passed as one argument, without `eval`, and the numeral
+  compounds (`三百二十五`) are built as documented.
+- `scripts/prune_adaboost_model.py` copies the bias line through, as its
+  docstring says, instead of always writing `0`, and breaks ties at the
+  top-N cut by feature name instead of by file order (#288). The bundled
+  collapsed models have a bias of `0`, so pruning them gives the same bias.
 
 ### Documentation
 
@@ -45,6 +64,13 @@
 - The repository is licensed under MIT only. `resources/eval/README.md`
   and the guide for adding a language called it "MIT / Apache-2.0"
   (#289).
+- The corpus guide lists what `scripts/corpus_wikidump.sh` needs: `wicket`,
+  `shuf`, bash 4 or later, and a lindera that embeds the dictionary of the
+  language (`cargo install lindera-cli --features embed-unidic`, and
+  `embed-ko-dic` or `embed-cc-cedict`); a plain `cargo install lindera-cli`
+  has no embedded dictionary (#288). The usage text of
+  `scripts/corpus_udtreebank.sh` says that `-p -s` also produces the
+  two-stage POS training corpus for `litsea extract --pos --format tsv`.
 
 ## 0.15.0 (2026-10-28)
 

@@ -23,11 +23,13 @@ usage() {
     echo "                  annotations). For use with 'litsea extract"
     echo "                  --format tsv'."
     echo "  -p -s together  Output a space-preserving TSV corpus of word/POS"
-    echo "                  tokens (issue #196), for measuring a two-stage"
-    echo "                  POS model's real-world (spaced) quality with"
-    echo "                  'litsea evaluate --pos --format tsv'. Space"
-    echo "                  tokens carry no /POS suffix (CoNLL-U has no UPOS"
-    echo "                  annotation for whitespace itself)."
+    echo "                  tokens: the two-stage POS training corpus for"
+    echo "                  'litsea extract --pos --format tsv' (issue #198),"
+    echo "                  and the gold data for measuring a two-stage POS"
+    echo "                  model's real-world (spaced) quality with"
+    echo "                  'litsea evaluate --pos --format tsv' (issue #196)."
+    echo "                  Space tokens carry no /POS suffix (CoNLL-U has no"
+    echo "                  UPOS annotation for whitespace itself)."
     exit 1
 }
 
