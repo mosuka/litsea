@@ -30,6 +30,11 @@
 # The script finishes by grepping the tree for the old version. Anything it
 # reports is a place this script does not know about yet: add it to FILES
 # rather than editing it by hand, so the next bump stays a one-liner.
+#
+# It runs on Linux and macOS. The in-place edits use `perl -pi`, which works
+# the same everywhere, rather than `sed -i`, whose syntax differs between GNU
+# sed and the BSD sed of macOS: BSD sed reads the word after `-i` as a backup
+# suffix, and has no `0,/re/` address.
 
 set -euo pipefail
 
@@ -120,10 +125,10 @@ for file in "${FILES[@]}"; do
     continue
   fi
 
-  # -F is not available to sed, so the version is escaped for the pattern;
-  # only the dots need it.
-  escaped_current="$(printf '%s' "${current_version}" | sed 's/\./\\./g')"
-  sed -i "s/${escaped_current}/${new_version}/g" "${file}"
+  # The versions reach perl through the environment, so they are never
+  # parsed as perl code, and \Q...\E matches the current one literally.
+  OLD="${current_version}" NEW="${new_version}" \
+    perl -pi -e 's/\Q$ENV{OLD}\E/$ENV{NEW}/g' "${file}"
   echo "  ${file}: ${count}"
 done
 
@@ -135,7 +140,9 @@ cargo update --workspace --quiet
 if [ "${keep_changelog}" = false ]; then
   if grep -q '^## Unreleased$' CHANGELOG.md; then
     today="$(date +%Y-%m-%d)"
-    sed -i "0,/^## Unreleased$/s//## ${new_version} (${today})/" CHANGELOG.md
+    # Only the first `## Unreleased` heading is replaced.
+    HEADING="## ${new_version} (${today})" \
+      perl -pi -e 'if (!$done && s/^## Unreleased$/$ENV{HEADING}/) { $done = 1 }' CHANGELOG.md
     echo "CHANGELOG.md: ## Unreleased -> ## ${new_version} (${today})"
   else
     echo "CHANGELOG.md: no '## Unreleased' heading; left alone" >&2
