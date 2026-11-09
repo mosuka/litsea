@@ -521,8 +521,11 @@ impl Segmenter {
     /// joint POS model, which predicted the first word's POS at that position
     /// (issue #100). Its only caller now, stage 1 of the two-stage extractor,
     /// collapses the labels to `B`/`O`, so the first-position row it gets is
-    /// the same always-`B` row that the boundary pipeline skips. Dropping it
-    /// would change the trained two-stage models, so it is kept.
+    /// the same always-`B` row that the boundary pipeline skips. It is kept on
+    /// purpose: retraining the four bundled two-stage models without it
+    /// (issue #306) made Japanese and Chinese slightly worse on the UD dev
+    /// splits at their bundled epoch counts and left Korean and English
+    /// unchanged.
     fn process_tokens<'a, L, I, F>(
         &self,
         tokens: I,
