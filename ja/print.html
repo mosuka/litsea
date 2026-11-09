@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a46879e0.js";
+            window.path_to_searchindex_js = "searchindex-9b3f7282.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -1953,7 +1953,7 @@ litsea evaluate -l english --format tsv models/english.model resources/eval/engl
 litsea evaluate -l english --pos --format tsv models/english_pos.model resources/eval/english_ewt_test_pos_spaced.tsv
 </code></pre>
 <p>空白保持コーパスで学習した品詞モデル（手順8）は、<code>_test_pos_spaced.tsv</code> ファイルに対して <code>--pos --format tsv</code> で評価します。スペース区切りの言語では、空白なしの <code>_test_pos.txt</code> ファイルは以前の空白非保持プロトコルを測るもので、韓国語と英語では以前の数値を再現するためだけに残しています（<code>resources/eval/README.md</code> を参照）。スペースを使わずに表記される言語では、これが品詞用のゴールドファイルです。</p>
-<p><code>resources/eval/README.md</code> を新しいファイルとその出所/ライセンス（UD ツリーバンクは通常 CC BY-SA 4.0 であり、リポジトリの他の部分の MIT/Apache-2.0 ライセンスとは異なります）で更新してください。モデルのドキュメント（新しい数値が必要なドキュメントページの一覧は手順10を参照）には、<code>litsea train</code> の in-sample の出力ではなく、<code>litsea evaluate</code> から得た held-out の数値を記録してください。</p>
+<p><code>resources/eval/README.md</code> を新しいファイルとその出所/ライセンス（UD ツリーバンクは通常 CC BY-SA 4.0 であり、リポジトリの他の部分の MIT ライセンスとは異なります）で更新してください。モデルのドキュメント（新しい数値が必要なドキュメントページの一覧は手順10を参照）には、<code>litsea train</code> の in-sample の出力ではなく、<code>litsea evaluate</code> から得た held-out の数値を記録してください。</p>
 <h2 id="手順10-テストとドキュメントを追加"><a class="header" href="#手順10-テストとドキュメントを追加">手順10: テストとドキュメントを追加</a></h2>
 <p>この手順はスコープを狭く見積もりがちです: 新しい言語は <code>language.rs</code>/<code>segmenter.rs</code> だけでなく、もっと多くのテストファイルに影響します。以下のチェックリストに沿って確認してください。</p>
 <p><strong>コードテスト:</strong></p>
