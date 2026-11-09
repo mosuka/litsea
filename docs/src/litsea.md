@@ -6,7 +6,7 @@ The `litsea` crate provides a Rust API for word segmentation, model training, an
 
 ```toml
 [dependencies]
-litsea = "0.15.0"
+litsea = "0.16.0"
 ```
 
 Loading models from local files with `load_model_from_path` or `load_model_from_reader` is synchronous and needs no async runtime. The `load_model` methods (for example `TwoStageLearner::load_model`) and `model_io::read_model_bytes` are async for every URI form, local paths included, so calling them needs an async runtime such as `tokio`.
@@ -15,7 +15,7 @@ Loading models over HTTP/HTTPS also needs the `remote_model` feature, which is o
 
 ```toml
 [dependencies]
-litsea = { version = "0.15.0", features = ["remote_model"] }
+litsea = { version = "0.16.0", features = ["remote_model"] }
 ```
 
 ## Module Map
@@ -53,7 +53,7 @@ graph LR
 | `litsea::two_stage` | `ModelKind`, `TwoStageFeatureSet`, `TwoStageLearner` | Two-stage model container and model-kind detection |
 | `litsea::model_io` | `read_model_bytes` | Resolves a model URI (path, `file://`, or `http(s)://` with the `remote_model` feature) to raw bytes (async) |
 
-All primary types are also re-exported at the crate root, so `use litsea::Segmenter;` works as a shorthand for `use litsea::segmenter::Segmenter;`. The crate root also provides `litsea::version()`, which returns the crate version (for example `"0.15.0"`).
+All primary types are also re-exported at the crate root, so `use litsea::Segmenter;` works as a shorthand for `use litsea::segmenter::Segmenter;`. The crate root also provides `litsea::version()`, which returns the crate version (for example `"0.16.0"`).
 
 The learners resolve their own URIs, so `model_io::read_model_bytes` is rarely needed directly. It is public for callers that must inspect a model before choosing a learner — `litsea-binding-core` reads the bytes once, detects the kind with `ModelKind::detect`, and feeds the same bytes to `load_model_from_reader`, which avoids downloading a remote model twice.
 

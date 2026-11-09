@@ -35,13 +35,13 @@ cargo build --release
 
 ```toml
 [dependencies]
-litsea = "0.15.0"
+litsea = "0.16.0"
 ```
 
 http(s) 経由のリモートモデル読み込みはオプトイン（opt-in）です。必要な場合は `remote_model` フィーチャーを有効にしてください:
 
 ```toml
-litsea = { version = "0.15.0", features = ["remote_model"] }
+litsea = { version = "0.16.0", features = ["remote_model"] }
 ```
 
 > **注意:** ローカルファイルからのモデル読み込み（`load_model_from_path`）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（`tokio` など）が必要になるのは、非同期の `load_model` メソッドを呼ぶ場合のみです。このメソッドはどのビルドにもあり、ファイルパスと `file://` の URI を読み込めます。HTTP/HTTPS 経由で読み込むには、加えてオプトインの `remote_model` フィーチャーが必要です。
