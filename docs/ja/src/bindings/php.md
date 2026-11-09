@@ -10,7 +10,7 @@ PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェク�
 pie install mosuka/litsea
 ```
 
-PIE 1.4 以降は、PHP 8.1〜8.5（NTS / ZTS）× Linux x86_64 / arm64（glibc 2.35 以上）または Apple シリコンの macOS 向けのビルド済み `litsea.so` を GitHub Release からダウンロードし、拡張ディレクトリへ配置して有効化します。Rust ツールチェーンは不要です（`--with-php-config=...` で別の PHP を選べます）。それ以外の組み合わせ（Alpine などの musl、古い glibc、Intel Mac、PIE 1.4 未満）ではソースビルドにフォールバックし、Rust ツールチェーン、libclang、PIE のビルドツール（`autoconf`、`libtool`、`make`）が必要になります。Windows は未対応です。Composer 自体は `php-ext` 型のパッケージを無視するため、`composer require mosuka/litsea` ではインストールできません。
+PIE 1.4 以降は、PHP 8.1〜8.5（NTS / ZTS）× Linux x86_64 / arm64（glibc 2.35 以上）または Apple シリコンの macOS 向けのビルド済み `litsea.so` を GitHub Release からダウンロードし、拡張ディレクトリへ配置して有効化します。Rust ツールチェーンは不要です（`--with-php-config=...` で別の PHP を選べます）。それ以外の組み合わせ（Alpine などの musl、古い glibc、Intel Mac、PIE 1.4 未満）ではソースビルドにフォールバックし、Rust ツールチェーン、libclang（複数の LLVM が入っている場合は[複数の LLVM が入っている環境](#複数の-llvm-が入っている環境)を参照）、PIE のビルドツール（`autoconf`、`libtool`、`make`）が必要になります。Windows は未対応です。Composer 自体は `php-ext` 型のパッケージを無視するため、`composer require mosuka/litsea` ではインストールできません。
 
 PIE を使わない場合は自分でビルドして読み込みます。
 
@@ -20,6 +20,23 @@ php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 ```
 
 常時読み込む場合は `php.ini` に `extension=/path/to/liblitsea_php.so` を追記します。macOS では cargo が `liblitsea_php.dylib` を書き出すので、そのパスを読み込んでください。どちらの方法でも `php -m` には `litsea` と表示されます。
+
+### 複数の LLVM が入っている環境
+
+ソースビルドでは、ext-php-rs のビルドスクリプトの中で bindgen が PHP のバインディングを生成します。bindgen は PHP のヘッダを libclang で解析し、その libclang には、`LIBCLANG_PATH` で指定しない限り、見つかったうちで一番新しいものを使います。一方、clang 自身のヘッダを含むシステムのインクルードパスは、`clang` の実行ファイル（`CLANG_PATH`、なければ `llvm-config --bindir` にあるもの、それもなければ `PATH` にあるもの）から取得します。複数の LLVM が入っていると、この 2 つが別のバージョンになることがあり、その場合は clang のヘッダでエラーが出たあと、`Unable to generate bindings for PHP` でビルドが止まります。
+
+```text
+/usr/lib/llvm-21/lib/clang/21/include/xmmintrin.h:245:10: error: invalid conversion between vector type '__m128' (vector of 4 'float' values) and integer type 'int' of different size
+/usr/lib/llvm-21/lib/clang/21/include/emmintrin.h:253:11: error: initializing '__m128d' (vector of 2 'double' values) with an expression of incompatible type 'int'
+Error: Unable to generate bindings for PHP
+```
+
+両方を同じバージョンの LLVM に合わせてから、同じシェルで `pie install mosuka/litsea` または `cargo build --release -p litsea-php` をもう一度実行してください。Debian や Ubuntu で LLVM 21 に合わせる例です。
+
+```sh
+export LIBCLANG_PATH=/usr/lib/llvm-21/lib
+export CLANG_PATH=/usr/lib/llvm-21/bin/clang
+```
 
 ## 静的解析向けのスタブ
 

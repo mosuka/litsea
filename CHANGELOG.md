@@ -26,6 +26,14 @@
   `package.json` that wasm-pack writes left them out. Regression now builds
   the package and checks its file list (`make check-litsea-wasm-package`).
 
+### Documentation
+
+- PHP: the docs describe a source build that stops with `Unable to
+  generate bindings for PHP` after errors in clang's `xmmintrin.h` and
+  `emmintrin.h` (#299). With several LLVM versions installed, bindgen can
+  take libclang from one and clang's headers from another; setting
+  `LIBCLANG_PATH` and `CLANG_PATH` to one version fixes the build.
+
 ## 0.15.0 (2026-10-28)
 
 ### Added

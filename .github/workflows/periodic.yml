@@ -27,6 +27,12 @@ jobs:
       - name: Run format
         run: cargo fmt --all -- --check
 
+      # clippy --workspace builds litsea-php, and bindgen in the ext-php-rs
+      # build script must parse clang's headers with the libclang of the same
+      # LLVM, while the runner image ships several (#299).
+      - name: Pair libclang with clang
+        uses: ./.github/actions/setup-libclang
+
       - name: Run clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 

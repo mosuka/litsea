@@ -10,7 +10,7 @@ A PHP extension is a shared object built against a specific PHP ABI, so a prebui
 pie install mosuka/litsea
 ```
 
-PIE 1.4 or later downloads a prebuilt `litsea.so` from the GitHub release for PHP 8.1 to 8.5 (NTS or ZTS) on Linux x86_64 / arm64 (glibc 2.35 or newer) and macOS on Apple silicon, installs it into the extension directory and enables it; no Rust toolchain is involved (`--with-php-config=...` selects another PHP). Other combinations (musl such as Alpine, older glibc, Intel Macs, PIE before 1.4) fall back to a source build, which needs a Rust toolchain, libclang and PIE's build tools (`autoconf`, `libtool`, `make`); Windows is not supported. Composer itself ignores `php-ext` packages, so `composer require mosuka/litsea` is not an installation route.
+PIE 1.4 or later downloads a prebuilt `litsea.so` from the GitHub release for PHP 8.1 to 8.5 (NTS or ZTS) on Linux x86_64 / arm64 (glibc 2.35 or newer) and macOS on Apple silicon, installs it into the extension directory and enables it; no Rust toolchain is involved (`--with-php-config=...` selects another PHP). Other combinations (musl such as Alpine, older glibc, Intel Macs, PIE before 1.4) fall back to a source build, which needs a Rust toolchain, libclang (with several LLVM versions installed, see [Several LLVM versions](#several-llvm-versions)) and PIE's build tools (`autoconf`, `libtool`, `make`); Windows is not supported. Composer itself ignores `php-ext` packages, so `composer require mosuka/litsea` is not an installation route.
 
 Without PIE, build and load the library yourself:
 
@@ -20,6 +20,23 @@ php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 ```
 
 Add it to `php.ini` (`extension=/path/to/liblitsea_php.so`) to load it everywhere. On macOS, cargo writes `liblitsea_php.dylib` instead; load that path. Either way `php -m` lists the extension as `litsea`.
+
+### Several LLVM versions
+
+A source build generates the PHP bindings with bindgen, in the build script of ext-php-rs. bindgen parses the PHP headers with libclang, the newest one it finds unless `LIBCLANG_PATH` names one, and takes the system include paths, clang's own headers among them, from a `clang` executable: `CLANG_PATH`, else the one in `llvm-config --bindir`, else the one on `PATH`. When several LLVM versions are installed, the two can come from different versions, and the build stops with errors in clang's headers, followed by `Unable to generate bindings for PHP`:
+
+```text
+/usr/lib/llvm-21/lib/clang/21/include/xmmintrin.h:245:10: error: invalid conversion between vector type '__m128' (vector of 4 'float' values) and integer type 'int' of different size
+/usr/lib/llvm-21/lib/clang/21/include/emmintrin.h:253:11: error: initializing '__m128d' (vector of 2 'double' values) with an expression of incompatible type 'int'
+Error: Unable to generate bindings for PHP
+```
+
+Point both at one LLVM version, then run `pie install mosuka/litsea` or `cargo build --release -p litsea-php` again in the same shell. On Debian and Ubuntu, LLVM 21 for example:
+
+```sh
+export LIBCLANG_PATH=/usr/lib/llvm-21/lib
+export CLANG_PATH=/usr/lib/llvm-21/bin/clang
+```
 
 ## Stubs for static analysis
 

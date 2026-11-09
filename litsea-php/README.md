@@ -20,6 +20,8 @@ PIE 1.4 or later downloads a prebuilt `litsea.so` from the GitHub release when o
 
 For every other combination (Alpine and other musl systems, glibc older than 2.35, Intel Macs, PIE before 1.4) the same command falls back to building from source, which needs a Rust toolchain (<https://rustup.rs/>), libclang (`libclang-dev` on Debian/Ubuntu; the Xcode command line tools or `brew install llvm` on macOS) and PIE's usual build tools (`autoconf`, `libtool`, `make`). Windows is not supported.
 
+If a source build stops with `Unable to generate bindings for PHP` after errors in clang's `xmmintrin.h` or `emmintrin.h`, several LLVM versions are installed, and bindgen took libclang from one of them and clang's headers from another. Set `LIBCLANG_PATH` and `CLANG_PATH` to one version (on Debian and Ubuntu, for example `/usr/lib/llvm-21/lib` and `/usr/lib/llvm-21/bin/clang`) and build again.
+
 ### Manual build
 
 ```sh
