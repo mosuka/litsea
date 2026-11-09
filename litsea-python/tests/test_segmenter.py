@@ -70,7 +70,7 @@ def test_segment_with_pos_matches_the_cli(
     )[0]
 
     seg = Segmenter.open(language, models_dir / model)
-    actual = " ".join(f"{token.surface}/{token.pos.name}" for token in seg.segment_with_pos(sentence))
+    actual = tagged(seg, sentence)
     assert actual == expected
 
 
@@ -116,7 +116,7 @@ def test_user_words_with_pos_match_the_cli(models_dir: Path, litsea_cli: Path, t
     )[0]
 
     seg = Segmenter.open("japanese", models_dir / "japanese_pos.model", user_words=words)
-    actual = " ".join(f"{token.surface}/{token.pos.name}" for token in seg.segment_with_pos(sentence))
+    actual = tagged(seg, sentence)
     assert actual == expected
     assert seg.segment_with_pos(sentence)[0].surface == "雪だるま"
 
@@ -156,10 +156,11 @@ def test_user_words_invalid_arguments(models_dir: Path) -> None:
     for words in (["雪だるま"], None):
         with pytest.raises(InvalidArgumentError, match=r"0\.0\.\.=1\.0"):
             Segmenter.open("japanese", path, user_words=words, user_words_gate=1.5)
+    # A str is a Sequence[str] to the type checker; only the binding rejects it.
     with pytest.raises(TypeError):
-        Segmenter.open("japanese", path, user_words="雪だるま")  # type: ignore[arg-type]
+        Segmenter.open("japanese", path, user_words="雪だるま")
     with pytest.raises(TypeError):
-        Segmenter.open("japanese", path, ["雪だるま"])  # type: ignore[misc]
+        Segmenter.open("japanese", path, ["雪だるま"])  # type: ignore[call-arg]
 
 
 # Tagged user dictionary entries (#264): the tagger gives these words NOUN
@@ -169,9 +170,15 @@ USER_WORD_TAGS = {"チャットGPT": "PROPN", "ポケモン": "PROPN", "楓": "P
 TAGGED_SENTENCES = ["チャットGPTに聞く", "ポケモンを集める", "雪だるまを作る", "楓が笑った。"]
 
 
+def pos_name(token: Token) -> str:
+    """The tag name of a token from `segment_with_pos`, which always sets `pos`."""
+    assert token.pos is not None
+    return token.pos.name
+
+
 def tagged(segmenter: Segmenter, sentence: str) -> str:
     """Render `segment_with_pos` the way `litsea segment --pos` prints it."""
-    return " ".join(f"{token.surface}/{token.pos.name}" for token in segmenter.segment_with_pos(sentence))
+    return " ".join(f"{token.surface}/{pos_name(token)}" for token in segmenter.segment_with_pos(sentence))
 
 
 def test_user_word_tags_match_the_cli(models_dir: Path, litsea_cli: Path, tmp_path: Path) -> None:
@@ -362,7 +369,7 @@ def test_enums_are_not_python_enums() -> None:
     with pytest.raises(TypeError):
         list(Language)  # type: ignore[call-overload]
     with pytest.raises(TypeError):
-        Language["JAPANESE"]  # type: ignore[index]
+        Language["JAPANESE"]  # type: ignore[misc]
 
 
 def test_enum_members_do_not_compare_equal_to_ints() -> None:

@@ -153,7 +153,7 @@ metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=
 ```sh
 make setup-venv            # venv 作成と開発ツールのインストール
 make test-litsea-python    # cargo test + maturin develop + pytest
-make lint-litsea-python    # clippy + ruff
+make lint-litsea-python    # clippy + ruff + mypy
 make build-litsea-python   # リリース wheel を litsea-python/dist へ出力
 ```
 

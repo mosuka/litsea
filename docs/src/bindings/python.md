@@ -153,7 +153,7 @@ Single-sentence `segment` and `segment_with_pos` keep it. Releasing the GIL requ
 ```sh
 make setup-venv            # create the venv and install the dev tools
 make test-litsea-python    # cargo test + maturin develop + pytest
-make lint-litsea-python    # clippy + ruff
+make lint-litsea-python    # clippy + ruff + mypy
 make build-litsea-python   # build a release wheel into litsea-python/dist
 ```
 
