@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-1303119c.js";
+            window.path_to_searchindex_js = "../searchindex-5f38afa5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -215,7 +215,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 local loading only, keeping the dependency tree compact). The CLI enables it,
 so <code>litsea segment https://...</code> keeps working out of the box; library users
 need:</p>
-<pre><code class="language-toml">litsea = { version = "0.15.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.16.0", features = ["remote_model"] }
 </code></pre>
 <p>The Python, Node.js, Ruby, and PHP bindings are built with <code>remote_model</code>
 too, so their URI loaders (<code>Segmenter.from_uri</code> in Python and Ruby,

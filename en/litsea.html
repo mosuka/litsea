@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-1303119c.js";
+            window.path_to_searchindex_js = "searchindex-5f38afa5.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -184,12 +184,12 @@
 <p>The <code>litsea</code> crate provides a Rust API for word segmentation, model training, and feature extraction.</p>
 <h2 id="installation"><a class="header" href="#installation">Installation</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.15.0"
+litsea = "0.16.0"
 </code></pre>
 <p>Loading models from local files with <code>load_model_from_path</code> or <code>load_model_from_reader</code> is synchronous and needs no async runtime. The <code>load_model</code> methods (for example <code>TwoStageLearner::load_model</code>) and <code>model_io::read_model_bytes</code> are async for every URI form, local paths included, so calling them needs an async runtime such as <code>tokio</code>.</p>
 <p>Loading models over HTTP/HTTPS also needs the <code>remote_model</code> feature, which is off by default; without it, <code>http://</code> and <code>https://</code> URIs fail with <code>LitseaError::Unsupported</code> (see <a href="advanced/remote-model-loading.html">Remote Model Loading</a>):</p>
 <pre><code class="language-toml">[dependencies]
-litsea = { version = "0.15.0", features = ["remote_model"] }
+litsea = { version = "0.16.0", features = ["remote_model"] }
 </code></pre>
 <h2 id="module-map"><a class="header" href="#module-map">Module Map</a></h2>
 <pre><code class="language-mermaid">graph LR
@@ -229,7 +229,7 @@ litsea = { version = "0.15.0", features = ["remote_model"] }
 </tbody>
 </table>
 </div>
-<p>All primary types are also re-exported at the crate root, so <code>use litsea::Segmenter;</code> works as a shorthand for <code>use litsea::segmenter::Segmenter;</code>. The crate root also provides <code>litsea::version()</code>, which returns the crate version (for example <code>"0.15.0"</code>).</p>
+<p>All primary types are also re-exported at the crate root, so <code>use litsea::Segmenter;</code> works as a shorthand for <code>use litsea::segmenter::Segmenter;</code>. The crate root also provides <code>litsea::version()</code>, which returns the crate version (for example <code>"0.16.0"</code>).</p>
 <p>The learners resolve their own URIs, so <code>model_io::read_model_bytes</code> is rarely needed directly. It is public for callers that must inspect a model before choosing a learner — <code>litsea-binding-core</code> reads the bytes once, detects the kind with <code>ModelKind::detect</code>, and feeds the same bytes to <code>load_model_from_reader</code>, which avoids downloading a remote model twice.</p>
 <h2 id="quick-example"><a class="header" href="#quick-example">Quick Example</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;

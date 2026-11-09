@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-69346b6a.js";
+            window.path_to_searchindex_js = "searchindex-20f94865.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-1d4dde61.js"></script>
@@ -209,7 +209,7 @@ Output: 今日/NOUN は/ADP いい/ADJ 天気/NOUN です/AUX ね/PART 。/PUNCT
 <h2 id="名前の由来"><a class="header" href="#名前の由来">名前の由来</a></h2>
 <p>クスノキ科には <em>Lindera</em>（クロモジ）と同じ科に属する <em>Litsea cubeba</em>（アオモジ）という小さな植物があります。これが <strong>Litsea</strong> という名前の由来です。</p>
 <h2 id="現在のバージョン"><a class="header" href="#現在のバージョン">現在のバージョン</a></h2>
-<p>Litsea v0.15.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
+<p>Litsea v0.16.0 – Rust Edition 2024、最低 Rust バージョン 1.87。</p>
 <h2 id="リンク"><a class="header" href="#リンク">リンク</a></h2>
 <ul>
 <li><a href="https://github.com/mosuka/litsea">GitHub リポジトリ</a></li>
@@ -249,10 +249,10 @@ cargo build --release
 <h2 id="ライブラリとしての利用"><a class="header" href="#ライブラリとしての利用">ライブラリとしての利用</a></h2>
 <p>プロジェクトの <code>Cargo.toml</code> に Litsea を追加します:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.15.0"
+litsea = "0.16.0"
 </code></pre>
 <p>http(s) 経由のリモートモデル読み込みはオプトイン（opt-in）です。必要な場合は <code>remote_model</code> フィーチャーを有効にしてください:</p>
-<pre><code class="language-toml">litsea = { version = "0.15.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.16.0", features = ["remote_model"] }
 </code></pre>
 <blockquote>
 <p><strong>注意:</strong> ローカルファイルからのモデル読み込み（<code>load_model_from_path</code>）は同期処理のため、非同期ランタイムは不要です。非同期ランタイム（<code>tokio</code> など）が必要になるのは、非同期の <code>load_model</code> メソッドを呼ぶ場合のみです。このメソッドはどのビルドにもあり、ファイルパスと <code>file://</code> の URI を読み込めます。HTTP/HTTPS 経由で読み込むには、加えてオプトインの <code>remote_model</code> フィーチャーが必要です。</p>
@@ -2001,12 +2001,12 @@ mdbook build docs/ja
 <p><code>litsea</code> クレートは、単語分割、モデル学習、特徴量抽出のための Rust API を提供します。</p>
 <h2 id="インストール-1"><a class="header" href="#インストール-1">インストール</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea = "0.15.0"
+litsea = "0.16.0"
 </code></pre>
 <p>ローカルファイルからのモデル読み込みは同期 API（<code>load_model_from_path</code>、<code>load_model_from_reader</code>）で行えるため、tokio などの非同期ランタイムは不要です。<code>load_model</code> 系のメソッド（例えば <code>TwoStageLearner::load_model</code>）と <code>model_io::read_model_bytes</code> は、ローカルのパスを含むどの形式の URI でも async なので、呼び出すには <code>tokio</code> などの非同期ランタイムが必要です。</p>
 <p>HTTP(S) からのモデル読み込みには、既定では無効な <code>remote_model</code> フィーチャも必要です。無効のままでは、<code>http://</code> と <code>https://</code> の URI は <code>LitseaError::Unsupported</code> で失敗します（<a href="#リモートモデルの読み込み">リモートモデルの読み込み</a>を参照）:</p>
 <pre><code class="language-toml">[dependencies]
-litsea = { version = "0.15.0", features = ["remote_model"] }
+litsea = { version = "0.16.0", features = ["remote_model"] }
 </code></pre>
 <h2 id="モジュール構成"><a class="header" href="#モジュール構成">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
@@ -2046,7 +2046,7 @@ litsea = { version = "0.15.0", features = ["remote_model"] }
 </tbody>
 </table>
 </div>
-<p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::Segmenter;</code> は <code>use litsea::segmenter::Segmenter;</code> の短縮形として使えます。クレートルートには、クレートのバージョン（例: <code>"0.15.0"</code>）を返す <code>litsea::version()</code> もあります。</p>
+<p>主要な型はすべてクレートルートから再エクスポートされているため、<code>use litsea::Segmenter;</code> は <code>use litsea::segmenter::Segmenter;</code> の短縮形として使えます。クレートルートには、クレートのバージョン（例: <code>"0.16.0"</code>）を返す <code>litsea::version()</code> もあります。</p>
 <p>各学習器は自身で URI を解決するため、<code>model_io::read_model_bytes</code> を直接使う場面はほとんどありません。これが公開されているのは、学習器を選ぶ前にモデルの中身を確認する必要がある呼び出し側のためです。<code>litsea-binding-core</code> はこれでバイト列を 1 度読み、<code>ModelKind::detect</code> で種別を判定し、同じバイト列を <code>load_model_from_reader</code> に渡すことで、リモートモデルを 2 回ダウンロードすることを避けています。</p>
 <h2 id="クイックスタート-1"><a class="header" href="#クイックスタート-1">クイックスタート</a></h2>
 <pre class="playground"><code class="language-rust">use std::path::Path;
@@ -4383,7 +4383,7 @@ litsea evaluate --pos --format tsv -l english models/english_pos.model resources
 <p><code>litsea-binding-core</code> は、各言語バインディングが共有する FFI 非依存のロジックをまとめたクレートです。依存先は <code>litsea</code> と <code>thiserror</code>（およびネイティブターゲットではブロッキング用の Tokio）のみで、PyO3・napi・ext-php-rs・magnus・wasm-bindgen には一切依存しません。そのため、ホスト言語のツールチェーンなしでユニットテストできます。</p>
 <h2 id="インストール-2"><a class="header" href="#インストール-2">インストール</a></h2>
 <pre><code class="language-toml">[dependencies]
-litsea-binding-core = "0.15.0"
+litsea-binding-core = "0.16.0"
 </code></pre>
 <h2 id="モジュール構成-1"><a class="header" href="#モジュール構成-1">モジュール構成</a></h2>
 <pre><code class="language-mermaid">graph LR
@@ -5932,7 +5932,7 @@ learner.load_model("https://example.com/models/japanese.model").await?;
 <span class="boring">}</span></code></pre>
 <h2 id="フィーチャーの有効化"><a class="header" href="#フィーチャーの有効化">フィーチャーの有効化</a></h2>
 <p>0.6.0 以降、<code>remote_model</code> フィーチャーは<strong>オプトイン</strong>です（ライブラリのデフォルトはローカル読み込みのみとし、依存関係のツリーをコンパクトに保っています）。CLI ではこのフィーチャーが有効化されているため、<code>litsea segment https://...</code> はそのまま動作します。ライブラリ利用者は以下が必要です:</p>
-<pre><code class="language-toml">litsea = { version = "0.15.0", features = ["remote_model"] }
+<pre><code class="language-toml">litsea = { version = "0.16.0", features = ["remote_model"] }
 </code></pre>
 <p>Python・Node.js・Ruby・PHP のバインディングも <code>remote_model</code> を有効にして
 ビルドされているため、それぞれの URI ローダー（Python と Ruby の
