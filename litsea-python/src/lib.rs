@@ -25,7 +25,7 @@ use pyo3::prelude::*;
 /// Returns the version of the underlying `litsea` crate.
 ///
 /// # Returns
-/// The version string, for example `"0.12.0"`.
+/// The version string: the `CARGO_PKG_VERSION` the `litsea` crate was built with.
 #[pyfunction]
 fn version() -> &'static str {
     litsea::version()

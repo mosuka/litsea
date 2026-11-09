@@ -522,7 +522,8 @@ fn test_segment_user_words() {
 
 /// Pins `--user-words` error handling: a gate without a dictionary is an
 /// argument error, a gate outside 0..=1 and a missing file are reported
-/// with their cause.
+/// with their cause, and a line that cannot be read (invalid UTF-8) is
+/// reported with the file and the line (issue #287).
 #[test]
 fn test_segment_user_words_errors() {
     let dir = tempfile::tempdir().expect("tempdir");
@@ -564,6 +565,20 @@ fn test_segment_user_words_errors() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("cannot read user dictionary"), "unexpected stderr: {stderr}");
+
+    // The second line is not UTF-8: the file opens, then reading the line
+    // fails.
+    let invalid = dir.path().join("invalid.txt");
+    std::fs::write(&invalid, b"\xe9\x9b\xaa\n\xff\xfe\n").expect("write invalid");
+    let invalid = invalid.to_str().unwrap();
+    let output = run_litsea(
+        &["segment", "--user-words", invalid, "-l", "japanese", model],
+        Some("雪だるまを作る\n"),
+    );
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let expected = format!("cannot read user dictionary {invalid}, line 2:");
+    assert!(stderr.contains(&expected), "missing {expected:?} in {stderr}");
 }
 
 /// Pins `evaluate --user-words` (issue #263): the dictionary is applied

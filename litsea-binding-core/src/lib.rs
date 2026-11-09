@@ -72,11 +72,13 @@ pub use trainer::{
 
 /// Returns the version of the `litsea-binding-core` crate.
 ///
-/// Bindings expose this next to [`litsea::version`] so a host-language user
-/// can report both in a bug report.
+/// It always equals [`litsea::version`], since the workspace crates share
+/// `workspace.package.version` (the test below checks it). The bindings
+/// report [`litsea::version`] from their own `version()` functions and do
+/// not call this one.
 ///
 /// # Returns
-/// The crate's `CARGO_PKG_VERSION`, for example `"0.12.0"`.
+/// The crate's `CARGO_PKG_VERSION`.
 #[must_use]
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")

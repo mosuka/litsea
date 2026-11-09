@@ -771,11 +771,12 @@ async fn evaluate(args: EvaluateArgs) -> Result<(), Box<dyn Error>> {
 /// empty, which leaves segmentation unchanged).
 ///
 /// # Errors
-/// Returns an error naming the file if it cannot be read; an error naming
-/// the file and the line for an empty word before a TAB, more than two
-/// columns, an empty or unknown tag, or a word tagged differently on two
-/// lines; or the [`LitseaError::InvalidInput`] from `set_gate` if the gate
-/// is outside `0.0..=1.0`.
+/// Returns an error naming the file if it cannot be opened; an error naming
+/// the file and the line for a line that cannot be read (for example
+/// invalid UTF-8), an empty word before a TAB, more than two columns, an
+/// empty or unknown tag, or a word tagged differently on two lines; or the
+/// [`LitseaError::InvalidInput`] from `set_gate` if the gate is outside
+/// `0.0..=1.0`.
 fn load_user_dictionary(
     path: Option<&Path>,
     gate: Option<f64>,
@@ -790,7 +791,9 @@ fn load_user_dictionary(
     // is tagged differently on two lines.
     let mut tagged: HashMap<String, (Upos, usize)> = HashMap::new();
     for (index, line) in lines_without_bom(io::BufReader::new(file)).enumerate() {
-        let line = line?;
+        let line = line.map_err(|e| {
+            format!("cannot read user dictionary {}, line {}: {}", path.display(), index + 1, e)
+        })?;
         if line.is_empty() {
             continue;
         }

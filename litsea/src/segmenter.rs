@@ -517,10 +517,12 @@ impl Segmenter {
     ///
     /// When `include_first` is false the first character position is skipped:
     /// for the boundary (AdaBoost) pipeline its label is degenerate (always a
-    /// word start). The POS pipeline passes true, because
-    /// [`segment_with_pos`](Self::segment_with_pos) predicts at the first
-    /// position to derive the first word's POS, so training must cover it
-    /// (issue #100).
+    /// word start). The POS pipeline passes true, a leftover of the removed
+    /// joint POS model, which predicted the first word's POS at that position
+    /// (issue #100). Its only caller now, stage 1 of the two-stage extractor,
+    /// collapses the labels to `B`/`O`, so the first-position row it gets is
+    /// the same always-`B` row that the boundary pipeline skips. Dropping it
+    /// would change the trained two-stage models, so it is kept.
     fn process_tokens<'a, L, I, F>(
         &self,
         tokens: I,
@@ -594,9 +596,9 @@ impl Segmenter {
     }
 
     /// Processes a POS-tagged corpus, yielding the attributes and
-    /// SegmentLabel for every character position, including the first one
-    /// (whose label carries the first word's POS; see
-    /// [`segment_with_pos`](Self::segment_with_pos)).
+    /// SegmentLabel for every character position, including the first one,
+    /// whose label carries the first word's POS (see `process_tokens` for
+    /// why the first position is included).
     ///
     /// `sep` selects the token separator: `' '` for the classic
     /// "word/POS word/POS ..." corpus, `'\t'` for the space-preserving TSV

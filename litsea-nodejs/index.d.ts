@@ -228,7 +228,7 @@ export declare class Segmenter {
    * * `text` - The sentence to segment.
    *
    * # Returns
-   * The tokens, with `pos` set to `null`.
+   * The tokens, with `pos` left `undefined`.
    */
   segmentTokens(text: string): Array<Token>
   /**
@@ -434,6 +434,6 @@ export interface TwoStageMetrics {
  * Returns the version of the underlying `litsea` crate.
  *
  * # Returns
- * The version string, for example `"0.12.0"`.
+ * The version string: the `CARGO_PKG_VERSION` the `litsea` crate was built with.
  */
 export declare function version(): string

@@ -7,8 +7,9 @@
 //!
 //! [`AdaBoost`] is also the general-purpose container for the model *file
 //! format* (`feature\tweight` lines plus a bias line), independent of how
-//! the weights were produced: the bundled `models/{japanese,chinese,korean}.model`
-//! segmentation models (issue #165) and the two-stage architecture's
+//! the weights were produced: the bundled
+//! `models/{japanese,chinese,korean,english}.model` segmentation models
+//! (issue #165) and the two-stage architecture's
 //! collapsed stage-1 boundary classifier (`crate::trainer::TwoStageTrainer`)
 //! are both trained as a 2-class Averaged Perceptron and losslessly
 //! converted to this format, never touching this file's `train` method.
