@@ -178,7 +178,7 @@ litsea evaluate -l english --pos --format tsv models/english_pos.model resources
 
 空白保持コーパスで学習した品詞モデル（手順8）は、`_test_pos_spaced.tsv` ファイルに対して `--pos --format tsv` で評価します。スペース区切りの言語では、空白なしの `_test_pos.txt` ファイルは以前の空白非保持プロトコルを測るもので、韓国語と英語では以前の数値を再現するためだけに残しています（`resources/eval/README.md` を参照）。スペースを使わずに表記される言語では、これが品詞用のゴールドファイルです。
 
-`resources/eval/README.md` を新しいファイルとその出所/ライセンス（UD ツリーバンクは通常 CC BY-SA 4.0 であり、リポジトリの他の部分の MIT/Apache-2.0 ライセンスとは異なります）で更新してください。モデルのドキュメント（新しい数値が必要なドキュメントページの一覧は手順10を参照）には、`litsea train` の in-sample の出力ではなく、`litsea evaluate` から得た held-out の数値を記録してください。
+`resources/eval/README.md` を新しいファイルとその出所/ライセンス（UD ツリーバンクは通常 CC BY-SA 4.0 であり、リポジトリの他の部分の MIT ライセンスとは異なります）で更新してください。モデルのドキュメント（新しい数値が必要なドキュメントページの一覧は手順10を参照）には、`litsea train` の in-sample の出力ではなく、`litsea evaluate` から得た held-out の数値を記録してください。
 
 ## 手順10: テストとドキュメントを追加
 

@@ -6,7 +6,7 @@ PHP binding for [Litsea](https://github.com/mosuka/litsea), a compact word segme
 
 ## Installation
 
-A PHP extension is a shared object built against a specific PHP ABI, so there is no prebuilt package to download — the extension is compiled for your PHP, either by [PIE](https://github.com/php/pie) or by you. Requires PHP 8.1 or later.
+A PHP extension is a shared object built against a specific PHP ABI, so a prebuilt binary fits only one PHP version, thread-safety mode and platform: [PIE](https://github.com/php/pie) downloads a matching one from the GitHub release when there is one, and otherwise compiles the extension for your PHP. You can also build it by hand. Requires PHP 8.1 or later.
 
 ### With PIE (recommended)
 

@@ -33,6 +33,13 @@
   `emmintrin.h` (#299). With several LLVM versions installed, bindgen can
   take libclang from one and clang's headers from another; setting
   `LIBCLANG_PATH` and `CLANG_PATH` to one version fixes the build.
+- The `litsea-php` README no longer says that there is no prebuilt
+  package (#289): PIE 1.4 or later downloads a prebuilt `litsea.so` from
+  the GitHub release when one matches the PHP version, thread-safety mode
+  and platform, and otherwise compiles the extension.
+- The repository is licensed under MIT only. `resources/eval/README.md`
+  and the guide for adding a language called it "MIT / Apache-2.0"
+  (#289).
 
 ## 0.15.0 (2026-10-28)
 

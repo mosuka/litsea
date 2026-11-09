@@ -31,7 +31,7 @@ real-world usage.
 
 ## License
 
-Unlike the rest of this repository (MIT / Apache-2.0), the files in this
+Unlike the rest of this repository (MIT), the files in this
 directory are derived from the UD GSD/EWT treebanks and are licensed under
 **CC BY-SA 4.0** (<https://creativecommons.org/licenses/by-sa/4.0/>), the
 license of the source treebanks. See each treebank's repository for the

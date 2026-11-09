@@ -261,7 +261,7 @@ without spaces it is the POS gold file.
 
 Update `resources/eval/README.md` with the new file(s) and their
 provenance/license (UD treebanks are typically CC BY-SA 4.0, distinct from
-the rest of the repository's MIT/Apache-2.0 licensing). Record the
+the rest of the repository's MIT license). Record the
 held-out numbers you get from `litsea evaluate` -- not numbers from
 `litsea train`'s in-sample printout -- in the model's documentation
 (Step 10 lists every doc page that needs the new numbers).
