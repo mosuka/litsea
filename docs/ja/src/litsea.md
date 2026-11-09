@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-litsea = "0.15.0"
+litsea = "0.16.0"
 ```
 
 ローカルファイルからのモデル読み込みは同期 API（`load_model_from_path`、`load_model_from_reader`）で行えるため、tokio などの非同期ランタイムは不要です。`load_model` 系のメソッド（例えば `TwoStageLearner::load_model`）と `model_io::read_model_bytes` は、ローカルのパスを含むどの形式の URI でも async なので、呼び出すには `tokio` などの非同期ランタイムが必要です。
@@ -15,7 +15,7 @@ HTTP(S) からのモデル読み込みには、既定では無効な `remote_mod
 
 ```toml
 [dependencies]
-litsea = { version = "0.15.0", features = ["remote_model"] }
+litsea = { version = "0.16.0", features = ["remote_model"] }
 ```
 
 ## モジュール構成
@@ -53,7 +53,7 @@ graph LR
 | `litsea::two_stage` | `ModelKind`, `TwoStageFeatureSet`, `TwoStageLearner` | 二段構成モデルのコンテナとモデル種別の判定 |
 | `litsea::model_io` | `read_model_bytes` | モデル URI（パス・`file://`・`remote_model` フィーチャを有効にしたときの `http(s)://`）をバイト列へ解決する（async） |
 
-主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::Segmenter;` は `use litsea::segmenter::Segmenter;` の短縮形として使えます。クレートルートには、クレートのバージョン（例: `"0.15.0"`）を返す `litsea::version()` もあります。
+主要な型はすべてクレートルートから再エクスポートされているため、`use litsea::Segmenter;` は `use litsea::segmenter::Segmenter;` の短縮形として使えます。クレートルートには、クレートのバージョン（例: `"0.16.0"`）を返す `litsea::version()` もあります。
 
 各学習器は自身で URI を解決するため、`model_io::read_model_bytes` を直接使う場面はほとんどありません。これが公開されているのは、学習器を選ぶ前にモデルの中身を確認する必要がある呼び出し側のためです。`litsea-binding-core` はこれでバイト列を 1 度読み、`ModelKind::detect` で種別を判定し、同じバイト列を `load_model_from_reader` に渡すことで、リモートモデルを 2 回ダウンロードすることを避けています。
 
