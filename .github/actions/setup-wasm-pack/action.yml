@@ -1,0 +1,18 @@
+name: "Set up wasm-pack"
+description: >-
+  Install a pinned wasm-pack with taiki-e/install-action, which takes the
+  download URL and the SHA-256 from its own manifest instead of asking the
+  GitHub API for the latest release, and with `fallback: none` fails instead
+  of installing anything else when the version is not in that manifest
+  (#301). The version is written here only, so that the jobs that test
+  litsea-wasm and the job that publishes it use the same wasm-pack. Raise it
+  here by hand; Dependabot does not update it.
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install wasm-pack
+      uses: taiki-e/install-action@v2
+      with:
+        tool: wasm-pack@0.15.1
+        fallback: none
