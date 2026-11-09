@@ -17,10 +17,10 @@
 //! (`B`/`O`) [`AveragedPerceptron`] but saves it in the [`AdaBoost`] text
 //! format, via the private `collapse_boundary_perceptron` helper in this
 //! module. This is also how the bundled
-//! `models/{japanese,chinese,korean}.model` segmentation models are produced
-//! (issue #165): trained as a 2-class Averaged Perceptron, then losslessly
-//! collapsed to scalar AdaBoost-format weights, rather than trained by
-//! AdaBoost boosting.
+//! `models/{japanese,chinese,korean,english}.model` segmentation models are
+//! produced (issue #165): trained as a 2-class Averaged Perceptron, then
+//! losslessly collapsed to scalar AdaBoost-format weights, rather than
+//! trained by AdaBoost boosting.
 //!
 //! The collapse is exact because a 2-class perceptron has no bias term, so
 //! for any feature set `f` its class scores are `score_B = sum_{feat in f}

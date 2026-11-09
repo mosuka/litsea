@@ -263,10 +263,10 @@ impl Extractor {
     /// A model trained on the resulting features is *pointwise*: every
     /// position's score depends only on the input text, so `segment()`
     /// skips its sequential scoring pass entirely (issue #183). The
-    /// bundled `korean.model` is trained this way; for Japanese and
-    /// Chinese the tag features carry some quality (see the measured
-    /// trade-off in the Pre-trained Models documentation), so this is an
-    /// explicit speed-over-quality choice there.
+    /// bundled `korean.model` and `english.model` are trained this way; for
+    /// Japanese and Chinese the tag features carry some quality (see the
+    /// measured trade-off in the Pre-trained Models documentation), so this
+    /// is an explicit speed-over-quality choice there.
     ///
     /// # Arguments
     /// * `corpus_path` - The path to the input corpus file (the

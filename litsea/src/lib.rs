@@ -48,8 +48,8 @@ pub use user_dictionary::UserDictionary;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-/// Returns the version of the litsea crate (the `CARGO_PKG_VERSION` it was
-/// built with), e.g. `"0.6.0"`.
+/// Returns the version of the litsea crate: the `CARGO_PKG_VERSION` it was
+/// built with.
 #[must_use]
 pub fn version() -> &'static str {
     VERSION

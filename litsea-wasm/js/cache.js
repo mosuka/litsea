@@ -1,7 +1,7 @@
 /**
  * Optional model caching for the browser.
  *
- * Models are 84 KB to 8 MB and cross the network once per visitor, which is
+ * Models are 86 KB to 8.3 MB and cross the network once per visitor, which is
  * the one cost this binding has that the native ones do not. This helper
  * keeps a fetched model in Cache Storage so reloads and repeat visits skip
  * the download. It is plain JavaScript and lives outside the wasm module, so

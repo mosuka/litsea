@@ -70,10 +70,18 @@ pub async fn read_model_bytes(uri: &str) -> Result<Vec<u8>> {
 
     match scheme {
         ModelScheme::Http | ModelScheme::Https => {
-            #[cfg(not(feature = "remote_model"))]
+            #[cfg(all(not(feature = "remote_model"), not(target_arch = "wasm32")))]
             {
                 Err(LitseaError::Unsupported(
                     "http:// and https:// scheme is not supported in this build. Use file:// URLs.",
+                ))
+            }
+            // wasm32 has no filesystem either, so `file://` is no way out.
+            #[cfg(all(not(feature = "remote_model"), target_arch = "wasm32"))]
+            {
+                Err(LitseaError::Unsupported(
+                    "http:// and https:// scheme is not supported in this build. \
+                     Load the model from its bytes with `load_model_from_reader`.",
                 ))
             }
             #[cfg(feature = "remote_model")]
@@ -92,10 +100,15 @@ fn read_file_bytes(path: &str) -> Result<Vec<u8>> {
 }
 
 /// Local filesystem access is unavailable on wasm32.
+///
+/// The error points to loading from bytes rather than to `http(s)://`
+/// URLs: litsea-wasm builds without the `remote_model` feature (see its
+/// `Cargo.toml`), and the bytes work in every build.
 #[cfg(target_arch = "wasm32")]
 fn read_file_bytes(_path: &str) -> Result<Vec<u8>> {
     Err(LitseaError::Unsupported(
-        "File system access is not supported in WASM environment. Use http:// or https:// URLs.",
+        "File system access is not supported in WASM environment. \
+         Load the model from its bytes with `load_model_from_reader`.",
     ))
 }
 

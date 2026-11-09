@@ -164,7 +164,7 @@ test-litsea-wasm: ## Test litsea-wasm (Rust unit tests + headless browser tests)
 lint-litsea-wasm: ## Lint litsea-wasm (clippy on wasm32)
 	cargo clippy -p litsea-wasm --target wasm32-unknown-unknown -- -D warnings
 
-lint-litsea-python: setup-venv ## Lint litsea-python (clippy + ruff + mypy)
+lint-litsea-python: setup-venv ## Lint litsea-python (clippy + ruff)
 	cargo clippy -p litsea-python --all-targets -- -D warnings
 	cd litsea-python && $(abspath $(PYTHON_VENV_DIR))/bin/ruff check python/ tests/ examples/
 	cd litsea-python && $(abspath $(PYTHON_VENV_DIR))/bin/ruff format --check python/ tests/ examples/

@@ -274,7 +274,7 @@ impl JsSegmenter {
     /// * `text` - The sentence to segment.
     ///
     /// # Returns
-    /// The tokens, with `pos` set to `null`.
+    /// The tokens, with `pos` left `undefined`.
     #[napi]
     pub fn segment_tokens(&self, text: String) -> Vec<Token> {
         self.inner.segment_tokens(&text).into_iter().map(Token::from).collect()

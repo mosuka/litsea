@@ -27,7 +27,7 @@ pub mod trainer;
 /// Returns the version of the underlying `litsea` crate.
 ///
 /// # Returns
-/// The version string, for example `"0.12.0"`.
+/// The version string: the `CARGO_PKG_VERSION` the `litsea` crate was built with.
 #[napi]
 pub fn version() -> String {
     litsea::version().to_string()
