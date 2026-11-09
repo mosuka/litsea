@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-0e59f8ff.js";
+            window.path_to_searchindex_js = "searchindex-de856ab6.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-e6a0f222.js"></script>
@@ -5237,12 +5237,22 @@ make build-litsea-nodejs   # release build
 <p>A PHP extension is a shared object built against a specific PHP ABI, so a prebuilt binary fits only one PHP version, thread-safety mode and platform: PIE downloads a matching one from the GitHub release when there is one, and otherwise compiles the extension for your PHP. You can also build it by hand.</p>
 <pre><code class="language-sh">pie install mosuka/litsea
 </code></pre>
-<p>PIE 1.4 or later downloads a prebuilt <code>litsea.so</code> from the GitHub release for PHP 8.1 to 8.5 (NTS or ZTS) on Linux x86_64 / arm64 (glibc 2.35 or newer) and macOS on Apple silicon, installs it into the extension directory and enables it; no Rust toolchain is involved (<code>--with-php-config=...</code> selects another PHP). Other combinations (musl such as Alpine, older glibc, Intel Macs, PIE before 1.4) fall back to a source build, which needs a Rust toolchain, libclang and PIE’s build tools (<code>autoconf</code>, <code>libtool</code>, <code>make</code>); Windows is not supported. Composer itself ignores <code>php-ext</code> packages, so <code>composer require mosuka/litsea</code> is not an installation route.</p>
+<p>PIE 1.4 or later downloads a prebuilt <code>litsea.so</code> from the GitHub release for PHP 8.1 to 8.5 (NTS or ZTS) on Linux x86_64 / arm64 (glibc 2.35 or newer) and macOS on Apple silicon, installs it into the extension directory and enables it; no Rust toolchain is involved (<code>--with-php-config=...</code> selects another PHP). Other combinations (musl such as Alpine, older glibc, Intel Macs, PIE before 1.4) fall back to a source build, which needs a Rust toolchain, libclang (with several LLVM versions installed, see <a href="#several-llvm-versions">Several LLVM versions</a>) and PIE’s build tools (<code>autoconf</code>, <code>libtool</code>, <code>make</code>); Windows is not supported. Composer itself ignores <code>php-ext</code> packages, so <code>composer require mosuka/litsea</code> is not an installation route.</p>
 <p>Without PIE, build and load the library yourself:</p>
 <pre><code class="language-sh">cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 </code></pre>
 <p>Add it to <code>php.ini</code> (<code>extension=/path/to/liblitsea_php.so</code>) to load it everywhere. On macOS, cargo writes <code>liblitsea_php.dylib</code> instead; load that path. Either way <code>php -m</code> lists the extension as <code>litsea</code>.</p>
+<h3 id="several-llvm-versions"><a class="header" href="#several-llvm-versions">Several LLVM versions</a></h3>
+<p>A source build generates the PHP bindings with bindgen, in the build script of ext-php-rs. bindgen parses the PHP headers with libclang, the newest one it finds unless <code>LIBCLANG_PATH</code> names one, and takes the system include paths, clang’s own headers among them, from a <code>clang</code> executable: <code>CLANG_PATH</code>, else the one in <code>llvm-config --bindir</code>, else the one on <code>PATH</code>. When several LLVM versions are installed, the two can come from different versions, and the build stops with errors in clang’s headers, followed by <code>Unable to generate bindings for PHP</code>:</p>
+<pre><code class="language-text">/usr/lib/llvm-21/lib/clang/21/include/xmmintrin.h:245:10: error: invalid conversion between vector type '__m128' (vector of 4 'float' values) and integer type 'int' of different size
+/usr/lib/llvm-21/lib/clang/21/include/emmintrin.h:253:11: error: initializing '__m128d' (vector of 2 'double' values) with an expression of incompatible type 'int'
+Error: Unable to generate bindings for PHP
+</code></pre>
+<p>Point both at one LLVM version, then run <code>pie install mosuka/litsea</code> or <code>cargo build --release -p litsea-php</code> again in the same shell. On Debian and Ubuntu, LLVM 21 for example:</p>
+<pre><code class="language-sh">export LIBCLANG_PATH=/usr/lib/llvm-21/lib
+export CLANG_PATH=/usr/lib/llvm-21/bin/clang
+</code></pre>
 <h2 id="stubs-for-static-analysis"><a class="header" href="#stubs-for-static-analysis">Stubs for static analysis</a></h2>
 <p><code>litsea-php/stubs/litsea.stubs.php</code> declares every class and function for IDEs, PHPStan (<code>stubFiles</code>) and Psalm (<code>stubs</code>). It is generated from the compiled extension and checked by the test suite, so it cannot drift from the Rust source. Point the analyser at a copy of the file; never include it at runtime, where the extension already declares the classes.</p>
 <h2 id="getting-a-model-2"><a class="header" href="#getting-a-model-2">Getting a model</a></h2>

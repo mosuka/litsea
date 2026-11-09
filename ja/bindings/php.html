@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-4f35845a.js";
+            window.path_to_searchindex_js = "../searchindex-a46879e0.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-1d4dde61.js"></script>
@@ -186,12 +186,22 @@
 <p>PHP 拡張は特定の PHP ABI 向けにビルドされた共有オブジェクトなので、ビルド済みバイナリは 1 つの PHP バージョン・スレッドセーフ方式・プラットフォームにしか合いません。PIE は、合うものが GitHub Release にあればそれをダウンロードし、無ければ使っている PHP に合わせて拡張をビルドします。自分の手でビルドすることもできます。</p>
 <pre><code class="language-sh">pie install mosuka/litsea
 </code></pre>
-<p>PIE 1.4 以降は、PHP 8.1〜8.5（NTS / ZTS）× Linux x86_64 / arm64（glibc 2.35 以上）または Apple シリコンの macOS 向けのビルド済み <code>litsea.so</code> を GitHub Release からダウンロードし、拡張ディレクトリへ配置して有効化します。Rust ツールチェーンは不要です（<code>--with-php-config=...</code> で別の PHP を選べます）。それ以外の組み合わせ（Alpine などの musl、古い glibc、Intel Mac、PIE 1.4 未満）ではソースビルドにフォールバックし、Rust ツールチェーン、libclang、PIE のビルドツール（<code>autoconf</code>、<code>libtool</code>、<code>make</code>）が必要になります。Windows は未対応です。Composer 自体は <code>php-ext</code> 型のパッケージを無視するため、<code>composer require mosuka/litsea</code> ではインストールできません。</p>
+<p>PIE 1.4 以降は、PHP 8.1〜8.5（NTS / ZTS）× Linux x86_64 / arm64（glibc 2.35 以上）または Apple シリコンの macOS 向けのビルド済み <code>litsea.so</code> を GitHub Release からダウンロードし、拡張ディレクトリへ配置して有効化します。Rust ツールチェーンは不要です（<code>--with-php-config=...</code> で別の PHP を選べます）。それ以外の組み合わせ（Alpine などの musl、古い glibc、Intel Mac、PIE 1.4 未満）ではソースビルドにフォールバックし、Rust ツールチェーン、libclang（複数の LLVM が入っている場合は<a href="#複数の-llvm-が入っている環境">複数の LLVM が入っている環境</a>を参照）、PIE のビルドツール（<code>autoconf</code>、<code>libtool</code>、<code>make</code>）が必要になります。Windows は未対応です。Composer 自体は <code>php-ext</code> 型のパッケージを無視するため、<code>composer require mosuka/litsea</code> ではインストールできません。</p>
 <p>PIE を使わない場合は自分でビルドして読み込みます。</p>
 <pre><code class="language-sh">cargo build --release -p litsea-php
 php -d extension=/path/to/target/release/liblitsea_php.so your-script.php
 </code></pre>
 <p>常時読み込む場合は <code>php.ini</code> に <code>extension=/path/to/liblitsea_php.so</code> を追記します。macOS では cargo が <code>liblitsea_php.dylib</code> を書き出すので、そのパスを読み込んでください。どちらの方法でも <code>php -m</code> には <code>litsea</code> と表示されます。</p>
+<h3 id="複数の-llvm-が入っている環境"><a class="header" href="#複数の-llvm-が入っている環境">複数の LLVM が入っている環境</a></h3>
+<p>ソースビルドでは、ext-php-rs のビルドスクリプトの中で bindgen が PHP のバインディングを生成します。bindgen は PHP のヘッダを libclang で解析し、その libclang には、<code>LIBCLANG_PATH</code> で指定しない限り、見つかったうちで一番新しいものを使います。一方、clang 自身のヘッダを含むシステムのインクルードパスは、<code>clang</code> の実行ファイル（<code>CLANG_PATH</code>、なければ <code>llvm-config --bindir</code> にあるもの、それもなければ <code>PATH</code> にあるもの）から取得します。複数の LLVM が入っていると、この 2 つが別のバージョンになることがあり、その場合は clang のヘッダでエラーが出たあと、<code>Unable to generate bindings for PHP</code> でビルドが止まります。</p>
+<pre><code class="language-text">/usr/lib/llvm-21/lib/clang/21/include/xmmintrin.h:245:10: error: invalid conversion between vector type '__m128' (vector of 4 'float' values) and integer type 'int' of different size
+/usr/lib/llvm-21/lib/clang/21/include/emmintrin.h:253:11: error: initializing '__m128d' (vector of 2 'double' values) with an expression of incompatible type 'int'
+Error: Unable to generate bindings for PHP
+</code></pre>
+<p>両方を同じバージョンの LLVM に合わせてから、同じシェルで <code>pie install mosuka/litsea</code> または <code>cargo build --release -p litsea-php</code> をもう一度実行してください。Debian や Ubuntu で LLVM 21 に合わせる例です。</p>
+<pre><code class="language-sh">export LIBCLANG_PATH=/usr/lib/llvm-21/lib
+export CLANG_PATH=/usr/lib/llvm-21/bin/clang
+</code></pre>
 <h2 id="静的解析向けのスタブ"><a class="header" href="#静的解析向けのスタブ">静的解析向けのスタブ</a></h2>
 <p><code>litsea-php/stubs/litsea.stubs.php</code> は、すべてのクラスと関数を IDE・PHPStan（<code>stubFiles</code>）・Psalm（<code>stubs</code>）向けに宣言したファイルです。ビルド済みの拡張から生成し、テストスイートが検証するため、Rust のソースと食い違うことはありません。解析ツールからこのファイルのコピーを指してください。実行時に読み込んではいけません（拡張がすでにクラスを宣言しています）。</p>
 <h2 id="モデルの入手"><a class="header" href="#モデルの入手">モデルの入手</a></h2>
