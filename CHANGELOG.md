@@ -25,6 +25,11 @@
   copied the two files into `pkg/`, but the `files` list of the
   `package.json` that wasm-pack writes left them out. Regression now builds
   the package and checks its file list (`make check-litsea-wasm-package`).
+- `litsea segment --user-words` and `litsea evaluate --user-words`: a line
+  of the dictionary that cannot be read, such as one that is not valid
+  UTF-8, is reported with the file and the line (`cannot read user
+  dictionary words.txt, line 2: stream did not contain valid UTF-8`)
+  (#287). The error used to be `stream did not contain valid UTF-8` alone.
 
 ### Documentation
 
