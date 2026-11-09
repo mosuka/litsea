@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-2a1cffa9.js";
+            window.path_to_searchindex_js = "../searchindex-273b79c3.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-e6a0f222.js"></script>
@@ -300,7 +300,7 @@ metrics = Trainer(0.01, 100_000, "features.txt").train("japanese.model", cancel=
 <h2 id="development"><a class="header" href="#development">Development</a></h2>
 <pre><code class="language-sh">make setup-venv            # create the venv and install the dev tools
 make test-litsea-python    # cargo test + maturin develop + pytest
-make lint-litsea-python    # clippy + ruff
+make lint-litsea-python    # clippy + ruff + mypy
 make build-litsea-python   # build a release wheel into litsea-python/dist
 </code></pre>
 <p>The parity tests build the <code>litsea</code> CLI and compare the binding’s output against it, so the reference implementation — not a hardcoded expectation — decides what is correct.</p>
