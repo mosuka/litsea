@@ -145,7 +145,7 @@ bash scripts/corpus_wikidump.sh -l zh zhwiki-latest-pages-articles.xml.bz2 corpu
 | `-l lang` | 言語コード: `ja`, `ko`, `zh` | `ja` |
 | `-n max_lines` | 処理する最大文数（0 = 無制限） | `100000` |
 
-このスクリプトには、`PATH` 上の `wicket` と `lindera` が必要です。wicket の出力ファイルは、フィルタと `-n` の上限を適用する前にランダムな順序（`shuf`）で連結されます。そのため上限を付けたコーパスはダンプからのランダムな抽出になり、実行のたびに変わります。
+このスクリプトには、`wicket`、`shuf`、bash 4 以降と、言語の辞書（下の表）を埋め込んだ `lindera` が `PATH` 上に必要です。`cargo install lindera-cli` だけでは辞書が埋め込まれないため、`ja` なら `--features embed-unidic`、`ko` なら `embed-ko-dic`、`zh` なら `embed-cc-cedict` を付けてインストールしてください。wicket の出力ファイルは、フィルタと `-n` の上限を適用する前にランダムな順序（`shuf`）で連結されます。そのため上限を付けたコーパスはダンプからのランダムな抽出になり、実行のたびに変わります。
 
 ### 文章フィルタリング
 

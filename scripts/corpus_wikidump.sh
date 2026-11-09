@@ -50,15 +50,16 @@ output_file="$2"
 case "${lang}" in
     ja)
         lindera_dict="embedded://unidic"
-        lindera_filters='-t japanese_compound_word:{"kind":"unidic","tags":["名詞,数詞"],"new_tag":"複合語"}'
+        # Passed as the value of one -t option (see the lindera command below).
+        lindera_filter='japanese_compound_word:{"kind":"unidic","tags":["名詞,数詞"],"new_tag":"複合語"}'
         ;;
     ko)
         lindera_dict="embedded://ko-dic"
-        lindera_filters=""
+        lindera_filter=""
         ;;
     zh)
         lindera_dict="embedded://cc-cedict"
-        lindera_filters=""
+        lindera_filter=""
         ;;
     *)
         echo "Error: Unsupported language '${lang}'. Supported: ja, ko, zh" >&2
@@ -120,10 +121,12 @@ else
     limit_cmd="cat"
 fi
 
-# Build lindera command
-lindera_cmd="lindera tokenize -d \"${lindera_dict}\" -o wakati"
-if [ -n "${lindera_filters}" ]; then
-    lindera_cmd="${lindera_cmd} -t '${lindera_filters}'"
+# Build the lindera arguments as an array, so that the filter reaches lindera
+# as the single value of -t, unchanged: no eval, no word splitting and no
+# pathname expansion of its brackets (#288).
+lindera_args=(tokenize -d "${lindera_dict}" -o wakati)
+if [ -n "${lindera_filter}" ]; then
+    lindera_args+=(-t "${lindera_filter}")
 fi
 
 cat "${wiki_files[@]}" \
@@ -133,7 +136,7 @@ cat "${wiki_files[@]}" \
     | grep '[。.!?]$' \
     | awk 'length >= 20' \
     | ${limit_cmd} \
-    | eval ${lindera_cmd} \
+    | lindera "${lindera_args[@]}" \
     > "${output_file}"
 
 line_count=$(wc -l < "${output_file}")
